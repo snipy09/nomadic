@@ -1,0 +1,1437 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "hermes-agent",
+  "elements": [
+    {
+      "type": "text",
+      "id": "main_title",
+      "x": 480,
+      "y": 40,
+      "text": "Nomadic Career OS \u2014 Master System Architecture",
+      "fontSize": 26,
+      "fontFamily": 1,
+      "strokeColor": "#09090b",
+      "originalText": "Nomadic Career OS \u2014 Master System Architecture",
+      "autoResize": true
+    },
+    {
+      "type": "text",
+      "id": "sub_title",
+      "x": 510,
+      "y": 80,
+      "text": "v1.0.6 Authenticode Signed \u2022 Zero-Trust Electron \u2022 OmniForm AI Pilot \u2022 Sub-30ms Cloud Feed",
+      "fontSize": 16,
+      "fontFamily": 1,
+      "strokeColor": "#71717a",
+      "originalText": "v1.0.6 Authenticode Signed \u2022 Zero-Trust Electron \u2022 OmniForm AI Pilot \u2022 Sub-30ms Cloud Feed",
+      "autoResize": true
+    },
+    {
+      "type": "rectangle",
+      "id": "zone_client",
+      "x": 60,
+      "y": 130,
+      "width": 1420,
+      "height": 240,
+      "backgroundColor": "#f8fafc",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#3b82f6",
+      "strokeWidth": 1,
+      "opacity": 40,
+      "strokeStyle": "dashed"
+    },
+    {
+      "type": "text",
+      "id": "t_zone_client",
+      "x": 75,
+      "y": 142,
+      "text": "1. Presentation & Client Surface Layer",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "strokeColor": "#3b82f6",
+      "originalText": "1. Presentation & Client Surface Layer",
+      "autoResize": true
+    },
+    {
+      "type": "rectangle",
+      "id": "app_electron",
+      "x": 90,
+      "y": 190,
+      "width": 240,
+      "height": 150,
+      "roundness": {
+        "type": 3
+      },
+      "backgroundColor": "#bae2fd",
+      "fillStyle": "solid",
+      "strokeColor": "#0284c7",
+      "strokeWidth": 2,
+      "opacity": 100,
+      "boundElements": [
+        {
+          "id": "t_app_electron",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_app_electron",
+      "x": 100,
+      "y": 253,
+      "width": 220,
+      "height": 130,
+      "text": "Electron Desktop App (v1.0.6)\n\n\u2022 Authenticode Signed\n\u2022 Context Isolation: true\n\u2022 DevTools Locked in Prod\n\u2022 Native IPC Bridge",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "strokeColor": "#1e1e1e",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "app_electron",
+      "originalText": "Electron Desktop App (v1.0.6)\n\n\u2022 Authenticode Signed\n\u2022 Context Isolation: true\n\u2022 DevTools Locked in Prod\n\u2022 Native IPC Bridge",
+      "autoResize": true
+    },
+    {
+      "type": "rectangle",
+      "id": "app_web",
+      "x": 360,
+      "y": 190,
+      "width": 220,
+      "height": 150,
+      "roundness": {
+        "type": 3
+      },
+      "backgroundColor": "#e0f2fe",
+      "fillStyle": "solid",
+      "strokeColor": "#0284c7",
+      "strokeWidth": 2,
+      "opacity": 100,
+      "boundElements": [
+        {
+          "id": "t_app_web",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_app_web",
+      "x": 370,
+      "y": 253,
+      "width": 200,
+      "height": 130,
+      "text": "Web Portal & Pre-Reg\n(nomadicai.vercel.app)\n\n\u2022 Closed Alpha Cohort\n\u2022 \u20b999 Reservation Portal\n\u2022 Direct WhatsApp Gateway",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "strokeColor": "#1e1e1e",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "app_web",
+      "originalText": "Web Portal & Pre-Reg\n(nomadicai.vercel.app)\n\n\u2022 Closed Alpha Cohort\n\u2022 \u20b999 Reservation Portal\n\u2022 Direct WhatsApp Gateway",
+      "autoResize": true
+    },
+    {
+      "type": "rectangle",
+      "id": "ui_modes",
+      "x": 610,
+      "y": 190,
+      "width": 260,
+      "height": 150,
+      "roundness": {
+        "type": 3
+      },
+      "backgroundColor": "#ffffff",
+      "fillStyle": "solid",
+      "strokeColor": "#64748b",
+      "strokeWidth": 2,
+      "opacity": 100,
+      "boundElements": [
+        {
+          "id": "t_ui_modes",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_ui_modes",
+      "x": 620,
+      "y": 253,
+      "width": 240,
+      "height": 130,
+      "text": "Adaptive Workspace Modes\n\n\u2022 Learner Mode (Curriculum/Bank)\n\u2022 Seeker Mode (ATS Feed/Apply)\n\u2022 Unified [Learn | Seek] Switcher\n\u2022 Job / Internship Filtering",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "strokeColor": "#1e1e1e",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "ui_modes",
+      "originalText": "Adaptive Workspace Modes\n\n\u2022 Learner Mode (Curriculum/Bank)\n\u2022 Seeker Mode (ATS Feed/Apply)\n\u2022 Unified [Learn | Seek] Switcher\n\u2022 Job / Internship Filtering",
+      "autoResize": true
+    },
+    {
+      "type": "rectangle",
+      "id": "ui_assistant",
+      "x": 900,
+      "y": 190,
+      "width": 270,
+      "height": 150,
+      "roundness": {
+        "type": 3
+      },
+      "backgroundColor": "#dbeafe",
+      "fillStyle": "solid",
+      "strokeColor": "#2563eb",
+      "strokeWidth": 2,
+      "opacity": 100,
+      "boundElements": [
+        {
+          "id": "t_ui_assistant",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_ui_assistant",
+      "x": 910,
+      "y": 253,
+      "width": 250,
+      "height": 130,
+      "text": "Max AI Assistant (Bottom-Right)\n(NomadicAssistant.tsx)\n\n\u2022 App-Wide Action Dispatch\n\u2022 Real-Time Interview & Salary Copilot\n\u2022 Strict Anti-Homework Guardrails",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "strokeColor": "#1e1e1e",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "ui_assistant",
+      "originalText": "Max AI Assistant (Bottom-Right)\n(NomadicAssistant.tsx)\n\n\u2022 App-Wide Action Dispatch\n\u2022 Real-Time Interview & Salary Copilot\n\u2022 Strict Anti-Homework Guardrails",
+      "autoResize": true
+    },
+    {
+      "type": "rectangle",
+      "id": "ui_batch_drawer",
+      "x": 1200,
+      "y": 190,
+      "width": 250,
+      "height": 150,
+      "roundness": {
+        "type": 3
+      },
+      "backgroundColor": "#f1f5f9",
+      "fillStyle": "solid",
+      "strokeColor": "#475569",
+      "strokeWidth": 2,
+      "opacity": 100,
+      "boundElements": [
+        {
+          "id": "t_ui_batch_drawer",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_ui_batch_drawer",
+      "x": 1210,
+      "y": 253,
+      "width": 230,
+      "height": 130,
+      "text": "Parallel Batch Review Drawer\n(BatchCoPilotReviewModal.tsx)\n\n\u2022 Multi-Tab Concurrent Review\n\u2022 Global / Per-Job Command Prompts\n\u2022 1-Click 'Submit All' Execution",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "strokeColor": "#1e1e1e",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "ui_batch_drawer",
+      "originalText": "Parallel Batch Review Drawer\n(BatchCoPilotReviewModal.tsx)\n\n\u2022 Multi-Tab Concurrent Review\n\u2022 Global / Per-Job Command Prompts\n\u2022 1-Click 'Submit All' Execution",
+      "autoResize": true
+    },
+    {
+      "type": "rectangle",
+      "id": "zone_security",
+      "x": 60,
+      "y": 410,
+      "width": 480,
+      "height": 290,
+      "backgroundColor": "#fffbeb",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#d97706",
+      "strokeWidth": 1,
+      "opacity": 40,
+      "strokeStyle": "dashed"
+    },
+    {
+      "type": "text",
+      "id": "t_zone_security",
+      "x": 75,
+      "y": 422,
+      "text": "2. Security & Tier Enforcement (Zero-Trust)",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "strokeColor": "#d97706",
+      "originalText": "2. Security & Tier Enforcement (Zero-Trust)",
+      "autoResize": true
+    },
+    {
+      "type": "rectangle",
+      "id": "ipc_handlers",
+      "x": 90,
+      "y": 465,
+      "width": 420,
+      "height": 90,
+      "roundness": {
+        "type": 3
+      },
+      "backgroundColor": "#fef3c7",
+      "fillStyle": "solid",
+      "strokeColor": "#d97706",
+      "strokeWidth": 2,
+      "opacity": 100,
+      "boundElements": [
+        {
+          "id": "t_ipc_handlers",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_ipc_handlers",
+      "x": 100,
+      "y": 498,
+      "width": 400,
+      "height": 70,
+      "text": "Privileged Secure IPC Handlers\n('launch-autonomous', 'start-batch-copilot',\n'ask-nomadic-assistant', 'send-outreach')",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "strokeColor": "#1e1e1e",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "ipc_handlers",
+      "originalText": "Privileged Secure IPC Handlers\n('launch-autonomous', 'start-batch-copilot',\n'ask-nomadic-assistant', 'send-outreach')",
+      "autoResize": true
+    },
+    {
+      "type": "rectangle",
+      "id": "tier_verifier",
+      "x": 90,
+      "y": 580,
+      "width": 420,
+      "height": 95,
+      "roundness": {
+        "type": 3
+      },
+      "backgroundColor": "#fff7ed",
+      "fillStyle": "solid",
+      "strokeColor": "#ea580c",
+      "strokeWidth": 2,
+      "opacity": 100,
+      "boundElements": [
+        {
+          "id": "t_tier_verifier",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_tier_verifier",
+      "x": 100,
+      "y": 616,
+      "width": 400,
+      "height": 75,
+      "text": "Server-Side Tier Verifier (getVerifiedServerUserTier)\n\n\u2022 Direct cryptographic lookup against Supabase users_profile\n\u2022 Lossless tier mapping (Free / Pro / Max)\n\u2022 SQLite user_cache tampering immune",
+      "fontSize": 13,
+      "fontFamily": 1,
+      "strokeColor": "#1e1e1e",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "tier_verifier",
+      "originalText": "Server-Side Tier Verifier (getVerifiedServerUserTier)\n\n\u2022 Direct cryptographic lookup against Supabase users_profile\n\u2022 Lossless tier mapping (Free / Pro / Max)\n\u2022 SQLite user_cache tampering immune",
+      "autoResize": true
+    },
+    {
+      "type": "rectangle",
+      "id": "zone_engine",
+      "x": 580,
+      "y": 410,
+      "width": 900,
+      "height": 290,
+      "backgroundColor": "#f0fdf4",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#16a34a",
+      "strokeWidth": 1,
+      "opacity": 40,
+      "strokeStyle": "dashed"
+    },
+    {
+      "type": "text",
+      "id": "t_zone_engine",
+      "x": 595,
+      "y": 422,
+      "text": "3. Perception & Autonomous ATS Engine",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "strokeColor": "#16a34a",
+      "originalText": "3. Perception & Autonomous ATS Engine",
+      "autoResize": true
+    },
+    {
+      "type": "rectangle",
+      "id": "ai_pilot",
+      "x": 610,
+      "y": 465,
+      "width": 260,
+      "height": 210,
+      "roundness": {
+        "type": 3
+      },
+      "backgroundColor": "#dcfce7",
+      "fillStyle": "solid",
+      "strokeColor": "#16a34a",
+      "strokeWidth": 2,
+      "opacity": 100,
+      "boundElements": [
+        {
+          "id": "t_ai_pilot",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_ai_pilot",
+      "x": 620,
+      "y": 558,
+      "width": 240,
+      "height": 190,
+      "text": "AI Pilot Perception Loop\n(generateAIPilotPlan)\n\n\u2022 DOM node tagging (data-nomadic-id)\n\u2022 Contextual visual & schema reasoning\n\u2022 Dynamic field arbitration\n\u2022 Step-by-step auto-recovery",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "strokeColor": "#1e1e1e",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "ai_pilot",
+      "originalText": "AI Pilot Perception Loop\n(generateAIPilotPlan)\n\n\u2022 DOM node tagging (data-nomadic-id)\n\u2022 Contextual visual & schema reasoning\n\u2022 Dynamic field arbitration\n\u2022 Step-by-step auto-recovery",
+      "autoResize": true
+    },
+    {
+      "type": "rectangle",
+      "id": "omniform_solver",
+      "x": 900,
+      "y": 465,
+      "width": 270,
+      "height": 210,
+      "roundness": {
+        "type": 3
+      },
+      "backgroundColor": "#bbf7d0",
+      "fillStyle": "solid",
+      "strokeColor": "#15803d",
+      "strokeWidth": 2,
+      "opacity": 100,
+      "boundElements": [
+        {
+          "id": "t_omniform_solver",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_omniform_solver",
+      "x": 910,
+      "y": 559,
+      "width": 250,
+      "height": 190,
+      "text": "OmniForm Multi-Pass Solver\n(>95% Success Rate)\n\n\u2022 React 18 prototype setter override\n\u2022 Unanchored full-paragraph radios\n\u2022 Work Auth / Relocation defaults\n\u2022 Opacity-0 synthetic event clickers\n\u2022 Minimal PDF binary stream injector",
+      "fontSize": 13,
+      "fontFamily": 1,
+      "strokeColor": "#1e1e1e",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "omniform_solver",
+      "originalText": "OmniForm Multi-Pass Solver\n(>95% Success Rate)\n\n\u2022 React 18 prototype setter override\n\u2022 Unanchored full-paragraph radios\n\u2022 Work Auth / Relocation defaults\n\u2022 Opacity-0 synthetic event clickers\n\u2022 Minimal PDF binary stream injector",
+      "autoResize": true
+    },
+    {
+      "type": "rectangle",
+      "id": "specialized_bots",
+      "x": 1200,
+      "y": 465,
+      "width": 250,
+      "height": 95,
+      "roundness": {
+        "type": 3
+      },
+      "backgroundColor": "#ffffff",
+      "fillStyle": "solid",
+      "strokeColor": "#16a34a",
+      "strokeWidth": 2,
+      "opacity": 100,
+      "boundElements": [
+        {
+          "id": "t_specialized_bots",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_specialized_bots",
+      "x": 1210,
+      "y": 501,
+      "width": 230,
+      "height": 75,
+      "text": "Specialized Portal Bots\n\n\u2022 AshbyBot (error callouts)\n\u2022 InternshalaBot (modal scroll/tabs)\n\u2022 GreenhouseBot & LeverBot",
+      "fontSize": 13,
+      "fontFamily": 1,
+      "strokeColor": "#1e1e1e",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "specialized_bots",
+      "originalText": "Specialized Portal Bots\n\n\u2022 AshbyBot (error callouts)\n\u2022 InternshalaBot (modal scroll/tabs)\n\u2022 GreenhouseBot & LeverBot",
+      "autoResize": true
+    },
+    {
+      "type": "rectangle",
+      "id": "batch_copilot_engine",
+      "x": 1200,
+      "y": 580,
+      "width": 250,
+      "height": 95,
+      "roundness": {
+        "type": 3
+      },
+      "backgroundColor": "#f0fdf4",
+      "fillStyle": "solid",
+      "strokeColor": "#22c55e",
+      "strokeWidth": 2,
+      "opacity": 100,
+      "boundElements": [
+        {
+          "id": "t_batch_copilot_engine",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_batch_copilot_engine",
+      "x": 1210,
+      "y": 616,
+      "width": 230,
+      "height": 75,
+      "text": "Parallel Headful Co-Pilot\n\n\u2022 Dedicated Chrome CDP Profile\n\u2022 3-5 concurrent tab workers\n\u2022 Live DOM visual verification",
+      "fontSize": 13,
+      "fontFamily": 1,
+      "strokeColor": "#1e1e1e",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "batch_copilot_engine",
+      "originalText": "Parallel Headful Co-Pilot\n\n\u2022 Dedicated Chrome CDP Profile\n\u2022 3-5 concurrent tab workers\n\u2022 Live DOM visual verification",
+      "autoResize": true
+    },
+    {
+      "type": "rectangle",
+      "id": "zone_cloud",
+      "x": 60,
+      "y": 740,
+      "width": 1420,
+      "height": 220,
+      "backgroundColor": "#faf5ff",
+      "fillStyle": "solid",
+      "roundness": {
+        "type": 3
+      },
+      "strokeColor": "#9333ea",
+      "strokeWidth": 1,
+      "opacity": 40,
+      "strokeStyle": "dashed"
+    },
+    {
+      "type": "text",
+      "id": "t_zone_cloud",
+      "x": 75,
+      "y": 752,
+      "text": "4. Cloud Infrastructure, Pipeline & Scrapers",
+      "fontSize": 18,
+      "fontFamily": 1,
+      "strokeColor": "#9333ea",
+      "originalText": "4. Cloud Infrastructure, Pipeline & Scrapers",
+      "autoResize": true
+    },
+    {
+      "type": "rectangle",
+      "id": "supabase_db",
+      "x": 90,
+      "y": 800,
+      "width": 360,
+      "height": 135,
+      "roundness": {
+        "type": 3
+      },
+      "backgroundColor": "#f3e8ff",
+      "fillStyle": "solid",
+      "strokeColor": "#9333ea",
+      "strokeWidth": 2,
+      "opacity": 100,
+      "boundElements": [
+        {
+          "id": "t_supabase_db",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_supabase_db",
+      "x": 100,
+      "y": 856,
+      "width": 340,
+      "height": 115,
+      "text": "Supabase Cloud Backend\n\n\u2022 PostgreSQL users_profile (Tier & Roles)\n\u2022 Sub-30ms Paginated Feed (get-cloud-feed-page)\n\u2022 18 / 36 / 54 items range pagination\n\u2022 Edge Functions & Row Level Security (RLS)",
+      "fontSize": 13,
+      "fontFamily": 1,
+      "strokeColor": "#1e1e1e",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "supabase_db",
+      "originalText": "Supabase Cloud Backend\n\n\u2022 PostgreSQL users_profile (Tier & Roles)\n\u2022 Sub-30ms Paginated Feed (get-cloud-feed-page)\n\u2022 18 / 36 / 54 items range pagination\n\u2022 Edge Functions & Row Level Security (RLS)",
+      "autoResize": true
+    },
+    {
+      "type": "rectangle",
+      "id": "scraper_pipeline",
+      "x": 500,
+      "y": 800,
+      "width": 430,
+      "height": 135,
+      "roundness": {
+        "type": 3
+      },
+      "backgroundColor": "#ede9fe",
+      "fillStyle": "solid",
+      "strokeColor": "#7c3aed",
+      "strokeWidth": 2,
+      "opacity": 100,
+      "boundElements": [
+        {
+          "id": "t_scraper_pipeline",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_scraper_pipeline",
+      "x": 510,
+      "y": 856,
+      "width": 410,
+      "height": 115,
+      "text": "Master Scraper Pipeline (Scrape_All_Jobs.bat)\n\n\u2022 Continuous ingestion from Ashby, Greenhouse, Lever, Internshala, Remotive\n\u2022 Direct URL resolution & deduplication\n\u2022 Batch sync to Supabase Cloud Database",
+      "fontSize": 13,
+      "fontFamily": 1,
+      "strokeColor": "#1e1e1e",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "scraper_pipeline",
+      "originalText": "Master Scraper Pipeline (Scrape_All_Jobs.bat)\n\n\u2022 Continuous ingestion from Ashby, Greenhouse, Lever, Internshala, Remotive\n\u2022 Direct URL resolution & deduplication\n\u2022 Batch sync to Supabase Cloud Database",
+      "autoResize": true
+    },
+    {
+      "type": "rectangle",
+      "id": "external_portals",
+      "x": 980,
+      "y": 800,
+      "width": 470,
+      "height": 135,
+      "roundness": {
+        "type": 3
+      },
+      "backgroundColor": "#f5f3ff",
+      "fillStyle": "solid",
+      "strokeColor": "#6d28d9",
+      "strokeWidth": 2,
+      "opacity": 100,
+      "boundElements": [
+        {
+          "id": "t_external_portals",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_external_portals",
+      "x": 990,
+      "y": 856,
+      "width": 450,
+      "height": 115,
+      "text": "External ATS Platforms & Portals\n\n\u2022 AshbyHQ \u2022 Greenhouse.io \u2022 Lever.co \u2022 Workday \u2022 Internshala\n\u2022 Headful browser interaction with user cookies intact\n\u2022 1-Click direct verified submission",
+      "fontSize": 13,
+      "fontFamily": 1,
+      "strokeColor": "#1e1e1e",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "external_portals",
+      "originalText": "External ATS Platforms & Portals\n\n\u2022 AshbyHQ \u2022 Greenhouse.io \u2022 Lever.co \u2022 Workday \u2022 Internshala\n\u2022 Headful browser interaction with user cookies intact\n\u2022 1-Click direct verified submission",
+      "autoResize": true
+    },
+    {
+      "type": "arrow",
+      "id": "arr_app_ipc",
+      "x": 210,
+      "y": 340,
+      "width": 0,
+      "height": 125,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          125
+        ]
+      ],
+      "strokeColor": "#0284c7",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "endArrowhead": "arrow",
+      "startBinding": {
+        "elementId": "app_electron",
+        "fixedPoint": [
+          0.5,
+          1
+        ]
+      },
+      "endBinding": {
+        "elementId": "ipc_handlers",
+        "fixedPoint": [
+          0.3,
+          0
+        ]
+      },
+      "boundElements": [
+        {
+          "id": "t_arr_app_ipc",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_arr_app_ipc",
+      "x": 170.0,
+      "y": 390.5,
+      "text": "contextBridge IPC",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "strokeColor": "#0284c7",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "arr_app_ipc",
+      "originalText": "contextBridge IPC",
+      "autoResize": true
+    },
+    {
+      "type": "arrow",
+      "id": "arr_ipc_tier",
+      "x": 300,
+      "y": 555,
+      "width": 0,
+      "height": 25,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          25
+        ]
+      ],
+      "strokeColor": "#d97706",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "endArrowhead": "arrow",
+      "startBinding": {
+        "elementId": "ipc_handlers",
+        "fixedPoint": [
+          0.5,
+          1
+        ]
+      },
+      "endBinding": {
+        "elementId": "tier_verifier",
+        "fixedPoint": [
+          0.5,
+          0
+        ]
+      },
+      "boundElements": [
+        {
+          "id": "t_arr_ipc_tier",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_arr_ipc_tier",
+      "x": 260.0,
+      "y": 555.5,
+      "text": "gate verify",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "strokeColor": "#d97706",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "arr_ipc_tier",
+      "originalText": "gate verify",
+      "autoResize": true
+    },
+    {
+      "type": "arrow",
+      "id": "arr_tier_supa",
+      "x": 270,
+      "y": 675,
+      "width": 0,
+      "height": 125,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          125
+        ]
+      ],
+      "strokeColor": "#9333ea",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "endArrowhead": "arrow",
+      "startBinding": {
+        "elementId": "tier_verifier",
+        "fixedPoint": [
+          0.4,
+          1
+        ]
+      },
+      "endBinding": {
+        "elementId": "supabase_db",
+        "fixedPoint": [
+          0.5,
+          0
+        ]
+      },
+      "boundElements": [
+        {
+          "id": "t_arr_tier_supa",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_arr_tier_supa",
+      "x": 230.0,
+      "y": 725.5,
+      "text": "server tier auth",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "strokeColor": "#9333ea",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "arr_tier_supa",
+      "originalText": "server tier auth",
+      "autoResize": true
+    },
+    {
+      "type": "arrow",
+      "id": "arr_assist_ipc",
+      "x": 950,
+      "y": 340,
+      "width": 500,
+      "height": 125,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -500,
+          125
+        ]
+      ],
+      "strokeColor": "#2563eb",
+      "strokeWidth": 2,
+      "strokeStyle": "dashed",
+      "endArrowhead": "arrow",
+      "startBinding": {
+        "elementId": "ui_assistant",
+        "fixedPoint": [
+          0.2,
+          1
+        ]
+      },
+      "endBinding": {
+        "elementId": "ipc_handlers",
+        "fixedPoint": [
+          0.85,
+          0
+        ]
+      },
+      "boundElements": [
+        {
+          "id": "t_arr_assist_ipc",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_arr_assist_ipc",
+      "x": 660.0,
+      "y": 390.5,
+      "text": "dispatch actions",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "strokeColor": "#2563eb",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "arr_assist_ipc",
+      "originalText": "dispatch actions",
+      "autoResize": true
+    },
+    {
+      "type": "arrow",
+      "id": "arr_ipc_engine",
+      "x": 510,
+      "y": 510,
+      "width": 100,
+      "height": 0,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          100,
+          0
+        ]
+      ],
+      "strokeColor": "#16a34a",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "endArrowhead": "arrow",
+      "startBinding": {
+        "elementId": "ipc_handlers",
+        "fixedPoint": [
+          1,
+          0.5
+        ]
+      },
+      "endBinding": {
+        "elementId": "ai_pilot",
+        "fixedPoint": [
+          0,
+          0.2
+        ]
+      },
+      "boundElements": [
+        {
+          "id": "t_arr_ipc_engine",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_arr_ipc_engine",
+      "x": 520.0,
+      "y": 498.0,
+      "text": "authorized run",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "strokeColor": "#16a34a",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "arr_ipc_engine",
+      "originalText": "authorized run",
+      "autoResize": true
+    },
+    {
+      "type": "arrow",
+      "id": "arr_pilot_omni",
+      "x": 870,
+      "y": 570,
+      "width": 30,
+      "height": 0,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          30,
+          0
+        ]
+      ],
+      "strokeColor": "#16a34a",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "endArrowhead": "arrow",
+      "startBinding": {
+        "elementId": "ai_pilot",
+        "fixedPoint": [
+          1,
+          0.5
+        ]
+      },
+      "endBinding": {
+        "elementId": "omniform_solver",
+        "fixedPoint": [
+          0,
+          0.5
+        ]
+      },
+      "boundElements": [
+        {
+          "id": "t_arr_pilot_omni",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_arr_pilot_omni",
+      "x": 845.0,
+      "y": 558.0,
+      "text": "form plan",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "strokeColor": "#16a34a",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "arr_pilot_omni",
+      "originalText": "form plan",
+      "autoResize": true
+    },
+    {
+      "type": "arrow",
+      "id": "arr_omni_bots",
+      "x": 1170,
+      "y": 515,
+      "width": 30,
+      "height": 0,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          30,
+          0
+        ]
+      ],
+      "strokeColor": "#15803d",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "endArrowhead": "arrow",
+      "startBinding": {
+        "elementId": "omniform_solver",
+        "fixedPoint": [
+          1,
+          0.2
+        ]
+      },
+      "endBinding": {
+        "elementId": "specialized_bots",
+        "fixedPoint": [
+          0,
+          0.5
+        ]
+      },
+      "boundElements": [
+        {
+          "id": "t_arr_omni_bots",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_arr_omni_bots",
+      "x": 1145.0,
+      "y": 503.0,
+      "text": "portal hooks",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "strokeColor": "#15803d",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "arr_omni_bots",
+      "originalText": "portal hooks",
+      "autoResize": true
+    },
+    {
+      "type": "arrow",
+      "id": "arr_omni_batch",
+      "x": 1170,
+      "y": 625,
+      "width": 30,
+      "height": 0,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          30,
+          0
+        ]
+      ],
+      "strokeColor": "#15803d",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "endArrowhead": "arrow",
+      "startBinding": {
+        "elementId": "omniform_solver",
+        "fixedPoint": [
+          1,
+          0.8
+        ]
+      },
+      "endBinding": {
+        "elementId": "batch_copilot_engine",
+        "fixedPoint": [
+          0,
+          0.5
+        ]
+      },
+      "boundElements": [
+        {
+          "id": "t_arr_omni_batch",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_arr_omni_batch",
+      "x": 1145.0,
+      "y": 613.0,
+      "text": "parallel worker",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "strokeColor": "#15803d",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "arr_omni_batch",
+      "originalText": "parallel worker",
+      "autoResize": true
+    },
+    {
+      "type": "arrow",
+      "id": "arr_batch_ui_engine",
+      "x": 1325,
+      "y": 340,
+      "width": 0,
+      "height": 240,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          240
+        ]
+      ],
+      "strokeColor": "#475569",
+      "strokeWidth": 2,
+      "strokeStyle": "dashed",
+      "endArrowhead": "arrow",
+      "startBinding": {
+        "elementId": "ui_batch_drawer",
+        "fixedPoint": [
+          0.5,
+          1
+        ]
+      },
+      "endBinding": {
+        "elementId": "batch_copilot_engine",
+        "fixedPoint": [
+          0.5,
+          0
+        ]
+      },
+      "boundElements": [
+        {
+          "id": "t_arr_batch_ui_engine",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_arr_batch_ui_engine",
+      "x": 1285.0,
+      "y": 448.0,
+      "text": "user instructions",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "strokeColor": "#475569",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "arr_batch_ui_engine",
+      "originalText": "user instructions",
+      "autoResize": true
+    },
+    {
+      "type": "arrow",
+      "id": "arr_engine_portals",
+      "x": 1325,
+      "y": 675,
+      "width": 0,
+      "height": 125,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          125
+        ]
+      ],
+      "strokeColor": "#16a34a",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "endArrowhead": "arrow",
+      "startBinding": {
+        "elementId": "batch_copilot_engine",
+        "fixedPoint": [
+          0.5,
+          1
+        ]
+      },
+      "endBinding": {
+        "elementId": "external_portals",
+        "fixedPoint": [
+          0.7,
+          0
+        ]
+      },
+      "boundElements": [
+        {
+          "id": "t_arr_engine_portals",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_arr_engine_portals",
+      "x": 1285.0,
+      "y": 725.5,
+      "text": "CDP / Live DOM",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "strokeColor": "#16a34a",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "arr_engine_portals",
+      "originalText": "CDP / Live DOM",
+      "autoResize": true
+    },
+    {
+      "type": "arrow",
+      "id": "arr_scrape_ext",
+      "x": 930,
+      "y": 865,
+      "width": 50,
+      "height": 0,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          50,
+          0
+        ]
+      ],
+      "strokeColor": "#7c3aed",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "endArrowhead": "arrow",
+      "startBinding": {
+        "elementId": "scraper_pipeline",
+        "fixedPoint": [
+          1,
+          0.5
+        ]
+      },
+      "endBinding": {
+        "elementId": "external_portals",
+        "fixedPoint": [
+          0,
+          0.5
+        ]
+      },
+      "boundElements": [
+        {
+          "id": "t_arr_scrape_ext",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_arr_scrape_ext",
+      "x": 915.0,
+      "y": 853.0,
+      "text": "scrape ATS APIs",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "strokeColor": "#7c3aed",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "arr_scrape_ext",
+      "originalText": "scrape ATS APIs",
+      "autoResize": true
+    },
+    {
+      "type": "arrow",
+      "id": "arr_scrape_supa",
+      "x": 500,
+      "y": 865,
+      "width": 50,
+      "height": 0,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          -50,
+          0
+        ]
+      ],
+      "strokeColor": "#7c3aed",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "endArrowhead": "arrow",
+      "startBinding": {
+        "elementId": "scraper_pipeline",
+        "fixedPoint": [
+          0,
+          0.5
+        ]
+      },
+      "endBinding": {
+        "elementId": "supabase_db",
+        "fixedPoint": [
+          1,
+          0.5
+        ]
+      },
+      "boundElements": [
+        {
+          "id": "t_arr_scrape_supa",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_arr_scrape_supa",
+      "x": 435.0,
+      "y": 853.0,
+      "text": "sync jobs",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "strokeColor": "#7c3aed",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "arr_scrape_supa",
+      "originalText": "sync jobs",
+      "autoResize": true
+    },
+    {
+      "type": "arrow",
+      "id": "arr_supa_feed",
+      "x": 270,
+      "y": 800,
+      "width": 470,
+      "height": 460,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          470,
+          -460
+        ]
+      ],
+      "strokeColor": "#2563eb",
+      "strokeWidth": 2,
+      "strokeStyle": "dashed",
+      "endArrowhead": "arrow",
+      "startBinding": {
+        "elementId": "supabase_db",
+        "fixedPoint": [
+          0.5,
+          0
+        ]
+      },
+      "endBinding": {
+        "elementId": "ui_modes",
+        "fixedPoint": [
+          0.5,
+          1
+        ]
+      },
+      "boundElements": [
+        {
+          "id": "t_arr_supa_feed",
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "t_arr_supa_feed",
+      "x": 465.0,
+      "y": 558.0,
+      "text": "sub-30ms range query (18/36/54)",
+      "fontSize": 14,
+      "fontFamily": 1,
+      "strokeColor": "#2563eb",
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "arr_supa_feed",
+      "originalText": "sub-30ms range query (18/36/54)",
+      "autoResize": true
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#ffffff"
+  }
+}
