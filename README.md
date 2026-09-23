@@ -286,7 +286,7 @@ nomadic/
 ## 7. Database Architecture & APIs
 
 ### A. Local SQLite Database
-Located permanently at `%APPDATA%\Nomadic\job_automator_local.db` (`userData` locked):
+Located permanently at `%APPDATA%\Nomadic\job_automator_local.db` on Windows and `~/Library/Application Support/Nomadic/job_automator_local.db` on macOS (`userData` locked):
 * `master_profile`: Candidate personal info, education, work authorization, tech stack.
 * `custom_roadmaps`: AI-synthesized career learning trees and milestone progression.
 * `resumes`: Binary resume storage with default selection flags.
@@ -330,7 +330,8 @@ Run via `Scrape_All_Jobs.bat`:
 ### Prerequisites
 * **Node.js:** v18+ or v20+
 * **Package Manager:** `npm`
-* **OS:** Windows 10/11 (or macOS / Linux for desktop development)
+* **OS:** Windows 10/11 or macOS (Apple Silicon / Intel)
+* **macOS Specifics:** You may need Xcode Command Line Tools installed (`xcode-select --install`).
 
 ### 1. Installation
 ```bash
@@ -343,8 +344,8 @@ npm install
 ```bash
 npm run dev:desktop
 ```
-* Press `F12` or `Ctrl+Shift+I` to open Chrome DevTools.
-* Press `Ctrl+Shift+R` to force reload.
+* **Windows:** Press `F12` or `Ctrl+Shift+I` for DevTools. `Ctrl+Shift+R` to force reload.
+* **macOS:** Press `Cmd+Option+I` for DevTools. `Cmd+Shift+R` to force reload.
 
 ### 3. Running Web Landing Portal
 ```bash
@@ -355,13 +356,22 @@ npm run dev:web
 ```bash
 # Windows
 .\Scrape_All_Jobs.bat
+
+# macOS / Linux (if batch scripts aren't supported, run the underlying JS/TS pipeline)
+# Assuming a node fallback script exists in package.json:
+npm run scrape:all
 ```
 
-### 5. Packaging Production Binaries (NSIS + Portable)
+### 5. Packaging Production Binaries
 ```bash
+# Windows (NSIS Installer & Portable .exe)
 npm run package:desktop
+# Outputs to apps/desktop/dist/ and automatically copies to your Downloads folder.
+
+# macOS (DMG & .app bundle)
+npm run package:mac
+# Outputs to apps/desktop/dist/
 ```
-* Generates `Nomadic Setup 1.0.6.exe` in `apps/desktop/dist/` and copies to `C:\Users\<user>\Downloads\`.
 
 ---
 
