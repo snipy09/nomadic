@@ -1,4 +1,5 @@
-import { scrapeAtsApis, type RawJob } from './ats-api-scraper.ts';
+import { scrapeAtsApisDetailed, scrapeAtsApis, type RawJob, type BoardResult } from './ats-api-scraper.ts';
+import { runSources, detectSourceAlerts, formatRunTable, type SourceDef, type SourceRunResult, type SourceAlert } from './pipeline.ts';
 import { scrapeAggregatorsAndRss } from './aggregator-rss-scraper.ts';
 import { scrapeDirectDom } from './direct-dom-scraper.ts';
 import { scrapeWebSearchIndexes } from './web-search-scraper.ts';
@@ -153,59 +154,51 @@ function isInternshalaJob(j: RawJob): boolean {
   );
 }
 
+export interface ScrapeReport {
+  jobs: ScoredJob[];
+  sources: SourceRunResult[];
+  boards: BoardResult[];
+  alerts: SourceAlert[];
+  invalidReasons: Record<string, number>;
+}
+
 export async function runAllScrapers(
   profile?: Record<string, unknown>
 ): Promise<ScoredJob[]> {
-  console.log('[Scraper Pipeline] Starting All High-Throughput Scraper Engines (India-First, ATS, Internshala, Remote)...');
+  return (await runAllScrapersWithReport(profile)).jobs;
+}
+
+export async function runAllScrapersWithReport(
+  profile?: Record<string, unknown>,
+  options: { includeTier3?: boolean; previousRun?: Pick<SourceRunResult, 'name' | 'valid'>[] } = {}
+): Promise<ScrapeReport> {
+  console.log('[Scraper Pipeline] Starting scrapers (tier 1: official APIs + Internshala, tier 2: RSS/niche, tier 3 opt-in)...');
 
   const profileKeywords = extractProfileKeywords(profile);
-
-  const withTimeout = <T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> => {
-    return Promise.race([
-      promise,
-      new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms))
-    ]);
-  };
 
   const TOP_RSS_FEEDS = [
     { name: 'Jobspresso Tech', url: 'https://jobspresso.co/feed/' },
     { name: 'Remotive Software', url: 'https://remotive.com/remote-jobs/feed' },
   ];
 
-  const [atsJobs, internshalaJobs, naukriJobs, indeedJobs, webJobs, nicheJobs, rssJobs] = await Promise.all([
-    withTimeout(scrapeAtsApis(), 35000, []),
-    withTimeout(scrapeInternshala().catch(() => []), 15000, []),
-    withTimeout(scrapeNaukriIndia().catch(() => []), 10000, []),
-    withTimeout(scrapeIndeedIndia().catch(() => []), 10000, []),
-    withTimeout(scrapeWebSearchIndexes(['react', 'typescript', 'python', 'intern', 'bangalore', 'india']), 10000, []),
-    withTimeout(scrapeNicheBoards(), 10000, []),
-    withTimeout(scrapeAggregatorsAndRss(TOP_RSS_FEEDS), 10000, []),
-  ]);
+  let boards: BoardResult[] = [];
+  const sources: SourceDef[] = [
+    { name: 'ATS APIs (Greenhouse/Lever/Ashby)', tier: 1, timeoutMs: 60000, run: async () => { const r = await scrapeAtsApisDetailed(); boards = r.boards; return r.jobs; } },
+    { name: 'Internshala', tier: 1, timeoutMs: 20000, run: () => scrapeInternshala() as Promise<RawJob[]> },
+    { name: 'RSS (Remotive/Jobspresso)', tier: 2, timeoutMs: 15000, run: () => scrapeAggregatorsAndRss(TOP_RSS_FEEDS) },
+    { name: 'Niche boards', tier: 2, timeoutMs: 15000, run: () => scrapeNicheBoards() },
+    { name: 'Naukri', tier: 3, timeoutMs: 15000, run: () => scrapeNaukriIndia() },
+    { name: 'Indeed', tier: 3, timeoutMs: 15000, run: () => scrapeIndeedIndia() },
+    { name: 'Web search', tier: 3, timeoutMs: 15000, run: () => scrapeWebSearchIndexes(['react', 'typescript', 'python', 'intern', 'bangalore', 'india']) },
+  ];
 
-  const safeInternshala = Array.isArray(internshalaJobs) ? internshalaJobs : [];
-  const safeNaukri = Array.isArray(naukriJobs) ? naukriJobs : [];
-  const safeIndeed = Array.isArray(indeedJobs) ? indeedJobs : [];
-  const safeAts = Array.isArray(atsJobs) ? atsJobs : [];
-  const safeWeb = Array.isArray(webJobs) ? webJobs : [];
-  const safeNiche = Array.isArray(nicheJobs) ? nicheJobs : [];
-  const safeRss = Array.isArray(rssJobs) ? rssJobs : [];
+  const run = await runSources(sources, { includeTier3: options.includeTier3 });
+  const alerts = detectSourceAlerts(run.results, options.previousRun);
+  for (const a of alerts) console.warn(`[Scraper Alert] ${a.message}`);
+  console.log('\n' + formatRunTable(run.results));
 
-  // Exclude LinkedIn positions strictly per directive
-  const allJobs = [...safeAts, ...safeInternshala, ...safeNaukri, ...safeIndeed, ...safeWeb, ...safeNiche, ...safeRss].filter(j => {
-    const src = (j.source || '').toLowerCase();
-    const url = (j.applyUrl || '').toLowerCase();
-    return !src.includes('linkedin') && !url.includes('linkedin.com');
-  });
-
-  // Deduplicate by SHA-256 hash
-  const seenHashes = new Set<string>();
-  const deduplicated: RawJob[] = [];
-  for (const job of allJobs) {
-    if (!seenHashes.has(job.jobHash)) {
-      seenHashes.add(job.jobHash);
-      deduplicated.push(job);
-    }
-  }
+  // Already validated and deduplicated (hash, canonical URL, company+title+location) by the pipeline.
+  const deduplicated: RawJob[] = run.jobs;
 
   // Pre-resolve direct application form URLs and purge dead 404 links
   const verifiedJobs = await batchResolveAndFilterJobs(deduplicated, 35);
@@ -265,14 +258,15 @@ export async function runAllScrapers(
     if (addedInRound === 0) break;
   }
 
-  // Attach timestamps from latest to oldest with 1-min increments
+  // Attach timestamps (never fabricate posting dates)
   const now = Date.now();
   const scored: ScoredJob[] = orderedJobs.map((job, idx) => {
     const isInd = isIndiaJob(job);
     return {
       ...job,
       score: computeRelevanceScore(job, profileKeywords) + (isInd ? 10 : 0),
-      createdAt: (job as any).createdAt || new Date(now - idx * 60000).toISOString(),
+      // Real posting date when the source gives one; otherwise first-seen time (1 ms steps only preserve feed order).
+      createdAt: (job as any).createdAt || job.postedAt || new Date(now - idx).toISOString(),
       isIndian: isInd,
     };
   });
@@ -299,13 +293,13 @@ export async function runAllScrapers(
         created_at: j.createdAt || new Date().toISOString()
       }));
 
-      supabase.from('jobs').upsert(rows, { onConflict: 'job_hash', ignoreDuplicates: true }).then(({ error }) => {
-        if (!error) console.log(`[Scraper Cloud Sync] Upserted ${rows.length} jobs to Supabase.`);
-      }).catch(() => {});
+      const { error } = await supabase.from('jobs').upsert(rows, { onConflict: 'job_hash', ignoreDuplicates: true });
+      if (error) console.warn(`[Scraper Cloud Sync] Upsert failed: ${error.message}`);
+      else console.log(`[Scraper Cloud Sync] Upserted ${rows.length} jobs to Supabase.`);
     }
   } catch {}
 
-  return scored;
+  return { jobs: scored, sources: run.results, boards, alerts, invalidReasons: run.invalidReasons };
 }
 
 export async function syncScrapedJobsToSupabase(jobs: RawJob[]): Promise<number> {

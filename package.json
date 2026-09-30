@@ -31,7 +31,8 @@
     "dev:web": "npm run dev --prefix apps/web",
     "scrape:all": "npm run scrapers:all",
     "package:mac": "npm run package:mac --prefix apps/desktop",
-    "bench:forms": "tsx packages/form-engine/src/bench-cli.ts"
+    "bench:forms": "tsx packages/form-engine/src/bench-cli.ts",
+    "scrapers:bench": "tsx packages/scrapers/src/bench.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

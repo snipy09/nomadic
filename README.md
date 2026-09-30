@@ -360,6 +360,13 @@ npm run scrapers:jobs  # jobs only
 npm run scrapers:hrs   # HR leads only
 ```
 
+### 4a. Accuracy benchmarks
+```bash
+npm run bench:forms     # new form engine vs 14 local ATS-style pages (gate: >=90% correct, <2% wrong)
+npm run scrapers:bench  # LIVE: per-source jobs, dead ATS boards, alerts (needs internet); add -- --tier3 for fragile sources
+```
+Auto-apply uses `packages/form-engine` (reader -> classifier -> answerer -> writer -> verifier). It never submits while a required field is unresolved. Set `NOMADIC_LEGACY_ENGINE=1` to fall back to the old solver chain. Scraper sources are tiered (1 official APIs + Internshala, 2 RSS/niche, 3 fragile: opt-in via `NOMADIC_TIER3=1`).
+
 ### 4b. Quality checks
 ```bash
 npm test               # vitest (set LIVE_TESTS=1 to include tests that hit live sites)
