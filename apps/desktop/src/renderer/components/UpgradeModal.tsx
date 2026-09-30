@@ -69,18 +69,15 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
           <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-3xl p-6 space-y-5 flex flex-col justify-between hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-sm">
             <div className="space-y-4">
               <div>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">Complete Career Acceleration</span>
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">Active Job Seeking</span>
                 <h3 className="font-extrabold text-slate-950 dark:text-white text-xl">Pro Plan</h3>
-                <p className="text-xs text-slate-500 mt-1">Full skill mastery &amp; active job seeking</p>
+                <p className="text-xs text-slate-500 mt-1">Apply faster with auto-fill</p>
                 <div className="mt-4 text-4xl font-black text-slate-950 dark:text-white">
                   ₹249 <span className="text-xs font-normal text-slate-400 font-mono">/ mo</span>
                 </div>
               </div>
 
               <ul className="space-y-2.5 text-xs text-slate-700 dark:text-slate-300 border-t border-slate-200 dark:border-slate-700 pt-4">
-                <li className="flex items-start gap-2"><Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /> <span><strong>All 52-Week AI Roadmaps &amp; Curriculums</strong></span></li>
-                <li className="flex items-start gap-2"><Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /> <span><strong>428+ Company Problem Sets (17,300+ Qs)</strong></span></li>
-                <li className="flex items-start gap-2"><Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /> <span>Full 12+ CS Textbook Library &amp; Streak Heatmap</span></li>
                 <li className="flex items-start gap-2"><Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /> <span>Direct ATS Job Radar (18/36/54 Page Navigation)</span></li>
                 <li className="flex items-start gap-2"><Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /> <span>Semi-Auto Apply (up to 50 apps/week)</span></li>
                 <li className="flex items-start gap-2"><Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" /> <span>25 Verified HR / Recruiter leads/week + 5 Resumes</span></li>

@@ -4,14 +4,12 @@ import { normalizeOpportunityType, mapOpportunityTypeToFeedTab, getOpportunityTy
 import { createBatchReviewState, updateBatchFieldGlobal } from '../utils/batch-copilot-helpers';
 
 describe('Unified Workspace & Co-Pilot Helpers Suite', () => {
-  it('normalizes workspace modes correctly', () => {
-    expect(normalizeWorkspaceMode('learner_only')).toBe('learner_only');
-    expect(normalizeWorkspaceMode('seeker_only')).toBe('seeker_only');
-    expect(normalizeWorkspaceMode('unified')).toBe('unified');
-    expect(normalizeWorkspaceMode(null)).toBe('unified');
-    expect(getAvailableTracks('learner_only')).toEqual(['learner']);
-    expect(getAvailableTracks('seeker_only')).toEqual(['seeker']);
-    expect(getDefaultTabForMode('seeker_only')).toBe('feed');
+  it('is seeker-only: any stored workspace mode resolves to the seeker workspace', () => {
+    expect(normalizeWorkspaceMode('learner_only')).toBe('seeker_only');
+    expect(normalizeWorkspaceMode('unified')).toBe('seeker_only');
+    expect(normalizeWorkspaceMode(null)).toBe('seeker_only');
+    expect(getAvailableTracks()).toEqual(['seeker']);
+    expect(getDefaultTabForMode()).toBe('feed');
   });
 
   it('normalizes opportunity types correctly', () => {

@@ -1,25 +1,24 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  Search, Compass, BookOpen, MessageSquare, Briefcase,
+  Search, Briefcase,
   Mail, LayoutGrid, Settings, Sun, Moon, ArrowRight,
-  Code2, ExternalLink, Zap, X
+  ExternalLink, X
 } from 'lucide-react';
 import { TabType, PersonaTrack } from '../types';
-import { VAULT_QUESTIONS } from '../data/resourceVault';
 
 interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectTab: (tab: TabType) => void;
-  activeTrack: PersonaTrack;
-  onToggleTrack: (track: PersonaTrack) => void;
+  activeTrack?: PersonaTrack;
+  onToggleTrack?: (track: PersonaTrack) => void;
   theme?: string;
   onToggleTheme?: () => void;
 }
 
 interface CommandItem {
   id: string;
-  category: 'Navigation' | 'Actions' | 'Questions' | 'Jobs';
+  category: 'Navigation' | 'Actions' | 'Jobs';
   title: string;
   subtitle?: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -30,8 +29,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   isOpen,
   onClose,
   onSelectTab,
-  activeTrack,
-  onToggleTrack,
   theme,
   onToggleTheme,
 }) => {
@@ -52,36 +49,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     const list: CommandItem[] = [
       // Navigation
       {
-        id: 'nav-home',
-        category: 'Navigation',
-        title: 'Go to Home (Curriculum)',
-        subtitle: 'Roadmap progression & activity heatmap',
-        icon: Compass,
-        action: () => { onToggleTrack('learner'); onSelectTab('learner-roadmaps'); },
-      },
-      {
-        id: 'nav-resources',
-        category: 'Navigation',
-        title: 'Go to Resources Vault',
-        subtitle: '1,500+ Question Bank & Textbooks',
-        icon: BookOpen,
-        action: () => { onToggleTrack('learner'); onSelectTab('learner-resources'); },
-      },
-      {
-        id: 'nav-interview-prep',
-        category: 'Navigation',
-        title: 'Go to Interview Prep',
-        subtitle: 'STAR method drills & evaluation',
-        icon: MessageSquare,
-        action: () => { onToggleTrack('learner'); onSelectTab('learner-interview-prep'); },
-      },
-      {
         id: 'nav-jobs',
         category: 'Navigation',
-        title: 'Go to Job Board',
-        subtitle: 'Pinterest-style live opportunity radar',
+        title: 'Go to Jobs',
+        subtitle: 'Live matched openings',
         icon: Briefcase,
-        action: () => { onToggleTrack('seeker'); onSelectTab('feed'); },
+        action: () => { onSelectTab('feed'); },
       },
       {
         id: 'nav-outreach',
@@ -89,7 +62,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         title: 'Go to Recruiter Outreach',
         subtitle: 'Verified hiring contacts & Gmail drafts',
         icon: Mail,
-        action: () => { onToggleTrack('seeker'); onSelectTab('outreach'); },
+        action: () => { onSelectTab('outreach'); },
       },
       {
         id: 'nav-tracking',
@@ -97,7 +70,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         title: 'Go to Tracking (Pipeline)',
         subtitle: 'Submitted applications Kanban board',
         icon: LayoutGrid,
-        action: () => { onToggleTrack('seeker'); onSelectTab('applications'); },
+        action: () => { onSelectTab('applications'); },
       },
       {
         id: 'nav-settings',
@@ -107,39 +80,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         icon: Settings,
         action: () => onSelectTab('settings'),
       },
-
-      // Actions
-      {
-        id: 'action-switch-track',
-        category: 'Actions',
-        title: activeTrack === 'learner' ? 'Switch to Seeker Track' : 'Switch to Learner Track',
-        subtitle: 'Toggle primary workspace persona',
-        icon: Zap,
-        action: () => {
-          const next = activeTrack === 'learner' ? 'seeker' : 'learner';
-          onToggleTrack(next);
-          onSelectTab(next === 'learner' ? 'learner-roadmaps' : 'feed');
-        },
-      },
     ];
 
-    // Append sample questions from Question Bank
-    VAULT_QUESTIONS.slice(0, 15).forEach((q) => {
-      list.push({
-        id: `q-${q.id}`,
-        category: 'Questions',
-        title: q.title,
-        subtitle: `${q.category || ''} · ${q.difficulty || ''} · ${(q.companyTags || []).join(', ')}`,
-        icon: Code2,
-        action: () => {
-          onToggleTrack('learner');
-          onSelectTab('learner-resources');
-        },
-      });
-    });
-
     return list;
-  }, [activeTrack, onSelectTab, onToggleTrack]);
+  }, [onSelectTab]);
 
   // Filter commands by query
   const filtered = useMemo(() => {

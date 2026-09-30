@@ -125,7 +125,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
             Welcome to Nomadic
           </h1>
           <p className="text-xs text-slate-500 dark:text-zinc-400">
-            Intelligent career roadmaps, interview prep &amp; autonomous job radar.
+            Find the right jobs and apply to them automatically.
           </p>
         </div>
 

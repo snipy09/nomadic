@@ -1,4 +1,4 @@
-export type WorkspaceMode = 'learner_only' | 'seeker_only' | 'unified';
+export type WorkspaceMode = 'seeker_only';
 export type OpportunityType = 'job' | 'internship' | 'both';
 
 export interface MasterProfile {
@@ -38,6 +38,7 @@ export interface MasterProfile {
 
 export interface Job {
   id?: number | string;
+  jobHash?: string;
   title: string;
   company: string;
   applyUrl: string;
@@ -104,7 +105,7 @@ export interface HeartbeatStatus {
   ip?: string;
 }
 
-export type PersonaTrack = 'learner' | 'seeker';
+export type PersonaTrack = 'seeker';
 
 export type TabType =
   | 'home'
@@ -112,12 +113,6 @@ export type TabType =
   | 'applications'
   | 'outreach'
   | 'profile'
-  | 'opportunities'
-  | 'learner-roadmaps'
-  | 'learner-resources'
-  | 'learner-interview-prep'
-  | 'learner-vault'
-  | 'learner-drills'
   | 'admin-overview'
   | 'admin-users'
   | 'admin-billing'
@@ -152,6 +147,8 @@ export interface AppUser {
   appsCount: number;
   createdAt: string;
   expiresAt?: string;
+  lastLogin?: string;
+  onboardingCompleted?: boolean;
 }
 
 export interface BillingRecord {
@@ -174,16 +171,6 @@ export interface AdminMetrics {
   proUsers: number;
   maxUsers: number;
   lifetimeUsers: number;
-}
-
-export interface CustomRoadmapRecord {
-  id: string;
-  roleTitle: string;
-  domain: string;
-  targetHorizon: string;
-  dailyCommitment: string;
-  roadmapJson: string;
-  updatedAt: string;
 }
 
 export interface ActivityHeatmapDay {
@@ -246,6 +233,7 @@ export interface ElectronAPI {
   installDependencies: () => Promise<{ success: boolean; error?: string }>;
   testGroqKey: (key: string) => Promise<{ success: boolean; error?: string }>;
   onLog: (callback: (msg: string) => void) => () => void;
+  onAutoApplyProgress?: (cb: (data: { log?: string; progress?: number; statusEvent?: { colorState?: string; message?: string; phase?: string } }) => void) => () => void;
   getApplications: () => Promise<Application[]>;
   saveApplication: (app: { company: string; title: string; apply_url: string; status?: string; mode?: string }) =>
     Promise<{ success: boolean; id?: number; error?: string }>;
@@ -272,77 +260,10 @@ export interface ElectronAPI {
     body?: string;
     error?: string;
   }>;
-  generateAiOnboardingProfile: (params: {
-    targetRole: string;
-    experienceLevel?: string;
-    bioOrResumeText?: string;
-    customSkills?: string[];
-    geminiKey?: string;
-    groqKey?: string;
-  }) => Promise<{
-    success: boolean;
-    profile?: Partial<MasterProfile>;
-    roadmap?: any;
-    error?: string;
-  }>;
-  generateCustomRoadmap: (params: {
-    roleTitle: string;
-    customTitle?: string;
-    currentSkills?: string;
-    targetHorizon?: string;
-    dailyCommitment?: string;
-    geminiKey?: string;
-    groqKey?: string;
-  }) => Promise<{
-    success: boolean;
-    roadmap?: any;
-    error?: string;
-  }>;
-  getCustomRoadmaps: () => Promise<CustomRoadmapRecord[]>;
-  saveCustomRoadmap: (roadmap: {
-    id: string;
-    roleTitle: string;
-    domain: string;
-    roadmapJson: string;
-    targetHorizon?: string;
-    dailyCommitment?: string;
-  }) => Promise<{ success: boolean; error?: string }>;
-  deleteCustomRoadmap: (id: string) => Promise<{ success: boolean; error?: string }>;
-
   // Activity Heatmap & Logging
   getActivityHeatmap: (days?: number) => Promise<ActivityHeatmapDay[]>;
   logUserActivity: (activityType: string, details?: string) => Promise<{ success: boolean }>;
   getActivityStats: () => Promise<ActivityStats>;
-
-  // Learner Progress & Roadmap State
-  getLearnerProgress: (roadmapId: string) => Promise<{
-    roadmapId: string;
-    completedNodes: string[];
-    targetHorizon?: string;
-    dailyCommitment?: string;
-    streakCount?: number;
-    lastActiveDate?: string;
-  } | null>;
-  saveLearnerProgress: (progress: {
-    roadmapId: string;
-    completedNodes: string[];
-    targetHorizon?: string;
-    dailyCommitment?: string;
-    streakCount?: number;
-  }) => Promise<{ success: boolean }>;
-
-  // Interview Evaluation
-  evaluateInterviewAnswer: (params: {
-    questionId: string;
-    questionTitle: string;
-    answerText: string;
-    category?: string;
-  }) => Promise<{
-    score: number;
-    review: string;
-    strengths?: string[];
-    improvements?: string[];
-  }>;
 
   // Admin & Auth Handlers
   authLogin: (credentials: {

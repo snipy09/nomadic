@@ -1,80 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { searchRoleTitles, suggestRolesFromUserInput, generateTailoredRoadmapForRole } from '../../renderer/data/jobRolesDataset';
-import { ROADMAPS, calculateReadinessScore } from '../../renderer/data/roadmaps';
 
 describe('Production-Grade Stress & Resilience Testing', () => {
-
-  describe('1. 10,000+ Dynamic Job Roles Engine Stress Test', () => {
-    it('handles 1,000 high-frequency concurrent role searches without degradation', () => {
-      const queries = ['engineer', 'manager', 'developer', 'analyst', 'designer', 'architect', 'scientist', 'lead', 'director', 'specialist'];
-      const startTime = performance.now();
-
-      for (let i = 0; i < 1000; i++) {
-        const q = queries[i % queries.length];
-        const results = searchRoleTitles(q, 10);
-        expect(results.length).toBeGreaterThan(0);
-        expect(results.length).toBeLessThanOrEqual(10);
-      }
-
-      const elapsed = performance.now() - startTime;
-      expect(elapsed).toBeLessThan(3000);
-    });
-
-    it('resiliently handles edge-case search inputs (null, unicode, special chars, huge strings)', () => {
-      const edgeCases = [
-        '',
-        '   ',
-        '!@#$%^&*()_+',
-        '<script>alert("xss")</script>',
-        'SELECT * FROM jobs;',
-        'A'.repeat(5000),
-        '🚀🤖💼💻',
-        'C++',
-        'C#',
-        '.NET',
-        'k8s',
-        'Node.js',
-        'AI',
-        'ML',
-        'QA',
-      ];
-
-      for (const input of edgeCases) {
-        expect(() => searchRoleTitles(input, 5)).not.toThrow();
-        const res = searchRoleTitles(input, 5);
-        expect(Array.isArray(res)).toBe(true);
-      }
-    });
-
-    it('generates 200 tailored 5-phase roadmaps in high throughput under 500ms', () => {
-      const startTime = performance.now();
-
-      for (let i = 0; i < 200; i++) {
-        const plan = generateTailoredRoadmapForRole({
-          id: i + 1,
-          title: `Full Stack Cloud Engineer ${i}`,
-          domain: 'Cloud Architecture',
-          seniority: 'Senior',
-          industry: 'FinTech',
-          coreSkills: ['TypeScript', 'Kubernetes', 'Go', 'AWS'],
-          salaryIndia: '₹25 LPA - ₹50 LPA',
-          salaryGlobal: '$140k - $220k',
-          roadmapId: 'fullstack',
-          keyTopics: ['System Design', 'Microservices', 'Distributed Caching'],
-          interviewQuestions: ['How do you handle split-brain in Raft consensus?'],
-          matchScore: 98,
-        });
-
-        expect(plan.milestones.length).toBe(5);
-        const totalHours = plan.milestones.reduce((acc, m) => acc + m.hours, 0);
-        expect(totalHours).toBeGreaterThan(0);
-        expect(plan.interviewQuestions.length).toBeGreaterThan(0);
-      }
-
-      const elapsed = performance.now() - startTime;
-      expect(elapsed).toBeLessThan(500);
-    });
-  });
 
   describe('2. High-Volume Data Serialization & Payload Stress Test', () => {
     it('serializes and parses 100KB resume text and complex nested JSON without data loss', () => {
@@ -136,7 +62,7 @@ describe('Production-Grade Stress & Resilience Testing', () => {
     });
 
     it('safely evaluates activeTab without throwing on undefined or unexpected routes', () => {
-      const knownTabs = ['learner-roadmaps', 'learner-resources', 'learner-interview-prep', 'home', 'feed', 'outreach', 'applications', 'logs', 'profile', 'settings'];
+      const knownTabs = ['home', 'feed', 'outreach', 'applications', 'logs', 'profile', 'settings'];
 
       const resolveTabSafely = (tab: any): string => {
         if (!tab || typeof tab !== 'string') return 'feed';
@@ -152,34 +78,6 @@ describe('Production-Grade Stress & Resilience Testing', () => {
       expect(resolveTabSafely('admin-users')).toBe('admin-users');
       expect(resolveTabSafely('outreach')).toBe('outreach');
       expect(resolveTabSafely('feed')).toBe('feed');
-    });
-
-    it('correctly maps all 10k dynamic roles to valid existing roadmap IDs', () => {
-      const sampleTitles = [
-        'AI Research Engineer', 'Machine Learning Specialist', 'LLM Architect',
-        'Data Scientist', 'DevOps Platform Engineer', 'Kubernetes SRE',
-        'Backend Go Developer', 'Full Stack React Engineer', 'Product Manager',
-        'Technical Program Manager', 'Associate Product Manager', 'Frontend UI Engineer'
-      ];
-
-      for (const title of sampleTitles) {
-        const lower = title.toLowerCase();
-        let targetId = 'frontend';
-        if (lower.includes('ai') || lower.includes('llm') || lower.includes('machine learning') || lower.includes('data') || lower.includes('backend') || lower.includes('systems') || lower.includes('node') || lower.includes('go') || lower.includes('devops') || lower.includes('cloud')) {
-          targetId = 'backend';
-        } else if (lower.includes('product') || lower.includes('tpm') || lower.includes('apm') || lower.includes('scrum') || lower.includes('project')) {
-          targetId = 'product-management';
-        } else {
-          targetId = 'frontend';
-        }
-
-        const exists = ROADMAPS.some(r => r.id === targetId);
-        expect(exists).toBe(true);
-
-        const score = calculateReadinessScore(targetId, ['html-css-dom', 'node-rest-apis']);
-        expect(score).toBeGreaterThanOrEqual(0);
-        expect(score).toBeLessThanOrEqual(100);
-      }
     });
   });
 

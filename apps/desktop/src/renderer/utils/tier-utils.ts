@@ -34,8 +34,8 @@ export function normalizeTier(tier?: string | null): SubscriptionTier {
 
 /**
  * Returns numeric hierarchy rank for permissions:
- * 0: Free (₹0 · Preview roadmaps, top 10 jobs, 3 LC companies, 2 textbooks)
- * 1: Pro (₹249/mo · All 52-Wk Roadmaps, 428+ LC companies, 12+ textbooks, Full Job Feed, 50 Auto-Applies/wk, 25 Leads/wk)
+ * 0: Free (₹0 · Top 10 jobs, limited auto-applies)
+ * 1: Pro (₹249/mo · Full Job Feed, 50 Auto-Applies/wk, 25 Leads/wk)
  * 2: Max (₹599/mo · 100% Unlimited Autopilot, Unlimited Outreach, Priority Radar)
  */
 export function getTierLevel(tier?: string | null): number {

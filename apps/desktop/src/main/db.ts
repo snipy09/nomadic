@@ -363,138 +363,6 @@ export function getUserActivityStatsDb(): { streakCount: number; totalActions: n
   }
 }
 
-// ── Custom Roadmaps Persistence ─────────────────────────────────────────────
-export function saveCustomRoadmapDb(
-  id: string,
-  roleTitle: string,
-  domain: string,
-  roadmapJson: string,
-  targetHorizon: string = '2 Months',
-  dailyCommitment: string = '2 Hours/Day'
-): void {
-  try {
-    const database = getDb();
-    database.run(`
-      INSERT INTO custom_roadmaps (id, role_title, domain, target_horizon, daily_commitment, roadmap_json, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      ON CONFLICT(id) DO UPDATE SET
-        role_title = excluded.role_title,
-        domain = excluded.domain,
-        target_horizon = excluded.target_horizon,
-        daily_commitment = excluded.daily_commitment,
-        roadmap_json = excluded.roadmap_json,
-        updated_at = CURRENT_TIMESTAMP
-    `, [id, roleTitle, domain, targetHorizon, dailyCommitment, roadmapJson]);
-    persistDb();
-  } catch (err: any) {
-    console.warn('[Custom Roadmap DB] Failed to save:', err?.message);
-  }
-}
-
-export function getCustomRoadmapsDb(): Array<{
-  id: string;
-  roleTitle: string;
-  domain: string;
-  targetHorizon: string;
-  dailyCommitment: string;
-  roadmapJson: string;
-  updatedAt: string;
-}> {
-  try {
-    const database = getDb();
-    const res = database.exec('SELECT id, role_title, domain, target_horizon, daily_commitment, roadmap_json, updated_at FROM custom_roadmaps ORDER BY updated_at DESC');
-    if (!res.length || !res[0].values.length) return [];
-    return res[0].values.map(v => ({
-      id: String(v[0]),
-      roleTitle: String(v[1]),
-      domain: String(v[2]),
-      targetHorizon: String(v[3] || '2 Months'),
-      dailyCommitment: String(v[4] || '2 Hours/Day'),
-      roadmapJson: String(v[5]),
-      updatedAt: String(v[6] || ''),
-    }));
-  } catch {
-    return [];
-  }
-}
-
-export function getCustomRoadmapByIdDb(id: string): string | null {
-  try {
-    const database = getDb();
-    const res = database.exec('SELECT roadmap_json FROM custom_roadmaps WHERE id = ? LIMIT 1', [id]);
-    if (res.length && res[0].values.length) {
-      return String(res[0].values[0][0]);
-    }
-  } catch {}
-  return null;
-}
-
-export function deleteCustomRoadmapDb(id: string): boolean {
-  try {
-    const database = getDb();
-    database.run('DELETE FROM custom_roadmaps WHERE id = ?', [id]);
-    persistDb();
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// ── Learner Progress ────────────────────────────────────────────────────────
-export function getLearnerProgressDb(roadmapId: string) {
-  const database = getDb();
-  const res = database.exec('SELECT * FROM learner_progress WHERE roadmap_id = ?', [roadmapId]);
-  if (!res.length || !res[0].values.length) return null;
-  const cols = res[0].columns;
-  const row = res[0].values[0];
-  const obj = Object.fromEntries(cols.map((c, i) => [c, row[i]]));
-  let completedNodes: string[] = [];
-  try {
-    completedNodes = JSON.parse(String(obj['completed_nodes_json'] || '[]'));
-  } catch {}
-  return {
-    roadmapId: String(obj['roadmap_id']),
-    completedNodes,
-    targetHorizon: String(obj['target_horizon'] || '2 Months'),
-    dailyCommitment: String(obj['daily_commitment'] || '2 Hours/Day'),
-    streakCount: Number(obj['streak_count'] || 1),
-    lastActiveDate: obj['last_active_date'] ? String(obj['last_active_date']) : undefined,
-  };
-}
-
-export function saveLearnerProgressDb(p: {
-  roadmapId: string;
-  completedNodes: string[];
-  targetHorizon?: string;
-  dailyCommitment?: string;
-  streakCount?: number;
-}) {
-  const database = getDb();
-  const nodesJson = JSON.stringify(p.completedNodes || []);
-  const today = new Date().toISOString().split('T')[0];
-
-  database.run(`
-    INSERT INTO learner_progress (roadmap_id, completed_nodes_json, target_horizon, daily_commitment, streak_count, last_active_date)
-    VALUES (?, ?, ?, ?, ?, ?)
-    ON CONFLICT(roadmap_id) DO UPDATE SET
-      completed_nodes_json = excluded.completed_nodes_json,
-      target_horizon = COALESCE(excluded.target_horizon, learner_progress.target_horizon),
-      daily_commitment = COALESCE(excluded.daily_commitment, learner_progress.daily_commitment),
-      streak_count = COALESCE(excluded.streak_count, learner_progress.streak_count),
-      last_active_date = excluded.last_active_date,
-      updated_at = CURRENT_TIMESTAMP
-  `, [
-    p.roadmapId,
-    nodesJson,
-    p.targetHorizon || '2 Months',
-    p.dailyCommitment || '2 Hours/Day',
-    p.streakCount ?? 1,
-    today,
-  ]);
-  persistDb();
-  return true;
-}
-
 export function getCachedFormAnswerDb(questionText: string): string | null {
   try {
     const database = getDb();
@@ -680,4 +548,20 @@ export function checkUserPlanLimitDb(requestedCount: number, userTier: string = 
     currentUsage,
     remaining,
   };
+}
+
+/** Locally cached user accounts (no password hashes), used by the admin user list as an offline fallback. */
+export function getAllCachedUsersDb(): Array<Record<string, any>> {
+  try {
+    const db = getDb();
+    if (!db) return [];
+    const res = db.exec(
+      'SELECT rowid AS id, email, supabase_id, full_name AS fullName, role, tier, license_key AS licenseKey, status, apps_count AS appsCount, created_at AS createdAt, expires_at AS expiresAt, last_login AS lastLogin FROM user_cache'
+    );
+    if (!res.length) return [];
+    const { columns, values } = res[0];
+    return values.map((row: any[]) => Object.fromEntries(columns.map((c: string, i: number) => [c, row[i]])));
+  } catch {
+    return [];
+  }
 }

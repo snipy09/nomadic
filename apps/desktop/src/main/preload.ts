@@ -39,6 +39,11 @@ const apiObj = {
     ipcRenderer.on('log', handler);
     return () => ipcRenderer.removeListener('log', handler);
   },
+  onAutoApplyProgress: (cb: (data: { log?: string; progress?: number; statusEvent?: { colorState?: string; message?: string; phase?: string } }) => void) => {
+    const handler = (_: unknown, data: any) => cb(data);
+    ipcRenderer.on('auto-apply-progress', handler);
+    return () => ipcRenderer.removeListener('auto-apply-progress', handler);
+  },
   onHeartbeatStatus: (cb: (status: { valid: boolean; reason?: string; ip?: string }) => void) => {
     const handler = (_: unknown, status: { valid: boolean; reason?: string; ip?: string }) => cb(status);
     ipcRenderer.on('heartbeat-status', handler);
@@ -51,14 +56,6 @@ const apiObj = {
     ipcRenderer.invoke('ask-nomadic-assistant', data),
   generateAiOutreachEmail: (params: { role?: string; company?: string; recipientName?: string; tone?: string; skills?: string; candidateName?: string }) =>
     ipcRenderer.invoke('generate-ai-outreach-email', params),
-  generateAiOnboardingProfile: (params: Record<string, unknown>) =>
-    ipcRenderer.invoke('generate-ai-onboarding-profile', params),
-  generateCustomRoadmap: (params: Record<string, unknown>) =>
-    ipcRenderer.invoke('generate-custom-roadmap', params),
-  getCustomRoadmaps: () => ipcRenderer.invoke('get-custom-roadmaps'),
-  saveCustomRoadmap: (roadmap: Record<string, unknown>) =>
-    ipcRenderer.invoke('save-custom-roadmap', roadmap),
-  deleteCustomRoadmap: (id: string) => ipcRenderer.invoke('delete-custom-roadmap', id),
 
   // Activity Heatmap & Logging
   getActivityHeatmap: (days?: number) => ipcRenderer.invoke('get-activity-heatmap', days),
@@ -66,9 +63,6 @@ const apiObj = {
     ipcRenderer.invoke('log-user-activity', { activityType, details }),
   getActivityStats: () => ipcRenderer.invoke('get-activity-stats'),
 
-  // Learner Progress & Roadmap State
-  getLearnerProgress: (roadmapId: string) => ipcRenderer.invoke('get-learner-progress', roadmapId),
-  saveLearnerProgress: (progress: Record<string, unknown>) => ipcRenderer.invoke('save-learner-progress', progress),
 
   // Applications Management
   updateApplicationStatus: (id: number | string, status: string) =>
@@ -76,8 +70,6 @@ const apiObj = {
   deleteApplication: (id: number | string) => ipcRenderer.invoke('delete-application', id),
 
   // Interview Evaluation
-  evaluateInterviewAnswer: (params: { questionId: string; questionTitle: string; answerText: string; category?: string }) =>
-    ipcRenderer.invoke('evaluate-interview-answer', params),
 
   // Admin & Authentication APIs
   authLogin: (credentials: Record<string, unknown>) => ipcRenderer.invoke('auth-login', credentials),

@@ -1,12 +1,7 @@
-import React, { useState } from 'react';
-import {
-  ArrowRight, ArrowLeft, Check, User,
-  Briefcase, Target, Clock, Search,
-  Compass, BookOpen, Layers, CheckCircle2,
-  Code2, Phone, Mail, Lock, Shield, Sparkles,
-  Zap, FileText, Upload, Key, Loader2, Calendar, Plus, X
-} from 'lucide-react';
-import { MasterProfile, getApi, WorkspaceMode, OpportunityType } from '../types';
+import React, { useMemo, useState } from 'react';
+import { ArrowRight, ArrowLeft, Check, FileText, Loader2, Plus, Upload } from 'lucide-react';
+import { MasterProfile, getApi, OpportunityType } from '../types';
+import { searchRoleTitles } from '../data/roleSearch';
 
 interface OnboardingWizardProps {
   initialProfile: MasterProfile;
@@ -16,973 +11,290 @@ interface OnboardingWizardProps {
 }
 
 const EXPERIENCE_LEVELS = [
-  { id: 'fresher', label: 'Entry / Early Career', desc: '0–2 years or transitioning fields' },
-  { id: 'mid', label: 'Mid-Level Specialist', desc: '2–5 years of direct execution' },
-  { id: 'senior', label: 'Senior & Leadership', desc: '5+ years leading projects or teams' },
-];
+  { id: 'entry', label: 'Entry level', desc: '0-2 years' },
+  { id: 'mid', label: 'Mid level', desc: '2-5 years' },
+  { id: 'senior', label: 'Senior', desc: '5+ years' },
+] as const;
 
-const TIMELINE_OPTIONS = [
-  { id: '1 Month', label: '1 Month', sub: 'Fast-Track Sprint' },
-  { id: '3 Months', label: '3 Months', sub: 'Standard (Recommended)' },
-  { id: '6 Months', label: '6 Months', sub: 'Comprehensive Mastery' },
-];
-
-const COMMITMENT_OPTIONS = [
-  { id: '1 Hour/Day', label: '1 Hour / Day', sub: 'Consistent Pace' },
-  { id: '2 Hours/Day', label: '2 Hours / Day', sub: 'Optimal Growth' },
-  { id: '4+ Hours/Day', label: '4+ Hours / Day', sub: 'Full Immersion' },
+const OPPORTUNITY_TYPES: Array<{ id: OpportunityType; label: string }> = [
+  { id: 'job', label: 'Full-time jobs' },
+  { id: 'internship', label: 'Internships' },
+  { id: 'both', label: 'Both' },
 ];
 
 const ROLE_SUGGESTIONS = [
-  'Software Engineer', 'Frontend Engineer', 'Backend Engineer', 'Fullstack Engineer',
-  'Product Manager', 'UI/UX Designer', 'Growth Marketer', 'Data Analyst',
-  'Financial Analyst', 'DevOps & Cloud', 'AI / ML Engineer', 'Operations Lead'
+  'Software Engineer', 'Frontend Engineer', 'Backend Engineer', 'Full Stack Engineer',
+  'Data Analyst', 'Product Manager', 'UI/UX Designer', 'DevOps Engineer',
+  'AI / ML Engineer', 'Marketing Associate',
 ];
 
-const DEFAULT_POPULAR_SKILLS = [
-  'Product Strategy', 'UI/UX Design', 'User Research', 'SQL & Data Analysis',
-  'TypeScript', 'React', 'Python', 'Growth Marketing & SEO',
-  'Financial Modeling', 'Project Management', 'System Architecture', 'Market Research',
-  'REST APIs', 'Docker', 'Next.js', 'Figma', 'Node.js', 'PostgreSQL'
+const SKILL_SUGGESTIONS = [
+  'TypeScript', 'React', 'Node.js', 'Python', 'SQL', 'Java', 'Next.js', 'Docker',
+  'AWS', 'Figma', 'Data Analysis', 'Product Strategy', 'Communication', 'Project Management',
 ];
 
-export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
-  initialProfile,
-  currentUser,
-  onComplete,
-  onSwitchToLogin,
-}) => {
-  // 4 Focused Form Steps + Final Step 5 Review
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+const inputClass =
+  'w-full h-11 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3.5 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/20 dark:focus:ring-white/20 focus:border-slate-900 dark:focus:border-white transition';
 
-  // Authenticated user initials
+const Field: React.FC<{ label: string; hint?: string; children: React.ReactNode }> = ({ label, hint, children }) => (
+  <label className="block space-y-1.5">
+    <span className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300">
+      {label} {hint && <span className="font-normal text-slate-400">{hint}</span>}
+    </span>
+    {children}
+  </label>
+);
+
+export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ initialProfile, currentUser, onComplete }) => {
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+
   const userEmail = currentUser?.email || initialProfile.email || '';
-  const initialFirst = initialProfile.firstName || (currentUser?.fullName ? currentUser.fullName.split(' ')[0] : '');
-  const initialLast = initialProfile.lastName || (currentUser?.fullName ? currentUser.fullName.split(' ').slice(1).join(' ') : '');
+  const [firstName, setFirstName] = useState(initialProfile.firstName || (currentUser?.fullName ? currentUser.fullName.split(' ')[0] : ''));
+  const [lastName, setLastName] = useState(initialProfile.lastName || (currentUser?.fullName ? currentUser.fullName.split(' ').slice(1).join(' ') : ''));
+  const [phone, setPhone] = useState(initialProfile.phone || '');
+  const [linkedin, setLinkedin] = useState(initialProfile.linkedin || '');
+  const [github, setGithub] = useState(initialProfile.github || '');
 
-  // Core State (Clean, zero forced pre-filled placeholders)
-  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>(initialProfile.workspaceMode || 'unified');
-  const [targetOpportunityType, setTargetOpportunityType] = useState<OpportunityType>(initialProfile.targetOpportunityType || 'both');
-  const [firstName, setFirstName] = useState<string>(initialFirst || '');
-  const [lastName, setLastName] = useState<string>(initialLast || '');
-  const [phone, setPhone] = useState<string>(initialProfile.phone || '');
-  const [targetRoleTitle, setTargetRoleTitle] = useState<string>(initialProfile.desiredTitle || '');
-  const [experienceLevel, setExperienceLevel] = useState<string>(initialProfile.experienceLevel || 'fresher');
-  const [targetHorizon, setTargetHorizon] = useState<string>('3 Months');
-  const [dailyCommitment, setDailyCommitment] = useState<string>('2 Hours/Day');
-  const [bioOrResumeText, setBioOrResumeText] = useState<string>(initialProfile.resumeText || '');
-  const [uploadedResumePath, setUploadedResumePath] = useState<string>(initialProfile.resumeFilePath || '');
-  const [uploadedResumeName, setUploadedResumeName] = useState<string>('');
-  const [isPickingResumeFile, setIsPickingResumeFile] = useState<boolean>(false);
-  const [customAiKey, setCustomAiKey] = useState<string>(initialProfile.geminiApiKey || '');
-  const [selectedSkills, setSelectedSkills] = useState<Set<string>>(() => {
-    const s = new Set<string>();
-    if (initialProfile.techStack) {
-      initialProfile.techStack.split(',').map(x => x.trim()).filter(Boolean).forEach(x => s.add(x));
-    }
-    return s;
-  });
-  const [newSkillInput, setNewSkillInput] = useState<string>('');
+  const [role, setRole] = useState(initialProfile.desiredTitle || '');
+  const [experience, setExperience] = useState<'entry' | 'mid' | 'senior'>(initialProfile.experienceLevel || 'entry');
+  const [opportunity, setOpportunity] = useState<OpportunityType>(initialProfile.targetOpportunityType || 'both');
+  const [skills, setSkills] = useState<string[]>(
+    initialProfile.techStack ? initialProfile.techStack.split(',').map((s) => s.trim()).filter(Boolean) : [],
+  );
+  const [skillInput, setSkillInput] = useState('');
 
-  // AI Synthesis Results
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const [aiError, setAiError] = useState<string | null>(null);
-  const [synthesizedProfile, setSynthesizedProfile] = useState<Partial<MasterProfile>>({});
-  const [synthesizedRoadmap, setSynthesizedRoadmap] = useState<any>(null);
+  const [resumePath, setResumePath] = useState(initialProfile.resumeFilePath || '');
+  const [resumeName, setResumeName] = useState(initialProfile.resumeFilePath ? initialProfile.resumeFilePath.split(/[/\\]/).pop() || '' : '');
+  const [picking, setPicking] = useState(false);
+  const [needsSponsorship, setNeedsSponsorship] = useState(initialProfile.sponsorship === 'Yes');
+  const [noticePeriod, setNoticePeriod] = useState(initialProfile.noticePeriod || '');
+  const [salary, setSalary] = useState(initialProfile.desiredSalary || '');
+  const [saving, setSaving] = useState(false);
 
-  const toggleSkill = (skill: string) => {
-    const next = new Set(selectedSkills);
-    if (next.has(skill)) next.delete(skill);
-    else next.add(skill);
-    setSelectedSkills(next);
+  const suggestions = useMemo(() => (role.trim().length >= 2 ? searchRoleTitles(role, 5) : []), [role]);
+  const showSuggestions = suggestions.length > 0 && !suggestions.some((s) => s.toLowerCase() === role.trim().toLowerCase());
+
+  const addSkill = (raw: string) => {
+    const s = raw.trim();
+    if (!s || skills.some((x) => x.toLowerCase() === s.toLowerCase())) return;
+    setSkills([...skills, s]);
+    setSkillInput('');
   };
+  const toggleSkill = (s: string) =>
+    setSkills((prev) => (prev.some((x) => x.toLowerCase() === s.toLowerCase()) ? prev.filter((x) => x.toLowerCase() !== s.toLowerCase()) : [...prev, s]));
 
-  const handleAddSkill = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const clean = newSkillInput.trim();
-    if (!clean) return;
-    const next = new Set(selectedSkills);
-    next.add(clean);
-    setSelectedSkills(next);
-    setNewSkillInput('');
-  };
+  const canContinue =
+    step === 1 ? firstName.trim().length > 0 && phone.trim().length >= 7 : step === 2 ? role.trim().length > 1 : !!resumePath;
 
-  const handlePickResumeFile = async (e?: React.ChangeEvent<HTMLInputElement>) => {
+  const pickResume = async () => {
     const api = getApi();
-    setIsPickingResumeFile(true);
+    if (!api?.pickResumeFile) return;
+    setPicking(true);
     try {
-      let fileName = 'Resume.pdf';
-      let filePath = '';
-
-      if (e && e.target.files && e.target.files.length > 0) {
-        const f = e.target.files[0];
-        fileName = f.name;
-        filePath = (f as any).path || URL.createObjectURL(f);
-      } else if (api && api.pickResumeFile) {
-        const res = await api.pickResumeFile();
-        if (res.canceled || !res.filePath) {
-          setIsPickingResumeFile(false);
-          return;
-        }
-        filePath = res.filePath;
-        fileName = res.fileName || res.filePath.split(/[/\\]/).pop() || 'Resume.pdf';
-      }
-
-      if (filePath) {
-        setUploadedResumePath(filePath);
-        setUploadedResumeName(fileName);
-        if (api && api.saveResume) {
-          await api.saveResume({
-            name: fileName,
-            targetRole: targetRoleTitle || 'General',
-            filePath,
-            isDefault: true,
-          });
-        }
-      }
+      const res = await api.pickResumeFile();
+      if (res.canceled || !res.filePath) return;
+      const name = res.fileName || res.filePath.split(/[/\\]/).pop() || 'Resume.pdf';
+      setResumePath(res.filePath);
+      setResumeName(name);
+      await api.saveResume?.({ name, targetRole: role || 'General', filePath: res.filePath, isDefault: true });
     } catch (err: any) {
-      console.warn('[Onboarding Resume] Picker error:', err?.message);
+      console.warn('[Onboarding] Resume picker error:', err?.message);
     } finally {
-      setIsPickingResumeFile(false);
+      setPicking(false);
     }
   };
 
-  // ── Trigger Neural Profile & Deep Roadmap Generation ──────────────────────
-  const handleGenerateAIProfile = async () => {
-    setIsGenerating(true);
-    setAiError(null);
-
-    const api = getApi();
-    try {
-      const res = await api.generateAiOnboardingProfile({
-        targetRole: targetRoleTitle.trim() || 'Professional Specialist',
-        experienceLevel,
-        bioOrResumeText: bioOrResumeText.trim(),
-        customSkills: Array.from(selectedSkills),
-        targetHorizon,
-        dailyCommitment,
-        geminiKey: customAiKey.trim() || undefined,
-        groqKey: initialProfile.groqApiKey || undefined,
-      });
-
-      if (res && res.success && res.profile) {
-        const roadmapObj = res.roadmap;
-        setSynthesizedProfile({
-          ...initialProfile,
-          firstName: firstName.trim() || res.profile.firstName || 'Candidate',
-          lastName: lastName.trim() || res.profile.lastName || '',
-          email: userEmail || initialProfile.email || 'user@nomadic.app',
-          phone: phone.trim(),
-          desiredTitle: res.profile.desiredTitle || targetRoleTitle,
-          techStack: res.profile.techStack || Array.from(selectedSkills).join(', '),
-          desiredSalary: res.profile.desiredSalary || '₹12 LPA – ₹26 LPA',
-          resumeText: bioOrResumeText.trim() || res.profile.resumeText || '',
-          resumeFilePath: uploadedResumePath || initialProfile.resumeFilePath,
-          experienceLevel: experienceLevel as any,
-          geminiApiKey: customAiKey.trim() || undefined,
-          onboardingCompleted: true,
-        });
-        setSynthesizedRoadmap(roadmapObj);
-        setStep(5);
-      } else {
-        throw new Error(res?.error || 'AI synthesis failed.');
-      }
-    } catch (err: any) {
-      console.warn('[Onboarding AI] Fallback triggered:', err?.message);
-      // Detailed fallback roadmap
-      const fallbackId = `roadmap-${Date.now()}`;
-      const fallbackRoadmap = {
-        id: fallbackId,
-        title: `${targetRoleTitle.trim() || 'Career'} Acceleration Roadmap`,
-        domain: 'Professional Mastery',
-        targetRoles: [targetRoleTitle.trim() || 'Specialist'],
-        targetHorizon,
-        dailyCommitment,
-        milestones: [
-          {
-            id: 'phase-1',
-            title: 'Phase 1: Foundations & Core Architecture',
-            level: 'Foundations',
-            estimatedHours: 25,
-            description: 'Core concepts, industry standards, and environment setup.',
-            subModules: [
-              {
-                id: 'sub-1-1',
-                title: 'Core Fundamentals & Industry Workflows',
-                description: 'Deep dive into standard operating procedures and best practices.',
-                keyConcepts: ['Foundational Principles', 'Execution Standards', 'Core Data Structures / Frameworks', 'Quality Control'],
-                resources: [
-                  { title: `${targetRoleTitle || 'Role'} Fundamentals Masterclass`, url: `https://www.youtube.com/results?search_query=${encodeURIComponent((targetRoleTitle || 'career') + ' fundamentals masterclass')}`, type: 'video', duration: '35 mins' },
-                  { title: 'Official Documentation & Standards', url: `https://google.com/search?q=${encodeURIComponent((targetRoleTitle || 'career') + ' official documentation best practices')}`, type: 'doc' }
-                ]
-              }
-            ]
-          },
-          {
-            id: 'phase-2',
-            title: 'Phase 2: Execution & Real-World Deliverables',
-            level: 'Core Execution',
-            estimatedHours: 35,
-            description: 'Hands-on practical projects, artifact design, and case studies.',
-            subModules: [
-              {
-                id: 'sub-2-1',
-                title: 'Production Artifacts & Case Studies',
-                description: 'Building end-to-end deliverables for portfolio demonstration.',
-                keyConcepts: ['End-to-End Workflow Execution', 'Performance Optimization', 'Metrics Tracking', 'Cross-Functional Strategy'],
-                resources: [
-                  { title: 'Project Case Study Breakdown', url: `https://www.youtube.com/results?search_query=${encodeURIComponent((targetRoleTitle || 'career') + ' real world case study')}`, type: 'video', duration: '45 mins' }
-                ]
-              }
-            ]
-          },
-          {
-            id: 'phase-3',
-            title: 'Phase 3: Advanced Optimization & Scaling',
-            level: 'Advanced',
-            estimatedHours: 30,
-            description: 'System design, scalability, leadership, and edge-case resolution.',
-            subModules: [
-              {
-                id: 'sub-3-1',
-                title: 'Enterprise Architecture & Scale',
-                description: 'Solving complex scaling challenges and architectural trade-offs.',
-                keyConcepts: ['High-Availability Architecture', 'Bottleneck Diagnostics', 'Cost & Latency Optimization', 'Security Protocols'],
-                resources: [
-                  { title: 'System Architecture & Scaling Guide', url: `https://www.youtube.com/results?search_query=${encodeURIComponent((targetRoleTitle || 'system architecture') + ' design and scaling')}`, type: 'video', duration: '50 mins' }
-                ]
-              }
-            ]
-          },
-          {
-            id: 'phase-4',
-            title: 'Phase 4: Interview Mastery & Portfolio Defense',
-            level: 'Interview Ready',
-            estimatedHours: 20,
-            description: 'Behavioral STAR storytelling, mock drills, and technical deep-dives.',
-            subModules: [
-              {
-                id: 'sub-4-1',
-                title: 'Interview Strategy & Technical Defense',
-                description: 'Bar-raiser interview preparation and portfolio presentation.',
-                keyConcepts: ['STAR Storytelling Framework', 'Technical Problem Solving', 'Salary Negotiation', 'Behavioral Drills'],
-                resources: [
-                  { title: 'Mock Interview & Strategy Drills', url: `https://www.youtube.com/results?search_query=${encodeURIComponent((targetRoleTitle || 'career') + ' mock interview questions and answers')}`, type: 'video', duration: '40 mins' }
-                ]
-              }
-            ]
-          }
-        ]
-      };
-
-      setSynthesizedProfile({
-        ...initialProfile,
-        firstName: firstName.trim() || 'Candidate',
-        lastName: lastName.trim() || '',
-        email: userEmail || initialProfile.email || 'user@nomadic.app',
-        phone: phone.trim(),
-        desiredTitle: targetRoleTitle.trim() || 'Professional Specialist',
-        techStack: Array.from(selectedSkills).join(', ') || 'Core Skills',
-        desiredSalary: '₹12 LPA – ₹26 LPA',
-        resumeText: bioOrResumeText.trim() || 'Professional ready for high-impact opportunities.',
-        resumeFilePath: uploadedResumePath || initialProfile.resumeFilePath,
-        experienceLevel: experienceLevel as any,
-        geminiApiKey: customAiKey.trim() || undefined,
-        workspaceMode,
-        targetOpportunityType,
-        onboardingCompleted: true,
-      });
-      setSynthesizedRoadmap(fallbackRoadmap);
-      setStep(5);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleFinalizeAndLaunch = async () => {
-    const api = getApi();
+  const finish = async () => {
+    setSaving(true);
     const finalProfile: MasterProfile = {
       ...initialProfile,
-      ...synthesizedProfile,
-      firstName: firstName.trim() || synthesizedProfile.firstName || 'Candidate',
-      lastName: lastName.trim() || synthesizedProfile.lastName || '',
-      email: userEmail || synthesizedProfile.email || 'user@nomadic.app',
-      phone: phone.trim() || synthesizedProfile.phone || '',
-      desiredTitle: targetRoleTitle.trim() || synthesizedProfile.desiredTitle || 'Professional Specialist',
-      techStack: Array.from(selectedSkills).join(', ') || synthesizedProfile.techStack || 'Core Skills',
-      experienceLevel: experienceLevel as any,
-      resumeFilePath: uploadedResumePath || synthesizedProfile.resumeFilePath || '',
-      workspaceMode,
-      targetOpportunityType,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: userEmail,
+      phone: phone.trim(),
+      linkedin: linkedin.trim(),
+      github: github.trim(),
+      desiredTitle: role.trim(),
+      experienceLevel: experience,
+      targetOpportunityType: opportunity,
+      techStack: skills.join(', '),
+      resumeFilePath: resumePath,
+      sponsorship: needsSponsorship ? 'Yes' : 'No',
+      noticePeriod: noticePeriod.trim() || initialProfile.noticePeriod || '2 weeks',
+      desiredSalary: salary.trim(),
+      workspaceMode: 'seeker_only',
       onboardingCompleted: true,
     };
-
-    if (synthesizedRoadmap && api && api.saveCustomRoadmap) {
-      try {
-        await api.saveCustomRoadmap(synthesizedRoadmap);
-      } catch (err: any) {
-        console.warn('[Onboarding Save Roadmap] Error:', err?.message);
-      }
-    }
-
-    if (api && api.updateMasterProfile) {
-      try {
-        await api.updateMasterProfile(finalProfile);
-      } catch (err: any) {
-        console.warn('[Onboarding Save Profile] Error:', err?.message);
-      }
-    }
-
+    // The parent persists the profile (local DB + cache) and routes to the Jobs tab.
     onComplete(finalProfile);
+    setSaving(false);
   };
 
+  const chip = (active: boolean) =>
+    `inline-flex items-center gap-1 px-3 h-8 rounded-full border text-[13px] font-medium transition ${
+      active
+        ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white'
+        : 'bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400'
+    }`;
+
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 sm:p-6 select-none relative overflow-hidden">
-      {/* Subtle Background Glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-powder-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4 sm:p-6 select-none">
+      <div className="w-full max-w-lg">
+        <div className="flex items-center gap-2.5 mb-6 justify-center">
+          <img src="./assets/logo-icon.png" alt="" className="w-8 h-8 rounded-lg object-contain" />
+          <span className="font-extrabold text-lg tracking-tight text-slate-900 dark:text-white">Nomadic</span>
+        </div>
 
-      {/* Main Container */}
-      <div className="w-full max-w-xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative z-10 space-y-6 animate-in fade-in duration-200">
-        
-        {/* Top Header & Step Stepper */}
-        {step < 5 && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-black dark:bg-white text-white dark:text-black flex items-center justify-center font-bold text-xs shadow-xs">
-                  N
-                </div>
-                <span className="text-xs font-bold tracking-tight text-slate-900 dark:text-zinc-100">
-                  Nomadic Setup
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1.5 text-xs font-mono text-slate-400">
-                <span>Step {step} of 4</span>
-              </div>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
+              <span>Step {step} of 3</span>
+              <span>{step === 1 ? 'About you' : step === 2 ? 'Your search' : 'Resume & basics'}</span>
             </div>
-
-            {/* Visual Step Progress Bar */}
-            <div className="grid grid-cols-4 gap-1.5 pt-1">
-              {[1, 2, 3, 4].map((s) => (
-                <div
-                  key={s}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    s <= step
-                      ? 'bg-powder-500 dark:bg-powder-400'
-                      : 'bg-slate-100 dark:bg-zinc-800'
-                  }`}
-                />
+            <div className="flex gap-1.5" aria-hidden>
+              {[1, 2, 3].map((n) => (
+                <div key={n} className={`h-1.5 flex-1 rounded-full transition-colors ${n <= step ? 'bg-slate-900 dark:bg-white' : 'bg-slate-200 dark:bg-slate-800'}`} />
               ))}
             </div>
           </div>
-        )}
 
-        {/* ── STEP 1: WORKSPACE INTENT & IDENTITY ─────────────────────────── */}
-        {step === 1 && (
-          <div className="space-y-6 animate-in fade-in duration-150">
-            <div className="space-y-1">
-              <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-zinc-100">
-                Welcome to Nomadic
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-zinc-400">
-                Choose your primary focus to personalize your workspace. (You can change this anytime from Settings).
-              </p>
-            </div>
-
-            {/* Workspace Mode Selection Cards */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400 font-mono">
-                Select Your Primary Focus
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                {/* Mode 1: Learner Only */}
-                <div
-                  onClick={() => setWorkspaceMode('learner_only')}
-                  className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between space-y-2 ${
-                    workspaceMode === 'learner_only'
-                      ? 'border-powder-500 bg-powder-50/70 dark:bg-powder-950/40 dark:border-powder-400 shadow-xs ring-1 ring-powder-500'
-                      : 'border-slate-200 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-950/60 hover:border-slate-300 dark:hover:border-zinc-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
-                      <BookOpen className="w-4 h-4" />
-                    </div>
-                    {workspaceMode === 'learner_only' && <CheckCircle2 className="w-4 h-4 text-powder-600 dark:text-powder-400" />}
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-zinc-100">Learn &amp; Practice</div>
-                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5 leading-tight">
-                      52-wk roadmaps, 428+ LC sets, textbooks &amp; streak tracker.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Mode 2: Seeker Only */}
-                <div
-                  onClick={() => setWorkspaceMode('seeker_only')}
-                  className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between space-y-2 ${
-                    workspaceMode === 'seeker_only'
-                      ? 'border-powder-500 bg-powder-50/70 dark:bg-powder-950/40 dark:border-powder-400 shadow-xs ring-1 ring-powder-500'
-                      : 'border-slate-200 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-950/60 hover:border-slate-300 dark:hover:border-zinc-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="w-7 h-7 rounded-lg bg-powder-100 dark:bg-powder-950/80 text-powder-700 dark:text-powder-400 flex items-center justify-center">
-                      <Briefcase className="w-4 h-4" />
-                    </div>
-                    {workspaceMode === 'seeker_only' && <CheckCircle2 className="w-4 h-4 text-powder-600 dark:text-powder-400" />}
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-zinc-100">Apply Directly</div>
-                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5 leading-tight">
-                      Direct ATS radar, 1-click auto-applier &amp; recruiter outreach.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Mode 3: Unified / Both */}
-                <div
-                  onClick={() => setWorkspaceMode('unified')}
-                  className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between space-y-2 ${
-                    workspaceMode === 'unified'
-                      ? 'border-powder-500 bg-powder-50/70 dark:bg-powder-950/40 dark:border-powder-400 shadow-xs ring-1 ring-powder-500'
-                      : 'border-slate-200 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-950/60 hover:border-slate-300 dark:hover:border-zinc-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-400 flex items-center justify-center">
-                      <Sparkles className="w-4 h-4" />
-                    </div>
-                    {workspaceMode === 'unified' && <CheckCircle2 className="w-4 h-4 text-powder-600 dark:text-powder-400" />}
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-900 dark:text-zinc-100">Complete OS (Both)</div>
-                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5 leading-tight">
-                      Full dual-workspace with top [Learn | Seek] switcher.
-                    </p>
-                  </div>
-                </div>
+          {step === 1 && (
+            <div className="space-y-5">
+              <div>
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white">Let&apos;s set up your profile</h1>
+                <p className="text-sm text-slate-500 mt-1">Nomadic uses this to fill application forms for you. Takes about a minute.</p>
               </div>
-            </div>
-
-            <div className="space-y-4 pt-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-zinc-300">
-                    First Name <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="text"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      placeholder="e.g. Alex"
-                      className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:border-powder-500 transition"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-medium text-slate-700 dark:text-zinc-300">
-                    Last Name
-                  </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                    <input
-                      type="text"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      placeholder="e.g. Morgan"
-                      className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:border-powder-500 transition"
-                    />
-                  </div>
-                </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="First name"><input className={inputClass} value={firstName} onChange={(e) => setFirstName(e.target.value)} autoFocus autoComplete="given-name" /></Field>
+                <Field label="Last name"><input className={inputClass} value={lastName} onChange={(e) => setLastName(e.target.value)} autoComplete="family-name" /></Field>
               </div>
+              <Field label="Phone" hint="with country code"><input className={inputClass} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 98765 43210" inputMode="tel" autoComplete="tel" /></Field>
+              <Field label="LinkedIn" hint="optional"><input className={inputClass} value={linkedin} onChange={(e) => setLinkedin(e.target.value)} placeholder="https://linkedin.com/in/you" /></Field>
+              <Field label="GitHub or portfolio" hint="optional"><input className={inputClass} value={github} onChange={(e) => setGithub(e.target.value)} placeholder="https://github.com/you" /></Field>
+            </div>
+          )}
 
-              <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-slate-700 dark:text-zinc-300">
-                  Phone Number <span className="text-slate-400 font-normal">(Used for ATS auto-fills)</span>
-                </label>
-                <div className="relative">
-                  <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="e.g. +91 98765 43210"
-                    className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:border-powder-500 transition"
-                  />
-                </div>
+          {step === 2 && (
+            <div className="space-y-5">
+              <div>
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white">What are you looking for?</h1>
+                <p className="text-sm text-slate-500 mt-1">We&apos;ll rank openings by how well they match.</p>
               </div>
-            </div>
-
-            <div className="pt-2 flex items-center justify-between">
-              {onSwitchToLogin ? (
-                <button
-                  type="button"
-                  onClick={onSwitchToLogin}
-                  className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-zinc-200 transition"
-                >
-                  Already have an account? Sign in
-                </button>
-              ) : <div />}
-
-              <button
-                type="button"
-                onClick={() => setStep(2)}
-                disabled={!firstName.trim()}
-                className="px-5 py-2.5 bg-black hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-black rounded-xl text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-40 shadow-xs"
-              >
-                <span>Continue</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── STEP 2: CAREER GOAL & AMBITION ─────────────────────────────── */}
-        {step === 2 && (
-          <div className="space-y-6 animate-in fade-in duration-150">
-            <div className="space-y-1">
-              <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-zinc-100">
-                What is your target role?
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-zinc-400">
-                Nomadic creates tailored roadmaps and scans live ATS feeds matching your career goal.
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="block text-xs font-medium text-slate-700 dark:text-zinc-300">
-                  Target Title / Profession <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <Briefcase className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  <input
-                    type="text"
-                    value={targetRoleTitle}
-                    onChange={(e) => setTargetRoleTitle(e.target.value)}
-                    placeholder="e.g. Software Engineer, Product Manager, UI/UX Designer..."
-                    className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:border-powder-500 transition"
-                  />
-                </div>
-
-                {/* Role Suggestion Pills */}
-                <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                  <span className="text-[10px] font-mono text-slate-400">Suggestions:</span>
-                  {ROLE_SUGGESTIONS.map((role) => (
-                    <button
-                      key={role}
-                      type="button"
-                      onClick={() => setTargetRoleTitle(role)}
-                      className={`text-[10px] font-mono px-2 py-0.5 rounded-lg border transition ${
-                        targetRoleTitle === role
-                          ? 'border-powder-500 bg-powder-50 dark:bg-powder-950/60 text-powder-900 dark:text-powder-300 font-bold'
-                          : 'border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900 text-slate-700 dark:text-zinc-300 hover:border-slate-400'
-                      }`}
-                    >
-                      {role}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Target Opportunity Type Selector */}
-              <div className="space-y-2 pt-1">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400 font-mono">
-                  What opportunities are you targeting?
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {[
-                    { id: 'job', label: 'Full-Time Jobs', desc: 'Direct tech roles & careers', icon: Briefcase },
-                    { id: 'internship', label: 'Internships', desc: 'Student internships & stipends', icon: BookOpen },
-                    { id: 'both', label: 'Both (All)', desc: 'Jobs, internships & fellowships', icon: Sparkles },
-                  ].map((opp) => {
-                    const isSelected = targetOpportunityType === opp.id;
-                    const Icon = opp.icon;
-                    return (
-                      <button
-                        key={opp.id}
-                        type="button"
-                        onClick={() => setTargetOpportunityType(opp.id as any)}
-                        className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between space-y-1.5 ${
-                          isSelected
-                            ? 'border-powder-500 bg-powder-50/70 dark:bg-powder-950/40 dark:border-powder-400 shadow-xs ring-1 ring-powder-500'
-                            : 'border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-950/50 hover:border-slate-300 dark:hover:border-zinc-700'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-powder-600 dark:text-powder-400' : 'text-slate-400'}`} />
-                          {isSelected && <Check className="w-3.5 h-3.5 text-powder-600 dark:text-powder-400 font-bold" />}
-                        </div>
-                        <div>
-                          <div className="text-xs font-bold text-slate-900 dark:text-zinc-100">
-                            {opp.label}
-                          </div>
-                          <div className="text-[10px] text-slate-500 dark:text-zinc-400 mt-0.5 leading-tight">
-                            {opp.desc}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Experience Level Selector */}
-              <div className="space-y-2 pt-1">
-                <label className="block text-xs font-medium text-slate-700 dark:text-zinc-300">
-                  Experience Level
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {EXPERIENCE_LEVELS.map((lvl) => {
-                    const isSelected = experienceLevel === lvl.id;
-                    return (
-                      <button
-                        key={lvl.id}
-                        type="button"
-                        onClick={() => setExperienceLevel(lvl.id)}
-                        className={`p-3 rounded-xl border text-left transition-all ${
-                          isSelected
-                            ? 'border-black dark:border-white bg-slate-50 dark:bg-zinc-800/80'
-                            : 'border-slate-200 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700'
-                        }`}
-                      >
-                        <div className="text-xs font-bold text-slate-900 dark:text-zinc-100">
-                          {lvl.label}
-                        </div>
-                        <div className="text-[10px] text-slate-500 dark:text-zinc-400 mt-0.5">
-                          {lvl.desc}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-2 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 flex items-center gap-1 transition"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Back</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setStep(3)}
-                disabled={!targetRoleTitle.trim()}
-                className="px-5 py-2.5 bg-black hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-black rounded-xl text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-40 shadow-xs"
-              >
-                <span>Continue</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── STEP 3: TIMELINE, DAILY RHYTHM & RESUME ────────────────────── */}
-        {step === 3 && (
-          <div className="space-y-6 animate-in fade-in duration-150">
-            <div className="space-y-1">
-              <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-zinc-100">
-                Target Rhythm &amp; Resume
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-zinc-400">
-                Configure your pace and attach your resume for automated ATS applications.
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {/* Target Horizon */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-slate-700 dark:text-zinc-300">
-                  Target Timeline Horizon
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {TIMELINE_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => setTargetHorizon(opt.id)}
-                      className={`p-2.5 rounded-xl border text-center transition ${
-                        targetHorizon === opt.id
-                          ? 'border-black dark:border-white bg-slate-50 dark:bg-zinc-800 font-bold text-slate-900 dark:text-zinc-100'
-                          : 'border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-400 hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="text-xs">{opt.label}</div>
-                      <div className="text-[10px] text-slate-400 font-normal">{opt.sub}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Daily Commitment */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-medium text-slate-700 dark:text-zinc-300">
-                  Daily Time Commitment
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {COMMITMENT_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => setDailyCommitment(opt.id)}
-                      className={`p-2.5 rounded-xl border text-center transition ${
-                        dailyCommitment === opt.id
-                          ? 'border-black dark:border-white bg-slate-50 dark:bg-zinc-800 font-bold text-slate-900 dark:text-zinc-100'
-                          : 'border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-400 hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="text-xs">{opt.label}</div>
-                      <div className="text-[10px] text-slate-400 font-normal">{opt.sub}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Resume File Upload Card */}
-              <div className="space-y-1.5 pt-1">
-                <label className="block text-xs font-medium text-slate-700 dark:text-zinc-300">
-                  Attach Resume Document <span className="text-slate-400 font-normal">(.pdf or .docx)</span>
-                </label>
-                <div className="p-4 border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-2xl flex items-center justify-between bg-slate-50 dark:bg-zinc-950">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-zinc-800 flex items-center justify-center text-slate-600 dark:text-zinc-300">
-                      <FileText className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-slate-900 dark:text-zinc-100 truncate max-w-[200px] sm:max-w-xs">
-                        {uploadedResumeName || uploadedResumePath.split(/[/\\]/).pop() || 'No resume file attached yet'}
-                      </div>
-                      <div className="text-[10px] text-slate-400">
-                        {uploadedResumePath ? '✓ Attached for 1-click ATS auto-apply' : 'Optional — you can also add it later in Profile'}
-                      </div>
-                    </div>
-                  </div>
-
-                  <label className="cursor-pointer px-3 py-1.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 hover:border-slate-400 rounded-xl text-xs font-semibold text-slate-800 dark:text-zinc-200 transition shadow-xs flex items-center gap-1.5">
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>{uploadedResumePath ? 'Change' : 'Browse'}</span>
-                    <input
-                      type="file"
-                      accept=".pdf,.docx,.doc"
-                      className="hidden"
-                      onChange={handlePickResumeFile}
-                      disabled={isPickingResumeFile}
-                    />
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-2 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setStep(2)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 flex items-center gap-1 transition"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Back</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setStep(4)}
-                className="px-5 py-2.5 bg-black hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-black rounded-xl text-xs font-semibold flex items-center gap-1.5 transition shadow-xs"
-              >
-                <span>Continue</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── STEP 4: SKILLS & AI SYNTHESIS ──────────────────────────────── */}
-        {step === 4 && (
-          <div className="space-y-6 animate-in fade-in duration-150">
-            <div className="space-y-1">
-              <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-zinc-100">
-                Select your key skills
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-zinc-400">
-                Click suggestions below or type custom tools to tailor your curriculum and auto-matches.
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {/* Custom Skill Input */}
-              <form onSubmit={handleAddSkill} className="flex gap-2">
-                <input
-                  type="text"
-                  value={newSkillInput}
-                  onChange={(e) => setNewSkillInput(e.target.value)}
-                  placeholder="Type custom skill and press Enter..."
-                  className="flex-1 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:border-powder-500 transition"
-                />
-                <button
-                  type="submit"
-                  disabled={!newSkillInput.trim()}
-                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-900 dark:text-zinc-100 rounded-xl text-xs font-semibold transition disabled:opacity-40"
-                >
-                  Add
-                </button>
-              </form>
-
-              {/* Suggestions Grid */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-700 dark:text-zinc-300">
-                    Suggested Competencies
-                  </span>
-                  {selectedSkills.size > 0 && (
-                    <span className="text-[10px] font-mono text-powder-600 dark:text-powder-400 font-bold">
-                      {selectedSkills.size} selected
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto pt-0.5">
-                  {DEFAULT_POPULAR_SKILLS.map((skill) => {
-                    const active = selectedSkills.has(skill);
-                    return (
-                      <button
-                        key={skill}
-                        type="button"
-                        onClick={() => toggleSkill(skill)}
-                        className={`text-xs px-2.5 py-1 rounded-lg border transition flex items-center gap-1 ${
-                          active
-                            ? 'border-black dark:border-white bg-black dark:bg-white text-white dark:text-black font-semibold'
-                            : 'border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-slate-700 dark:text-zinc-300 hover:border-slate-400'
-                        }`}
-                      >
-                        {active ? <Check className="w-3 h-3 text-emerald-400 dark:text-emerald-600" /> : <Plus className="w-3 h-3 text-slate-400" />}
-                        <span>{skill}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {aiError && (
-              <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 rounded-xl text-xs text-red-600 dark:text-red-400">
-                {aiError}
-              </div>
-            )}
-
-            <div className="pt-2 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setStep(3)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 flex items-center gap-1 transition"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Back</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleGenerateAIProfile}
-                disabled={isGenerating}
-                className="px-5 py-2.5 bg-black hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-black rounded-xl text-xs font-semibold flex items-center gap-1.5 transition disabled:opacity-50 shadow-xs"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Synthesizing OS...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-3.5 h-3.5 text-powder-400" />
-                    <span>Generate Career OS</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── STEP 5: REVIEW SYNTHESIZED PROFILE & LAUNCH ────────────────── */}
-        {step === 5 && (
-          <div className="space-y-6 animate-in fade-in duration-150">
-            <div className="space-y-1 text-center">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-semibold mb-2">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Operating System Synthesized</span>
-              </div>
-              <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-zinc-100">
-                Ready to Launch
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-md mx-auto">
-                Your personalized learning curriculum, 428+ company question bank, and ATS radar are prepared.
-              </p>
-            </div>
-
-            {/* Profile & Roadmap Summary Card */}
-            <div className="bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-2xl p-4 space-y-3 text-xs">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-zinc-800">
-                <div>
-                  <div className="font-bold text-slate-900 dark:text-zinc-100 text-sm">
-                    {firstName} {lastName}
-                  </div>
-                  <div className="text-slate-500 text-[11px] font-mono">
-                    {targetRoleTitle} · {targetHorizon} Horizon
-                  </div>
-                </div>
-                <div className="px-2.5 py-1 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg font-mono text-[10px] text-powder-600 dark:text-powder-400 font-bold">
-                  {experienceLevel.toUpperCase()}
-                </div>
-              </div>
-
-              {synthesizedRoadmap && (
-                <div className="space-y-2">
-                  <div className="text-[11px] font-bold text-slate-700 dark:text-zinc-300">
-                    {synthesizedRoadmap.title || '4-Phase Career Mastery Roadmap'}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
-                    {synthesizedRoadmap.milestones?.slice(0, 4).map((m: any, idx: number) => (
-                      <div key={idx} className="p-2 rounded-lg bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800/80">
-                        <div className="font-bold text-slate-900 dark:text-zinc-100 truncate">{m.title}</div>
-                        <div className="text-slate-400">{m.estimatedHours || 25} hours estimated</div>
-                      </div>
+              <div className="space-y-2 relative">
+                <Field label="Target role">
+                  <input className={inputClass} value={role} onChange={(e) => setRole(e.target.value)} placeholder="e.g. Frontend Engineer" autoFocus />
+                </Field>
+                {showSuggestions && (
+                  <div className="absolute z-10 left-0 right-0 top-[70px] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg overflow-hidden">
+                    {suggestions.map((s) => (
+                      <button key={s} type="button" onClick={() => setRole(s)} className="block w-full text-left px-3.5 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800">{s}</button>
                     ))}
                   </div>
+                )}
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {ROLE_SUGGESTIONS.map((r) => (
+                    <button key={r} type="button" onClick={() => setRole(r)} className={chip(role === r)}>{r}</button>
+                  ))}
                 </div>
-              )}
-            </div>
+              </div>
 
-            <div className="pt-2 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setStep(4)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 flex items-center gap-1 transition"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Adjust Skills</span>
-              </button>
+              <div className="space-y-1.5">
+                <span className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300">Experience</span>
+                <div className="grid grid-cols-3 gap-2">
+                  {EXPERIENCE_LEVELS.map((l) => (
+                    <button key={l.id} type="button" onClick={() => setExperience(l.id)}
+                      className={`rounded-xl border p-2.5 text-center transition ${experience === l.id ? 'border-slate-900 dark:border-white bg-slate-50 dark:bg-slate-800' : 'border-slate-200 dark:border-slate-700 hover:border-slate-400'}`}>
+                      <div className="text-[13px] font-semibold text-slate-900 dark:text-white">{l.label}</div>
+                      <div className="text-[11px] text-slate-500">{l.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-              <button
-                type="button"
-                onClick={handleFinalizeAndLaunch}
-                className="px-6 py-3 bg-black hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-black rounded-xl text-xs font-bold flex items-center gap-2 transition shadow-md active:scale-95"
-              >
-                <span>Launch My Workspace</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              <div className="space-y-1.5">
+                <span className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300">Show me</span>
+                <div className="flex gap-2">
+                  {OPPORTUNITY_TYPES.map((o) => (
+                    <button key={o.id} type="button" onClick={() => setOpportunity(o.id)} className={chip(opportunity === o.id)}>{o.label}</button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <span className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300">Key skills <span className="font-normal text-slate-400">({skills.length} selected)</span></span>
+                <form onSubmit={(e) => { e.preventDefault(); addSkill(skillInput); }} className="flex gap-2">
+                  <input className={inputClass} value={skillInput} onChange={(e) => setSkillInput(e.target.value)} placeholder="Add a skill and press Enter" />
+                  <button type="submit" disabled={!skillInput.trim()} className="h-11 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 text-sm font-semibold disabled:opacity-40">Add</button>
+                </form>
+                <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                  {Array.from(new Set([...skills, ...SKILL_SUGGESTIONS])).map((s) => {
+                    const active = skills.some((x) => x.toLowerCase() === s.toLowerCase());
+                    return (
+                      <button key={s} type="button" onClick={() => toggleSkill(s)} className={chip(active)}>
+                        {active ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3 text-slate-400" />}{s}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-5">
+              <div>
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white">Resume &amp; quick answers</h1>
+                <p className="text-sm text-slate-500 mt-1">Applications need a resume. The answers below are reused on every form.</p>
+              </div>
+
+              <div className="rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 p-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0"><FileText className="w-5 h-5 text-slate-600 dark:text-slate-300" /></div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">{resumeName || 'No resume attached'}</div>
+                    <div className="text-xs text-slate-500">PDF or Word document</div>
+                  </div>
+                </div>
+                <button type="button" onClick={pickResume} disabled={picking}
+                  className="h-10 px-4 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-semibold flex items-center gap-2 disabled:opacity-60 shrink-0">
+                  {picking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}{resumeName ? 'Replace' : 'Choose file'}
+                </button>
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="block text-[13px] font-semibold text-slate-700 dark:text-slate-300">Will you need visa sponsorship?</span>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setNeedsSponsorship(false)} className={chip(!needsSponsorship)}>No</button>
+                  <button type="button" onClick={() => setNeedsSponsorship(true)} className={chip(needsSponsorship)}>Yes</button>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Notice period" hint="optional"><input className={inputClass} value={noticePeriod} onChange={(e) => setNoticePeriod(e.target.value)} placeholder="e.g. 30 days" /></Field>
+                <Field label="Expected salary" hint="optional"><input className={inputClass} value={salary} onChange={(e) => setSalary(e.target.value)} placeholder="e.g. 12 LPA" /></Field>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-1">
+            {step > 1 ? (
+              <button type="button" onClick={() => setStep((step - 1) as 1 | 2)} className="h-11 px-4 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1.5">
+                <ArrowLeft className="w-4 h-4" /> Back
+              </button>
+            ) : <span />}
+            {step < 3 ? (
+              <button type="button" disabled={!canContinue} onClick={() => setStep((step + 1) as 2 | 3)}
+                className="h-11 px-6 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-semibold flex items-center gap-2 disabled:opacity-40">
+                Continue <ArrowRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <button type="button" disabled={!canContinue || saving} onClick={finish}
+                className="h-11 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold flex items-center gap-2 disabled:opacity-40">
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Finish setup
+              </button>
+            )}
           </div>
-        )}
-
+          {step === 3 && !resumePath && <p className="text-xs text-slate-500 text-center -mt-2">Attach a resume to finish. Auto-apply can&apos;t submit without one.</p>}
+        </div>
       </div>
     </div>
   );

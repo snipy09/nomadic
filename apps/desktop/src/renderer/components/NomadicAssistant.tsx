@@ -41,7 +41,7 @@ export const NomadicAssistant: React.FC<NomadicAssistantProps> = ({
     {
       id: 'welcome',
       sender: 'assistant',
-      text: `👋 **Hello! I am your Autonomous Co-Pilot on Steroids.**\n\nI have complete access across Nomadic to control your Job Board, trigger auto-applications, navigate learning roadmaps, recommend textbooks, and coach you through technical & behavioral interviews.\n\nWhat would you like to execute today?`,
+      text: `👋 **Hello! I am your Autonomous Co-Pilot on Steroids.**\n\nI can open your job board, start auto-applications, jump to outreach or your tracker, and help with resumes and interview answers.\n\nWhat would you like to execute today?`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -77,8 +77,8 @@ export const NomadicAssistant: React.FC<NomadicAssistantProps> = ({
         const guardMsg: AssistantMessage = {
           id: `guard_${Date.now()}`,
           sender: 'assistant',
-          text: `⚠️ **Academic Integrity Policy**\n\nNomadic Assistant cannot solve school/university homework, assignments, or live exams on your behalf.\n\nHowever, I can explain the underlying **system architecture**, algorithm trade-offs, or point you to textbooks in your **CS Vault**! What technical concept would you like to explore?`,
-          action: { type: 'NAVIGATE', target: 'learner-resources' },
+          text: `⚠️ **Academic Integrity Policy**\n\nNomadic Assistant cannot solve school/university homework, assignments, or live exams on your behalf.\n\nI can still help with your job search: resume wording, interview answers, or finding roles. What would you like to do?`,
+          action: { type: 'NAVIGATE', target: 'feed' },
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         setMessages(prev => [...prev, guardMsg]);
@@ -123,12 +123,9 @@ export const NomadicAssistant: React.FC<NomadicAssistantProps> = ({
       } else if (lower.includes('apply') || lower.includes('auto-apply') || lower.includes('auto apply')) {
         reply = `🚀 Initializing **Batch Co-Pilot Auto-Apply** for your top matching jobs...`;
         action = { type: 'TRIGGER_APPLY', target: 'top_jobs' };
-      } else if (lower.includes('roadmap') || lower.includes('learn')) {
-        reply = `Opening your **Interactive Career Roadmaps**. Tracking milestone progress...`;
-        action = { type: 'NAVIGATE', target: 'learner-roadmaps' };
-      } else if (lower.includes('google') || lower.includes('leetcode') || lower.includes('question')) {
-        reply = `Opening the **428+ Company Question Bank** for targeted interview practice.`;
-        action = { type: 'NAVIGATE', target: 'learner-resources' };
+      } else if (lower.includes('track') || lower.includes('status') || lower.includes('applied')) {
+        reply = `Opening your **Applications tracker**.`;
+        action = { type: 'NAVIGATE', target: 'applications' };
       } else if (lower.includes('settings') || lower.includes('profile')) {
         reply = `Opening your **Candidate Settings & Automation Preferences**.`;
         action = { type: 'NAVIGATE', target: 'settings' };

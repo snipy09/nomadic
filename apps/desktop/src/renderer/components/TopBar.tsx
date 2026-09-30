@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  BookOpen, Briefcase, Zap, Sparkles, ArrowDownToLine,
+  Zap, Sparkles, ArrowDownToLine,
   Search, User, Settings as SettingsIcon, LogOut, ChevronDown,
   FileText, Shield
 } from 'lucide-react';
@@ -26,7 +26,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onLogout,
   activeTab,
   onNavigate,
-  activeTrack = 'learner',
+  activeTrack = 'seeker',
   setTrack,
   workspaceMode = 'unified',
   onOpenUpgrade,
@@ -81,7 +81,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         {/* 1. Left: Nomadic Brand Icon & Name */}
         <div className="flex items-center gap-3">
           <div
-            onClick={() => onNavigate(activeTrack === 'learner' ? 'learner-roadmaps' : 'feed')}
+            onClick={() => onNavigate('feed')}
             className="flex items-center gap-2.5 cursor-pointer group"
           >
             <img
@@ -99,37 +99,6 @@ export const TopBar: React.FC<TopBarProps> = ({
             {tierBadge.label}
           </span>
         </div>
-
-        {/* 2. Center: Top-Level Workspace Mode Switcher [ Learn | Seek ] (Only visible in unified mode) */}
-        {setTrack && workspaceMode === 'unified' && (
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-inner">
-            <button
-              type="button"
-              onClick={() => setTrack('learner')}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                activeTrack === 'learner'
-                  ? 'bg-white dark:bg-slate-900 text-slate-950 dark:text-white shadow-xs border border-slate-200/60 dark:border-slate-700'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
-              }`}
-            >
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>Learn</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setTrack('seeker')}
-              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                activeTrack === 'seeker'
-                  ? 'bg-white dark:bg-slate-900 text-slate-950 dark:text-white shadow-xs border border-slate-200/60 dark:border-slate-700'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
-              }`}
-            >
-              <Briefcase className="w-3.5 h-3.5" />
-              <span>Seek</span>
-            </button>
-          </div>
-        )}
 
         {/* 3. Right: Search (⌘K), Updates, Upgrade, and User Profile Dropdown */}
         <div className="flex items-center gap-2.5">

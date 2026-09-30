@@ -1,5 +1,8 @@
 # 🌌 Nomadic — Universal Career OS & AI Job Automation Platform
 
+> **Scope update:** the Learn module (roadmaps, resource vault, interview prep, opportunity board) has been removed. Nomadic is now a job-seeker app: Jobs, Applications, Outreach, Activity and Settings. Older sections of this README that describe learner features are historical.
+
+
 > **The all-in-one desktop operating system bridging skill mastery, real-time ATS job discovery, high-speed autonomous application submission, and verified recruiter outreach.**
 
 [![Version](https://img.shields.io/badge/version-1.0.6-blue.svg)](https://nomadic.runs-on.dev)

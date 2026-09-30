@@ -427,72 +427,10 @@ export function createBrowserApiShim(): ElectronAPI {
       };
     },
 
-    generateAiOnboardingProfile: async (params: any) => {
-      emitLog(`[AI Onboarding] Analyzing profile for ${params.targetRole}...`);
-      const targetRole = params.targetRole || 'Full Stack Engineer';
-      const skills = params.customSkills && params.customSkills.length > 0
-        ? params.customSkills.join(', ')
-        : 'TypeScript, React, Node.js, PostgreSQL, Docker';
-      return {
-        success: true,
-        profile: {
-          desiredTitle: targetRole,
-          techStack: skills,
-          experienceLevel: params.experienceLevel || 'fresher',
-          onboardingCompleted: true,
-        },
-      };
-    },
 
-    generateCustomRoadmap: async (params: any) => {
-      emitLog(`[AI Roadmap] Synthesizing curriculum for ${params.customTitle || params.roleTitle}...`);
-      const roadmapTitle = (params.customTitle && params.customTitle.trim()) || (params.roleTitle + ' Acceleration Roadmap');
-      return {
-        success: true,
-        roadmap: {
-          id: 'custom-' + Date.now(),
-          title: roadmapTitle,
-          domain: 'Core Engineering',
-          targetRoles: [params.roleTitle],
-          milestones: [
-            {
-              id: 'phase-1',
-              title: 'Phase 1: Foundations & Architecture',
-              level: 'Foundations',
-              difficulty: 'Beginner',
-              estimatedHours: 20,
-              topics: ['Core syntax & typing', 'Data structures', 'Git versioning'],
-              skills: ['TypeScript', 'Git', 'CLI'],
-              description: 'Establish foundational principles and tooling.',
-              resources: [],
-              practice: [],
-              quizzes: []
-            }
-          ]
-        }
-      };
-    },
 
-    getCustomRoadmaps: async () => {
-      const raw = localStorage.getItem('nomadic_custom_roadmaps');
-      return raw ? JSON.parse(raw) : [];
-    },
 
-    saveCustomRoadmap: async (roadmap: any) => {
-      const raw = localStorage.getItem('nomadic_custom_roadmaps');
-      const list = raw ? JSON.parse(raw) : [];
-      const filtered = list.filter((r: any) => r.id !== roadmap.id);
-      filtered.unshift({ ...roadmap, updatedAt: new Date().toISOString() });
-      localStorage.setItem('nomadic_custom_roadmaps', JSON.stringify(filtered));
-      return { success: true };
-    },
 
-    deleteCustomRoadmap: async (id: string) => {
-      const raw = localStorage.getItem('nomadic_custom_roadmaps');
-      const list = raw ? JSON.parse(raw) : [];
-      localStorage.setItem('nomadic_custom_roadmaps', JSON.stringify(list.filter((r: any) => r.id !== id)));
-      return { success: true };
-    },
 
     getActivityHeatmap: async () => {
       const raw = localStorage.getItem('nomadic_activity_logs');
@@ -637,60 +575,8 @@ export function createBrowserApiShim(): ElectronAPI {
       }
     },
 
-    getLearnerProgress: async (roadmapId: string) => {
-      try {
-        const key = `nomadic_learner_progress_${roadmapId}`;
-        const fallbackKey = `hirestack_learner_progress_${roadmapId}`;
-        const stored = localStorage.getItem(key) || localStorage.getItem(fallbackKey);
-        if (stored) return JSON.parse(stored);
-      } catch {}
-      return {
-        roadmapId,
-        completedNodes: ['html-css-dom'],
-        targetHorizon: '2 Months',
-        dailyCommitment: '2 Hours/Day',
-        streakCount: 5,
-        lastActiveDate: new Date().toISOString().split('T')[0],
-      };
-    },
 
-    saveLearnerProgress: async (progress) => {
-      try {
-        const key = `nomadic_learner_progress_${progress.roadmapId}`;
-        const fallbackKey = `hirestack_learner_progress_${progress.roadmapId}`;
-        localStorage.setItem(key, JSON.stringify(progress));
-        localStorage.setItem(fallbackKey, JSON.stringify(progress));
-        emitLog(`[Learner] Progress saved for track "${progress.roadmapId}".`);
-        return { success: true };
-      } catch {
-        return { success: false };
-      }
-    },
 
-    evaluateInterviewAnswer: async (params) => {
-      const words = params.answerText.trim().split(/\s+/).length;
-      const lower = params.answerText.toLowerCase();
-
-      const hasSituation = lower.includes('when') || lower.includes('project') || lower.includes('during') || lower.includes('team');
-      const hasTask = lower.includes('needed') || lower.includes('goal') || lower.includes('responsible');
-      const hasAction = lower.includes('built') || lower.includes('implemented') || lower.includes('designed') || lower.includes('refactored');
-      const hasResult = lower.includes('result') || lower.includes('%') || lower.includes('reduced') || lower.includes('improved');
-
-      let score = 70;
-      if (words >= 70) score += 10;
-      if (hasAction) score += 8;
-      if (hasResult) score += 9;
-
-      const finalScore = Math.min(96, Math.max(62, score));
-      emitLog(`[Interview AI] Evaluated answer: ${finalScore}/100.`);
-
-      return {
-        score: finalScore,
-        review: `Strong response structure. You demonstrated ${hasAction ? 'clear technical ownership' : 'good conceptual awareness'}. ${hasResult ? 'Highlighting quantified impact was compelling.' : 'For maximum impact, add concrete metrics (e.g., % improvement or latency saved).' }`,
-        strengths: ['Well-structured response', 'Professional technical vocabulary'],
-        improvements: hasResult ? ['Maintain this cadence in technical rounds'] : ['Anchor the outcome with concrete metrics'],
-      };
-    },
 
     // Auth & Admin Handlers
     // Server-authoritative: preview mode calls the SAME authenticate_user RPC

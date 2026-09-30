@@ -120,7 +120,7 @@ describe('Career Onboarding Engine', () => {
   });
 
   it('generates dynamic role title suggestions based on query', async () => {
-    const { searchRoleTitles } = await import('../../renderer/data/jobRolesDataset');
+    const { searchRoleTitles } = await import('../../renderer/data/roleSearch');
     const reactSuggestions = searchRoleTitles('react', 5);
     expect(reactSuggestions.length).toBeGreaterThan(0);
     expect(reactSuggestions.some(t => t.toLowerCase().includes('react') || t.toLowerCase().includes('frontend'))).toBe(true);

@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Loader2 } from 'lucide-react';
 import {
-  TabType, ThemeMode, MasterProfile, HeartbeatStatus, AppUser, getApi, PersonaTrack, WorkspaceMode
+  TabType, ThemeMode, MasterProfile, HeartbeatStatus, AppUser, getApi
 } from './types';
 import { OnboardingWizard } from './components/OnboardingWizard';
 import { TopBar } from './components/TopBar';
 import { Sidebar } from './components/Sidebar';
 import { HomeView } from './components/HomeView';
-import { LearnerView } from './components/LearnerView';
 import { UpgradeModal } from './components/UpgradeModal';
 import { FeedView } from './components/FeedView';
 import { OutreachView } from './components/OutreachView';
@@ -15,9 +14,6 @@ import { ApplicationsView } from './components/ApplicationsView';
 import { ProfileView } from './components/ProfileView';
 import { AdminView } from './components/AdminView';
 import { LoginView } from './components/LoginView';
-import { ResourceVaultView } from './components/ResourceVaultView';
-import { InterviewPrepView } from './components/InterviewPrepView';
-import { OpportunityBoardView } from './components/OpportunityBoardView';
 import { CommandPalette } from './components/CommandPalette';
 import { NomadicAssistant } from './components/NomadicAssistant';
 export default function App() {
@@ -37,38 +33,19 @@ export default function App() {
     }
   });
 
-  // Navigation tab state with persistence
-  const [workspaceMode, setWorkspaceModeState] = useState<WorkspaceMode>(() => {
-    try {
-      const saved = localStorage.getItem('nomadic_workspace_mode') as WorkspaceMode;
-      if (saved === 'learner_only' || saved === 'seeker_only' || saved === 'unified') return saved;
-    } catch {}
-    return 'unified';
-  });
-
-  const [activeTrack, setActiveTrack] = useState<PersonaTrack>(() => {
-    try {
-      const mode = (localStorage.getItem('nomadic_workspace_mode') as WorkspaceMode) || 'unified';
-      if (mode === 'learner_only') return 'learner';
-      if (mode === 'seeker_only') return 'seeker';
-      const saved = localStorage.getItem('nomadic_active_track') as PersonaTrack;
-      if (saved === 'learner' || saved === 'seeker') return saved;
-    } catch {}
-    return 'learner';
-  });
-
+  // Nomadic is a job-seeker app: one workspace, no mode switching.
   const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
   const [upgradeFeature, setUpgradeFeature] = useState<string>('');
   const [showCommandPalette, setShowCommandPalette] = useState<boolean>(false);
   const [wantsLogin, setWantsLogin] = useState<boolean>(false);
 
+  const VALID_TABS: TabType[] = ['home', 'feed', 'applications', 'outreach', 'profile', 'logs', 'settings'];
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     try {
-      const savedTrack = (localStorage.getItem('nomadic_active_track') as PersonaTrack) || 'learner';
-      const savedTab = localStorage.getItem(`nomadic_last_tab_${savedTrack}`) as TabType;
-      if (savedTab) return savedTab;
+      const saved = localStorage.getItem('nomadic_last_tab') as TabType;
+      if (saved && (VALID_TABS.includes(saved) || saved.startsWith('admin'))) return saved;
     } catch {}
-    return 'learner-roadmaps';
+    return 'feed';
   });
 
   const [outreachTargetCompany, setOutreachTargetCompany] = useState<string>('');
@@ -192,44 +169,9 @@ export default function App() {
 
   const handleNavigate = (newTab: TabType) => {
     setActiveTab(newTab);
-    if (['learner-roadmaps', 'learner-resources', 'learner-interview-prep'].includes(newTab)) {
-      setActiveTrack('learner');
-      try {
-        localStorage.setItem('nomadic_active_track', 'learner');
-        localStorage.setItem('nomadic_last_tab_learner', newTab);
-      } catch {}
-    } else if (['feed', 'outreach', 'applications'].includes(newTab)) {
-      setActiveTrack('seeker');
-      try {
-        localStorage.setItem('nomadic_active_track', 'seeker');
-        localStorage.setItem('nomadic_last_tab_seeker', newTab);
-      } catch {}
-    } else {
-      // Shared tabs: opportunities, settings, logs
-      try {
-        localStorage.setItem(`nomadic_last_tab_${activeTrack}`, newTab);
-      } catch {}
-    }
-  };
-
-  const handleTrackChange = (newTrack: PersonaTrack) => {
-    if (workspaceMode === 'learner_only') newTrack = 'learner';
-    if (workspaceMode === 'seeker_only') newTrack = 'seeker';
-    setActiveTrack(newTrack);
     try {
-      localStorage.setItem('nomadic_active_track', newTrack);
-      const savedTab = localStorage.getItem(`nomadic_last_tab_${newTrack}`) as TabType;
-      if (savedTab) {
-        setActiveTab(savedTab);
-        return;
-      }
+      localStorage.setItem('nomadic_last_tab', newTab);
     } catch {}
-
-    if (newTrack === 'learner') {
-      setActiveTab('learner-roadmaps');
-    } else {
-      setActiveTab('feed');
-    }
   };
 
   const handleLoginSuccess = async (user: AppUser) => {
@@ -255,13 +197,8 @@ export default function App() {
       try {
         localStorage.setItem('nomadic_onboarding_done', 'true');
       } catch {}
-      if (user.role === 'admin') {
-        setActiveTab('admin-overview');
-      } else {
-        setActiveTrack('learner');
-        setActiveTab('learner-roadmaps');
-      }
-      addLog(`[Auth] Session active (${user.email}). Navigated to Learner Roadmaps.`);
+      setActiveTab(user.role === 'admin' ? 'admin-overview' : 'feed');
+      addLog(`[Auth] Session active (${user.email}).`);
     } else {
       setShowOnboarding(true);
       addLog(`[Auth] New user (${user.email}) registered. Direct to onboarding.`);
@@ -274,17 +211,14 @@ export default function App() {
       localStorage.removeItem('nomadic_user');
       localStorage.removeItem('hirestack_user');
       localStorage.removeItem('jobmaxxer_user');
-      localStorage.removeItem('nomadic_active_track');
-      localStorage.removeItem('nomadic_last_tab_learner');
-      localStorage.removeItem('nomadic_last_tab_seeker');
+      localStorage.removeItem('nomadic_last_tab');
       sessionStorage.clear();
       const api = getApi();
       if (api && (api as any).authLogout) {
         (api as any).authLogout();
       }
     } catch {}
-    setActiveTrack('learner');
-    setActiveTab('learner-roadmaps');
+    setActiveTab('feed');
     addLog('[Auth] Signed out successfully.');
   };
 
@@ -293,15 +227,6 @@ export default function App() {
     const profToSave = updatedProfile || profile;
     setSavingProfile(true);
     setProfile(profToSave);
-    if (profToSave.workspaceMode) {
-      setWorkspaceModeState(profToSave.workspaceMode);
-      localStorage.setItem('nomadic_workspace_mode', profToSave.workspaceMode);
-      if (profToSave.workspaceMode === 'learner_only') {
-        setActiveTrack('learner');
-      } else if (profToSave.workspaceMode === 'seeker_only') {
-        setActiveTrack('seeker');
-      }
-    }
     if (profToSave.targetOpportunityType) {
       localStorage.setItem('nomadic_target_opportunity_type', profToSave.targetOpportunityType);
     }
@@ -395,11 +320,9 @@ export default function App() {
         currentUser={currentUser}
         onComplete={(completedProfile) => {
           setProfile(completedProfile);
+          void handleSaveProfile(completedProfile);
           setShowOnboarding(false);
-          const mode = completedProfile.workspaceMode || 'unified';
-          setWorkspaceModeState(mode);
           try {
-            localStorage.setItem('nomadic_workspace_mode', mode);
             localStorage.setItem('nomadic_onboarding_done', 'true');
             localStorage.setItem('hirestack_onboarding_done', 'true');
             localStorage.setItem('nomadic_last_calibrated_date', new Date().toISOString().split('T')[0]);
@@ -412,13 +335,7 @@ export default function App() {
               localStorage.setItem('nomadic_user', JSON.stringify(updated));
             }
           } catch {}
-          if (mode === 'seeker_only') {
-            setActiveTrack('seeker');
-            setActiveTab('feed');
-          } else {
-            setActiveTrack('learner');
-            setActiveTab('learner-roadmaps');
-          }
+          setActiveTab('feed');
         }}
       />
     );
@@ -433,9 +350,6 @@ export default function App() {
         onLogout={handleLogout}
         activeTab={activeTab}
         onNavigate={handleNavigate}
-        activeTrack={activeTrack}
-        setTrack={handleTrackChange}
-        workspaceMode={workspaceMode}
         onOpenUpgrade={() => handleOpenUpgrade()}
         onOpenCommandPalette={() => setShowCommandPalette(true)}
       />
@@ -445,7 +359,6 @@ export default function App() {
         
         {/* Navigation Sidebar */}
         <Sidebar
-          activeTrack={activeTrack}
           activeTab={activeTab}
           onSelectTab={handleNavigate}
           heartbeat={heartbeat}
@@ -466,42 +379,6 @@ export default function App() {
               ? 'h-full flex-1 flex flex-col overflow-hidden'
               : 'max-w-6xl mx-auto animate-in fade-in duration-150 ease-out'
           }`}>
-            {activeTab === 'learner-roadmaps' && (
-              <LearnerView
-                profile={profile}
-                onUpdateProfile={(u) => setProfile({ ...profile, ...u })}
-                onNavigateToSeeker={() => {
-                  setActiveTrack('seeker');
-                  setActiveTab('feed');
-                }}
-                onLog={addLog}
-                currentUser={currentUser}
-                onOpenUpgrade={handleOpenUpgrade}
-              />
-            )}
-
-            {activeTab === 'learner-resources' && (
-              <ResourceVaultView
-                currentUser={currentUser}
-                onOpenUpgrade={handleOpenUpgrade}
-                onLog={addLog}
-              />
-            )}
-
-            {activeTab === 'learner-interview-prep' && (
-              <InterviewPrepView
-                profile={profile}
-                onLog={addLog}
-              />
-            )}
-
-            {activeTab === 'opportunities' && (
-              <OpportunityBoardView
-                profile={profile}
-                onLog={addLog}
-              />
-            )}
-
             {activeTab === 'home' && (
               <HomeView
                 profile={profile}
@@ -553,7 +430,7 @@ export default function App() {
                 </div>
                 <div className="bg-slate-950 text-slate-300 font-mono text-xs p-4 rounded-2xl border border-slate-800 space-y-1.5 max-h-[600px] overflow-y-auto">
                   {logs.length === 0 ? (
-                    <div className="text-slate-600">No activity logged yet. Start scraping or exploring roadmaps.</div>
+                    <div className="text-slate-600">No activity yet. Open the Jobs tab to start.</div>
                   ) : (
                     logs.map((lg, i) => (
                       <div key={i} className="leading-relaxed border-b border-slate-900 pb-1">
@@ -587,7 +464,7 @@ export default function App() {
             )}
 
             {/* Safe Fallback: if activeTab does not match any known route, render FeedView */}
-            {!['learner-roadmaps', 'learner-resources', 'learner-interview-prep', 'opportunities', 'home', 'feed', 'outreach', 'applications', 'logs', 'profile', 'settings'].includes(activeTab) && !Boolean(activeTab && activeTab.startsWith('admin')) && (
+            {![ 'home', 'feed', 'outreach', 'applications', 'logs', 'profile', 'settings'].includes(activeTab) && !Boolean(activeTab && activeTab.startsWith('admin')) && (
               <FeedView
                 profile={profile}
                 onLog={addLog}
@@ -615,8 +492,6 @@ export default function App() {
             isOpen={showCommandPalette}
             onClose={() => setShowCommandPalette(false)}
             onSelectTab={handleNavigate}
-            activeTrack={activeTrack}
-            onToggleTrack={handleTrackChange}
           />
         )}
 
