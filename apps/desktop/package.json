@@ -12,7 +12,8 @@
     "start": "electron --disable-gpu .",
     "compile": "node build-main.mjs && vite build",
     "build": "node build-main.mjs && vite build",
-    "package:win": "node build-main.mjs && vite build && electron-builder --win nsis portable"
+    "package:win": "node build-main.mjs && vite build && electron-builder --win nsis portable",
+    "package:mac": "node build-main.mjs && vite build && electron-builder --mac dmg"
   },
   "build": {
     "appId": "com.nomadic.career.os",

@@ -173,7 +173,8 @@ describe('Internshala Scraper Resilience & URL Normalization', () => {
   });
 
   describe('scrapeInternshala pipeline resilience', () => {
-    it('executes scrapeInternshala without throwing and returns formatted postings', async () => {
+    // Hits the live site; opt in with LIVE_TESTS=1 so CI stays deterministic.
+    it.skipIf(!process.env.LIVE_TESTS)('executes scrapeInternshala without throwing and returns formatted postings', async () => {
       const jobs = await scrapeInternshala();
       expect(Array.isArray(jobs)).toBe(true);
       expect(jobs.length).toBeGreaterThan(0);

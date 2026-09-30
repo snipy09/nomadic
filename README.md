@@ -234,7 +234,7 @@ Hyper-personalized cold outreach engine (`OutreachView.tsx`):
 ├────────────────────────────────────────────────────────────────────────────────────────┤
 │ 4. CLOUD INFRASTRUCTURE & SCRAPERS (Supabase + Vercel)                                 │
 │    • PostgreSQL users_profile & Auth      • get-cloud-feed-page (18/36/54 range)       │
-│    • Scrape_All_Jobs.bat (Master Pipeline)• Web Portal (nomadic.runs-on.dev)           │
+│    • Run-Job-Scraper.bat (Master Pipeline)• Web Portal (nomadic.runs-on.dev)           │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -276,7 +276,7 @@ nomadic/
 │   ├── email-verifier/                  # 4-stage MX/SMTP email verification
 │   ├── scrapers/                        # ATS Scrapers (Ashby, Greenhouse, Lever, Internshala)
 │   └── supabase/                        # Supabase client, migrations & sync scripts
-├── Scrape_All_Jobs.bat                  # Master multi-ATS scraper execution script
+├── Run-Job-Scraper.bat                  # Windows wrapper for the multi-ATS scraper
 ├── nomadic_architecture.excalidraw      # System architecture diagram
 └── package.json                         # Monorepo root scripts & dependencies
 ```
@@ -301,7 +301,7 @@ Located permanently at `%APPDATA%\Nomadic\job_automator_local.db` on Windows and
 * `get-cloud-feed-page`: High-speed SQL stored procedure for range pagination (18/36/54 items).
 
 ### C. Master ATS Scraper Pipeline
-Run via `Scrape_All_Jobs.bat`:
+Run via `npm run scrape:all` (or `Run-Job-Scraper.bat` on Windows):
 * Hits public JSON APIs and sitemaps for Ashby, Greenhouse, Lever, Internshala, and Remotive.
 * Deduplicates and syncs active jobs directly into Supabase.
 
@@ -354,12 +354,17 @@ npm run dev:web
 
 ### 4. Running the Master Job Scraper
 ```bash
-# Windows
-.\Scrape_All_Jobs.bat
+# Any OS (Scrape_All_Jobs.bat no longer exists; Run-Job-Scraper.bat / Run-HR-Scraper.bat wrap these on Windows)
+npm run scrape:all     # scrape and publish jobs + HRs (packages/scrapers/src/publish-all.ts)
+npm run scrapers:jobs  # jobs only
+npm run scrapers:hrs   # HR leads only
+```
 
-# macOS / Linux (if batch scripts aren't supported, run the underlying JS/TS pipeline)
-# Assuming a node fallback script exists in package.json:
-npm run scrape:all
+### 4b. Quality checks
+```bash
+npm test               # vitest (set LIVE_TESTS=1 to include tests that hit live sites)
+npm run typecheck      # tsc --noEmit (known baseline type errors, see REVAMP_PLAN.md)
+npm run lint           # eslint
 ```
 
 ### 5. Packaging Production Binaries

@@ -23,11 +23,22 @@
     "package:desktop": "npm run package:win --prefix apps/desktop",
     "dev:desktop": "npm run dev --prefix apps/desktop",
     "ui:dev": "npm run vite:dev --prefix apps/desktop",
-    "start:desktop": "npm run start --prefix apps/desktop"
+    "start:desktop": "npm run start --prefix apps/desktop",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "dev:web": "npm run dev --prefix apps/web",
+    "scrape:all": "npm run scrapers:all",
+    "package:mac": "npm run package:mac --prefix apps/desktop"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.11.0",
+    "prettier": "^3.9.9",
     "tsx": "^4.7.1",
     "typescript": "^5.3.3",
+    "typescript-eslint": "^8.71.0",
     "vitest": "^4.1.11"
   },
   "allowScripts": {

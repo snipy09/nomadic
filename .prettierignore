@@ -1,0 +1,8 @@
+node_modules
+dist
+dist-electron
+out
+package-lock.json
+*.excalidraw
+*.json
+*.md
