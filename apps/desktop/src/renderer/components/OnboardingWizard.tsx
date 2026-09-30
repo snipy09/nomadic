@@ -120,7 +120,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ initialProfi
       techStack: skills.join(', '),
       resumeFilePath: resumePath,
       sponsorship: needsSponsorship ? 'Yes' : 'No',
-      noticePeriod: noticePeriod.trim() || initialProfile.noticePeriod || '2 weeks',
+      noticePeriod: noticePeriod.trim() || initialProfile.noticePeriod || '',
       desiredSalary: salary.trim(),
       workspaceMode: 'seeker_only',
       onboardingCompleted: true,

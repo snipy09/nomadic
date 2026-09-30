@@ -2,12 +2,13 @@
  * Built-in High-Speed AI Engine (Google Gemini 2.0 / 1.5 Flash & Groq LLaMA)
  * Fully supports custom user Gemini API keys, environment keys, multimodal vision, and pre-configured fallbacks.
  */
+/**
+ * Gemini keys come only from the environment (never committed). Users can also supply their own key in Settings.
+ */
 export const BUILTIN_GEMINI_KEYS: string[] = [
   process.env.GEMINI_API_KEY || '',
   process.env.GEMINI_API_KEY_1 || '',
   process.env.GEMINI_API_KEY_2 || '',
-  Buffer.from('QVEuQWI4Uk42Sjl6YlVQMzRMcDdUMWVsb2pxZk56bkROT045TWFwTzRCVXVDOTFwTklvLUE=', 'base64').toString('utf8'),
-  Buffer.from('QVEuQWI4Uk42SlRzSS1xazlSWHA4YWd6UjdLMFFKUUxZRDJzaFU5VTFnR2YzbGNuOGhSS2c=', 'base64').toString('utf8'),
 ].filter(k => typeof k === 'string' && k.trim().length > 0);
 
 const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash'];

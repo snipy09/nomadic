@@ -192,7 +192,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
     onLog(`[Auto-Apply] Spawning Google Chrome instance for: ${url}`);
     
     try {
-      const res = await api.launchAutonomous([url]);
+      const jm = jobs.find((x) => x.applyUrl === url);
+      const res = await api.launchAutonomous([url], { [url]: { company: jm?.company, title: jm?.title } });
       if (res.success) {
         setActionToast({
           type: 'success',
@@ -223,7 +224,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
     onLog(`[Review Mode] Opening pre-filled Chrome tab for: ${url}`);
 
     try {
-      const res = await api.launchSemiAuto([url]);
+      const jm = jobs.find((x) => x.applyUrl === url);
+      const res = await api.launchSemiAuto([url], { [url]: { company: jm?.company, title: jm?.title } });
       if (res.success) {
         setActionToast({
           type: 'success',
@@ -257,7 +259,12 @@ export const HomeView: React.FC<HomeViewProps> = ({
     onLog(`[Auto-Apply] Starting batch application for top ${targetUrls.length} positions in Chrome...`);
 
     try {
-      const res = await api.launchAutonomous(targetUrls);
+      const meta: Record<string, { company?: string; title?: string }> = {};
+      for (const u of targetUrls) {
+        const jm = jobs.find((x) => x.applyUrl === u);
+        meta[u] = { company: jm?.company, title: jm?.title };
+      }
+      const res = await api.launchAutonomous(targetUrls, meta);
       if (res.success) {
         setActionToast({
           type: 'success',

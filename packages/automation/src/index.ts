@@ -2,7 +2,6 @@ import {
   AutoApplyEngine,
   type MasterProfile,
   type ApplyResult,
-  type ResumeItem,
 } from './auto-apply-engine.ts';
 import {
   answerCustomQuestion,
@@ -19,12 +18,6 @@ import {
   type AIFormActionPlan,
 } from './groq-ai.ts';
 import {
-  capturePageVisionAndDOM,
-  executeNomadicFill,
-  executeNomadicSelect,
-  executeNomadicClick,
-} from './ai-vision-inspector.ts';
-import {
   injectStealthScripts,
   humanType,
   humanClick,
@@ -33,6 +26,11 @@ import {
 import { enableFastRouteInterception } from './fast-route-interceptor.ts';
 import { runFastLocalNavMatcher } from './fast-nav-matcher.ts';
 import { ATS_FIELD_ALIASES } from './alias-dictionary.ts';
+import { ATS_PORTALS, getATSConfig, type ATSPortal } from './ats-portals.ts';
+import { ApplicationNavigator, type NavigationResult } from './navigator.ts';
+import { FormSubmitter, type SubmitResult } from './submitter.ts';
+import { openPortalApplication } from './portals.ts';
+import { runNewFormEngine, toFormProfile } from './form-engine-bridge.ts';
 import {
   findChromeExecutable,
   ensureChromeForTesting,
@@ -46,14 +44,13 @@ export {
   ATS_PORTALS,
   getATSConfig,
   type ATSPortal,
-  FormFiller,
-  type CandidateProfile,
-  type FillFormResult,
   ApplicationNavigator,
   type NavigationResult,
   FormSubmitter,
   type SubmitResult,
-  AIFallbackSolver,
+  openPortalApplication,
+  runNewFormEngine,
+  toFormProfile,
   answerCustomQuestion,
   answerCustomQuestionWithGroq,
   callGeminiFlash,
@@ -68,23 +65,17 @@ export {
   findChromeExecutable,
   ensureChromeForTesting,
   launchExternalStealthBrowser,
-  capturePageVisionAndDOM,
-  executeNomadicFill,
-  executeNomadicSelect,
-  executeNomadicClick,
   injectStealthScripts,
   humanType,
   humanClick,
   handleCloudflareTurnstile,
   enableFastRouteInterception,
   runFastLocalNavMatcher,
-  resolveTargetElementWithTextAI,
 };
 
 export type {
   MasterProfile,
   ApplyResult,
-  ResumeItem,
   BrowserLaunchOptions,
   BrowserSession,
   SemanticElement,

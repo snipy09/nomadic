@@ -209,13 +209,13 @@ export function createBrowserApiShim(): ElectronAPI {
       return { success: true, jobs, totalCount: allJobs.length };
     },
 
-    launchSemiAuto: async (jobUrls: string[]) => {
+    launchSemiAuto: async (jobUrls: string[], _meta?: Record<string, { company?: string; title?: string }>) => {
       emitLog(`[AutoApply] Review Mode: Opening ${jobUrls.length} pre-filled tabs in Chrome...`);
       jobUrls.forEach(url => window.open(url, '_blank'));
       return { success: true };
     },
 
-    launchAutonomous: async (jobUrls: string[]) => {
+    launchAutonomous: async (jobUrls: string[], _meta?: Record<string, { company?: string; title?: string }>) => {
       const BATCH_SIZE = 5;
       const batches = [];
       for (let i = 0; i < jobUrls.length; i += BATCH_SIZE) {
@@ -970,6 +970,7 @@ export function createBrowserApiShim(): ElectronAPI {
         licenseKey: 'NOMADIC-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
         status: 'active',
         createdAt: new Date().toISOString(),
+        appsCount: 0,
         onboardingCompleted: false,
       };
       return { success: true, user };
@@ -985,7 +986,8 @@ export function createBrowserApiShim(): ElectronAPI {
           licenseKey: 'NOMADIC-GGL-DEMO',
           status: 'active',
           createdAt: new Date().toISOString(),
-          onboardingCompleted: false,
+          appsCount: 0,
+        onboardingCompleted: false,
         };
         // Trigger simulated OAuth callback
         if (typeof window !== 'undefined' && (window as any).__oauthCb) {

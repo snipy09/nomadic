@@ -198,6 +198,9 @@ export async function initLocalDatabase(userDataPath: string): Promise<Database>
   try { db.run(`ALTER TABLE master_profile ADD COLUMN onboarding_completed INTEGER DEFAULT 0`); } catch {}
   try { db.run(`ALTER TABLE master_profile ADD COLUMN desired_title TEXT`); } catch {}
   try { db.run(`ALTER TABLE master_profile ADD COLUMN tech_stack TEXT`); } catch {}
+  try { db.run(`ALTER TABLE master_profile ADD COLUMN location TEXT`); } catch {}
+  try { db.run(`ALTER TABLE master_profile ADD COLUMN years_experience TEXT`); } catch {}
+  try { db.run(`ALTER TABLE master_profile ADD COLUMN portfolio TEXT`); } catch {}
   
   try {
     db.run(`CREATE TABLE IF NOT EXISTS user_activity_log (

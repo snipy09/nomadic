@@ -3,40 +3,16 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import {
-  generateStructuredAIContent,
-  generateAIVisionActionPlan,
-  resolveTargetElementWithTextAI,
-  callGeminiVision,
-  type SemanticElement,
-  type AIFormActionPlan
-} from './groq-ai.js';
-import {
-  capturePageVisionAndDOM,
-  executeNomadicFill,
-  executeNomadicSelect,
-  executeNomadicCheckbox,
-  executeNomadicClick,
-  executeNomadicUploadResume
-} from './ai-vision-inspector.js';
-import {
   injectStealthScripts,
-  humanType,
   humanClick,
-  handleCloudflareTurnstile
+  handleCloudflareTurnstile,
 } from './stealth-evasion.js';
 import { enableFastRouteInterception } from './fast-route-interceptor.js';
 import { runFastLocalNavMatcher } from './fast-nav-matcher.js';
-import { executeInstantBatchFormFill } from './fast-batch-filler.js';
-import { executeDeterministicFormSolve } from './deterministic-form-solver.js';
-import { getATSConfig, ATSPortal } from './ats-portals.js';
-import { FormFiller, CandidateProfile } from './form-filler.js';
+import { getATSConfig } from './ats-portals.js';
 import { ApplicationNavigator } from './navigator.js';
 import { FormSubmitter } from './submitter.js';
-import { AIFallbackSolver } from './ai-fallback.js';
-import { extractSemanticDOM, type SemanticDOMSnapshot } from './semantic-dom-extractor.js';
-import { generateAIPilotPlan, type AIPilotPlan } from './ai-pilot-engine.js';
-import { dispatchSpecializedPortalBot } from './bots/bot-dispatcher.js';
-import { OmniFormSolver, getOrCreateValidResumePdf } from './omni-form-solver.js';
+import { openPortalApplication } from './portals.js';
 import { runNewFormEngine } from './form-engine-bridge.js';
 
 export interface MasterProfile {
@@ -55,6 +31,12 @@ export interface MasterProfile {
   groqApiKey?: string;
   geminiApiKey?: string;
   summaryText?: string;
+  location?: string;
+  yearsOfExperience?: string;
+  desiredSalary?: string;
+  authorizedToWork?: boolean;
+  willingToRelocate?: boolean;
+  coverLetterText?: string;
   desiredTitle?: string;
   techStack?: string;
   resumeFilePath?: string;
@@ -91,21 +73,6 @@ export interface ExternalBrowserSession {
   isHeadless: boolean;
   isCDP?: boolean;
 }
-
-const ATS_FIELD_ALIASES: Record<string, string[]> = {
-  fullName: ['full_name', 'fullname', 'full-name', 'name', 'candidate_name', 'candidate-name', 'applicant_name', 'applicant-name', 'legalNameSection_fullName', 'full name', 'your name'],
-  firstName: ['first_name', 'firstname', 'first-name', 'fname', 'first', 'given_name', 'given-name', 'applicant_first_name', 'legalNameSection_firstName', 'first name', 'given name'],
-  lastName: ['last_name', 'lastname', 'last-name', 'lname', 'last', 'family_name', 'family-name', 'surname', 'applicant_last_name', 'legalNameSection_lastName', 'last name', 'family name'],
-  email: ['email', 'email_address', 'email-address', 'e-mail', 'mail', 'user_email', 'contact_email', 'email address'],
-  phone: ['phone', 'phone_number', 'phone-number', 'mobile', 'cell', 'telephone', 'tel', 'contact_number', 'phone-number', 'phone number', 'contact number'],
-  linkedin: ['linkedin', 'linkedin_url', 'linkedin-url', 'linkedin_profile', 'linkedin-profile', 'urls[LinkedIn]', 'urls[linkedin]', 'linkedin url', 'linkedin profile'],
-  github: ['github', 'github_url', 'github-url', 'github_profile', 'github-profile', 'urls[GitHub]', 'urls[github]', 'github url', 'github profile'],
-  portfolio: ['portfolio', 'portfolio_url', 'portfolio-url', 'website', 'personal_website', 'personal_url', 'website_url', 'homepage', 'urls[portfolio]', 'urls[other]'],
-  projects: ['project_link', 'project_url', 'projects_url', 'project_links', 'projects_link', 'project', 'projects', 'live_demo', 'demo_link', 'deployed_url', 'work_sample', 'work_samples', 'code_sample', 'project url', 'project link'],
-  coverLetter: ['cover_letter', 'coverletter', 'cover-letter', 'why_us', 'why_hire', 'why_are_you_interested', 'additional_info', 'additional_information', 'why do you want', 'tell us about'],
-  salary: ['salary', 'expected_salary', 'desired_salary', 'compensation', 'target_comp', 'ctc', 'expected ctc', 'desired compensation', 'expected compensation'],
-  noticePeriod: ['notice', 'notice_period', 'availability', 'earliest_start_date', 'start_date', 'when can you start', 'notice period', 'available from'],
-};
 
 let activeSession: ExternalBrowserSession | null = null;
 
@@ -222,13 +189,6 @@ async function getOrLaunchExternalSession(): Promise<ExternalBrowserSession> {
   return activeSession;
 }
 
-/**
- * Creates or retrieves a verified fallback PDF resume file so file uploads never fail.
- */
-function ensureFallbackResumePath(profile: MasterProfile): string {
-  return getOrCreateValidResumePdf(profile);
-}
-
 export class AutoApplyEngine {
   /**
    * Alias for backward compatibility.
@@ -246,7 +206,8 @@ export class AutoApplyEngine {
   }
 
   /**
-   * Semi-Autonomous (Review) Mode: Opens jobs, pre-fills forms, leaves tabs ready for user 1-click review.
+   * Semi-Autonomous (Review) Mode: opens jobs, pre-fills forms with the form engine and leaves each tab
+   * ready for a 1-click review. Never submits.
    */
   public static async runAutonomousApply(
     jobUrls: string[],
@@ -256,638 +217,230 @@ export class AutoApplyEngine {
   ): Promise<void> {
     const progressCallback = typeof onProgress === 'function' ? onProgress : () => {};
     const session = await getOrLaunchExternalSession();
+    const queue = [...jobUrls];
 
     const worker = async (workerId: number) => {
-      while (jobUrls.length > 0) {
-        const url = jobUrls.shift();
+      while (queue.length > 0) {
+        const url = queue.shift();
         if (!url) break;
 
-        let page: Page | null = null;
         try {
-          page = await session.context.newPage();
+          let page: Page = await session.context.newPage();
           await injectStealthScripts(page);
           progressCallback(`[Worker ${workerId}] Opening: ${url}`);
           await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
           await page.bringToFront().catch(() => {});
 
-          await AutoApplyEngine.injectOverlay(page, '⚡ Nomadic AI: Visually analyzing application form...');
+          await AutoApplyEngine.injectOverlay(page, '⚡ Nomadic: preparing your application...');
           await handleCloudflareTurnstile(page);
           await AutoApplyEngine.openApplicationFormIfRequired(page);
-          const fieldsFilled = await AutoApplyEngine.fillAllFormFieldsWithAI(page, profile);
+          page = await openPortalApplication(page, url);
 
+          const out = await runNewFormEngine(page, profile).catch(() => null);
+          const filled = out?.report.filled ?? 0;
+          const needs = out ? out.report.fields.filter((f) => f.status === 'needs_user' || f.status === 'failed').map((f) => f.label) : [];
           await AutoApplyEngine.injectOverlay(
             page,
-            fieldsFilled > 0 ? '✓ Auto-filled! Ready for 1-Click Review & Submit' : 'Nomadic: Review application details',
-            fieldsFilled > 0 ? '#22c55e' : '#38bdf8'
+            filled > 0
+              ? needs.length ? `✓ Filled ${filled} fields. Needs you: ${needs.slice(0, 3).join('; ')}` : '✓ Auto-filled! Ready for 1-click review & submit'
+              : 'Nomadic: no application form found here, please review manually',
+            filled > 0 && !needs.length ? '#22c55e' : '#f59e0b'
           );
-          progressCallback(`[Ready for Review] ${url} (${fieldsFilled} fields filled)`);
+          progressCallback(`[Ready for Review] ${url} (${filled} fields filled${needs.length ? `, ${needs.length} need you` : ''})`);
         } catch (err: any) {
           progressCallback(`[Notice] ${url}: ${err?.message}`);
         }
       }
     };
 
-    const workerCount = Math.min(limit, jobUrls.length);
-    const workers = Array.from({ length: workerCount }, (_, i) => worker(i + 1));
-    await Promise.all(workers);
+    const workerCount = Math.min(limit, queue.length);
+    await Promise.all(Array.from({ length: workerCount }, (_, i) => worker(i + 1)));
   }
 
   /**
-   * 100% Targeted Autonomous Mode: Multi-Turn AI Vision & Navigation Loop (up to 8 turns)
-   * Visually inspects the screen, understands redirects/homepages, clicks "Apply",
-   * fills all form fields, handles steppers, uploads resume, and completes application.
+   * Full application flow for one URL: open, pass security/login walls, reach the form, fill it with the form
+   * engine, verify, and submit only when every required field is resolved.
    */
   public static async submitApplication(
     url: string,
     profile: MasterProfile,
     onProgress?: ProgressCallback
   ): Promise<ApplyResult> {
-    if (!url || !url.trim()) {
-      return { url: '', success: false, submitted: false, prefilled: false, captchaDetected: false, fieldsFilledCount: 0, error: 'Invalid URL' };
-    }
+    const fail = (error: string, extra: Partial<ApplyResult> = {}): ApplyResult => ({
+      url, success: false, submitted: false, prefilled: false, captchaDetected: false, fieldsFilledCount: 0, error, ...extra,
+    });
+    if (!url || !url.trim()) return fail('Invalid URL', { url: '' });
 
-    let page: Page | null = null;
+    let page!: Page;
     try {
       const session = await getOrLaunchExternalSession();
       page = await session.context.newPage();
       await injectStealthScripts(page);
       await enableFastRouteInterception(page);
 
-      // Handle popup windows from "Apply with..." links
+      // "Apply with..." links may open the real form in a popup; follow it.
       page.on('popup', async (popup) => {
         try {
           await injectStealthScripts(popup);
           await enableFastRouteInterception(popup);
           await popup.waitForLoadState('domcontentloaded').catch(() => {});
           page = popup;
-          await page?.bringToFront().catch(() => {});
+          await page.bringToFront().catch(() => {});
         } catch {}
       });
+
+      const emit = (phase: AutoApplyStatusEvent['phase'], message: string, colorState: AutoApplyStatusEvent['colorState'], actionRequired?: string) =>
+        AutoApplyEngine.emitStatus(page, { phase, message, colorState, actionRequired }, onProgress);
 
       if (typeof onProgress === 'function') onProgress({ phase: 'navigating', message: `Opening: ${url}`, colorState: 'grey' });
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 35000 });
       await page.bringToFront().catch(() => {});
 
-      await AutoApplyEngine.emitStatus(page, { phase: 'navigating', message: 'Nomadic Lightning-Fast AI Engine Active', colorState: 'grey' }, onProgress);
-
-      // Handle Built-in Demo Test Job
-      const isDemoTest = url.includes('httpbin.org') || url.includes('nomadic-demo') || url.includes('test-job');
-      if (isDemoTest) {
+      // Built-in demo job: exercises the real engine against a local form.
+      if (url.includes('httpbin.org') || url.includes('nomadic-demo') || url.includes('test-job')) {
         return await AutoApplyEngine.handleDemoTestApplication(page, profile, url, onProgress);
       }
 
-      // Check for 404 / Expired / Closed page immediately
-      const initialErrorCheck = await AutoApplyEngine.detect404OrExpiredPage(page);
-      if (initialErrorCheck.is404) {
-        await AutoApplyEngine.emitStatus(page, {
-          phase: 'cancelled',
-          message: 'Job Posting Closed or Not Found (404)',
-          colorState: 'red',
-          actionRequired: 'Job Expired'
-        }, onProgress);
-        return {
-          url, success: false, submitted: false, prefilled: false, captchaDetected: false, fieldsFilledCount: 0,
-          error: 'Job posting closed or not found (404)',
-        };
-      }
-
-      // Check for WAF / Access Restricted page immediately
-      const initialWafCheck = await AutoApplyEngine.detectWafOrAccessRestricted(page);
-      if (initialWafCheck.isBlocked) {
-        await AutoApplyEngine.emitStatus(page, {
-          phase: 'user_input_required',
-          message: 'Access Restricted / Security Challenge — Please solve in browser',
-          colorState: 'red',
-          actionRequired: 'Verify Access'
-        }, onProgress);
-        await page.bringToFront().catch(() => {});
-        const unblocked = await AutoApplyEngine.waitForWafUnblocked(page, onProgress);
-        if (!unblocked) {
-          return {
-            url, success: false, submitted: false, prefilled: false, captchaDetected: true, fieldsFilledCount: 0,
-            error: 'Access restricted by portal security (left open in browser)',
-          };
-        }
-      }
-
-      // Candidate profile context for AI vision planner
-      const candidateProfileForAI = {
-        fullName: profile.fullName || `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'Candidate',
-        firstName: profile.firstName || 'Candidate',
-        lastName: profile.lastName || 'Applicant',
-        email: profile.email || 'candidate@nomadic.app',
-        phone: profile.phone || '+1 (555) 019-2834',
-        linkedin: profile.linkedin || 'https://linkedin.com/in/candidate',
-        github: profile.github || 'https://github.com/candidate',
-        desiredTitle: profile.desiredTitle || 'Software Engineer',
-        techStack: profile.techStack || 'TypeScript, React, Node.js, Python, PostgreSQL',
-        sponsorship: profile.sponsorship || 'No',
-        salary: profile.salary || 'Competitive',
-        noticePeriod: profile.noticePeriod || '2 weeks',
-        customAnswers: profile.customAnswers || {},
-      };
-
-      // ── HIGH-SPEED DETERMINISTIC AUTONOMOUS PIPELINE (Max 3 Fast Passes, <= 2s Total) ──
       const atsConfig = getATSConfig(url);
       let totalFieldsFilled = 0;
       let isSubmitted = false;
-      const MAX_DETERMINISTIC_PASSES = 3;
+      let pendingItems: string[] = [];
+      const MAX_PASSES = 6;
 
-      await AutoApplyEngine.emitStatus(page, {
-        phase: 'navigating',
-        message: `Applying to ${atsConfig.name}...`,
-        colorState: 'grey'
-      }, onProgress);
+      await emit('navigating', `Applying to ${atsConfig.name}...`, 'grey');
 
-      for (let pass = 1; pass <= MAX_DETERMINISTIC_PASSES; pass++) {
-        await page.waitForTimeout(100);
+      for (let pass = 1; pass <= MAX_PASSES; pass++) {
+        await page.waitForTimeout(150);
 
-        // 1. Anti-Bot / Cloudflare Turnstile Check
-        const cfResult = await handleCloudflareTurnstile(page);
-        if (cfResult.detected && !cfResult.resolved) {
-          await AutoApplyEngine.emitStatus(page, {
-            phase: 'user_input_required',
-            message: 'Cloudflare Verification — Please complete to proceed',
-            colorState: 'red',
-            actionRequired: 'Verify Human Check'
-          }, onProgress);
+        // 1. Cloudflare / WAF / expired posting
+        const cf = await handleCloudflareTurnstile(page);
+        if (cf.detected && !cf.resolved) {
+          await emit('user_input_required', 'Cloudflare verification: please complete it in the browser', 'red', 'Verify Human Check');
           await page.waitForTimeout(1500);
         }
-
-        // 2. Check for 404 / Expired page
-        const errorCheck = await AutoApplyEngine.detect404OrExpiredPage(page);
-        if (errorCheck.is404) {
-          await AutoApplyEngine.emitStatus(page, {
-            phase: 'cancelled',
-            message: 'Job Posting Closed or Not Found (404)',
-            colorState: 'red',
-            actionRequired: 'Job Expired'
-          }, onProgress);
-          return {
-            url, success: false, submitted: false, prefilled: false, captchaDetected: false, fieldsFilledCount: 0,
-            error: 'Job posting closed or not found (404)',
-          };
+        const expired = await AutoApplyEngine.detect404OrExpiredPage(page);
+        if (expired.is404) {
+          await emit('cancelled', 'Job posting closed or not found', 'red', 'Job Expired');
+          return fail('Job posting closed or not found (404)');
         }
-
-        // 3. Check for WAF / Security Access Restrictions
-        const wafLoopCheck = await AutoApplyEngine.detectWafOrAccessRestricted(page);
-        if (wafLoopCheck.isBlocked) {
-          await AutoApplyEngine.emitStatus(page, {
-            phase: 'user_input_required',
-            message: 'Access Restricted / Security Challenge — Please solve in browser',
-            colorState: 'red',
-            actionRequired: 'Verify Access'
-          }, onProgress);
+        const waf = await AutoApplyEngine.detectWafOrAccessRestricted(page);
+        if (waf.isBlocked) {
+          await emit('user_input_required', 'Access restricted: please solve the security check in the browser', 'red', 'Verify Access');
           await page.bringToFront().catch(() => {});
-          const unblocked = await AutoApplyEngine.waitForWafUnblocked(page, onProgress);
-          if (!unblocked) {
-            return {
-              url, success: false, submitted: false, prefilled: false, captchaDetected: true, fieldsFilledCount: 0,
-              error: 'Access restricted by portal security (left open in browser)',
-            };
+          if (!(await AutoApplyEngine.waitForWafUnblocked(page, onProgress))) {
+            return fail('Access restricted by portal security (left open in browser)', { captchaDetected: true });
           }
         }
 
-        // 4. Check for Confirmed Submission
-        const confirmed = await AutoApplyEngine.isPageConfirmedSubmission(page, totalFieldsFilled);
-        if (confirmed && totalFieldsFilled > 0) {
-          isSubmitted = true;
-          await AutoApplyEngine.emitStatus(page, {
-            phase: 'success',
-            message: `Confirmed Application Submitted to ${atsConfig.name}! ✓`,
-            colorState: 'green'
-          }, onProgress);
-          return {
-            url, success: true, submitted: true, prefilled: true, captchaDetected: false, fieldsFilledCount: totalFieldsFilled
-          };
+        // 2. Already submitted?
+        if (totalFieldsFilled > 0 && (await AutoApplyEngine.isPageConfirmedSubmission(page, totalFieldsFilled))) {
+          await emit('success', `Application submitted to ${atsConfig.name}`, 'green');
+          return { url, success: true, submitted: true, prefilled: true, captchaDetected: false, fieldsFilledCount: totalFieldsFilled };
         }
 
-        // 5. Check for Login Wall & Sign-Up Gatekeepers
-        const loginCheck = await AutoApplyEngine.detectLoginRequired(page);
-        if (loginCheck.requiresLogin) {
-          const portalLabel = loginCheck.portalName || atsConfig.name || 'Job Portal';
-          await AutoApplyEngine.emitStatus(page, {
-            phase: 'user_input_required',
-            message: `Account Required — Please sign in / register on ${portalLabel}`,
-            colorState: 'red',
-            actionRequired: `Sign in to ${portalLabel}`
-          }, onProgress);
-
+        // 3. Login wall / CAPTCHA
+        const login = await AutoApplyEngine.detectLoginRequired(page);
+        if (login.requiresLogin) {
+          const label = login.portalName || atsConfig.name || 'the job portal';
+          await emit('user_input_required', `Account required: please sign in or register on ${label}`, 'red', `Sign in to ${label}`);
           await page.bringToFront().catch(() => {});
-          const loggedIn = await AutoApplyEngine.waitForLoginComplete(page, onProgress);
-          if (loggedIn) {
-            await AutoApplyEngine.emitStatus(page, {
-              phase: 'navigating',
-              message: `Sign-In Verified on ${portalLabel}! Resuming application...`,
-              colorState: 'grey'
-            }, onProgress);
+          if (await AutoApplyEngine.waitForLoginComplete(page, onProgress)) {
+            await emit('navigating', `Signed in to ${label}. Resuming...`, 'grey');
             continue;
-          } else {
-            return {
-              url, success: false, submitted: false, prefilled: false, captchaDetected: false, requiresLogin: true, fieldsFilledCount: 0,
-              error: `Sign-in required on ${portalLabel} (left open in browser)`,
-            };
           }
+          return fail(`Sign-in required on ${label} (left open in browser)`, { requiresLogin: true });
+        }
+        if (await AutoApplyEngine.detectCaptcha(page)) {
+          await emit('user_input_required', 'CAPTCHA detected: please solve it to continue', 'red', 'Solve CAPTCHA');
+          return fail('CAPTCHA challenge detected (left open in browser)', { captchaDetected: true });
         }
 
-        // 6. Check for CAPTCHA wall
-        const captchaDetected = await AutoApplyEngine.detectCaptcha(page);
-        if (captchaDetected) {
-          await AutoApplyEngine.emitStatus(page, {
-            phase: 'user_input_required',
-            message: 'CAPTCHA Challenge Detected — Solve to proceed',
-            colorState: 'red',
-            actionRequired: 'Solve CAPTCHA'
-          }, onProgress);
-          return {
-            url, success: false, submitted: false, prefilled: false, captchaDetected: true, fieldsFilledCount: 0,
-            error: 'CAPTCHA challenge detected (left open in browser)',
-          };
-        }
-
-        // 6b. Fast 1-Click Navigation from Job Description to Application Form (if not already on form)
-        const isAlreadyForm = await page.evaluate(() => {
-          const hasAppContainer = Boolean(document.querySelector('#application-form, .application-form, form[action*="apply"], #application_modal, [data-qa="application-form"]'));
-          const hasEmailInput = Boolean(document.querySelector('input[type="email"], input[name*="email" i]'));
-          const hasFileInput = Boolean(document.querySelector('input[type="file"]'));
-          return hasAppContainer || (hasEmailInput && hasFileInput);
+        // 4. Get from the job description to the form (generic matcher, then portal-specific quirks)
+        const hasForm = await page.evaluate(() => {
+          const container = document.querySelector('#application-form, .application-form, form[action*="apply"], #application_modal, [data-qa="application-form"]');
+          const email = document.querySelector('input[type="email"], input[name*="email" i]');
+          const file = document.querySelector('input[type="file"]');
+          return Boolean(container) || Boolean(email && file);
         }).catch(() => false);
 
-        if (!isAlreadyForm) {
+        if (!hasForm) {
           const fastNav = await runFastLocalNavMatcher(page, profile.desiredTitle);
           if (fastNav.triggered && fastNav.action !== 'form_already_present') {
-            await AutoApplyEngine.emitStatus(page, {
-              phase: 'navigating',
-              message: `Opening Application Form (${fastNav.action.replace(/_/g, ' ')})...`,
-              colorState: 'grey'
-            }, onProgress);
-
+            await emit('navigating', `Opening application form (${fastNav.action.replace(/_/g, ' ')})...`, 'grey');
             await page.waitForTimeout(400);
-
-            // Track if clicking opened a new popup/tab
-            const allOpenPages = session.context.pages();
-            if (allOpenPages.length > 1) {
-              const latestPage = allOpenPages[allOpenPages.length - 1];
-              if (latestPage && !latestPage.isClosed() && latestPage !== page) {
-                page = latestPage;
-                await injectStealthScripts(page);
-                await enableFastRouteInterception(page);
-                await page.bringToFront().catch(() => {});
-              }
+            const open = session.context.pages();
+            const latest = open[open.length - 1];
+            if (open.length > 1 && latest && latest !== page && !latest.isClosed()) {
+              page = latest;
+              await injectStealthScripts(page);
+              await enableFastRouteInterception(page);
+              await page.bringToFront().catch(() => {});
             }
             await page.waitForLoadState('domcontentloaded').catch(() => {});
           }
         }
+        page = await openPortalApplication(page, url);
 
-        // 6b'. New form engine (reader -> classifier -> answerer -> writer -> verifier). Never submits with
-        // unresolved required fields; set NOMADIC_LEGACY_ENGINE=1 to fall back to the old solver chain.
-        if (!process.env.NOMADIC_LEGACY_ENGINE) {
-          const out = await runNewFormEngine(page!, profile).catch(() => null);
-          if (out && out.foundForm && out.report.filled > 0) {
-            totalFieldsFilled += out.report.filled;
-            await AutoApplyEngine.emitStatus(page!, {
-              phase: 'filling',
-              message: `Filled ${out.report.filled} fields${out.report.needsUser ? `, ${out.report.needsUser} need you` : ''}...`,
-              colorState: 'green'
-            }, onProgress);
-            if (out.safeToSubmit) {
-              const submitResult = await new FormSubmitter(page!, atsConfig).submitAndVerify();
-              if (submitResult.submitted) {
-                isSubmitted = true;
-                if (submitResult.confirmed) break;
-              }
-            } else {
-              const todo = [...out.report.unresolvedRequired, ...out.report.fields.filter(f => f.status !== 'filled' && f.status !== 'skipped').map(f => f.label)];
-              const uniq = Array.from(new Set(todo)).slice(0, 5).join('; ');
-              await AutoApplyEngine.emitStatus(page!, {
-                phase: 'user_input_required',
-                message: `Pre-filled ${out.report.filled} fields. Needs you: ${uniq || 'review before submitting'}`,
-                colorState: 'green',
-                actionRequired: 'Review Form & Click Submit'
-              }, onProgress);
+        // 5. Fill + verify with the form engine
+        const out = await runNewFormEngine(page, profile).catch(() => null);
+        if (out && out.foundForm && out.report.filled > 0) {
+          totalFieldsFilled += out.report.filled;
+          await emit('filling', `Filled ${out.report.filled} fields${out.report.needsUser ? `, ${out.report.needsUser} need you` : ''}...`, 'green');
+
+          if (out.safeToSubmit) {
+            await emit('submitting', 'All required fields verified. Submitting...', 'grey');
+            const res = await new FormSubmitter(page, atsConfig).submitAndVerify();
+            if (res.submitted) {
+              isSubmitted = true;
+              if (res.confirmed) break;
             }
-            if (!isSubmitted) {
-              const advanced = await AutoApplyEngine.advanceApplicationStepper(page!);
-              if (advanced) { await page!.waitForTimeout(400); continue; }
-            }
-            break;
-          }
-        }
-
-        // 6c. Specialized Dedicated Bot Route (Internshala, Lever, Greenhouse, Ashby)
-        const specializedResult = await dispatchSpecializedPortalBot(page, page.url(), profile);
-        if (specializedResult && specializedResult.fieldsFilled > 0) {
-          totalFieldsFilled += specializedResult.fieldsFilled;
-          await AutoApplyEngine.emitStatus(page, {
-            phase: 'filling',
-            message: `Specialized Bot Completed (${specializedResult.fieldsFilled} fields & questions solved)...`,
-            colorState: 'green'
-          }, onProgress);
-
-          if (specializedResult.submitted) {
-            isSubmitted = true;
-            if (specializedResult.confirmed) {
-              break;
-            }
-          }
-        }
-
-        // 7. Extract Compact Semantic DOM Snapshot (10ms)
-        const snapshot = await extractSemanticDOM(page);
-
-        // 8. AI Pilot Instant Decision Loop (Gemini 2.0 Flash / Groq in ~120ms)
-        const aiPlan = await generateAIPilotPlan(profile, snapshot, {
-          geminiKey: profile.geminiApiKey,
-          groqKey: profile.groqApiKey,
-        });
-
-        if (aiPlan) {
-          if (aiPlan.statusMessage) {
-            await AutoApplyEngine.emitStatus(page, {
-              phase: 'navigating',
-              message: `AI Pilot: ${aiPlan.statusMessage}`,
-              colorState: 'grey'
-            }, onProgress);
+          } else {
+            pendingItems = Array.from(new Set([
+              ...out.report.unresolvedRequired,
+              ...out.report.fields.filter((f) => f.status === 'needs_user' || f.status === 'failed').map((f) => f.label),
+            ])).filter(Boolean);
           }
 
-          // Case A: AI clicks Apply CTA on job description page
-          if (aiPlan.actionType === 'click_apply' && aiPlan.clickTargetElementId) {
-            const targetEl = await page.$(`[data-nomadic-id="${aiPlan.clickTargetElementId}"]`);
-            if (targetEl) {
-              await humanClick(page, targetEl);
-              await page.waitForTimeout(400);
-
-              // Check if clicking opened a new tab/popup
-              const allOpenPages = session.context.pages();
-              if (allOpenPages.length > 1) {
-                const latestPage = allOpenPages[allOpenPages.length - 1];
-                if (latestPage && !latestPage.isClosed() && latestPage !== page) {
-                  page = latestPage;
-                  await injectStealthScripts(page);
-                  await enableFastRouteInterception(page);
-                  await page.bringToFront().catch(() => {});
-                }
-              }
-              await page.waitForLoadState('domcontentloaded').catch(() => {});
-              continue;
-            }
+          if (!isSubmitted && await AutoApplyEngine.advanceApplicationStepper(page)) {
+            await emit('advancing', 'Next step...', 'grey');
+            await page.waitForTimeout(500);
+            continue;
           }
-
-          // Case B: AI Executes Direct Form Filling Instructions
-          if (aiPlan.fillActions && aiPlan.fillActions.length > 0) {
-            for (const act of aiPlan.fillActions) {
-              try {
-                const el = await page.$(`[data-nomadic-id="${act.elementId}"]`);
-                if (el) {
-                  await el.evaluate((node: HTMLElement, val: string) => {
-                    node.focus();
-                    const proto = node instanceof HTMLInputElement ? window.HTMLInputElement.prototype : window.HTMLTextAreaElement.prototype;
-                    const desc = Object.getOwnPropertyDescriptor(proto, 'value');
-                    if (desc && desc.set) {
-                      desc.set.call(node, val);
-                    } else {
-                      (node as any).value = val;
-                    }
-                    node.dispatchEvent(new Event('input', { bubbles: true }));
-                    node.dispatchEvent(new Event('change', { bubbles: true }));
-                    node.dispatchEvent(new Event('blur', { bubbles: true }));
-                  }, act.value).catch(() => {});
-                  totalFieldsFilled++;
-                }
-              } catch {}
-            }
-          }
-
-          // Case C: AI Clicks Directed Radio / Checkbox / Agreement Elements
-          if (aiPlan.clickElementIds && aiPlan.clickElementIds.length > 0) {
-            for (const elId of aiPlan.clickElementIds) {
-              try {
-                const el = await page.$(`[data-nomadic-id="${elId}"]`);
-                if (el) {
-                  await humanClick(page, el);
-                  totalFieldsFilled++;
-                }
-              } catch {}
-            }
-          }
-
-          // Case D: AI Resume Upload
-          if (aiPlan.uploadResumeElementId) {
-            try {
-              const fileEl = await page.$(`[data-nomadic-id="${aiPlan.uploadResumeElementId}"]`);
-              if (fileEl) {
-                const resumePath = getOrCreateValidResumePdf(profile);
-                if (resumePath && fs.existsSync(resumePath)) {
-                  await fileEl.setInputFiles(resumePath).catch(() => {});
-                  totalFieldsFilled++;
-                }
-              }
-            } catch {}
-          }
-        }
-
-        // 9. Navigation Engine Fallback (ApplicationNavigator) — Click Apply / Open Modal / Bind to Tab
-        if (totalFieldsFilled === 0) {
-          const nav = new ApplicationNavigator(page, atsConfig);
-          const navResult = await nav.navigateToApplicationForm();
-          if (navResult.formPage && navResult.formPage !== page && !navResult.formPage.isClosed()) {
-            page = navResult.formPage;
-          }
-        }
-
-        // 10. Form Filling Engine (FormFiller) — Pure Deterministic Universal Form Solver
-        const filler = new FormFiller(page, atsConfig, profile);
-        const fillResult = await filler.fillFormDeterministic();
-        if (fillResult.fieldsFilled > 0) {
-          totalFieldsFilled += fillResult.fieldsFilled;
-          await AutoApplyEngine.emitStatus(page, {
-            phase: 'filling',
-            message: `AI Form Filled (${totalFieldsFilled} fields, radios & questions solved)...`,
-            colorState: 'green'
-          }, onProgress);
-        }
-
-        // 10b. OmniFormSolver Deep Sweep (Top-to-Bottom Multi-Pass Form Solving & Auto-Submit)
-        const omniResult = await OmniFormSolver.solveEntireForm(
-          page,
-          profile,
-          profile.desiredTitle || 'Software Engineer',
-          atsConfig.name,
-          true, // Auto-submit when complete
-          (ev) => {
-            AutoApplyEngine.emitStatus(page, {
-              phase: ev.phase,
-              message: ev.message,
-              colorState: ev.colorState === 'green' ? 'green' : (ev.colorState === 'red' ? 'red' : 'grey')
-            }, onProgress).catch(() => {});
-          }
-        );
-        if (omniResult.totalInteractions > 0) {
-          totalFieldsFilled += omniResult.totalInteractions;
-        }
-        if (omniResult.isSubmitted) {
-          isSubmitted = true;
-          if (omniResult.isConfirmed) {
-            break;
-          }
-        }
-
-        // Dynamic randomized human pause before clicking Submit to ensure all JS field validations complete cleanly
-        if (totalFieldsFilled > 0) {
-          await randomPause(page, 280, 580);
-        }
-
-        // 11. Submission Engine (FormSubmitter) — Click Submit & Verify Confirmation
-        if (totalFieldsFilled > 0 && !isSubmitted) {
-          const submitter = new FormSubmitter(page, atsConfig);
-          const submitResult = await submitter.submitAndVerify();
-          if (submitResult.submitted) {
-            isSubmitted = true;
-            if (submitResult.confirmed) {
-              break;
-            }
-          }
-        }
-
-        // 10. Multi-Step Stepper Advance (e.g. Next -> Review -> Submit)
-        const advanced = await AutoApplyEngine.advanceApplicationStepper(page);
-        if (advanced) {
-          await AutoApplyEngine.emitStatus(page, {
-            phase: 'filling',
-            message: 'Advancing to next application step...',
-            colorState: 'grey'
-          }, onProgress);
-          await page.waitForTimeout(400);
-          continue;
-        }
-
-        // If form fields were filled and submit triggered, we are done
-        if (totalFieldsFilled > 0) {
           break;
         }
+
+        // 6. No form yet: let the navigator try (modals, tabs), then retry on the next pass
+        const nav = new ApplicationNavigator(page, atsConfig);
+        const navResult = await nav.navigateToApplicationForm();
+        if (navResult.formPage && navResult.formPage !== page && !navResult.formPage.isClosed()) page = navResult.formPage;
       }
 
-      // H. Final Result Evaluation
       if (isSubmitted && totalFieldsFilled > 0) {
-        await AutoApplyEngine.emitStatus(page, {
-          phase: 'success',
-          message: 'Confirmed Application Submitted Successfully!',
-          colorState: 'green'
-        }, onProgress);
-        return {
-          url, success: true, submitted: true, prefilled: true, captchaDetected: false, fieldsFilledCount: totalFieldsFilled,
-        };
+        await emit('success', 'Application submitted successfully', 'green');
+        return { url, success: true, submitted: true, prefilled: true, captchaDetected: false, fieldsFilledCount: totalFieldsFilled };
       }
 
       if (totalFieldsFilled > 0) {
-        await AutoApplyEngine.emitStatus(page, {
-          phase: 'user_input_required',
-          message: `Pre-filled ${totalFieldsFilled} fields — Ready for 1-Click Review & Submit`,
-          colorState: 'green',
-          actionRequired: 'Review Form & Click Submit'
-        }, onProgress);
-        return {
-          url, success: true, submitted: false, prefilled: true, captchaDetected: false, fieldsFilledCount: totalFieldsFilled,
-        };
+        await emit(
+          'user_input_required',
+          pendingItems.length
+            ? `Pre-filled ${totalFieldsFilled} fields. Needs you: ${pendingItems.slice(0, 4).join('; ')}`
+            : `Pre-filled ${totalFieldsFilled} fields. Review and click Submit`,
+          pendingItems.length ? 'red' : 'green',
+          pendingItems.length ? 'Complete the highlighted fields' : 'Review Form & Click Submit'
+        );
+        return { url, success: true, submitted: false, prefilled: true, captchaDetected: false, fieldsFilledCount: totalFieldsFilled };
       }
 
-      // If on external portal with 0 fields filled
-      await AutoApplyEngine.emitStatus(page, {
-        phase: 'cancelled',
-        message: 'No Application Form Found on Portal',
-        colorState: 'red',
-        actionRequired: 'Review Portal Manually'
-      }, onProgress);
-
-      return {
-        url, success: false, submitted: false, prefilled: false, captchaDetected: false, fieldsFilledCount: 0,
-        error: 'No application form inputs found on page',
-      };
+      await emit('cancelled', 'No application form found on this page', 'red', 'Review Portal Manually');
+      return fail('No application form inputs found on page');
     } catch (err: any) {
       if (typeof onProgress === 'function') onProgress({ phase: 'cancelled', message: `Notice: ${err?.message}`, colorState: 'grey' });
-      return {
-        url, success: false, submitted: false, prefilled: false, captchaDetected: false, fieldsFilledCount: 0,
-        error: err?.message || String(err),
-      };
+      return fail(err?.message || String(err));
     }
   }
 
   // ── Helper Methods ────────────────────────────────────────────────────────
-
-  /**
-   * AI Vision & Semantic DOM-Powered Form Filling Engine
-   */
-  private static async fillAllFormFieldsWithAI(page: Page, profile: MasterProfile): Promise<number> {
-    let totalFilled = 0;
-
-    try {
-      const visionCapture = await capturePageVisionAndDOM(page);
-      if (visionCapture && visionCapture.elements.length > 0) {
-        const candidateProfileForAI = {
-          fullName: profile.fullName || `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'Candidate',
-          firstName: profile.firstName || 'Candidate',
-          lastName: profile.lastName || 'Applicant',
-          email: profile.email || 'candidate@nomadic.app',
-          phone: profile.phone || '+1 (555) 019-2834',
-          linkedin: profile.linkedin || 'https://linkedin.com/in/candidate',
-          github: profile.github || 'https://github.com/candidate',
-          desiredTitle: profile.desiredTitle || 'Software Engineer',
-          techStack: profile.techStack || 'TypeScript, React, Node.js, Python, PostgreSQL',
-          sponsorship: profile.sponsorship || 'No',
-          salary: profile.salary || 'Competitive',
-          noticePeriod: profile.noticePeriod || '2 weeks',
-          customAnswers: profile.customAnswers || {},
-        };
-
-        const aiPlan = await generateAIVisionActionPlan(
-          candidateProfileForAI,
-          visionCapture.screenshotBase64,
-          visionCapture.elements,
-          { geminiKey: profile.geminiApiKey }
-        );
-
-        if (aiPlan) {
-          if (Array.isArray(aiPlan.fillActions)) {
-            for (const action of aiPlan.fillActions) {
-              if (action.elementId && action.value) {
-                const ok = await executeNomadicFill(page, action.elementId, action.value);
-                if (ok) totalFilled++;
-              }
-            }
-          }
-
-          if (Array.isArray(aiPlan.selectActions)) {
-            for (const selAction of aiPlan.selectActions) {
-              if (selAction.elementId && selAction.selectedOption) {
-                const ok = await executeNomadicSelect(page, selAction.elementId, selAction.selectedOption);
-                if (ok) totalFilled++;
-              }
-            }
-          }
-
-          if (Array.isArray(aiPlan.checkboxActions)) {
-            for (const cbAction of aiPlan.checkboxActions) {
-              if (cbAction.elementId) {
-                const ok = await executeNomadicCheckbox(page, cbAction.elementId, cbAction.checked ?? true);
-                if (ok) totalFilled++;
-              }
-            }
-          }
-
-          if (aiPlan.uploadResumeElementId) {
-            const resumePath = ensureFallbackResumePath(profile);
-            const ok = await executeNomadicUploadResume(page, aiPlan.uploadResumeElementId, resumePath);
-            if (ok) totalFilled++;
-          }
-        }
-      }
-    } catch {}
-
-    const heuristicFilled = await AutoApplyEngine.fillHeuristicFormFields(page, profile);
-    totalFilled += heuristicFilled;
-
-    return totalFilled;
-  }
 
   private static getAllFrames(page: Page): (Page | Frame)[] {
     try {
@@ -896,24 +449,6 @@ export class AutoApplyEngine {
     } catch {
       return [page];
     }
-  }
-
-  private static async fillHeuristicFormFields(page: Page, profile: MasterProfile): Promise<number> {
-    let count = 0;
-    const targets = AutoApplyEngine.getAllFrames(page);
-
-    for (const target of targets) {
-      try {
-        const std = await AutoApplyEngine.fillStandardFields(target, profile);
-        const sel = await AutoApplyEngine.fillSelectDropdowns(target, profile);
-        const qns = await AutoApplyEngine.answerOpenEndedFields(target, profile);
-        const res = await AutoApplyEngine.uploadResumeIfPresent(target, profile);
-        const chk = await AutoApplyEngine.fillConsentAndRequiredCheckboxes(target);
-        count += std + sel + qns + (res ? 1 : 0) + chk;
-      } catch {}
-    }
-
-    return count;
   }
 
   /**
@@ -1305,388 +840,6 @@ export class AutoApplyEngine {
     return false;
   }
 
-  private static async fillStandardFields(target: Page | Frame, profile: MasterProfile): Promise<number> {
-    let filled = 0;
-    const inputs = await target.$$('input:not([type="hidden"]):not([type="submit"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]), textarea').catch(() => []);
-
-    for (const input of inputs) {
-      try {
-        const isVisible = await input.isVisible().catch(() => false);
-        if (!isVisible) continue;
-
-        const val = await input.inputValue().catch(() => '');
-        if (val && val.trim().length > 0) continue;
-
-        const meta = await input.evaluate((el: HTMLInputElement) => {
-          let labelText = '';
-          if (el.id) {
-            const labelEl = document.querySelector(`label[for="${el.id}"]`);
-            if (labelEl) labelText = labelEl.textContent || '';
-          }
-          if (!labelText) {
-            const parentLabel = el.closest('label');
-            if (parentLabel) labelText = parentLabel.textContent || '';
-          }
-          return {
-            name: (el.name || '').toLowerCase(),
-            id: (el.id || '').toLowerCase(),
-            placeholder: (el.placeholder || '').toLowerCase(),
-            ariaLabel: (el.getAttribute('aria-label') || '').toLowerCase(),
-            label: labelText.toLowerCase(),
-            type: (el.type || '').toLowerCase(),
-            required: el.required || el.getAttribute('aria-required') === 'true',
-          };
-        }).catch(() => ({ name: '', id: '', placeholder: '', ariaLabel: '', label: '', type: 'text', required: false }));
-
-        const combined = `${meta.name} ${meta.id} ${meta.placeholder} ${meta.ariaLabel} ${meta.label}`.toLowerCase();
-
-        // 1. Projects & Work Sample Links
-        if (ATS_FIELD_ALIASES.projects.some(k => combined.includes(k))) {
-          let projVal = profile.projectsUrl || profile.customAnswers?.['project_url'] || profile.customAnswers?.['projects'] || profile.cachedAnswers?.['project_url'];
-          if (!projVal && profile.portfolio) projVal = profile.portfolio;
-          if (!projVal && profile.github) projVal = profile.github;
-          
-          if (!projVal && meta.required && 'page' in target) {
-            projVal = await AutoApplyEngine.promptUserForMissingField(target as Page, 'Project Link / Portfolio URL', 'project_url', profile) || '';
-          }
-          if (projVal) {
-            await humanType(target, input, projVal);
-            filled++;
-            continue;
-          }
-        }
-
-        // 2. Portfolio / Personal Website URL
-        if (ATS_FIELD_ALIASES.portfolio.some(k => combined.includes(k))) {
-          let portVal = profile.portfolio || profile.customAnswers?.['portfolio'] || profile.customAnswers?.['website'] || profile.cachedAnswers?.['portfolio'];
-          if (!portVal && profile.github) portVal = profile.github;
-          
-          if (!portVal && meta.required && 'page' in target) {
-            portVal = await AutoApplyEngine.promptUserForMissingField(target as Page, 'Portfolio / Website URL', 'portfolio', profile) || '';
-          }
-          if (portVal) {
-            await humanType(target, input, portVal);
-            filled++;
-            continue;
-          }
-        }
-
-        // 3. GitHub Profile
-        if (ATS_FIELD_ALIASES.github.some(k => combined.includes(k))) {
-          if (profile.github) {
-            await humanType(target, input, profile.github);
-            filled++;
-            continue;
-          }
-        }
-
-        // 4. LinkedIn Profile
-        if (ATS_FIELD_ALIASES.linkedin.some(k => combined.includes(k))) {
-          if (profile.linkedin) {
-            await humanType(target, input, profile.linkedin);
-            filled++;
-            continue;
-          }
-        }
-
-        // 5. First Name
-        if (ATS_FIELD_ALIASES.firstName.some(k => combined.includes(k)) && profile.firstName) {
-          await humanType(target, input, profile.firstName);
-          filled++;
-          continue;
-        }
-
-        // 6. Last Name
-        if (ATS_FIELD_ALIASES.lastName.some(k => combined.includes(k)) && profile.lastName) {
-          await humanType(target, input, profile.lastName);
-          filled++;
-          continue;
-        }
-
-        // 7. Full Name
-        if (ATS_FIELD_ALIASES.fullName.some(k => combined.includes(k)) && (profile.fullName || profile.firstName)) {
-          await humanType(target, input, profile.fullName || `${profile.firstName} ${profile.lastName}`.trim());
-          filled++;
-          continue;
-        }
-
-        // 8. Email Address
-        if (ATS_FIELD_ALIASES.email.some(k => combined.includes(k)) || meta.type === 'email') {
-          if (profile.email) {
-            await humanType(target, input, profile.email);
-            filled++;
-            continue;
-          }
-        }
-
-        // 9. Phone Number
-        if (ATS_FIELD_ALIASES.phone.some(k => combined.includes(k)) || meta.type === 'tel') {
-          if (profile.phone) {
-            await humanType(target, input, profile.phone);
-            filled++;
-            continue;
-          }
-        }
-
-        // 10. Desired Salary / Compensation
-        if (ATS_FIELD_ALIASES.salary.some(k => combined.includes(k))) {
-          const salVal = profile.salary || 'Competitive / Market Rate';
-          await humanType(target, input, salVal);
-          filled++;
-          continue;
-        }
-
-        // 11. Notice Period / Earliest Start Date
-        if (ATS_FIELD_ALIASES.noticePeriod.some(k => combined.includes(k))) {
-          const notVal = profile.noticePeriod || 'Immediately / 2 weeks';
-          await humanType(target, input, notVal);
-          filled++;
-          continue;
-        }
-
-        // 12. Dynamic SQLite Cached Answers Check
-        if (profile.cachedAnswers) {
-          for (const [qKey, aVal] of Object.entries(profile.cachedAnswers)) {
-            if (combined.includes(qKey.toLowerCase()) && aVal) {
-              await humanType(target, input, aVal);
-              filled++;
-              break;
-            }
-          }
-        }
-      } catch {}
-    }
-    return filled;
-  }
-
-  private static async answerOpenEndedFields(target: Page | Frame, profile: MasterProfile): Promise<number> {
-    let count = 0;
-    const textareas = await target.$$('textarea').catch(() => []);
-
-    for (const ta of textareas) {
-      try {
-        const isVisible = await ta.isVisible().catch(() => false);
-        if (!isVisible) continue;
-
-        const val = await ta.inputValue().catch(() => '');
-        if (val && val.trim().length > 0) continue;
-
-        const meta = await ta.evaluate((el: HTMLTextAreaElement) => {
-          let labelText = '';
-          if (el.id) {
-            const labelEl = document.querySelector(`label[for="${el.id}"]`);
-            if (labelEl) labelText = labelEl.textContent || '';
-          }
-          if (!labelText) {
-            const parentLabel = el.closest('label');
-            if (parentLabel) labelText = parentLabel.textContent || '';
-          }
-          return {
-            name: (el.name || '').toLowerCase(),
-            id: (el.id || '').toLowerCase(),
-            placeholder: (el.placeholder || '').toLowerCase(),
-            ariaLabel: (el.getAttribute('aria-label') || '').toLowerCase(),
-            label: labelText.toLowerCase(),
-          };
-        }).catch(() => ({ name: '', id: '', placeholder: '', ariaLabel: '', label: '' }));
-
-        const combined = `${meta.name} ${meta.id} ${meta.placeholder} ${meta.ariaLabel} ${meta.label}`.toLowerCase();
-
-        // 1. Projects & Work Samples Question
-        if (ATS_FIELD_ALIASES.projects.some(k => combined.includes(k))) {
-          const projAnswer = profile.projectsUrl
-            ? `Key projects & code repositories available at: ${profile.projectsUrl}`
-            : profile.github
-            ? `Key projects & code repositories available on GitHub: ${profile.github}`
-            : 'Extensive portfolio and project links available upon request.';
-          await humanType(target, ta, projAnswer);
-          count++;
-          continue;
-        }
-
-        // 2. Cover Letter / Pitch Question
-        if (ATS_FIELD_ALIASES.coverLetter.some(k => combined.includes(k))) {
-          const coverLetter = profile.summaryText || 'I am excited to apply for this position. My background aligns closely with the technical and engineering requirements of the role.';
-          await humanType(target, ta, coverLetter);
-          count++;
-          continue;
-        }
-
-        // 3. Technical Skills / Tech Stack Question
-        if (combined.includes('skill') || combined.includes('stack') || combined.includes('technolog')) {
-          const techAnswer = profile.techStack || 'TypeScript, React, Node.js, Python, PostgreSQL, Cloud Architectures';
-          await humanType(target, ta, techAnswer);
-          count++;
-          continue;
-        }
-
-        // 4. Default concise candidate response (Never outputs raw summary to URL/project fields)
-        const defaultAnswer = profile.summaryText || 'Experienced software engineer skilled in building scalable applications with TypeScript, React, and modern cloud architectures.';
-        await humanType(target, ta, defaultAnswer);
-        count++;
-      } catch {}
-    }
-    return count;
-  }
-
-  /**
-   * Opens an interactive Copilot Chat prompt inside the browser viewport
-   * to ask the user for a required missing field (e.g. project URL, portfolio link, custom answer).
-   * Automatically caches the answer in SQLite when submitted so the user is never asked again!
-   */
-  public static async promptUserForMissingField(
-    page: Page,
-    fieldLabel: string,
-    fieldKey: string,
-    profile: MasterProfile
-  ): Promise<string | null> {
-    if (profile.cachedAnswers && profile.cachedAnswers[fieldKey]) {
-      return profile.cachedAnswers[fieldKey];
-    }
-    if (profile.customAnswers && profile.customAnswers[fieldKey]) {
-      return profile.customAnswers[fieldKey];
-    }
-
-    try {
-      await page.bringToFront().catch(() => {});
-
-      const userValue = await page.evaluate(async ({ label, key }) => {
-        return new Promise<string | null>((resolve) => {
-          let container = document.getElementById('nomadic-copilot-input-container');
-          if (container) container.remove();
-
-          container = document.createElement('div');
-          container.id = 'nomadic-copilot-input-container';
-          container.style.cssText = `
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            width: 340px;
-            background: #09090b;
-            color: #ffffff;
-            border: 1px solid #27272a;
-            border-radius: 16px;
-            padding: 18px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.1);
-            z-index: 2147483647;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            animation: nomadicFadeIn 0.2s ease-out;
-          `;
-
-          container.innerHTML = `
-            <style>
-              @keyframes nomadicFadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-            </style>
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-              <div style="display: flex; align-items: center; gap: 6px;">
-                <span style="font-size: 13px; font-weight: 700; color: #38bdf8;">⚡ Nomadic Copilot</span>
-              </div>
-              <span style="font-size: 10px; font-weight: 700; background: #0369a1; color: #e0f2fe; padding: 2px 6px; border-radius: 9999px;">Input Needed</span>
-            </div>
-            <p style="font-size: 12px; color: #cbd5e1; margin: 0 0 12px 0; line-height: 1.4;">
-              Please provide your <strong>${label}</strong>:
-            </p>
-            <form id="nomadic-prompt-form" style="margin: 0;">
-              <input 
-                id="nomadic-prompt-input" 
-                type="text" 
-                placeholder="Type your answer here..."
-                style="width: 100%; box-sizing: border-box; background: #18181b; border: 1px solid #3f3f46; border-radius: 8px; padding: 10px 12px; color: #ffffff; font-size: 12px; outline: none; margin-bottom: 10px;"
-                autofocus
-              />
-              <div style="display: flex; gap: 8px;">
-                <button 
-                  type="submit" 
-                  id="nomadic-prompt-submit" 
-                  style="flex: 1; background: #ffffff; color: #09090b; font-weight: 700; font-size: 12px; padding: 8px 12px; border-radius: 8px; border: none; cursor: pointer;"
-                >
-                  Save &amp; Fill →
-                </button>
-                <button 
-                  type="button" 
-                  id="nomadic-prompt-skip" 
-                  style="background: transparent; color: #94a3b8; font-weight: 600; font-size: 12px; padding: 8px 10px; border-radius: 8px; border: 1px solid #27272a; cursor: pointer;"
-                >
-                  Skip
-                </button>
-              </div>
-            </form>
-          `;
-
-          document.body.appendChild(container);
-
-          const inputEl = document.getElementById('nomadic-prompt-input') as HTMLInputElement;
-          inputEl?.focus();
-
-          const formEl = document.getElementById('nomadic-prompt-form');
-          formEl?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const val = inputEl?.value?.trim() || '';
-            container?.remove();
-            resolve(val || null);
-          });
-
-          const skipBtn = document.getElementById('nomadic-prompt-skip');
-          skipBtn?.addEventListener('click', () => {
-            container?.remove();
-            resolve(null);
-          });
-
-          setTimeout(() => {
-            container?.remove();
-            resolve(null);
-          }, 25000);
-        });
-      }, { label: fieldLabel, key: fieldKey });
-
-      if (userValue && userValue.trim().length > 0) {
-        const cleanVal = userValue.trim();
-        if (profile.onAnswerResolved) {
-          profile.onAnswerResolved(fieldKey, cleanVal);
-        }
-        if (!profile.cachedAnswers) profile.cachedAnswers = {};
-        profile.cachedAnswers[fieldKey] = cleanVal;
-        return cleanVal;
-      }
-    } catch {}
-
-    return null;
-  }
-
-  private static async uploadResumeIfPresent(target: Page | Frame, profile: MasterProfile): Promise<boolean> {
-    try {
-      const fileInputs = await target.$$('input[type="file"]').catch(() => []);
-      const resumePath = ensureFallbackResumePath(profile);
-
-      for (const fi of fileInputs) {
-        if (fs.existsSync(resumePath)) {
-          await fi.setInputFiles(resumePath).catch(() => {});
-          return true;
-        }
-      }
-    } catch {}
-    return false;
-  }
-
-  private static async fillConsentAndRequiredCheckboxes(target: Page | Frame): Promise<number> {
-    let count = 0;
-    const checkboxes = await target.$$('input[type="checkbox"]').catch(() => []);
-
-    for (const cb of checkboxes) {
-      try {
-        const isVisible = await cb.isVisible().catch(() => false);
-        if (isVisible) {
-          const isChecked = await cb.isChecked().catch(() => false);
-          if (!isChecked) {
-            await humanClick(target, cb);
-            count++;
-          }
-        }
-      } catch {}
-    }
-    return count;
-  }
-
   public static async injectOverlay(page: Page, text: string, color: string = '#22c55e'): Promise<void> {
     try {
       await page.evaluate(({ message, badgeColor }) => {
@@ -1787,13 +940,10 @@ export class AutoApplyEngine {
 
     await AutoApplyEngine.emitStatus(page, { phase: 'filling', message: 'Nomadic AI filling application fields...', colorState: 'grey' }, onProgress);
 
-    // Rapid populate fields with candidate profile
-    const nameVal = profile.fullName || `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'Candidate';
-    await page.fill('#fullName', nameVal).catch(() => {});
-    await page.fill('#email', profile.email || 'candidate@nomadic.app').catch(() => {});
-    await page.fill('#phone', profile.phone || '+1 (555) 019-2834').catch(() => {});
-    await page.fill('#linkedin', profile.linkedin || 'https://linkedin.com/in/candidate').catch(() => {});
-    await page.waitForTimeout(400);
+    // The demo runs the same engine as real applications (and never invents missing profile data).
+    const demoOut = await runNewFormEngine(page, profile).catch(() => null);
+    const demoFilled = demoOut?.report.filled ?? 0;
+    await page.waitForTimeout(300);
 
     await AutoApplyEngine.emitStatus(page, { phase: 'uploading', message: 'Attaching candidate PDF resume...', colorState: 'grey' }, onProgress);
     await page.waitForTimeout(300);
@@ -1810,7 +960,7 @@ export class AutoApplyEngine {
       submitted: true,
       prefilled: true,
       captchaDetected: false,
-      fieldsFilledCount: 5,
+      fieldsFilledCount: demoFilled,
     };
   }
 }

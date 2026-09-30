@@ -30,6 +30,7 @@ import {
   getUserActivityHeatmapDb,
   getUserActivityStatsDb,
 } from './db.js';
+import { applyReviewOverrides, resolveJobMeta as resolveJobMetaBase, type JobMeta } from './apply-helpers.js';
 import {
   AutoApplyEngine,
   findChromeExecutable,
@@ -220,7 +221,7 @@ async function syncPullUserDataToLocalDb(
         p.github ?? null,
         p.sponsorship ?? 'No',
         p.desired_salary ?? null,
-        p.notice_period ?? '2 weeks',
+        p.notice_period ?? null,
         p.groq_api_key ?? null,
         p.smtp_password ?? null,
         p.resume_text ?? null,
@@ -536,10 +537,10 @@ function hashLogin(email: string, password: string): string {
 }
 
 // Normalize and preserve all Nomadic subscription tiers
-function normalizeTier(t: unknown): string {
+function normalizeTier(t: unknown): 'free' | 'pro' | 'max' {
   const s = String(t ?? 'free').toLowerCase().trim();
-  if (s === 'lite' || s === 'learner_pro' || s === 'learner') return 'lite';
-  if (s === 'pro' || s === 'seeker_pro' || s === 'seeker') return 'pro';
+  // Legacy learner/lite plans map to Pro (the Learn product no longer exists).
+  if (s === 'pro' || s === 'lite' || s === 'learner_pro' || s === 'learner' || s === 'seeker_pro' || s === 'seeker') return 'pro';
   if (s === 'max' || s === 'seeker_max' || s === 'lifetime' || s === 'enterprise' || s === 'turbo') return 'max';
   return 'free';
 }
@@ -842,48 +843,60 @@ ipcMain.handle('save-master-profile', (_, p: Record<string, unknown>) => {
     ? (p.onboarding_completed ? 1 : 0)
     : (p.onboardingCompleted !== undefined ? (p.onboardingCompleted ? 1 : 0) : 1);
 
+  // Fields the caller did not send are left untouched (COALESCE keeps the stored value).
+  const pick = (...keys: string[]): string | null => {
+    for (const k of keys) if (p[k] !== undefined && p[k] !== null) return String(p[k]);
+    return null;
+  };
+
   db.run(`
     INSERT INTO master_profile
       (id, first_name, last_name, email, phone, linkedin, github,
        sponsorship, desired_salary, notice_period, groq_api_key,
        smtp_password, resume_text, custom_answers_json, onboarding_completed,
-       desired_title, tech_stack)
-    VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       desired_title, tech_stack, location, years_experience, portfolio)
+    VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
-      first_name=excluded.first_name,
-      last_name=excluded.last_name,
-      email=excluded.email,
-      phone=excluded.phone,
-      linkedin=excluded.linkedin,
-      github=excluded.github,
-      sponsorship=excluded.sponsorship,
-      desired_salary=excluded.desired_salary,
-      notice_period=excluded.notice_period,
-      groq_api_key=excluded.groq_api_key,
-      smtp_password=excluded.smtp_password,
-      resume_text=excluded.resume_text,
-      custom_answers_json=excluded.custom_answers_json,
+      first_name=COALESCE(excluded.first_name, master_profile.first_name),
+      last_name=COALESCE(excluded.last_name, master_profile.last_name),
+      email=COALESCE(excluded.email, master_profile.email),
+      phone=COALESCE(excluded.phone, master_profile.phone),
+      linkedin=COALESCE(excluded.linkedin, master_profile.linkedin),
+      github=COALESCE(excluded.github, master_profile.github),
+      sponsorship=COALESCE(excluded.sponsorship, master_profile.sponsorship),
+      desired_salary=COALESCE(excluded.desired_salary, master_profile.desired_salary),
+      notice_period=COALESCE(excluded.notice_period, master_profile.notice_period),
+      groq_api_key=COALESCE(excluded.groq_api_key, master_profile.groq_api_key),
+      smtp_password=COALESCE(excluded.smtp_password, master_profile.smtp_password),
+      resume_text=COALESCE(excluded.resume_text, master_profile.resume_text),
+      custom_answers_json=COALESCE(excluded.custom_answers_json, master_profile.custom_answers_json),
       onboarding_completed=excluded.onboarding_completed,
-      desired_title=excluded.desired_title,
-      tech_stack=excluded.tech_stack,
+      desired_title=COALESCE(excluded.desired_title, master_profile.desired_title),
+      tech_stack=COALESCE(excluded.tech_stack, master_profile.tech_stack),
+      location=COALESCE(excluded.location, master_profile.location),
+      years_experience=COALESCE(excluded.years_experience, master_profile.years_experience),
+      portfolio=COALESCE(excluded.portfolio, master_profile.portfolio),
       updated_at=CURRENT_TIMESTAMP
   `, [
-    (p.firstName as string) ?? (p.first_name as string) ?? null,
-    (p.lastName as string) ?? (p.last_name as string) ?? null,
-    (p.email as string) ?? null,
-    (p.phone as string) ?? null,
-    (p.linkedin as string) ?? (p.linkedin_url as string) ?? null,
-    (p.github as string) ?? (p.github_url as string) ?? null,
-    (p.sponsorship as string) ?? null,
-    (p.desiredSalary as string) ?? (p.desired_salary as string) ?? null,
-    (p.noticePeriod as string) ?? (p.notice_period as string) ?? null,
-    (p.groqApiKey as string) ?? (p.groq_api_key as string) ?? null,
-    (p.smtpPassword as string) ?? (p.smtp_password as string) ?? null,
-    (p.resumeText as string) ?? (p.resume_text as string) ?? null,
-    (p.customAnswersJson as string) ?? (p.custom_answers_json as string) ?? (p.customAnswers ? JSON.stringify(p.customAnswers) : null),
+    pick('firstName', 'first_name'),
+    pick('lastName', 'last_name'),
+    pick('email'),
+    pick('phone'),
+    pick('linkedin', 'linkedin_url'),
+    pick('github', 'github_url'),
+    pick('sponsorship'),
+    pick('desiredSalary', 'desired_salary'),
+    pick('noticePeriod', 'notice_period'),
+    pick('groqApiKey', 'groq_api_key'),
+    pick('smtpPassword', 'smtp_password'),
+    pick('resumeText', 'resume_text'),
+    pick('customAnswersJson', 'custom_answers_json') ?? (p.customAnswers ? JSON.stringify(p.customAnswers) : null),
     onboardingVal,
-    (p.desiredTitle as string) ?? (p.desired_title as string) ?? null,
-    (p.techStack as string) ?? (p.tech_stack as string) ?? null,
+    pick('desiredTitle', 'desired_title'),
+    pick('techStack', 'tech_stack'),
+    pick('location'),
+    pick('yearsOfExperience', 'years_experience'),
+    pick('portfolio'),
   ]);
   persistDb();
   log('[Profile] Master profile saved to local SQLite.');
@@ -909,7 +922,7 @@ ipcMain.handle('save-master-profile', (_, p: Record<string, unknown>) => {
           github: (p.github as string) ?? (p.github_url as string) ?? null,
           sponsorship: (p.sponsorship as string) ?? 'No',
           desired_salary: (p.desiredSalary as string) ?? (p.desired_salary as string) ?? null,
-          notice_period: (p.noticePeriod as string) ?? (p.notice_period as string) ?? '2 weeks',
+          notice_period: (p.noticePeriod as string) ?? (p.notice_period as string) ?? null,
           groq_api_key: (p.groqApiKey as string) ?? (p.groq_api_key as string) ?? null,
           smtp_password: (p.smtpPassword as string) ?? (p.smtp_password as string) ?? null,
           resume_text: (p.resumeText as string) ?? (p.resume_text as string) ?? null,
@@ -1364,92 +1377,94 @@ ipcMain.handle('pick-resume-file', async () => {
   }
 });
 
+
+
+const lookupSavedJob = (url: string) => {
+  const sj = getDb().exec('SELECT company, title FROM saved_jobs WHERE apply_url = ?', [url]);
+  return sj.length && sj[0].values.length ? { company: String(sj[0].values[0][0] || ''), title: String(sj[0].values[0][1] || '') } : null;
+};
+const resolveJobMeta = (url: string, meta?: JobMeta) => resolveJobMetaBase(url, meta, lookupSavedJob);
+
+/** Loads the saved master profile + resumes + answer cache in the shape the apply engine expects. */
+function loadApplyProfile(): MasterProfile | null {
+  const db = getDb();
+  const results = db.exec('SELECT * FROM master_profile WHERE id = 1');
+  if (!results.length || !results[0].values.length) return null;
+  const cols = results[0].columns;
+  const profileRaw = Object.fromEntries(cols.map((c, i) => [c, results[0].values[0][i]]));
+
+  let resumesList: Array<{ name: string; targetRole: string; filePath: string; isDefault: boolean }> = [];
+  const resumeResults = db.exec('SELECT * FROM resumes ORDER BY is_default DESC, id DESC');
+  if (resumeResults.length) {
+    const rCols = resumeResults[0].columns;
+    resumesList = resumeResults[0].values.map((r) => {
+      const obj = Object.fromEntries(rCols.map((c, i) => [c, r[i]]));
+      return {
+        name: String(obj['name'] ?? ''),
+        targetRole: String(obj['target_role'] ?? ''),
+        filePath: String(obj['file_path'] ?? ''),
+        isDefault: Boolean(obj['is_default']),
+      };
+    });
+  }
+
+  const cachedAnswers: Record<string, string> = {};
+  try {
+    const ca = db.exec('SELECT question_key, answer_text FROM cached_form_answers');
+    if (ca.length) ca[0].values.forEach((v) => { cachedAnswers[String(v[0])] = String(v[1]); });
+  } catch {}
+
+  const str = (k: string) => String(profileRaw[k] ?? '');
+  return {
+    firstName: str('first_name'),
+    lastName: str('last_name'),
+    email: str('email'),
+    phone: str('phone'),
+    linkedin: str('linkedin'),
+    github: str('github'),
+    portfolio: str('portfolio'),
+    location: str('location'),
+    yearsOfExperience: str('years_experience'),
+    sponsorship: str('sponsorship'),
+    salary: str('desired_salary'),
+    noticePeriod: str('notice_period'),
+    groqApiKey: str('groq_api_key'),
+    summaryText: str('resume_text'),
+    desiredTitle: str('desired_title'),
+    techStack: str('tech_stack'),
+    resumes: resumesList,
+    customAnswers: (() => {
+      try { return JSON.parse(str('custom_answers_json') || 'null') ?? undefined; } catch { return undefined; }
+    })(),
+    cachedAnswers,
+    onAnswerResolved: (q: string, a: string) => {
+      saveCachedFormAnswerDb(q, a);
+    },
+  };
+}
+
 // ── IPC: Semi-Auto Mode (External Chrome Window) ──────────────────────────
-ipcMain.handle('launch-semi-auto', async (_, jobUrls: string[]) => {
+ipcMain.handle('launch-semi-auto', async (_, jobUrls: string[], meta?: JobMeta) => {
   log(`[Review Mode] Launching external Chrome with ${jobUrls.length} pre-filled tabs...`);
   try {
     const db = getDb();
-    const results = db.exec('SELECT * FROM master_profile WHERE id = 1');
-    if (!results.length || !results[0].values.length) {
+    const profile = loadApplyProfile();
+    if (!profile) {
       return { success: false, error: 'No master profile saved. Fill in your profile first.' };
     }
-    const cols = results[0].columns;
-    const profileRaw = Object.fromEntries(
-      cols.map((c, i) => [c, results[0].values[0][i]])
-    );
-
-    // Load resumes
-    const resumeResults = db.exec('SELECT * FROM resumes ORDER BY is_default DESC, id DESC');
-    let resumesList: Array<{ name: string; targetRole: string; filePath: string; isDefault: boolean }> = [];
-    if (resumeResults.length) {
-      const rCols = resumeResults[0].columns;
-      resumesList = resumeResults[0].values.map(r => {
-        const obj = Object.fromEntries(rCols.map((c, i) => [c, r[i]]));
-        return {
-          name: String(obj['name'] ?? ''),
-          targetRole: String(obj['target_role'] ?? ''),
-          filePath: String(obj['file_path'] ?? ''),
-          isDefault: Boolean(obj['is_default']),
-        };
-      });
-    }
-
-    // Load cached form answers from SQLite
-    const cachedAnswersMap: Record<string, string> = {};
-    try {
-      const ca = db.exec('SELECT question_key, answer_text FROM cached_form_answers');
-      if (ca.length && ca[0].values.length) {
-        ca[0].values.forEach(v => {
-          cachedAnswersMap[String(v[0])] = String(v[1]);
-        });
-      }
-    } catch {}
-
-    const profile: MasterProfile = {
-      firstName:    String(profileRaw['first_name'] ?? ''),
-      lastName:     String(profileRaw['last_name'] ?? ''),
-      email:        String(profileRaw['email'] ?? ''),
-      phone:        String(profileRaw['phone'] ?? ''),
-      linkedin:     String(profileRaw['linkedin'] ?? ''),
-      github:       String(profileRaw['github'] ?? ''),
-      sponsorship:  String(profileRaw['sponsorship'] ?? ''),
-      salary:       String(profileRaw['desired_salary'] ?? ''),
-      noticePeriod: String(profileRaw['notice_period'] ?? ''),
-      groqApiKey:   String(profileRaw['groq_api_key'] ?? ''),
-      summaryText:  String(profileRaw['resume_text'] ?? ''),
-      desiredTitle: String(profileRaw['desired_title'] ?? ''),
-      techStack:    String(profileRaw['tech_stack'] ?? ''),
-      resumes:      resumesList,
-      customAnswers: (() => {
-        try { return JSON.parse(String(profileRaw['custom_answers_json'] ?? 'null')); } catch { return undefined; }
-      })(),
-      cachedAnswers: cachedAnswersMap,
-      onAnswerResolved: (q: string, a: string) => {
-        saveCachedFormAnswerDb(q, a);
-        log(`[Answer Cache] Cached response for question: "${q.slice(0, 40)}..."`);
-      },
-    };
 
     // RAM-safe parallel prefill with 3 parallel workers max
-    await AutoApplyEngine.prefillParallelTabs(jobUrls, profile, 3, (m) => log(`[Review Mode] ${m}`));
+    await AutoApplyEngine.prefillParallelTabs(jobUrls, profile, (m) => log(`[Review Mode] ${m}`), 3);
 
     // Record dynamic applications in SQLite & Cloud
     for (const url of jobUrls) {
-      let jobCompany = 'Tech Company';
-      let jobTitle = 'Software Engineer';
-      try {
-        const sj = db.exec('SELECT company, title FROM saved_jobs WHERE apply_url = ?', [url]);
-        if (sj.length && sj[0].values.length) {
-          jobCompany = String(sj[0].values[0][0]);
-          jobTitle = String(sj[0].values[0][1]);
-        }
-      } catch {}
+      const { company: jobCompany, title: jobTitle } = resolveJobMeta(url, meta);
 
       logAndSyncApplication({
         company: jobCompany,
         title: jobTitle,
         apply_url: url,
-        status: 'interviewing',
+        status: 'prefilled',
         mode: 'semi-auto',
       });
     }
@@ -1532,71 +1547,15 @@ ipcMain.handle('cancel-autonomous-apply', async () => {
   return { success: true };
 });
 
-ipcMain.handle('launch-autonomous', async (_, jobUrls: string[]) => {
+ipcMain.handle('launch-autonomous', async (_, jobUrls: string[], meta?: JobMeta) => {
   isAutoApplyCanceled = false;
   log(`[Autonomous Auto-Apply] Starting automated submission for ${jobUrls.length} positions in external Chrome...`);
   try {
     const db = getDb();
-    const results = db.exec('SELECT * FROM master_profile WHERE id = 1');
-    if (!results.length || !results[0].values.length) {
+    const profile = loadApplyProfile();
+    if (!profile) {
       return { success: false, error: 'No master profile saved. Fill in your profile first.' };
     }
-    const cols = results[0].columns;
-    const profileRaw = Object.fromEntries(
-      cols.map((c, i) => [c, results[0].values[0][i]])
-    );
-
-    // Load resumes
-    const resumeResults = db.exec('SELECT * FROM resumes ORDER BY is_default DESC, id DESC');
-    let resumesList: Array<{ name: string; targetRole: string; filePath: string; isDefault: boolean }> = [];
-    if (resumeResults.length) {
-      const rCols = resumeResults[0].columns;
-      resumesList = resumeResults[0].values.map(r => {
-        const obj = Object.fromEntries(rCols.map((c, i) => [c, r[i]]));
-        return {
-          name: String(obj['name'] ?? ''),
-          targetRole: String(obj['target_role'] ?? ''),
-          filePath: String(obj['file_path'] ?? ''),
-          isDefault: Boolean(obj['is_default']),
-        };
-      });
-    }
-
-    // Load cached form answers from SQLite
-    const cachedAnswersMap: Record<string, string> = {};
-    try {
-      const ca = db.exec('SELECT question_key, answer_text FROM cached_form_answers');
-      if (ca.length && ca[0].values.length) {
-        ca[0].values.forEach(v => {
-          cachedAnswersMap[String(v[0])] = String(v[1]);
-        });
-      }
-    } catch {}
-
-    const profile: MasterProfile = {
-      firstName:    String(profileRaw['first_name'] ?? ''),
-      lastName:     String(profileRaw['last_name'] ?? ''),
-      email:        String(profileRaw['email'] ?? ''),
-      phone:        String(profileRaw['phone'] ?? ''),
-      linkedin:     String(profileRaw['linkedin'] ?? ''),
-      github:       String(profileRaw['github'] ?? ''),
-      sponsorship:  String(profileRaw['sponsorship'] ?? ''),
-      salary:       String(profileRaw['desired_salary'] ?? ''),
-      noticePeriod: String(profileRaw['notice_period'] ?? ''),
-      groqApiKey:   String(profileRaw['groq_api_key'] ?? ''),
-      summaryText:  String(profileRaw['resume_text'] ?? ''),
-      desiredTitle: String(profileRaw['desired_title'] ?? ''),
-      techStack:    String(profileRaw['tech_stack'] ?? ''),
-      resumes:      resumesList,
-      customAnswers: (() => {
-        try { return JSON.parse(String(profileRaw['custom_answers_json'] ?? 'null')); } catch { return undefined; }
-      })(),
-      cachedAnswers: cachedAnswersMap,
-      onAnswerResolved: (q: string, a: string) => {
-        saveCachedFormAnswerDb(q, a);
-        log(`[Answer Cache] Cached response for question: "${q.slice(0, 40)}..."`);
-      },
-    };
 
     // 1. Enforce verified server tier & usage limits
     const userTier = await getVerifiedServerUserTier(profile.email);
@@ -1656,16 +1615,7 @@ ipcMain.handle('launch-autonomous', async (_, jobUrls: string[]) => {
         }
         const url = currentBatch[i];
         totalProcessed++;
-        let jobCompany = 'Tech Company';
-        let jobTitle = 'Software Engineer';
-
-        try {
-          const sj = db.exec('SELECT company, title FROM saved_jobs WHERE apply_url = ?', [url]);
-          if (sj.length && sj[0].values.length) {
-            jobCompany = String(sj[0].values[0][0]);
-            jobTitle = String(sj[0].values[0][1]);
-          }
-        } catch {}
+        const { company: jobCompany, title: jobTitle } = resolveJobMeta(url, meta);
 
         log(`[Auto-Apply ${totalProcessed}/${jobUrls.length}] Submitting to ${jobCompany} (${url})...`);
 
@@ -1760,55 +1710,48 @@ ipcMain.handle('launch-autonomous', async (_, jobUrls: string[]) => {
 
 // ── IPC: Batch Co-Pilot Parallel Pre-Fill ───────────────────────────────────
 let activeBatchTargets: Array<{ url: string; company?: string; title?: string }> = [];
+let activeBatchSnapshotIds: string[] = [];
 
+/** Review-screen fields come only from the saved profile. Missing data stays blank and is flagged, never invented. */
 ipcMain.handle('start-batch-copilot', async (_, targets: Array<{ url: string; company?: string; title?: string }>) => {
-  log(`[Batch Co-Pilot] Pre-filling ${targets.length} applications in parallel...`);
+  log(`[Batch Co-Pilot] Preparing review for ${targets.length} applications...`);
   activeBatchTargets = targets || [];
   try {
-    const db = getDb();
-    const profResults = db.exec('SELECT * FROM master_profile WHERE id = 1');
-    let fName = 'Candidate';
-    let lName = '';
-    let email = 'candidate@example.com';
-    let phone = '+1 (555) 000-0000';
-    let linkedin = '';
-    let github = '';
-    let role = 'Software Engineer';
-    let skills = 'TypeScript, React, Node.js';
+    const profile = loadApplyProfile();
+    if (!profile) return { success: false, error: 'No master profile saved. Fill in your profile first.' };
 
-    if (profResults.length && profResults[0].values.length) {
-      const pcols = profResults[0].columns;
-      const prow = profResults[0].values[0];
-      const pmap = Object.fromEntries(pcols.map((c, i) => [c, prow[i]]));
-      fName = String(pmap['first_name'] ?? 'Candidate');
-      lName = String(pmap['last_name'] ?? '');
-      email = String(pmap['email'] ?? 'candidate@example.com');
-      phone = String(pmap['phone'] ?? '+1 (555) 000-0000');
-      linkedin = String(pmap['linkedin'] ?? '');
-      github = String(pmap['github'] ?? '');
-      role = String(pmap['desired_title'] ?? 'Software Engineer');
-      skills = String(pmap['tech_stack'] ?? 'TypeScript, React, Node.js');
-    }
+    const resume = profile.resumes?.find((r) => r.isDefault) || profile.resumes?.[0];
+    const resumeFileName = resume?.filePath ? resume.filePath.split(/[\\/]/).pop() : undefined;
+    const missing = [
+      !`${profile.firstName} ${profile.lastName}`.trim() && 'name',
+      !profile.email && 'email',
+      !profile.phone && 'phone',
+      !resume?.filePath && 'resume',
+    ].filter(Boolean) as string[];
+    const summary = (profile.summaryText || '').replace(/\s+/g, ' ').trim().slice(0, 600);
 
-    const snapshots = targets.map((t, i) => ({
-      id: `batch_snap_${Date.now()}_${i + 1}`,
-      company: t.company || 'Tech Company',
-      jobTitle: t.title || role,
+    const stamp = Date.now();
+    activeBatchSnapshotIds = activeBatchTargets.map((_t, i) => `batch_snap_${stamp}_${i + 1}`);
+    const snapshots = activeBatchTargets.map((t, i) => ({
+      id: activeBatchSnapshotIds[i],
+      company: t.company || 'Company',
+      jobTitle: t.title || profile.desiredTitle || 'Role',
       applyUrl: t.url,
-      resumeFileName: 'Resume.pdf',
+      resumeFileName,
       fields: [
-        { fieldKey: 'fullName', label: 'Full Name', value: `${fName} ${lName}`.trim(), fieldType: 'text' as const },
-        { fieldKey: 'email', label: 'Email', value: email, fieldType: 'text' as const },
-        { fieldKey: 'phone', label: 'Phone Number', value: phone, fieldType: 'text' as const },
-        { fieldKey: 'linkedin', label: 'LinkedIn Profile', value: linkedin || 'https://linkedin.com/in/candidate', fieldType: 'text' as const },
-        { fieldKey: 'github', label: 'GitHub Profile', value: github || 'https://github.com/candidate', fieldType: 'text' as const },
+        { fieldKey: 'fullName', label: 'Full Name', value: `${profile.firstName} ${profile.lastName}`.trim(), fieldType: 'text' as const },
+        { fieldKey: 'email', label: 'Email', value: profile.email, fieldType: 'text' as const },
+        { fieldKey: 'phone', label: 'Phone Number', value: profile.phone, fieldType: 'text' as const },
+        { fieldKey: 'linkedin', label: 'LinkedIn Profile', value: profile.linkedin || '', fieldType: 'text' as const },
+        { fieldKey: 'github', label: 'GitHub / Portfolio', value: profile.github || profile.portfolio || '', fieldType: 'text' as const },
         { fieldKey: 'workAuth', label: 'Authorized to work?', value: 'Yes', fieldType: 'radio' as const },
-        { fieldKey: 'sponsorship', label: 'Require Visa Sponsorship?', value: 'No', fieldType: 'radio' as const },
-        { fieldKey: 'noticePeriod', label: 'Notice Period', value: 'Immediately (0 days)', fieldType: 'text' as const },
-        { fieldKey: 'desiredSalary', label: 'Desired Salary', value: 'Competitive', fieldType: 'text' as const },
-        { fieldKey: 'coverLetter', label: `Why are you a fit for ${t.company || 'this role'}?`, value: `With hands-on expertise in ${skills}, I design high-concurrency systems and responsive web architectures that deliver measurable business impact.`, fieldType: 'textarea' as const },
+        { fieldKey: 'sponsorship', label: 'Require Visa Sponsorship?', value: /^y/i.test(profile.sponsorship || '') ? 'Yes' : 'No', fieldType: 'radio' as const },
+        { fieldKey: 'noticePeriod', label: 'Notice Period', value: profile.noticePeriod || '', fieldType: 'text' as const },
+        { fieldKey: 'desiredSalary', label: 'Expected Salary', value: profile.salary || '', fieldType: 'text' as const },
+        { fieldKey: 'coverLetter', label: 'Cover letter / why you fit', value: summary, fieldType: 'textarea' as const },
       ],
-      status: 'ready' as const
+      status: missing.length ? ('needs_attention' as const) : ('ready' as const),
+      errorMessage: missing.length ? `Missing from your profile: ${missing.join(', ')}` : undefined,
     }));
 
     return { success: true, snapshots };
@@ -1821,83 +1764,20 @@ ipcMain.handle('start-batch-copilot', async (_, targets: Array<{ url: string; co
 ipcMain.handle('submit-all-batch-copilot', async (_, overrides?: Record<string, Record<string, string>>) => {
   log(`[Batch Co-Pilot] Submitting all held applications with verified browser automation...`);
   try {
-    const db = getDb();
-    if (overrides) {
-      Object.entries(overrides).forEach(([_, fields]) => {
-        Object.entries(fields).forEach(([k, v]) => {
-          if (v && v.trim().length > 0) {
-            saveCachedFormAnswerDb(k, v);
-          }
-        });
-      });
-      persistDb();
-    }
-
-    const results = db.exec('SELECT * FROM master_profile WHERE id = 1');
-    if (!results.length || !results[0].values.length) {
+    const profile = loadApplyProfile();
+    if (!profile) {
       return { success: false, error: 'No master profile saved. Fill in your profile first.' };
     }
-    const cols = results[0].columns;
-    const profileRaw = Object.fromEntries(
-      cols.map((c, i) => [c, results[0].values[0][i]])
-    );
-
-    const resumeResults = db.exec('SELECT * FROM resumes ORDER BY is_default DESC, id DESC');
-    let resumesList: Array<{ name: string; targetRole: string; filePath: string; isDefault: boolean }> = [];
-    if (resumeResults.length) {
-      const rCols = resumeResults[0].columns;
-      resumesList = resumeResults[0].values.map(r => {
-        const obj = Object.fromEntries(rCols.map((c, i) => [c, r[i]]));
-        return {
-          name: String(obj['name'] ?? ''),
-          targetRole: String(obj['target_role'] ?? ''),
-          filePath: String(obj['file_path'] ?? ''),
-          isDefault: Boolean(obj['is_default']),
-        };
-      });
-    }
-
-    const cachedAnswersMap: Record<string, string> = {};
-    try {
-      const ca = db.exec('SELECT question_key, answer_text FROM cached_form_answers');
-      if (ca.length && ca[0].values.length) {
-        ca[0].values.forEach(v => {
-          cachedAnswersMap[String(v[0])] = String(v[1]);
-        });
-      }
-    } catch {}
-
-    const profile: MasterProfile = {
-      firstName:    String(profileRaw['first_name'] ?? ''),
-      lastName:     String(profileRaw['last_name'] ?? ''),
-      email:        String(profileRaw['email'] ?? ''),
-      phone:        String(profileRaw['phone'] ?? ''),
-      linkedin:     String(profileRaw['linkedin'] ?? ''),
-      github:       String(profileRaw['github'] ?? ''),
-      sponsorship:  String(profileRaw['sponsorship'] ?? ''),
-      salary:       String(profileRaw['desired_salary'] ?? ''),
-      noticePeriod: String(profileRaw['notice_period'] ?? ''),
-      groqApiKey:   String(profileRaw['groq_api_key'] ?? ''),
-      summaryText:  String(profileRaw['resume_text'] ?? ''),
-      desiredTitle: String(profileRaw['desired_title'] ?? ''),
-      techStack:    String(profileRaw['tech_stack'] ?? ''),
-      resumes:      resumesList,
-      customAnswers: (() => {
-        try { return JSON.parse(String(profileRaw['custom_answers_json'] ?? 'null')); } catch { return undefined; }
-      })(),
-      cachedAnswers: cachedAnswersMap,
-      onAnswerResolved: (q: string, a: string) => {
-        saveCachedFormAnswerDb(q, a);
-      },
-    };
 
     let applied = 0;
     let failed = 0;
 
-    for (const target of activeBatchTargets) {
+    for (let ti = 0; ti < activeBatchTargets.length; ti++) {
+      const target = activeBatchTargets[ti];
+      const targetProfile = applyReviewOverrides(profile, overrides?.[activeBatchSnapshotIds[ti]]);
       try {
         log(`[Batch Co-Pilot Submitter] Executing real Playwright submit for ${target.company || 'Job'} (${target.url})...`);
-        const res = await AutoApplyEngine.submitApplication(target.url, profile, (msg) => {
+        const res = await AutoApplyEngine.submitApplication(target.url, targetProfile, (msg) => {
           log(typeof msg === 'string' ? msg : `[Batch Status] ${msg.message}`);
         });
 
@@ -3355,19 +3235,19 @@ ipcMain.handle('admin-create-user', async (_, user: Record<string, unknown>) => 
     const email = String(user['email'] ?? '').trim().toLowerCase();
     const fullName = String(user['fullName'] ?? '').trim();
     const password = String(user['password'] ?? '').trim();
-    const rawTier = String(user['tier'] ?? 'lite').toLowerCase();
+    const rawTier = String(user['tier'] ?? 'free').toLowerCase();
     const tier = normalizeTier(rawTier);
     const role = String(user['role'] ?? 'user').toLowerCase();
 
     if (!email || !email.includes('@')) return { success: false, error: 'A valid email is required.' };
 
-    const tierPrefix = tier === 'lite' ? 'LIT' : tier === 'pro' ? 'PRO' : tier === 'max' ? 'MAX' : 'FRE';
+    const tierPrefix = tier === 'pro' ? 'PRO' : tier === 'max' ? 'MAX' : 'FRE';
     const r1 = Math.floor(1000 + Math.random() * 9000);
     const r2 = Math.floor(1000 + Math.random() * 9000);
     const licenseKey = String(user['licenseKey'] ?? `NOMADIC-${tierPrefix}-${r1}-${r2}`).trim();
 
     const expiresAt =
-      tier === 'lifetime' || tier === 'free'
+      rawTier === 'lifetime' || tier === 'free'
         ? null
         : new Date(Date.now() + 30 * 86400000).toISOString();
 

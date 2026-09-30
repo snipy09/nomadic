@@ -491,7 +491,12 @@ export const FeedView: React.FC<FeedViewProps> = ({
     }) : () => {};
 
     try {
-      const res = await api.launchAutonomous(targetUrls);
+      const meta: Record<string, { company?: string; title?: string }> = {};
+      for (const u of targetUrls) {
+        const j = jobs.find((x) => x.applyUrl === u);
+        meta[u] = { company: singleTarget?.company || j?.company, title: singleTarget?.title || j?.title };
+      }
+      const res = await api.launchAutonomous(targetUrls, meta);
       setAutoApplyProgress(100);
       if (res && res.success) {
         setAutoApplyLogs(prev => [

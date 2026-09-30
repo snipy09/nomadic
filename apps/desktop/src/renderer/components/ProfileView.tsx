@@ -19,7 +19,9 @@ interface ProfileFormData {
   portfolio: string;
   currentRole: string;
   targetRole: string;
-  yearsOfExperience: number;
+  yearsOfExperience: number | '';
+  desiredSalary: string;
+  noticePeriod: string;
   skills: string[];
   workExperience: any[];
   education: any[];
@@ -44,7 +46,7 @@ interface ProfileViewProps {
   onSave?: (profile: MasterProfile) => Promise<boolean | void>;
   onLog?: (msg: string) => void;
   currentUser?: AppUser | null;
-  onNavigateTab?: (tab: string) => void;
+  onNavigateTab?: (tab: any) => void;
   onLogout?: () => void;
   onRerunOnboarding?: () => void;
   saving?: boolean;
@@ -92,14 +94,16 @@ function normalizeProfileToFormData(profile: MasterProfile | null, currentUser?:
     portfolio: p.portfolio || '',
     currentRole: p.currentRole || '',
     targetRole: p.targetRole || p.desiredTitle || 'Software Engineer',
-    yearsOfExperience: typeof p.yearsOfExperience === 'number' ? p.yearsOfExperience : 2,
+    yearsOfExperience: (() => { const n = parseFloat(String(p.yearsOfExperience ?? p.years_experience ?? '')); return Number.isFinite(n) ? n : ''; })(),
+    desiredSalary: String(p.desiredSalary ?? p.desired_salary ?? ''),
+    noticePeriod: String(p.noticePeriod ?? p.notice_period ?? ''),
     skills: skillsArr,
     workExperience: Array.isArray(p.workExperience) ? p.workExperience : [],
     education: Array.isArray(p.education) ? p.education : [],
     preferredJobTypes: Array.isArray(p.preferredJobTypes) ? p.preferredJobTypes : ['full-time', 'remote'],
-    expectedSalaryMin: typeof p.expectedSalaryMin === 'number' ? p.expectedSalaryMin : 80000,
-    expectedSalaryMax: typeof p.expectedSalaryMax === 'number' ? p.expectedSalaryMax : 130000,
-    salaryCurrency: p.salaryCurrency || 'USD',
+    expectedSalaryMin: typeof p.expectedSalaryMin === 'number' ? p.expectedSalaryMin : 0,
+    expectedSalaryMax: typeof p.expectedSalaryMax === 'number' ? p.expectedSalaryMax : 0,
+    salaryCurrency: p.salaryCurrency || 'INR',
     willingToRelocate: Boolean(p.willingToRelocate),
     authorizedToWorkInUS: p.sponsorship ? p.sponsorship.toLowerCase() === 'no' : (p.authorizedToWorkInUS ?? true),
     requiresSponsorship: p.sponsorship ? p.sponsorship.toLowerCase() === 'yes' : (p.requiresSponsorship ?? false),
@@ -166,6 +170,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
       const updatedProfile: MasterProfile = {
         ...(profile || {}),
+        resumeText: profile?.resumeText ?? '',
+        location: formData.location,
+        portfolio: formData.portfolio,
+        yearsOfExperience: formData.yearsOfExperience === '' ? undefined : String(formData.yearsOfExperience),
+        desiredSalary: formData.desiredSalary,
+        noticePeriod: formData.noticePeriod,
         firstName,
         lastName,
         email: formData.email,
@@ -201,8 +211,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           linkedin: formData.linkedin,
           github: formData.github,
           sponsorship: formData.requiresSponsorship ? 'Yes' : 'No',
-          desiredSalary: `${formData.expectedSalaryMin || 80000}`,
-          noticePeriod: '2 weeks',
+          desiredSalary: formData.desiredSalary,
+          noticePeriod: formData.noticePeriod,
+          location: formData.location,
+          portfolio: formData.portfolio,
+          yearsOfExperience: formData.yearsOfExperience === '' ? undefined : String(formData.yearsOfExperience),
           desiredTitle: formData.targetRole,
           techStack,
           customAnswersJson: JSON.stringify(formData.answers || {}),
@@ -619,8 +632,35 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                       type="number"
                       min={0}
                       max={50}
-                      value={formData.yearsOfExperience ?? 2}
-                      onChange={(e) => setFormData({ ...formData, yearsOfExperience: Number(e.target.value) })}
+                      value={formData.yearsOfExperience}
+                      onChange={(e) => setFormData({ ...formData, yearsOfExperience: e.target.value === '' ? '' : Number(e.target.value) })}
+                      placeholder="e.g. 3"
+                      className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-hidden focus:ring-1 focus:ring-slate-900 dark:focus:ring-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Expected Salary
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.desiredSalary}
+                      onChange={(e) => setFormData({ ...formData, desiredSalary: e.target.value })}
+                      placeholder="e.g. 12 LPA or $90,000"
+                      className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-hidden focus:ring-1 focus:ring-slate-900 dark:focus:ring-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Notice Period
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.noticePeriod}
+                      onChange={(e) => setFormData({ ...formData, noticePeriod: e.target.value })}
+                      placeholder="e.g. 30 days"
                       className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 focus:outline-hidden focus:ring-1 focus:ring-slate-900 dark:focus:ring-white"
                     />
                   </div>

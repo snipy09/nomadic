@@ -84,6 +84,7 @@ async function build() {
     ],
     alias: {
       '@job-automator/automation': path.join(__dirname, '../../packages/automation/src/index.ts'),
+      '@job-automator/form-engine': path.join(__dirname, '../../packages/form-engine/src/index.ts'),
       '@job-automator/scrapers': path.join(__dirname, '../../packages/scrapers/src/index.ts'),
       '@job-automator/supabase': path.join(__dirname, '../../packages/supabase/src/index.ts'),
       '@job-automator/email-verifier': path.join(__dirname, '../../packages/email-verifier/src/index.ts'),

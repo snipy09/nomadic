@@ -11,7 +11,6 @@
     "build": "npm run build:desktop",
     "test": "vitest run",
     "automation:run": "tsx packages/automation/src/index.ts",
-    "automation:test": "tsx packages/automation/src/test-run.ts",
     "scrapers:run": "tsx packages/scrapers/src/index.ts",
     "scrapers:all": "tsx packages/scrapers/src/publish-all.ts",
     "scrapers:jobs": "tsx packages/scrapers/src/publish-jobs.ts",
@@ -36,6 +35,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/ws": "^8.18.2",
     "eslint": "^10.11.0",
     "prettier": "^3.9.9",
     "tsx": "^4.7.1",

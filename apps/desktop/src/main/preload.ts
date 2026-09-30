@@ -12,8 +12,8 @@ const apiObj = {
   getCloudFeed: (userId: string) => ipcRenderer.invoke('get-cloud-feed', userId),
   getCloudFeedPage: (options?: { page?: number; pageSize?: number; search?: string; filterTab?: string; source?: string }) =>
     ipcRenderer.invoke('get-cloud-feed-page', options),
-  launchSemiAuto: (jobUrls: string[]) => ipcRenderer.invoke('launch-semi-auto', jobUrls),
-  launchAutonomous: (jobUrls: string[]) => ipcRenderer.invoke('launch-autonomous', jobUrls),
+  launchSemiAuto: (jobUrls: string[], meta?: Record<string, { company?: string; title?: string }>) => ipcRenderer.invoke('launch-semi-auto', jobUrls, meta),
+  launchAutonomous: (jobUrls: string[], meta?: Record<string, { company?: string; title?: string }>) => ipcRenderer.invoke('launch-autonomous', jobUrls, meta),
   cancelAutonomousApply: () => ipcRenderer.invoke('cancel-autonomous-apply'),
   startBatchCoPilot: (targets: Array<{ url: string; company?: string; title?: string }>) => ipcRenderer.invoke('start-batch-copilot', targets),
   submitAllBatchCoPilot: (overrides?: Record<string, Record<string, string>>) => ipcRenderer.invoke('submit-all-batch-copilot', overrides),

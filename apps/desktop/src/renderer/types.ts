@@ -9,9 +9,12 @@ export interface MasterProfile {
   phone: string;
   linkedin: string;
   github: string;
+  portfolio?: string;
+  location?: string;
+  yearsOfExperience?: string;
   sponsorship: string;
-  desiredSalary: string;
-  noticePeriod: string;
+  desiredSalary?: string;
+  noticePeriod?: string;
   groqApiKey?: string;
   geminiApiKey?: string;
   claudeApiKey?: string;
@@ -204,8 +207,8 @@ export interface ElectronAPI {
   runScrapers: () => Promise<{ success: boolean; jobs: Job[]; error?: string }>;
   getCloudFeed: (userId: string) => Promise<{ success: boolean; jobs: Job[]; error?: string }>;
   getCloudFeedPage?: (options?: { page?: number; pageSize?: number; search?: string; filterTab?: string; source?: string }) => Promise<{ success: boolean; jobs: Job[]; totalCount?: number; error?: string }>;
-  launchSemiAuto: (jobUrls: string[]) => Promise<{ success: boolean; error?: string; incompleteProfile?: boolean }>;
-  launchAutonomous: (jobUrls: string[]) => Promise<{
+  launchSemiAuto: (jobUrls: string[], meta?: Record<string, { company?: string; title?: string }>) => Promise<{ success: boolean; error?: string; incompleteProfile?: boolean }>;
+  launchAutonomous: (jobUrls: string[], meta?: Record<string, { company?: string; title?: string }>) => Promise<{
     success: boolean;
     applied?: number;
     skipped?: number;

@@ -9,6 +9,15 @@ export interface ScraperEnv {
   isServiceRole: boolean;
 }
 
+/** import.meta is empty when bundled to CJS (desktop main process); never let that crash credential loading. */
+function moduleDir(): string {
+  try {
+    return path.dirname(fileURLToPath(import.meta.url));
+  } catch {
+    return process.cwd();
+  }
+}
+
 /**
  * Loads Supabase credentials from process.env or the project's root .env file.
  */
@@ -21,7 +30,7 @@ export function getScraperEnv(): ScraperEnv {
     const candidatePaths = [
       path.resolve(process.cwd(), '.env'),
       path.resolve(process.cwd(), '..', '..', '.env'),
-      path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '.env'),
+      path.resolve(moduleDir(), '..', '..', '..', '.env'),
     ];
 
     for (const envPath of candidatePaths) {

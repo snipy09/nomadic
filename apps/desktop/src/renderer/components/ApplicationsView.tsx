@@ -6,7 +6,21 @@ import {
 } from 'lucide-react';
 import { Application, getApi } from '../types';
 
+const NEEDS_YOU = ['prefilled', 'captcha_blocked', 'requires_login', 'failed'];
+
+/** Maps any stored status onto a board column so no application is ever hidden. */
+const columnOf = (status?: string): string => {
+  const s = (status || 'applied').toLowerCase();
+  if (NEEDS_YOU.includes(s)) return 'attention';
+  if (s === 'interviewing' || s === 'reviewed') return 'interviewing';
+  if (s === 'offered' || s === 'accepted') return 'offered';
+  if (s === 'rejected' || s === 'archived') return 'rejected';
+  return 'applied';
+};
+const selectValueOf = (status?: string) => (columnOf(status) === 'attention' ? 'prefilled' : columnOf(status));
+
 const COLUMNS = [
+  { id: 'attention', label: 'Needs you', color: 'bg-rose-50 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border-rose-200' },
   { id: 'applied', label: 'Applied', color: 'bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300' },
   { id: 'interviewing', label: 'Interviewing', color: 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-200' },
   { id: 'offered', label: 'Offered', color: 'bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-200' },
@@ -185,16 +199,9 @@ export const ApplicationsView: React.FC = () => {
       {filteredApps.length > 0 ? (
         viewMode === 'board' ? (
           /* ── KANBAN BOARD VIEW ── */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-start">
             {COLUMNS.map((col) => {
-              const colApps = filteredApps.filter(a => {
-                const s = (a.status || 'applied').toLowerCase();
-                if (col.id === 'applied') return s === 'applied' || s === 'unsent' || s === 'pending';
-                if (col.id === 'interviewing') return s === 'interviewing' || s === 'reviewed';
-                if (col.id === 'offered') return s === 'offered' || s === 'accepted';
-                if (col.id === 'rejected') return s === 'rejected' || s === 'archived' || s === 'failed';
-                return s === col.id;
-              });
+              const colApps = filteredApps.filter(a => columnOf(a.status) === col.id);
 
               return (
                 <div
@@ -264,10 +271,11 @@ export const ApplicationsView: React.FC = () => {
                         {/* Status Switcher */}
                         <div className="pt-1">
                           <select
-                            value={app.status || 'applied'}
+                            value={selectValueOf(app.status)}
                             onChange={(e) => handleUpdateStatus(app.id, e.target.value)}
                             className="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded text-[10px] py-1 px-1.5 text-slate-700 dark:text-zinc-300 outline-none"
                           >
+                            <option value="prefilled">Status: Needs you</option>
                             <option value="applied">Status: Applied</option>
                             <option value="interviewing">Status: Interviewing</option>
                             <option value="offered">Status: Offered</option>
@@ -312,10 +320,11 @@ export const ApplicationsView: React.FC = () => {
                       </td>
                       <td className="py-3 px-4">
                         <select
-                          value={app.status || 'applied'}
+                          value={selectValueOf(app.status)}
                           onChange={(e) => handleUpdateStatus(app.id, e.target.value)}
                           className="bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded text-xs py-1 px-2 text-slate-700 dark:text-zinc-300 outline-none"
                         >
+                          <option value="prefilled">Needs you</option>
                           <option value="applied">Applied</option>
                           <option value="interviewing">Interviewing</option>
                           <option value="offered">Offered</option>
