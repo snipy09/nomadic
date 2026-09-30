@@ -41,7 +41,7 @@ export const NomadicAssistant: React.FC<NomadicAssistantProps> = ({
     {
       id: 'welcome',
       sender: 'assistant',
-      text: `👋 **Hello! I am your Autonomous Co-Pilot on Steroids.**\n\nI can open your job board, start auto-applications, jump to outreach or your tracker, and help with resumes and interview answers.\n\nWhat would you like to execute today?`,
+      text: `👋 **Hello! I am your Autonomous Co-Pilot on Steroids.**\n\nI can open your job board, start auto-applications, jump to your application tracker, and help with resumes and interview answers.\n\nWhat would you like to execute today?`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -129,9 +129,6 @@ export const NomadicAssistant: React.FC<NomadicAssistantProps> = ({
       } else if (lower.includes('settings') || lower.includes('profile')) {
         reply = `Opening your **Candidate Settings & Automation Preferences**.`;
         action = { type: 'NAVIGATE', target: 'settings' };
-      } else if (lower.includes('outreach') || lower.includes('email') || lower.includes('recruiter')) {
-        reply = `Opening the **Recruiter Outreach Radar & Drip Dispatcher**.`;
-        action = { type: 'NAVIGATE', target: 'outreach' };
       }
 
       const aiMsg: AssistantMessage = {

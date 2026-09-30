@@ -8,7 +8,6 @@ import { scrapeInternshala, type InternshalaJob } from './internshala-scraper.ts
 import { scrapeNaukriIndia, scrapeIndeedIndia } from './indian-portals-scraper.ts';
 import { computeJobHash } from './hasher.ts';
 import { scrapeRecruiterLeads, type RecruiterLead } from './recruiter-scraper.ts';
-import { getScraperSupabase } from './env-helper.ts';
 import { batchResolveAndFilterJobs } from './form-link-resolver.ts';
 
 export {
@@ -276,50 +275,5 @@ export async function runAllScrapersWithReport(
     `(India Priority + At least 4 Remote/10 + Internshala).`
   );
 
-  // Auto-push scraped jobs to Supabase if connected
-  try {
-    const supabase = getScraperSupabase();
-    if (supabase && scored.length > 0) {
-      const rows = scored.map((j) => ({
-        title: j.title,
-        company: j.company,
-        location: j.location || 'Remote',
-        apply_url: j.applyUrl,
-        source: j.source || 'Direct ATS',
-        description: j.description || '',
-        job_hash: j.jobHash,
-        salary_range: (j as any).salary || undefined,
-        is_active: true,
-        created_at: j.createdAt || new Date().toISOString()
-      }));
-
-      const { error } = await supabase.from('jobs').upsert(rows, { onConflict: 'job_hash', ignoreDuplicates: true });
-      if (error) console.warn(`[Scraper Cloud Sync] Upsert failed: ${error.message}`);
-      else console.log(`[Scraper Cloud Sync] Upserted ${rows.length} jobs to Supabase.`);
-    }
-  } catch {}
-
   return { jobs: scored, sources: run.results, boards, alerts, invalidReasons: run.invalidReasons };
-}
-
-export async function syncScrapedJobsToSupabase(jobs: RawJob[]): Promise<number> {
-  try {
-    const supabase = getScraperSupabase();
-    if (!supabase || !jobs.length) return 0;
-    const rows = jobs.map(j => ({
-      title: j.title,
-      company: j.company,
-      location: j.location || 'Remote',
-      apply_url: j.applyUrl,
-      source: j.source || 'Direct ATS',
-      description: j.description || '',
-      job_hash: j.jobHash,
-      is_active: true,
-      created_at: new Date().toISOString()
-    }));
-    const { error } = await supabase.from('jobs').upsert(rows, { onConflict: 'job_hash', ignoreDuplicates: true });
-    return error ? 0 : rows.length;
-  } catch {
-    return 0;
-  }
 }

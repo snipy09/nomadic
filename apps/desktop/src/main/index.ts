@@ -1036,6 +1036,9 @@ ipcMain.handle('get-cloud-feed-page', async (_, opts?: {
       .range(from, to);
 
     if (error || !dbJobs || !Array.isArray(dbJobs)) {
+      if (error) {
+        log(`[Feed] Query failed: ${error.message}${/column|schema cache/i.test(error.message) ? ' (apply packages/supabase/migrations/006_job_freshness.sql)' : ''}`);
+      }
       return { success: false, jobs: [], totalCount: 0 };
     }
 
@@ -1062,7 +1065,7 @@ ipcMain.handle('get-cloud-feed-page', async (_, opts?: {
         employmentType: j['employment_type'] || (titleLower.includes('intern') ? 'internship' : 'job'),
         workplaceType: j['workplace_type'] || (locLower.includes('remote') ? 'remote' : 'hybrid'),
         experienceLevel: j['experience_level'] || (titleLower.includes('senior') ? 'senior' : titleLower.includes('intern') ? 'entry' : 'mid'),
-        createdAt: (j['created_at'] as string) || new Date(nowTime - (from + idx) * 60000).toISOString(),
+        createdAt: (j['posted_at'] as string) || (j['created_at'] as string) || new Date(nowTime).toISOString(),
       };
     });
 
@@ -1121,7 +1124,7 @@ ipcMain.handle('get-cloud-feed', async () => {
               employmentType: j['employment_type'] || (titleLower.includes('intern') ? 'internship' : 'job'),
               workplaceType: j['workplace_type'] || (locLower.includes('remote') ? 'remote' : 'hybrid'),
               experienceLevel: j['experience_level'] || (titleLower.includes('senior') ? 'senior' : titleLower.includes('intern') ? 'entry' : 'mid'),
-              createdAt: (j['created_at'] as string) || new Date(nowTime - idx * 60000).toISOString(),
+              createdAt: (j['posted_at'] as string) || (j['created_at'] as string) || new Date(nowTime).toISOString(),
             };
           });
           log(`[Cloud Sync] Loaded ${cloudJobs.length} active opportunities from Supabase (scored against candidate profile).`);
@@ -1171,16 +1174,6 @@ ipcMain.handle('get-cloud-feed', async () => {
 });
 
 // ── IPC: Get Verified Recruiter & HR Contacts ─────────────────────────────
-const SAMPLE_VERIFIED_HR_CONTACTS = [
-  { name: 'Sarah Jenkins', company: 'Linear', role: 'Head of Engineering Talent', email: 's.jenkins@linear.app', verificationStatus: 'valid', sentStatus: 'unsent' },
-  { name: 'David Chen', company: 'Vercel', role: 'Staff Technical Recruiter', email: 'david.chen@vercel.com', verificationStatus: 'valid', sentStatus: 'unsent' },
-  { name: 'Priya Sharma', company: 'Stripe', role: 'Engineering Lead & Hiring Manager', email: 'psharma@stripe.com', verificationStatus: 'valid', sentStatus: 'unsent' },
-  { name: 'Alex Rivera', company: 'Supabase', role: 'Lead Infrastructure Recruiter', email: 'alex.rivera@supabase.io', verificationStatus: 'valid', sentStatus: 'unsent' },
-  { name: 'Elena Rostova', company: 'Figma', role: 'Principal Talent Partner', email: 'elena.rostova@figma.com', verificationStatus: 'valid', sentStatus: 'unsent' },
-  { name: 'Marcus Vance', company: 'Postman', role: 'Director of Developer Relations', email: 'marcus.vance@postman.com', verificationStatus: 'valid', sentStatus: 'unsent' },
-  { name: 'Ananya Roy', company: 'Razorpay', role: 'Senior Talent Acquisition Manager', email: 'ananya.roy@razorpay.com', verificationStatus: 'valid', sentStatus: 'unsent' },
-  { name: 'Karthik Nair', company: 'Swiggy', role: 'Engineering Manager - Platform', email: 'karthik.nair@swiggy.in', verificationStatus: 'valid', sentStatus: 'unsent' },
-];
 
 ipcMain.handle('get-hr-contacts', async (_, targetRole?: string) => {
   log(`[Recruiter Sync] Querying verified hiring manager contacts for "${targetRole || 'All Roles'}"...`);
@@ -1280,7 +1273,7 @@ ipcMain.handle('get-hr-contacts', async (_, targetRole?: string) => {
   // Sort by match score descending (Target companies and relevant Engineering Leads first)
   combinedContacts.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
 
-  return { success: true, contacts: combinedContacts.length > 0 ? combinedContacts : SAMPLE_VERIFIED_HR_CONTACTS };
+  return { success: true, contacts: combinedContacts };
 });
 
 // ── IPC: Multi-Resume Management Handlers ─────────────────────────────────
@@ -2256,8 +2249,12 @@ ipcMain.handle('check-for-updates', async () => {
   }
 });
 
+const UPDATE_URL_PREFIX = 'https://github.com/snipy09/';
+
 ipcMain.handle('download-update', async (_, downloadUrl?: string) => {
-  const url = downloadUrl || 'https://github.com/snipy09/JobMaxxer/releases/latest';
+  // Only ever download from our own GitHub releases, whatever the renderer asks for.
+  const requested = typeof downloadUrl === 'string' ? downloadUrl.trim() : '';
+  const url = requested.startsWith(UPDATE_URL_PREFIX) ? requested : 'https://github.com/snipy09/JobMaxxer/releases/latest';
   try {
     const updatesDir = path.join(app.getPath('userData'), 'updates');
     if (!fs.existsSync(updatesDir)) {
@@ -2301,8 +2298,12 @@ ipcMain.handle('download-update', async (_, downloadUrl?: string) => {
 
 ipcMain.handle('install-update', async (_, installerPath?: string) => {
   try {
-    if (installerPath && fs.existsSync(installerPath)) {
-      shell.openPath(installerPath);
+    // Only run installers that this app itself downloaded into its updates folder.
+    const updatesDir = path.resolve(app.getPath('userData'), 'updates');
+    const resolved = installerPath ? path.resolve(installerPath) : '';
+    const inUpdatesDir = resolved.startsWith(updatesDir + path.sep) && /\.(exe|dmg|msi)$/i.test(resolved);
+    if (inUpdatesDir && fs.existsSync(resolved)) {
+      shell.openPath(resolved);
       setTimeout(() => {
         app.quit();
       }, 1000);

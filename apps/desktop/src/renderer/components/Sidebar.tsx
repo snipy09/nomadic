@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { TabType, HeartbeatStatus, AppUser, PersonaTrack } from '../types';
 import { normalizeTier } from '../utils/tier-utils';
+import { OUTREACH_ENABLED } from '../features';
 
 interface SidebarProps {
   activeTab: TabType;
@@ -27,7 +28,7 @@ interface NavItem {
 const MAIN_NAV: NavItem[] = [
   { id: 'feed', label: 'Jobs', hint: 'Find & apply', icon: Briefcase },
   { id: 'applications', label: 'Applications', hint: 'Track progress', icon: LayoutGrid },
-  { id: 'outreach', label: 'Outreach', hint: 'Reach recruiters', icon: Mail },
+  ...(OUTREACH_ENABLED ? [{ id: 'outreach' as TabType, label: 'Outreach', hint: 'Reach recruiters', icon: Mail }] : []),
 ];
 
 const SYSTEM_NAV: NavItem[] = [

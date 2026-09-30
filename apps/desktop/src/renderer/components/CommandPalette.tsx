@@ -5,6 +5,7 @@ import {
   ExternalLink, X
 } from 'lucide-react';
 import { TabType, PersonaTrack } from '../types';
+import { OUTREACH_ENABLED } from '../features';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -57,14 +58,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         action: () => { onSelectTab('feed'); },
       },
       {
-        id: 'nav-outreach',
-        category: 'Navigation',
-        title: 'Go to Recruiter Outreach',
-        subtitle: 'Verified hiring contacts & Gmail drafts',
-        icon: Mail,
-        action: () => { onSelectTab('outreach'); },
-      },
-      {
         id: 'nav-tracking',
         category: 'Navigation',
         title: 'Go to Tracking (Pipeline)',
@@ -81,6 +74,19 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         action: () => onSelectTab('settings'),
       },
     ];
+
+    if (OUTREACH_ENABLED) {
+      list.splice(1, 0, ...([
+      {
+          id: 'nav-outreach',
+          category: 'Navigation',
+          title: 'Go to Recruiter Outreach',
+          subtitle: 'Verified hiring contacts & Gmail drafts',
+          icon: Mail,
+          action: () => { onSelectTab('outreach'); },
+        }
+      ] as CommandItem[]));
+    }
 
     return list;
   }, [onSelectTab]);

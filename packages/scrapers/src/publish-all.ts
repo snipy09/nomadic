@@ -1,4 +1,5 @@
-import { runAllScrapers, type ScoredJob } from './index.ts';
+import { runAllScrapersWithReport, type ScoredJob } from './index.ts';
+import { publishJobs, recordScrapeRun } from './publisher.ts';
 import { scrapeRecruiterLeads, type RecruiterLead } from './recruiter-scraper.ts';
 import { getScraperEnv, getScraperSupabase } from './env-helper.ts';
 
@@ -23,33 +24,16 @@ async function runMasterScraperPipeline() {
   let totalJobsUpserted = 0;
 
   try {
-    jobs = await runAllScrapers();
+    const started = new Date();
+    const report = await runAllScrapersWithReport();
+    jobs = report.jobs;
     console.log(`\n✓ Successfully extracted ${jobs.length} unique deduplicated positions.`);
-
-    const BATCH_SIZE = 100;
-    for (let i = 0; i < jobs.length; i += BATCH_SIZE) {
-      const chunk = jobs.slice(i, i + BATCH_SIZE);
-      const batchPayload = chunk.map(j => ({
-        job_hash: j.jobHash,
-        company: j.company,
-        title: j.title,
-        location: j.location || 'Remote',
-        description: (j.description || '').slice(0, 5000),
-        apply_url: j.applyUrl,
-        source: j.source || 'Direct ATS',
-        salary_range: j.salary || null,
-        is_active: true,
-      }));
-
-      const { error } = await supabase
-        .from('jobs')
-        .upsert(batchPayload, { onConflict: 'job_hash', ignoreDuplicates: false });
-
-      if (!error) {
-        totalJobsUpserted += batchPayload.length;
-      }
+    if (jobs.length > 0) {
+      const result = await publishJobs(supabase, jobs, started);
+      await recordScrapeRun(supabase, report, result, started);
+      totalJobsUpserted = result.upserted;
+      console.log(`✓ Published ${result.upserted}/${jobs.length} jobs, expired ${result.expired} stale.\n`);
     }
-    console.log(`✓ Published ${totalJobsUpserted}/${jobs.length} jobs to cloud database.\n`);
   } catch (err: any) {
     console.error('❌ Job Scraper Error:', err?.message || String(err));
   }

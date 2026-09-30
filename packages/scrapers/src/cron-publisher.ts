@@ -1,4 +1,5 @@
-import { runAllScrapers } from './index.js';
+import { runAllScrapersWithReport } from './index.js';
+import { publishJobs, recordScrapeRun } from './publisher.js';
 import { scrapeRecruiterLeads } from './recruiter-scraper.js';
 import { createClient } from '@supabase/supabase-js';
 
@@ -34,40 +35,17 @@ async function main() {
   try {
     // 1. Run all high-throughput scraper engines (500+ sources)
     console.log('\n[1/4] Running Scraper Engines...');
-    const jobs = await runAllScrapers();
+    const started = new Date();
+    const report = await runAllScrapersWithReport();
+    const jobs = report.jobs;
     console.log(`Scraped & deduplicated: ${jobs.length} total unique positions.`);
 
-    // 2. Batch upload jobs to Supabase
+    // 2. Publish (upsert + expire stale)
     if (jobs.length > 0) {
-      console.log('\n[2/4] Upserting Jobs to Supabase (200 records per batch)...');
-      const BATCH_SIZE = 200;
-      let inserted = 0;
-
-      for (let i = 0; i < jobs.length; i += BATCH_SIZE) {
-        const batch = jobs.slice(i, i + BATCH_SIZE).map(j => ({
-          job_hash: j.jobHash,
-          company: j.company,
-          title: j.title,
-          location: j.location,
-          description: (j.description || '').slice(0, 5000),
-          apply_url: j.applyUrl,
-          source: j.source,
-          salary_range: j.salary || null,
-          is_active: true,
-        }));
-
-        const { error } = await supabase
-          .from('jobs')
-          .upsert(batch, { onConflict: 'job_hash', ignoreDuplicates: true });
-
-        if (error) {
-          console.warn(`[Batch ${i / BATCH_SIZE + 1}] Note: ${error.message}`);
-        } else {
-          inserted += batch.length;
-          console.log(`[Batch ${i / BATCH_SIZE + 1}] Upserted ${batch.length} jobs.`);
-        }
-      }
-      console.log(`Total jobs published: ${inserted}`);
+      console.log('\n[2/4] Publishing jobs to Supabase...');
+      const result = await publishJobs(supabase, jobs, started);
+      await recordScrapeRun(supabase, report, result, started);
+      console.log(`Total jobs published: ${result.upserted}, expired: ${result.expired}`);
     }
 
     // 3. Scrape & Publish Recruiter Leads

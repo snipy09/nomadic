@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Job, MasterProfile, getApi } from '../types';
 import { computeJobRelevance } from '../data/relevanceMatcher';
+import { OUTREACH_ENABLED } from '../features';
 import { CompleteProfileModal } from './CompleteProfileModal';
 import { BatchCoPilotReviewModal } from './BatchCoPilotReviewModal';
 import { hasFeatureAccess, normalizeTier } from '../utils/tier-utils';
@@ -880,15 +881,16 @@ export const FeedView: React.FC<FeedViewProps> = ({
                         )}
                       </button>
 
-                      {/* Find Contacts Button */}
-                      <button
-                        type="button"
-                        onClick={() => onNavigateToOutreach?.(job.company, job.title)}
-                        className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold transition-colors"
-                        title={`Find recruiter and HR contacts at ${job.company}`}
-                      >
-                        Find contacts
-                      </button>
+                      {OUTREACH_ENABLED && (
+                        <button
+                          type="button"
+                          onClick={() => onNavigateToOutreach?.(job.company, job.title)}
+                          className="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold transition-colors"
+                          title={`Find recruiter and HR contacts at ${job.company}`}
+                        >
+                          Find contacts
+                        </button>
+                      )}
                     </div>
 
                     {/* Apply Primary CTA */}
@@ -1174,16 +1176,18 @@ export const FeedView: React.FC<FeedViewProps> = ({
             {/* Drawer Action Footer */}
             <div className="p-6 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
+                {OUTREACH_ENABLED && (
                 <button
-                  type="button"
-                  onClick={() => {
-                    setViewingJob(null);
-                    onNavigateToOutreach?.(viewingJob.company, viewingJob.title);
-                  }}
-                  className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition-colors"
-                >
-                  Find contacts
-                </button>
+                    type="button"
+                    onClick={() => {
+                      setViewingJob(null);
+                      onNavigateToOutreach?.(viewingJob.company, viewingJob.title);
+                    }}
+                    className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl text-xs font-bold transition-colors"
+                  >
+                    Find contacts
+                  </button>
+                )}
 
                 <a
                   href={viewingJob.applyUrl}

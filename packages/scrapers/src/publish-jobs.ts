@@ -1,91 +1,33 @@
-import { runAllScrapers, type ScoredJob } from './index.ts';
+import { runAllScrapersWithReport } from './index.ts';
 import { getScraperEnv, getScraperSupabase } from './env-helper.ts';
+import { publishJobs, recordScrapeRun } from './publisher.ts';
 
-async function publishJobsLocally() {
-  const startTime = Date.now();
+/**
+ * Single job-publishing entry point: scrape (tiered sources) -> validate/dedupe -> upsert -> expire stale.
+ *   npm run scrapers:jobs            tier 1+2 sources
+ *   npm run scrapers:jobs -- --tier3 also run the fragile sources
+ */
+async function main() {
+  const started = new Date();
   const env = getScraperEnv();
   const supabase = getScraperSupabase();
+  console.log(`[Nomadic] Publishing jobs to ${env.SUPABASE_URL} (${env.isServiceRole ? 'service role' : 'anon key: writes will be rejected by RLS'})`);
 
-  console.log('========================================================================');
-  console.log('⚡ NOMADIC — LOCAL JOB RADAR SCRAPER & SUPABASE PUBLISHER');
-  console.log('========================================================================');
-  console.log(`[Config] Target Supabase URL : ${env.SUPABASE_URL}`);
-  console.log(`[Config] Service Key Active : ${env.isServiceRole ? 'YES (Service Role)' : 'NO (Using Anon Key)'}`);
-  console.log(`[Status] Starting multi-source scraping engine across 500+ tech endpoints...\n`);
-
-  try {
-    // 1. Run all scrapers
-    const jobs: ScoredJob[] = await runAllScrapers();
-
-    if (!jobs || jobs.length === 0) {
-      console.warn('⚠️ [Job Scraper] Scraper completed but returned 0 jobs. Please check network connectivity.');
-      process.exit(0);
-    }
-
-    console.log(`\n✓ [Scraper] Successfully extracted ${jobs.length} unique deduplicated positions.`);
-
-    // 2. Prepare database payload
-    console.log(`[Supabase] Batch upserting ${jobs.length} jobs into "jobs" table...`);
-    const BATCH_SIZE = 100;
-    let totalUpserted = 0;
-    let failedBatches = 0;
-
-    for (let i = 0; i < jobs.length; i += BATCH_SIZE) {
-      const chunk = jobs.slice(i, i + BATCH_SIZE);
-      const batchPayload = chunk.map(j => ({
-        job_hash: j.jobHash,
-        company: j.company,
-        title: j.title,
-        location: j.location || 'Remote',
-        description: (j.description || '').slice(0, 5000),
-        apply_url: j.applyUrl,
-        source: j.source || 'Direct ATS API',
-        salary_range: j.salary || null,
-        is_active: true,
-      }));
-
-      const batchNum = Math.floor(i / BATCH_SIZE) + 1;
-      const totalBatches = Math.ceil(jobs.length / BATCH_SIZE);
-
-      const { error } = await supabase
-        .from('jobs')
-        .upsert(batchPayload, { onConflict: 'job_hash', ignoreDuplicates: false });
-
-      if (error) {
-        console.warn(`  ↳ Batch ${batchNum}/${totalBatches} Warning: ${error.message}`);
-        failedBatches++;
-      } else {
-        totalUpserted += batchPayload.length;
-        console.log(`  ↳ Batch ${batchNum}/${totalBatches} processed: +${batchPayload.length} jobs synced.`);
-      }
-    }
-
-    // 3. Itemized Synced Jobs Report Preview
-    console.log('\n────────────────────────────────────────────────────────────────────────');
-    console.log('📋 LATEST VERIFIED JOBS SYNCED TO RADAR (SAMPLE PREVIEW):');
-    console.log('────────────────────────────────────────────────────────────────────────');
-    const sampleJobs = jobs.slice(0, 15);
-    sampleJobs.forEach((j, idx) => {
-      console.log(`  ${(idx + 1).toString().padStart(2, ' ')}. [${j.company.padEnd(16, ' ')}] ${j.title} (${j.location || 'Remote'}) — ${j.source}`);
-    });
-    if (jobs.length > 15) {
-      console.log(`  ... and ${jobs.length - 15} more verified live listings.`);
-    }
-
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.log('\n========================================================================');
-    console.log(`✓ JOB SCRAPER COMPLETE in ${elapsed}s`);
-    console.log(`  • Total Scraped & Deduplicated : ${jobs.length}`);
-    console.log(`  • Successfully Synced to Cloud : ${totalUpserted}`);
-    if (failedBatches > 0) {
-      console.log(`  • Failed Batches               : ${failedBatches}`);
-    }
-    console.log(`  • Live Database                : ${env.SUPABASE_URL}`);
-    console.log('========================================================================\n');
-  } catch (err: any) {
-    console.error('\n❌ [Job Scraper Fatal Error]:', err?.message || String(err));
+  const report = await runAllScrapersWithReport(undefined, { includeTier3: process.argv.includes('--tier3') });
+  if (report.jobs.length === 0) {
+    console.warn('[Nomadic] Scrapers returned 0 jobs. Check network connectivity. Nothing published, nothing expired.');
     process.exit(1);
   }
+
+  const result = await publishJobs(supabase, report.jobs, started);
+  await recordScrapeRun(supabase, report, result, started);
+
+  console.log(`\n[Nomadic] Done in ${((Date.now() - started.getTime()) / 1000).toFixed(1)}s: ${report.jobs.length} scraped, ${result.upserted} upserted, ${result.expired} expired, ${result.failedBatches} failed batches`);
+  if (report.alerts.length) console.warn(`[Nomadic] ${report.alerts.length} source alert(s): ${report.alerts.map((a) => a.message).join(' | ')}`);
+  process.exit(result.failedBatches > 0 ? 1 : 0);
 }
 
-publishJobsLocally();
+main().catch((err) => {
+  console.error('[Nomadic] Fatal:', err?.message || err);
+  process.exit(1);
+});
