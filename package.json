@@ -30,7 +30,8 @@
     "format:check": "prettier --check .",
     "dev:web": "npm run dev --prefix apps/web",
     "scrape:all": "npm run scrapers:all",
-    "package:mac": "npm run package:mac --prefix apps/desktop"
+    "package:mac": "npm run package:mac --prefix apps/desktop",
+    "bench:forms": "tsx packages/form-engine/src/bench-cli.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

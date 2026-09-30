@@ -1,0 +1,25 @@
+<!doctype html><html><head><title>Apply - Acme Labs (Greenhouse)</title><style>.field{margin:8px 0}label{display:block}.req:after{content:" *"}</style></head><body>
+<form id="application_form" action="#" onsubmit="return false">
+<h1>Software Engineer</h1>
+<div class="field"><label for="first_name" class="req">First Name</label><input id="first_name" name="job_application[first_name]" type="text" required></div>
+<div class="field"><label for="last_name" class="req">Last Name</label><input id="last_name" name="job_application[last_name]" type="text" required></div>
+<div class="field"><label for="email" class="req">Email</label><input id="email" name="job_application[email]" type="text" required></div>
+<div class="field"><label for="phone" class="req">Phone</label><input id="phone" name="job_application[phone]" type="text" required></div>
+<div class="field"><label for="location">Location (City)</label><input id="location" name="job_application[location]" type="text" autocomplete="off"></div>
+<div id="resume_fieldset" class="field"><label>Resume/CV <span class="req"></span></label><input type="file" id="resume" name="job_application[resume]" required></div>
+<div class="field"><label for="cover_letter_text">Cover Letter</label><textarea id="cover_letter_text" name="job_application[cover_letter_text]"></textarea></div>
+<div class="field"><label for="q1">LinkedIn Profile</label><input id="q1" name="job_application[answers_attributes][0][text_value]" type="text"></div>
+<div class="field"><label for="q2">Website</label><input id="q2" name="job_application[answers_attributes][1][text_value]" type="text"></div>
+<div class="field"><label for="q3" class="req">Are you legally authorized to work in the country in which you are applying?</label>
+<select id="q3" name="job_application[answers_attributes][2][boolean_value]" required><option value="">Please select</option><option value="1">Yes</option><option value="0">No</option></select></div>
+<div class="field"><label for="q4" class="req">Will you now or in the future require visa sponsorship?</label>
+<select id="q4" name="job_application[answers_attributes][3][boolean_value]" required><option value="">Please select</option><option value="1">Yes</option><option value="0">No</option></select></div>
+<div class="field"><label for="q5" class="req">How did you hear about this job?</label>
+<select id="q5" name="q5" required><option value="">Please select</option><option>Company website</option><option>LinkedIn</option><option>Referral</option><option>Other</option></select></div>
+<div class="field"><label for="q6" class="req">What is your favorite programming paradigm and why?</label><textarea id="q6" name="q6" required></textarea></div>
+<h3>Voluntary Self-Identification</h3>
+<div class="field"><label for="gender">Gender</label><select id="gender" name="job_application[gender]"><option value="">Please select</option><option>Male</option><option>Female</option><option>Decline To Self Identify</option></select></div>
+<div class="field"><label for="race">Race</label><select id="race" name="job_application[race]"><option value="">Please select</option><option>Asian</option><option>White</option><option>Decline To Self Identify</option></select></div>
+<div class="field"><label for="vet">Veteran Status</label><select id="vet" name="job_application[veteran_status]"><option value="">Please select</option><option>I am a protected veteran</option><option>I am not a protected veteran</option><option>I don't wish to answer</option></select></div>
+<div class="field"><label for="dis">Disability Status</label><select id="dis" name="job_application[disability_status]"><option value="">Please select</option><option>Yes, I have a disability</option><option>No, I do not have a disability</option><option>I do not want to answer</option></select></div>
+<button type="submit" id="submit_app">Submit Application</button></form></body></html>

@@ -37,6 +37,7 @@ import { extractSemanticDOM, type SemanticDOMSnapshot } from './semantic-dom-ext
 import { generateAIPilotPlan, type AIPilotPlan } from './ai-pilot-engine.js';
 import { dispatchSpecializedPortalBot } from './bots/bot-dispatcher.js';
 import { OmniFormSolver, getOrCreateValidResumePdf } from './omni-form-solver.js';
+import { runNewFormEngine } from './form-engine-bridge.js';
 
 export interface MasterProfile {
   firstName: string;
@@ -535,6 +536,41 @@ export class AutoApplyEngine {
               }
             }
             await page.waitForLoadState('domcontentloaded').catch(() => {});
+          }
+        }
+
+        // 6b'. New form engine (reader -> classifier -> answerer -> writer -> verifier). Never submits with
+        // unresolved required fields; set NOMADIC_LEGACY_ENGINE=1 to fall back to the old solver chain.
+        if (!process.env.NOMADIC_LEGACY_ENGINE) {
+          const out = await runNewFormEngine(page!, profile).catch(() => null);
+          if (out && out.foundForm && out.report.filled > 0) {
+            totalFieldsFilled += out.report.filled;
+            await AutoApplyEngine.emitStatus(page!, {
+              phase: 'filling',
+              message: `Filled ${out.report.filled} fields${out.report.needsUser ? `, ${out.report.needsUser} need you` : ''}...`,
+              colorState: 'green'
+            }, onProgress);
+            if (out.safeToSubmit) {
+              const submitResult = await new FormSubmitter(page!, atsConfig).submitAndVerify();
+              if (submitResult.submitted) {
+                isSubmitted = true;
+                if (submitResult.confirmed) break;
+              }
+            } else {
+              const todo = [...out.report.unresolvedRequired, ...out.report.fields.filter(f => f.status !== 'filled' && f.status !== 'skipped').map(f => f.label)];
+              const uniq = Array.from(new Set(todo)).slice(0, 5).join('; ');
+              await AutoApplyEngine.emitStatus(page!, {
+                phase: 'user_input_required',
+                message: `Pre-filled ${out.report.filled} fields. Needs you: ${uniq || 'review before submitting'}`,
+                colorState: 'green',
+                actionRequired: 'Review Form & Click Submit'
+              }, onProgress);
+            }
+            if (!isSubmitted) {
+              const advanced = await AutoApplyEngine.advanceApplicationStepper(page!);
+              if (advanced) { await page!.waitForTimeout(400); continue; }
+            }
+            break;
           }
         }
 
@@ -1175,6 +1211,19 @@ export class AutoApplyEngine {
         }
       }
     } catch {}
+  }
+
+  /** Click Next/Continue on a multi-step form. Returns true when a step button was clicked. */
+  public static async advanceApplicationStepper(page: Page): Promise<boolean> {
+    try {
+      const btn = await AutoApplyEngine.findNextStepButton(page);
+      if (!btn) return false;
+      await humanClick(page, btn);
+      await page.waitForLoadState('domcontentloaded', { timeout: 3000 }).catch(() => {});
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   public static async findNextStepButton(page: Page): Promise<any | null> {

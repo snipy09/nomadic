@@ -1,0 +1,5 @@
+[
+ {"sel":"input[name=c1]","value":"Aarav Sharma"},{"sel":"input[name=c2]","value":"aarav.sharma@example.com"},{"sel":"input[name=c3]","digits":"919876543210"},
+ {"sel":"input[name=c4]","value":"Acme Labs"},{"sel":"select[name=c5]","empty":true,"needsUser":true},{"sel":"input[name=c6]","value":"https://linkedin.com/in/aarav-sharma"},
+ {"sel":"input[name=c7]","file":true},{"unchecked":"input[name=c8]"}
+]

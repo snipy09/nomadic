@@ -1,0 +1,11 @@
+<!doctype html><html><head><title>Apply - Conditional form</title></head><body><form onsubmit="return false">
+<label for="fn">First name *</label><input id="fn" required>
+<label for="ln">Last name *</label><input id="ln" required>
+<label for="em">Email *</label><input id="em" required>
+<fieldset><legend>Are you willing to relocate? *</legend>
+<label><input type="radio" name="rel" value="y" onchange="document.getElementById('cityWrap').style.display='block'"> Yes</label>
+<label><input type="radio" name="rel" value="n" onchange="document.getElementById('cityWrap').style.display='none'"> No</label></fieldset>
+<div id="cityWrap" style="display:none"><label for="pc">Preferred city to relocate to *</label><input id="pc" required></div>
+<label for="exp">Total years of experience *</label>
+<select id="exp" required><option value="">Select</option><option>0-1</option><option>1-3</option><option>3-5</option><option>5+</option></select>
+</form></body></html>

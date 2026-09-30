@@ -1,0 +1,27 @@
+<!doctype html><html><head><title>Acme Labs - Lever</title><style>.app-field{margin:8px 0}li{list-style:none}</style></head><body>
+<form id="application-form" onsubmit="return false">
+<div class="application-question resume"><label for="resume-upload-input">Resume/CV</label><input type="file" id="resume-upload-input" name="resume" required></div>
+<div class="application-question"><label>Full name<span class="required">✱</span></label><input type="text" name="name" required></div>
+<div class="application-question"><label>Email<span class="required">✱</span></label><input type="email" name="email" required></div>
+<div class="application-question"><label>Phone</label><input type="text" name="phone"></div>
+<div class="application-question"><label>Current location</label><input type="text" name="location" id="location-input"></div>
+<div class="application-question"><label>Current company</label><input type="text" name="org"></div>
+<div class="application-question"><label>LinkedIn URL</label><input type="text" name="urls[LinkedIn]"></div>
+<div class="application-question"><label>GitHub URL</label><input type="text" name="urls[GitHub]"></div>
+<div class="application-question"><label>Portfolio URL</label><input type="text" name="urls[Portfolio]"></div>
+<div class="application-question"><label>Other website</label><input type="text" name="urls[Other]"></div>
+<div class="application-question custom-question">
+ <div class="application-label">Are you authorized to work in the United States without sponsorship?<span class="required">✱</span></div>
+ <ul data-qa="multiple-choice"><li><label><input type="radio" name="cards[abc][field0]" value="Yes" required><span>Yes</span></label></li><li><label><input type="radio" name="cards[abc][field0]" value="No"><span>No</span></label></li></ul></div>
+<div class="application-question custom-question">
+ <div class="application-label">Will you require visa sponsorship now or in the future?<span class="required">✱</span></div>
+ <ul><li><label><input type="radio" name="cards[abc][field1]" value="Yes" required><span>Yes</span></label></li><li><label><input type="radio" name="cards[abc][field1]" value="No"><span>No</span></label></li></ul></div>
+<div class="application-question"><label>Additional information</label><textarea name="comments" id="comments"></textarea></div>
+<div class="application-question custom-question"><div class="application-label">How many years of professional experience do you have?<span class="required">✱</span></div><input type="text" name="cards[abc][field2]" required></div>
+<div class="application-question custom-question"><div class="application-label">Which of these have you used? (select all)</div>
+<ul><li><label><input type="checkbox" name="cards[abc][field3]" value="React"><span>React</span></label></li><li><label><input type="checkbox" name="cards[abc][field3]" value="Go"><span>Go</span></label></li></ul></div>
+<h4>U.S. Equal Employment Opportunity Information (Completion is voluntary)</h4>
+<div class="application-question"><label for="eeo-gender">Gender</label><select id="eeo-gender" name="eeo[gender]"><option value="">Select...</option><option>Male</option><option>Female</option><option>Decline to self-identify</option></select></div>
+<div class="application-question"><label for="eeo-race">Race</label><select id="eeo-race" name="eeo[race]"><option value="">Select...</option><option>Asian</option><option>Decline to self-identify</option></select></div>
+<div class="application-question"><label for="eeo-vet">Veteran status</label><select id="eeo-vet" name="eeo[veteran]"><option value="">Select...</option><option>I am a veteran</option><option>I am not a veteran</option><option>Decline to self-identify</option></select></div>
+<button id="btn-submit" type="submit">Submit application</button></form></body></html>

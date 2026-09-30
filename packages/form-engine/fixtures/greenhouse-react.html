@@ -1,0 +1,23 @@
+<!doctype html><html><head><title>Job Application for Engineer at Acme</title><style>.select__menu{border:1px solid #ccc;display:none}.select__menu.open{display:block}.select__option{padding:4px;cursor:pointer}.select-shell{margin:10px 0}</style></head><body>
+<div id="application-form"><form onsubmit="return false">
+<div class="text-input-wrapper"><label for="first_name" class="label">First Name<span class="required">*</span></label><input id="first_name" type="text" required aria-required="true"></div>
+<div class="text-input-wrapper"><label for="last_name" class="label">Last Name<span class="required">*</span></label><input id="last_name" type="text" required aria-required="true"></div>
+<div class="text-input-wrapper"><label for="email" class="label">Email<span class="required">*</span></label><input id="email" type="text" required aria-required="true"></div>
+<div class="text-input-wrapper"><label for="phone" class="label">Phone</label><input id="phone" type="tel"></div>
+<div class="select-shell"><label id="country-label" class="label" for="country">Country<span class="required">*</span></label>
+ <div class="select" data-combo="country"><input id="country" class="select__input" role="combobox" aria-autocomplete="list" aria-labelledby="country-label" aria-haspopup="listbox" type="text"><div class="single-value"></div><div class="select__menu" role="listbox"></div></div></div>
+<div class="select-shell"><label id="q_sponsor-label" class="label" for="question_sponsor">Will you now or in the future require sponsorship to work in the United States?<span class="required">*</span></label>
+ <div class="select" data-combo="sponsor"><input id="question_sponsor" class="select__input" role="combobox" aria-autocomplete="list" aria-labelledby="q_sponsor-label" type="text"><div class="single-value"></div><div class="select__menu" role="listbox"></div></div></div>
+<div class="select-shell"><label id="q_gender-label" class="label" for="gender">Gender</label>
+ <div class="select" data-combo="gender"><input id="gender" class="select__input" role="combobox" aria-autocomplete="list" aria-labelledby="q_gender-label" type="text"><div class="single-value"></div><div class="select__menu" role="listbox"></div></div></div>
+<div class="select-shell"><label id="q_vet-label" class="label" for="veteran">Veteran Status</label>
+ <div class="select" data-combo="veteran"><input id="veteran" class="select__input" role="combobox" aria-autocomplete="list" aria-labelledby="q_vet-label" type="text"><div class="single-value"></div><div class="select__menu" role="listbox"></div></div></div>
+<div class="text-input-wrapper"><label for="resume">Resume/CV<span class="required">*</span></label><input id="resume" type="file"></div>
+<button type="submit">Submit application</button></form></div>
+<script>
+const DATA={country:['United States','India','United Kingdom','Canada'],sponsor:['Yes','No'],gender:['Man','Woman','Non-binary','Decline to self-identify'],veteran:['I am a protected veteran','I am not a protected veteran','I don\'t wish to answer']};
+document.querySelectorAll('.select').forEach(s=>{const key=s.dataset.combo,inp=s.querySelector('input'),menu=s.querySelector('.select__menu'),sv=s.querySelector('.single-value');
+ const render=(q)=>{menu.innerHTML='';DATA[key].filter(o=>!q||o.toLowerCase().includes(q.toLowerCase())).forEach(o=>{const d=document.createElement('div');d.className='select__option';d.setAttribute('role','option');d.textContent=o;d.addEventListener('mousedown',e=>{e.preventDefault();});d.addEventListener('click',()=>{s.dataset.value=o;sv.textContent=o;inp.value='';menu.classList.remove('open');});menu.appendChild(d);});menu.classList.add('open');};
+ inp.addEventListener('click',()=>render(''));inp.addEventListener('focus',()=>render(''));inp.addEventListener('input',()=>render(inp.value));
+ inp.addEventListener('keydown',e=>{if(e.key==='Enter'){const f=menu.querySelector('.select__option');if(f)f.click();}});});
+</script></body></html>

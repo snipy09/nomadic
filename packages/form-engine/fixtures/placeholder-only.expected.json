@@ -1,0 +1,5 @@
+[
+ {"sel":"input[name=fullName]","value":"Aarav Sharma"},{"sel":"input[name=email]","value":"aarav.sharma@example.com"},{"sel":"input[name=phone]","digits":"919876543210"},
+ {"sel":"input[name=linkedin]","value":"https://linkedin.com/in/aarav-sharma"},{"sel":"input[name=city]","value":"Bengaluru"},
+ {"radio":"visa","label":"No"},{"sel":"input[name=np]","value":"30 days"},{"sel":"input[name=cv]","file":true},{"sel":"textarea[name=msg]","nonEmpty":true}
+]

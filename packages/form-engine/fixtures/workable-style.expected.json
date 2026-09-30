@@ -1,0 +1,8 @@
+[
+ {"sel":"#firstname","value":"Aarav"},{"sel":"#lastname","value":"Sharma"},{"sel":"#email","value":"aarav.sharma@example.com"},
+ {"sel":"#headline","value":"Software Engineer"},{"sel":"#phone","digits":"919876543210"},{"sel":"#address","value":"Bengaluru, India"},
+ {"sel":"#summary","nonEmpty":true},{"sel":"#cv","file":true},
+ {"sel":"#ans1","empty":true,"needsUser":true},{"sel":"#ans2","value":"12 LPA"},{"sel":"#ans3","value":"30 days"},
+ {"sel":"#ans4","empty":true,"needsUser":true},
+ {"check":"input[name=gdpr]"}
+]

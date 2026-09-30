@@ -1,0 +1,69 @@
+[
+ {
+  "sel": "#resume-upload-input",
+  "file": true
+ },
+ {
+  "sel": "input[name=name]",
+  "value": "Aarav Sharma"
+ },
+ {
+  "sel": "input[name=email]",
+  "value": "aarav.sharma@example.com"
+ },
+ {
+  "sel": "input[name=phone]",
+  "digits": "919876543210"
+ },
+ {
+  "sel": "#location-input",
+  "value": "Bengaluru, India"
+ },
+ {
+  "sel": "input[name=org]",
+  "value": "Acme Labs"
+ },
+ {
+  "sel": "input[name='urls[LinkedIn]']",
+  "value": "https://linkedin.com/in/aarav-sharma"
+ },
+ {
+  "sel": "input[name='urls[GitHub]']",
+  "value": "https://github.com/aaravs"
+ },
+ {
+  "sel": "input[name='urls[Portfolio]']",
+  "value": "https://aarav.dev"
+ },
+ {
+  "radio": "cards[abc][field0]",
+  "label": "Yes"
+ },
+ {
+  "radio": "cards[abc][field1]",
+  "label": "No"
+ },
+ {
+  "sel": "#comments",
+  "nonEmpty": true
+ },
+ {
+  "sel": "input[name='cards[abc][field2]']",
+  "value": "3"
+ },
+ {
+  "sel": "#eeo-gender",
+  "value": "Decline to self-identify"
+ },
+ {
+  "sel": "#eeo-race",
+  "value": "Decline to self-identify"
+ },
+ {
+  "sel": "#eeo-vet",
+  "value": "Decline to self-identify"
+ },
+ {
+  "unchecked": "input[name='cards[abc][field3]']"
+ }
+]

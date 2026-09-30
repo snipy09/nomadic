@@ -1,0 +1,5 @@
+[
+ {"sel":"#fn","value":"Aarav"},{"sel":"#ln","value":"Sharma"},{"sel":"#em","value":"aarav.sharma@example.com"},
+ {"radio":"elig","label":"Yes"},{"radio":"reloc","label":"Yes"},{"radio":"g","label":"Prefer not to say"},
+ {"check":"#consent"},{"unchecked":"#news"}
+]

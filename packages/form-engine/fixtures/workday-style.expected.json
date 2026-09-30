@@ -1,0 +1,6 @@
+[
+ {"sel":"#source--source","anyOf":["Job board","Other","Online","Internet"]},{"sel":"#country","value":"India"},
+ {"sel":"#legalNameSection_firstName","value":"Aarav"},{"sel":"#legalNameSection_lastName","value":"Sharma"},
+ {"sel":"#city","value":"Bengaluru"},{"sel":"#email","value":"aarav.sharma@example.com"},{"sel":"#pn","digits":"919876543210"},
+ {"sel":"#addr1","empty":true,"needsUser":true}
+]

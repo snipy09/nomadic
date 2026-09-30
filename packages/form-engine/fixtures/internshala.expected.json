@@ -1,0 +1,4 @@
+[
+ {"sel":"#cover_letter","nonEmpty":true},{"sel":"#assess1","empty":true,"needsUser":true},{"sel":"#pp","anyOf":["https://aarav.dev","https://github.com/aaravs"]},
+ {"unchecked":"input[name=availability]"}
+]

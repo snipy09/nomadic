@@ -1,0 +1,4 @@
+[
+ {"frame":1,"sel":"#first_name","value":"Aarav"},{"frame":1,"sel":"#last_name","value":"Sharma"},{"frame":1,"sel":"#email","value":"aarav.sharma@example.com"},
+ {"frame":1,"sel":"#phone","digits":"919876543210"},{"frame":1,"sel":"#resume","file":true},{"frame":1,"sel":"#pn","value":"Software Engineer"}
+]

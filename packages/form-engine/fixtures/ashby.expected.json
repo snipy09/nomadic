@@ -1,0 +1,6 @@
+[
+ {"sel":"#_systemfield_name","value":"Aarav Sharma"},{"sel":"#_systemfield_email","value":"aarav.sharma@example.com"},{"sel":"#_systemfield_resume","file":true},
+ {"sel":"#q-location","value":"Bengaluru, India"},{"sel":"#q-li","value":"https://linkedin.com/in/aarav-sharma"},
+ {"pressed":"#yn1","label":"Yes"},{"pressed":"#yn2","label":"No"},{"pressed":"#yn3","label":"Yes"},
+ {"sel":"#q-sal","value":"12 LPA"},{"sel":"#q-start","value":"30 days"}
+]

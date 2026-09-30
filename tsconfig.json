@@ -14,6 +14,7 @@
       "@job-automator/automation": ["./packages/automation/src/index.ts"],
       "@job-automator/scrapers": ["./packages/scrapers/src/index.ts"],
       "@job-automator/supabase": ["./packages/supabase/src/index.ts"],
+      "@job-automator/form-engine": ["./packages/form-engine/src/index.ts"],
       "@job-automator/email-verifier": ["./packages/email-verifier/src/index.ts"]
     }
   },

@@ -1,0 +1,9 @@
+[
+ {"sel":"#first_name","value":"Aarav"},{"sel":"#last_name","value":"Sharma"},{"sel":"#email","value":"aarav.sharma@example.com"},
+ {"sel":"#phone","digits":"919876543210"},{"sel":"#location","value":"Bengaluru"},{"sel":"#resume","file":true},
+ {"sel":"#cover_letter_text","nonEmpty":true},{"sel":"#q1","value":"https://linkedin.com/in/aarav-sharma"},{"sel":"#q2","value":"https://aarav.dev"},
+ {"sel":"#q3","value":"Yes"},{"sel":"#q4","value":"No"},{"sel":"#q5","value":"Other"},
+ {"sel":"#q6","empty":true,"needsUser":true},
+ {"sel":"#gender","value":"Decline To Self Identify"},{"sel":"#race","value":"Decline To Self Identify"},
+ {"sel":"#vet","value":"I don't wish to answer"},{"sel":"#dis","value":"I do not want to answer"}
+]
