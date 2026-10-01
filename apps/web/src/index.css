@@ -4,85 +4,280 @@
 
 @layer base {
   html {
-    scroll-behavior: smooth;
-    background-color: #ffffff;
-    color: #1d1d1f;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    background: #fff;
+    color: theme('colors.ink');
+    font-family: theme('fontFamily.sans');
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    letter-spacing: -0.014em;
     text-rendering: optimizeLegibility;
+    letter-spacing: theme('letterSpacing.body');
+    scroll-padding-top: 64px;
   }
-  
   body {
-    background-color: #ffffff;
-    min-height: 100vh;
-    overflow-x: hidden;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    background: #fff;
+    overflow-x: clip;
   }
-
-  code, kbd, samp, pre {
-    font-family: "SF Mono", SFMono-Regular, ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  }
-
   ::selection {
-    background-color: #000000;
-    color: #ffffff;
+    background: theme('colors.accent.DEFAULT');
+    color: #fff;
+  }
+  :focus-visible {
+    outline: 2px solid theme('colors.accent.DEFAULT');
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-page px-5 sm:px-8;
+  }
+
+  /* Type scale, modelled on apple.com product pages */
+  .t-hero {
+    @apply font-semibold tracking-display;
+    font-size: clamp(2.75rem, 7.6vw, 6rem);
+    line-height: 1.02;
+  }
+  .t-display {
+    @apply font-semibold tracking-display;
+    font-size: clamp(2.25rem, 5.4vw, 4rem);
+    line-height: 1.05;
+  }
+  .t-headline {
+    @apply font-semibold tracking-headline;
+    font-size: clamp(1.75rem, 3.6vw, 2.75rem);
+    line-height: 1.1;
+  }
+  .t-title {
+    @apply text-xl font-semibold tracking-headline sm:text-2xl;
+    line-height: 1.2;
+  }
+  .t-lead {
+    @apply text-muted;
+    font-size: clamp(1.0625rem, 1.6vw, 1.3125rem);
+    line-height: 1.45;
+  }
+  .t-eyebrow {
+    @apply text-sm font-semibold sm:text-base;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-[15px] font-medium transition-all duration-300 ease-apple active:scale-[0.97];
+  }
+  .btn-primary {
+    @apply btn bg-accent text-white hover:bg-accent-hover;
+  }
+  .btn-dark {
+    @apply btn bg-ink text-white hover:bg-black;
+  }
+  .btn-ghost {
+    @apply btn text-accent hover:underline;
+  }
+  .btn-light {
+    @apply btn bg-white text-ink hover:bg-mist;
+  }
+
+  .card {
+    @apply rounded-[28px] bg-mist;
+  }
+
+  .gradient-text {
+    background: linear-gradient(90deg, #0071e3 0%, #7b5cff 50%, #e0457b 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .gradient-text-night {
+    background: linear-gradient(90deg, #2997ff 0%, #a78bfa 55%, #f472b6 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .glass {
+    background-color: rgba(255, 255, 255, 0.72);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+  }
+  .glass-dark {
+    background-color: rgba(22, 22, 23, 0.8);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
   }
 }
 
 @layer utilities {
-  .subtle-grid {
-    background-image: linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
-                      linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
-    background-size: 48px 48px;
+  .mask-fade-x {
+    mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
   }
-
-  .subtle-dots {
-    background-image: radial-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px);
-    background-size: 24px 24px;
-  }
-
-  .dark-subtle-grid {
-    background-image: linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-                      linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-    background-size: 32px 32px;
-  }
-
-  .apple-blur {
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-  }
-
-  .text-gradient-apple {
-    background: linear-gradient(180deg, #1d1d1f 0%, #424245 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .text-gradient-accent {
-    background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .text-gradient-dark-apple {
-    background: linear-gradient(180deg, #ffffff 0%, #a1a1aa 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .hardware-glow {
-    box-shadow: 0 0 100px -20px rgba(2, 132, 199, 0.08),
-                0 30px 60px -12px rgba(0, 0, 0, 0.06),
-                0 0 0 1px rgba(0, 0, 0, 0.06);
-  }
-
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
   .no-scrollbar {
-    -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+}
+
+/* ---------- Motion ---------- */
+
+/* Scroll reveals. Hidden only when JS is running (html.js), so content is
+   always visible to crawlers and no-JS readers. */
+.js .reveal {
+  opacity: 0;
+  transform: translate3d(0, 40px, 0);
+  transition:
+    opacity 1s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: var(--d, 0ms);
+  will-change: opacity, transform;
+}
+.js .reveal.reveal-scale {
+  transform: scale(0.94);
+}
+.js .reveal.is-in,
+.js .is-in .reveal {
+  opacity: 1;
+  transform: none;
+}
+
+/* Hero headline: words rise in one after another on load */
+.js .rise > span {
+  display: inline-block;
+  opacity: 0;
+  transform: translate3d(0, 0.5em, 0);
+  filter: blur(8px);
+  animation: rise 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: calc(var(--i) * 70ms + 100ms);
+}
+@keyframes rise {
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+.js .fade-up {
+  opacity: 0;
+  animation: fadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: var(--d, 0ms);
+}
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Hero product window: tilted back, flattens and grows as you scroll (--p from useScrollProgress) */
+.hero-stage {
+  perspective: 1800px;
+}
+.hero-device {
+  --t: clamp(0, calc(var(--p, 0) * 2.2), 1);
+  transform: rotateX(calc((1 - var(--t)) * 22deg)) scale(calc(0.88 + var(--t) * 0.12)) translateY(calc((1 - var(--t)) * -20px));
+  transform-origin: 50% 0%;
+  will-change: transform;
+}
+
+/* Statement paragraph: words light up as you scroll through (AirPods-style) */
+.scrub-word {
+  opacity: clamp(0.16, calc((var(--p, 0) * 1.5 - 0.15) * var(--n) - var(--i)), 1);
+  transition: opacity 0.15s linear;
+}
+
+/* Animated progress bars inside mockups */
+.js .bar-fill {
+  width: 0;
+}
+.js .is-in .bar-fill,
+.js .bar-fill.is-in {
+  animation: fill 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: var(--d, 300ms);
+}
+.bar-fill {
+  width: var(--w);
+}
+@keyframes fill {
+  from {
+    width: 0;
+  }
+  to {
+    width: var(--w);
+  }
+}
+
+/* Typing effect for the auto-apply form demo */
+.js .typing {
+  clip-path: inset(0 100% 0 0);
+}
+.js .is-in .typing {
+  animation: type var(--dur, 900ms) steps(var(--ch, 18), end) forwards;
+  animation-delay: var(--d, 0ms);
+}
+@keyframes type {
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+.js .pop {
+  opacity: 0;
+  transform: scale(0.6);
+}
+.js .is-in .pop {
+  animation: pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: var(--d, 0ms);
+}
+@keyframes pop {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Accordion */
+.collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.collapse[data-open='true'] {
+  grid-template-rows: 1fr;
+}
+.collapse > div {
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .js .reveal,
+  .js .rise > span,
+  .js .fade-up,
+  .js .pop {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+  .js .typing {
+    clip-path: none;
+  }
+  .hero-device {
+    transform: none;
+  }
+  .scrub-word {
+    opacity: 1;
   }
 }

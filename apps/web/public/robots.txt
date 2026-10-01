@@ -1,5 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /404
 
-# Sitemaps
 Sitemap: https://nomadicai.vercel.app/sitemap.xml

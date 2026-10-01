@@ -1,75 +1,49 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       fontFamily: {
-        sans: [
-          '-apple-system',
-          'BlinkMacSystemFont',
-          '"SF Pro Display"',
-          '"SF Pro Text"',
-          '"SF Pro"',
-          '"Helvetica Neue"',
-          'Helvetica',
-          'Arial',
-          'sans-serif'
-        ],
-        mono: [
-          '"SF Mono"',
-          'SFMono-Regular',
-          'ui-monospace',
-          'Menlo',
-          'Monaco',
-          'Consolas',
-          '"Liberation Mono"',
-          'monospace'
-        ],
+        // SF Pro on Apple devices, Inter (its closest open cousin) everywhere else.
+        sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', 'Inter', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+        mono: ['"SF Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
       },
       colors: {
-        powder: {
-          50: '#f0f7ff',
-          100: '#e0f0fe',
-          200: '#bae2fd',
-          300: '#7cc9fa',
-          400: '#38bdf8',
-          500: '#0284c7',
-          600: '#0369a1',
-          700: '#075985',
-          800: '#0c4a6e',
-          900: '#082f49',
-          950: '#041827',
+        ink: '#1d1d1f',
+        mist: '#f5f5f7',
+        line: '#d2d2d7',
+        muted: '#6e6e73',
+        faint: '#86868b',
+        accent: { DEFAULT: '#0071e3', hover: '#0077ed', soft: '#e8f2fd', bright: '#2997ff' },
+        night: { DEFAULT: '#000000', card: '#161617', line: '#2a2a2c', text: '#f5f5f7', muted: '#a1a1a6' },
+      },
+      letterSpacing: {
+        display: '-0.035em',
+        headline: '-0.025em',
+        body: '-0.011em',
+      },
+      maxWidth: { page: '1120px' },
+      transitionTimingFunction: {
+        apple: 'cubic-bezier(0.28, 0.11, 0.32, 1)',
+        spring: 'cubic-bezier(0.16, 1, 0.3, 1)',
+      },
+      keyframes: {
+        marquee: { from: { transform: 'translateX(0)' }, to: { transform: 'translateX(-50%)' } },
+        pulseRing: {
+          '0%': { transform: 'scale(1)', opacity: '0.6' },
+          '100%': { transform: 'scale(2.4)', opacity: '0' },
         },
-        ink: {
-          950: '#000000',
-          900: '#09090b',
-          850: '#121215',
-          800: '#18181b',
-          700: '#27272a',
-          600: '#3f3f46',
-          500: '#71717a',
-          400: '#a1a1aa',
-          300: '#d4d4d8',
-          200: '#e4e4e7',
-          100: '#f4f4f5',
-          50: '#fafafa',
-          0: '#ffffff',
-        },
-        apple: {
-          canvas: '#ffffff',
-          subtle: '#f5f5f7',
-          border: '#d2d2d7',
-          card: '#ffffff',
-          darkCard: '#1d1d1f',
-          text: '#1d1d1f',
-          secondary: '#86868b',
-          link: '#0071e3',
-        },
+        float: { '0%,100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-6px)' } },
+        fill: { from: { width: '0%' }, to: { width: 'var(--w)' } },
+        caret: { '0%,100%': { opacity: '1' }, '50%': { opacity: '0' } },
+      },
+      animation: {
+        marquee: 'marquee 40s linear infinite',
+        'pulse-ring': 'pulseRing 1.8s cubic-bezier(0.16,1,0.3,1) infinite',
+        float: 'float 6s ease-in-out infinite',
+        caret: 'caret 1s steps(1) infinite',
       },
     },
   },
   plugins: [],
-}
+};

@@ -1,0 +1,13 @@
+{
+  "name": "Nomadic",
+  "short_name": "Nomadic",
+  "description": "Learn the skills, find the jobs, and auto-apply from one desktop app.",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

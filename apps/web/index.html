@@ -1,159 +1,31 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="./logo-icon.png" />
-    <link rel="apple-touch-icon" href="./logo-icon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <script>document.documentElement.classList.add('js')</script>
+    <!--app-head-->
+    <meta name="theme-color" content="#ffffff" />
     <meta name="color-scheme" content="light" />
-
-    <!-- Google Site Verification -->
-    <meta name="google-site-verification" content="google4ed478e1b3b2df1b" />
-
-    <!-- Primary SEO Meta Tags (High-Ranking Target Keywords: nomadic, nomadic job search, auto job apply) -->
-    <title>Nomadic — Autonomous Job Search &amp; 1-Click Auto Apply Desktop OS</title>
-    <meta name="title" content="Nomadic — Autonomous Job Search &amp; 1-Click Auto Apply Desktop OS" />
-    <meta name="description" content="Nomadic is the #1 desktop career automation platform. Master interactive technical roadmaps, stream 3,000+ verified direct ATS jobs, and execute 1-click auto job applies across Greenhouse, Ashby, Lever, and Internshala." />
-    <meta name="keywords" content="nomadic, nomadic job search, auto job apply, automatic job application, ai job application bot, ats auto apply, nomadic app download, nomadic career os, automated job application software, greenhouse auto apply, lever auto apply, ashby auto apply, internshala auto apply, tech job search" />
-    <meta name="author" content="Nomadic Technologies Inc." />
-    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-    <link rel="canonical" href="https://nomadicai.vercel.app/" />
-
-    <!-- Open Graph / Facebook / LinkedIn -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://nomadicai.vercel.app/" />
-    <meta property="og:site_name" content="Nomadic" />
-    <meta property="og:title" content="Nomadic — Autonomous Job Search &amp; 1-Click Auto Apply Desktop OS" />
-    <meta property="og:description" content="Automate your job hunt with Nomadic. Stream live direct ATS jobs and apply in under 1.5 seconds with zero spam flags." />
-    <meta property="og:image" content="https://nomadicai.vercel.app/logo.png" />
-    <meta property="og:image:alt" content="Nomadic — Autonomous Job Search &amp; Auto Apply Desktop Platform" />
-
-    <!-- Twitter Cards -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://nomadicai.vercel.app/" />
-    <meta name="twitter:title" content="Nomadic — Autonomous Job Search &amp; 1-Click Auto Apply Desktop OS" />
-    <meta name="twitter:description" content="Master technical skills, discover verified ATS jobs, and execute 1-click auto job applies directly from your desktop." />
-    <meta name="twitter:image" content="https://nomadicai.vercel.app/logo.png" />
-
-    <!-- Apple Web Application -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="application-name" content="Nomadic" />
     <meta name="apple-mobile-web-app-title" content="Nomadic" />
+    <meta name="format-detection" content="telephone=no" />
 
-    <!-- JSON-LD Structured Data for Google Rich Snippets & Search Top Ranking -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@graph": [
-        {
-          "@type": "SoftwareApplication",
-          "@id": "https://nomadicai.vercel.app/#software",
-          "name": "Nomadic",
-          "alternateName": ["Nomadic Job Search", "Nomadic Career OS", "Nomadic Auto Apply"],
-          "operatingSystem": "Windows 10, Windows 11, macOS, Linux",
-          "applicationCategory": "BusinessApplication, EducationalApplication",
-          "description": "Nomadic is the autonomous desktop career OS combining skill roadmaps, LeetCode preparation, real-time ATS job discovery, and top-to-bottom auto job application automation.",
-          "url": "https://nomadicai.vercel.app/",
-          "downloadUrl": "https://nomadicai.vercel.app/#/download",
-          "softwareVersion": "1.0.6",
-          "aggregateRating": {
-            "@type": "AggregateRating",
-            "ratingValue": "4.9",
-            "reviewCount": "240"
-          },
-          "offers": [
-            {
-              "@type": "Offer",
-              "name": "Free Plan",
-              "price": "0",
-              "priceCurrency": "INR",
-              "description": "1 preview roadmap, curated top 10 jobs feed, 3 LeetCode company problem sets, 2 CS books, local-first candidate storage."
-            },
-            {
-              "@type": "Offer",
-              "name": "Pro Plan",
-              "price": "249",
-              "priceCurrency": "INR",
-              "description": "All 52-week AI roadmaps, 428+ LeetCode company problem vault, 12+ textbooks, 50 weekly automated applications, 25 verified recruiter leads, 5 custom resumes, full direct ATS job radar."
-            },
-            {
-              "@type": "Offer",
-              "name": "Max Plan",
-              "price": "599",
-              "priceCurrency": "INR",
-              "description": "Unlimited autonomous applications, full recruiter outreach autopilot, priority real-time ATS radar streaming, highest priority solver."
-            }
-          ]
-        },
-        {
-          "@type": "Organization",
-          "@id": "https://nomadicai.vercel.app/#organization",
-          "name": "Nomadic Technologies Inc.",
-          "url": "https://nomadicai.vercel.app/",
-          "logo": "https://nomadicai.vercel.app/logo-icon.png",
-          "sameAs": [
-            "https://github.com/snipy09/JobMaxxer"
-          ]
-        },
-        {
-          "@type": "WebSite",
-          "@id": "https://nomadicai.vercel.app/#website",
-          "url": "https://nomadicai.vercel.app/",
-          "name": "Nomadic",
-          "publisher": {
-            "@id": "https://nomadicai.vercel.app/#organization"
-          },
-          "potentialAction": {
-            "@type": "SearchAction",
-            "target": "https://nomadicai.vercel.app/?q={search_term_string}",
-            "query-input": "required name=search_term_string"
-          }
-        },
-        {
-          "@type": "FAQPage",
-          "@id": "https://nomadicai.vercel.app/#faq",
-          "mainEntity": [
-            {
-              "@type": "Question",
-              "name": "What is Nomadic and how does Nomadic job search work?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Nomadic is an all-in-one desktop career operating system. It scans verified ATS portals (Ashby, Greenhouse, Lever, Internshala) for direct job openings and helps candidates prepare with structured roadmaps and interview vaults."
-              }
-            },
-            {
-              "@type": "Question",
-              "name": "How does Nomadic auto job apply work?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Nomadic's OmniForm engine performs a top-to-bottom scan of company application pages, resolves standard identity fields, custom dropdowns, ARIA radio buttons, and legal agreements, and submits applications autonomously."
-              }
-            },
-            {
-              "@type": "Question",
-              "name": "Is Nomadic auto job apply safe and undetected by ATS systems?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Yes. Nomadic uses randomized human micro-jitter, native browser events, and personal Chrome session binding to ensure zero bot flags and 100% genuine application delivery."
-              }
-            },
-            {
-              "@type": "Question",
-              "name": "What job portals and ATS systems does Nomadic support?",
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": "Nomadic supports direct company application portals including Greenhouse, Lever, Ashby, Internshala, SmartRecruiters, and Remotive."
-              }
-            }
-          ]
-        }
-      ]
-    }
-    </script>
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- SF Pro is used on Apple devices; Inter is the fallback everywhere else -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap"
+    />
   </head>
-  <body class="bg-white text-zinc-950 antialiased selection:bg-zinc-900 selection:text-white">
-    <div id="root"></div>
+  <body>
+    <div id="root"><!--app-html--></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
