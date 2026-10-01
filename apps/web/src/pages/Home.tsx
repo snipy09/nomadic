@@ -10,6 +10,7 @@ import ApplyDemo from '../components/ApplyDemo';
 import Board from '../components/Board';
 import Pricing from '../components/Pricing';
 import Faq from '../components/Faq';
+import Reveal from '../components/Reveal';
 import { scrollToId } from '../hooks';
 
 const HEADLINE = ['Your whole', 'job search,', 'in one window.'];
@@ -30,9 +31,9 @@ function Hero() {
           ))}
         </h1>
 
-        <div className="mt-10 grid items-start gap-12 lg:mt-14 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-14">
-          <div className="anim-fade" style={delay(560)}>
-            <p className="max-w-lg text-xl leading-relaxed text-white/90">
+        <div className="mt-10 grid grid-cols-[minmax(0,1fr)] items-start gap-12 lg:mt-14 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-14">
+          <div className="anim-fade min-w-0" style={delay(560)}>
+            <p className="max-w-lg text-lg leading-relaxed text-white/90 sm:text-xl">
               Nomadic is a desktop app. It teaches you the skills for the role you want, finds openings on company
               hiring pages, fills in the application forms and keeps every application on one board.
             </p>
@@ -46,13 +47,16 @@ function Hero() {
                 event.preventDefault();
                 scrollToId('learn');
               }}
-              className="mt-6 inline-block font-bold underline decoration-2 underline-offset-4 hover:text-marigold"
+              className="mt-3 inline-flex min-h-11 items-center font-bold underline decoration-2 underline-offset-4 hover:text-marigold"
             >
               See how it works
             </a>
           </div>
 
-          <HeroDemo />
+          {/* The wrapper takes the scroll-linked drift, so the window's own entrance animation is left alone. */}
+          <div className="hero-drift min-w-0">
+            <HeroDemo />
+          </div>
         </div>
       </div>
     </section>
@@ -78,25 +82,27 @@ function DataBand() {
   return (
     <section aria-labelledby="data-title" className="on-dark bg-ink text-white">
       <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 md:py-28">
-        <h2 id="data-title" className="wide max-w-3xl text-[clamp(1.75rem,4.6vw,3.5rem)]">
+        <Reveal kind="line" as="h2" id="data-title" className="wide max-w-3xl text-[clamp(1.75rem,4.6vw,3.5rem)]">
           Your data stays on your computer.
-        </h2>
+        </Reveal>
 
-        <div className="mt-12 grid border-t-2 border-white/40 md:grid-cols-3">
+        <Reveal kind="rule" className="mt-12 grid grid-cols-[minmax(0,1fr)] border-t-2 border-white/40 md:grid-cols-3">
           {points.map((point, i) => (
-            <div
+            <Reveal
               key={point.title}
+              kind="up"
+              delay={200 + i * 120}
               className={`py-8 md:pr-8 ${i > 0 ? 'border-t border-white/25 md:border-l md:border-t-0 md:pl-8' : ''}`}
             >
               <h3 className="text-xl font-bold">{point.title}</h3>
               <p className="mt-3 text-ink-pale">{point.body}</p>
-            </div>
+            </Reveal>
           ))}
-        </div>
+        </Reveal>
 
         <a
-          href="#/privacy"
-          className="mt-4 inline-block font-bold underline decoration-2 underline-offset-4 hover:text-marigold"
+          href="/privacy"
+          className="mt-2 inline-flex min-h-11 items-center font-bold underline decoration-2 underline-offset-4 hover:text-marigold"
         >
           Read the privacy policy
         </a>
@@ -109,18 +115,23 @@ function FinalCall() {
   return (
     <section aria-labelledby="soon-title" className="on-dark bg-ultra text-white">
       <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 md:py-28">
-        <h2 id="soon-title" className="wide max-w-4xl text-[clamp(2rem,6vw,4.75rem)]">
+        <Reveal kind="line" as="h2" id="soon-title" className="wide max-w-4xl text-[clamp(2rem,6vw,4.75rem)]">
           The download is coming soon.
-        </h2>
-        <p className="mt-6 max-w-xl text-xl text-white/90">
-          Public downloads are not open yet. The download page will carry the installer the day it is ready.
-        </p>
-        <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-5">
+        </Reveal>
+        <Reveal kind="up" delay={160}>
+          <p className="mt-6 max-w-xl text-lg text-white/90 sm:text-xl">
+            Public downloads are not open yet. The download page will carry the installer the day it is ready.
+          </p>
+        </Reveal>
+        <Reveal kind="up" delay={280} className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3">
           <ComingSoon tone="dark" size="lg" />
-          <a href="#/download" className="font-bold underline decoration-2 underline-offset-4 hover:text-marigold">
+          <a
+            href="/download"
+            className="inline-flex min-h-11 items-center font-bold underline decoration-2 underline-offset-4 hover:text-marigold"
+          >
             Read the details
           </a>
-        </div>
+        </Reveal>
       </div>
     </section>
   );

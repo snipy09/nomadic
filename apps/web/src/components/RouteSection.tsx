@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { useRouteProgress } from '../hooks';
+import Reveal from './Reveal';
 
 interface RouteSectionProps {
   id: string;
@@ -16,11 +17,11 @@ interface RouteSectionProps {
  */
 export default function RouteSection({ id, step, title, intro, first, children }: RouteSectionProps) {
   const { area, fill, stop } = useRouteProgress();
-  const lineTop = first ? 'top-20 md:top-28' : 'top-0';
+  const lineTop = first ? 'top-16 sm:top-20 md:top-28' : 'top-0';
 
   return (
     <section id={id} aria-labelledby={`${id}-title`} className="bg-fog">
-      <div ref={area} className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6 md:py-28">
+      <div ref={area} className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20 md:py-28">
         <span
           aria-hidden
           className={`absolute bottom-0 left-[31px] w-0.5 bg-rule sm:left-[39px] ${lineTop}`}
@@ -34,17 +35,21 @@ export default function RouteSection({ id, step, title, intro, first, children }
           ref={stop}
           aria-hidden
           data-reached="false"
-          className="route-stop nums absolute left-4 top-20 z-10 grid h-8 w-8 place-items-center border-2 border-ink text-sm font-bold sm:left-6 md:top-28"
+          className="route-stop nums absolute left-4 top-16 z-10 grid h-8 w-8 place-items-center border-2 border-ink text-sm font-bold sm:left-6 sm:top-20 md:top-28"
         >
           {step}
         </span>
 
-        <div className="pl-12 md:pl-20">
-          <h2 id={`${id}-title`} className="wide max-w-3xl text-[clamp(1.75rem,4.6vw,3.5rem)]">
+        <div className="min-w-0 pl-12 md:pl-20">
+          <Reveal kind="line" as="h2" id={`${id}-title`} className="wide max-w-3xl text-[clamp(1.75rem,4.6vw,3.5rem)]">
             {title}
-          </h2>
-          <p className="mt-5 max-w-2xl text-lg text-ink-soft">{intro}</p>
-          <div className="mt-10 md:mt-12">{children}</div>
+          </Reveal>
+          <Reveal kind="up" delay={140}>
+            <p className="mt-5 max-w-2xl text-lg text-ink-soft">{intro}</p>
+          </Reveal>
+          <Reveal kind="up" delay={220} className="mt-10 md:mt-12">
+            {children}
+          </Reveal>
         </div>
       </div>
     </section>

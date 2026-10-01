@@ -26,7 +26,7 @@ function ReviewForm() {
             <dt className="text-sm text-ink-soft">{field.label}</dt>
             <dd className="min-w-0">
               <span
-                className="anim-type block truncate font-semibold"
+                className="anim-type block break-words font-semibold"
                 style={{ '--d': `${i * 380}ms` } as CSSProperties}
               >
                 {field.value}
@@ -54,7 +54,7 @@ function ReviewForm() {
           <button
             type="button"
             onClick={() => setSubmitted(false)}
-            className="text-sm font-bold underline decoration-2 underline-offset-4"
+            className="inline-flex min-h-11 items-center text-sm font-bold underline decoration-2 underline-offset-4"
           >
             Reset
           </button>
@@ -90,7 +90,7 @@ function AutoQueue() {
               className="grid grid-cols-[1fr_auto] items-center gap-x-4 border-b border-rule py-2.5"
             >
               <div className="min-w-0">
-                <p className="truncate font-semibold leading-tight">{item.role}</p>
+                <p className="break-words font-semibold leading-tight sm:truncate">{item.role}</p>
                 <p className="text-sm text-ink-soft">{item.company}</p>
               </div>
               <p
@@ -131,7 +131,9 @@ export default function ApplyDemo() {
                 aria-selected={active}
                 aria-controls="mode-panel"
                 onClick={() => setMode(item.id)}
-                className={`px-4 py-3 text-left sm:px-5 ${active ? 'bg-ink text-white' : 'bg-fog hover:bg-white'}`}
+                className={`min-w-0 px-3 py-3 text-left min-[400px]:px-4 sm:px-5 ${
+                  active ? 'bg-ink text-white' : 'bg-fog hover:bg-white'
+                }`}
               >
                 <span className="block font-bold">{item.label}</span>
                 <span className={`block text-sm ${active ? 'text-white/80' : 'text-ink-soft'}`}>{item.note}</span>
@@ -165,7 +167,7 @@ export default function ApplyDemo() {
                   <span className="block font-semibold leading-tight">{contact.role}</span>
                   <span className="block text-sm text-ink-soft">{contact.company}</span>
                 </td>
-                <td className="py-3 text-right text-sm text-ink-soft">{contact.domain}</td>
+                <td className="break-all py-3 text-right text-sm text-ink-soft">{contact.domain}</td>
               </tr>
             ))}
           </tbody>

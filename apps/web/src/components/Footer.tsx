@@ -1,28 +1,28 @@
+import Logo from './Logo';
+
+const LINK ='inline-flex min-h-11 items-center underline decoration-2 underline-offset-4 hover:text-marigold';
+
 export default function Footer() {
   return (
     <footer className="on-dark bg-ink text-white">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 sm:px-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <a href="#/" className="flex items-center gap-2.5">
-            <img src="./logo-icon.png" alt="" className="h-8 w-8 bg-fog object-contain p-0.5" />
-            <span className="wide text-lg">Nomadic</span>
+          <a href="/" aria-label="Nomadic home" className="inline-flex min-h-11 items-center">
+            <Logo tone="dark" className="h-8" />
           </a>
-          <p className="mt-4 max-w-sm text-ink-pale">
+          <p className="mt-3 max-w-sm text-ink-pale">
             A desktop app for the whole job search.
           </p>
         </div>
 
-        <nav aria-label="Footer" className="flex flex-wrap gap-x-8 gap-y-3 font-semibold">
-          <a href="#/terms" className="underline decoration-2 underline-offset-4 hover:text-marigold">
+        <nav aria-label="Footer" className="flex flex-wrap gap-x-8 gap-y-1 font-semibold">
+          <a href="/terms" className={LINK}>
             Terms
           </a>
-          <a href="#/privacy" className="underline decoration-2 underline-offset-4 hover:text-marigold">
+          <a href="/privacy" className={LINK}>
             Privacy
           </a>
-          <a
-            href="mailto:support@nomadic.app"
-            className="underline decoration-2 underline-offset-4 hover:text-marigold"
-          >
+          <a href="mailto:support@nomadic.app" className={`${LINK} break-all`}>
             support@nomadic.app
           </a>
         </nav>

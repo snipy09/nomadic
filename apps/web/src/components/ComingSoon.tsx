@@ -8,8 +8,8 @@ interface ComingSoonProps {
 
 const SIZES = {
   sm: 'min-h-9 gap-3 px-3 text-sm',
-  md: 'min-h-12 gap-4 px-4 text-base',
-  lg: 'min-h-16 gap-4 px-4 text-base sm:gap-5 sm:px-6 sm:text-lg',
+  md: 'min-h-12 gap-3 px-3 text-[15px] min-[360px]:gap-4 min-[360px]:px-4 min-[360px]:text-base',
+  lg: 'min-h-16 gap-3 px-3 text-[15px] min-[360px]:gap-4 min-[360px]:px-4 min-[360px]:text-base sm:gap-5 sm:px-6 sm:text-lg',
 };
 
 /**
@@ -28,7 +28,7 @@ export default function ComingSoon({
 
   return (
     <div
-      className={`cursor-not-allowed select-none items-center border-2 border-dashed ${palette} ${SIZES[size]} ${
+      className={`max-w-full cursor-not-allowed select-none items-center border-2 border-dashed ${palette} ${SIZES[size]} ${
         block ? 'flex w-full justify-between' : 'inline-flex'
       } ${className}`}
     >

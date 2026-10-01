@@ -69,7 +69,7 @@ export default function Download() {
               .
             </p>
             <a
-              href="#/"
+              href="/"
               className="mt-6 inline-block font-bold underline decoration-2 underline-offset-4 hover:text-ultra"
             >
               Back to the site

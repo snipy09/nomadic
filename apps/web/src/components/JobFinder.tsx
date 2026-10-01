@@ -1,5 +1,7 @@
 import { CSSProperties, useState } from 'react';
 import { JOBS, JOB_SOURCES } from '../content';
+import CountUp from './CountUp';
+import Reveal from './Reveal';
 
 export default function JobFinder() {
   const [source, setSource] = useState('All');
@@ -21,7 +23,7 @@ export default function JobFinder() {
               type="button"
               aria-pressed={active}
               onClick={() => setSource(name)}
-              className={`shrink-0 border-b-4 py-3.5 text-[15px] font-semibold ${
+              className={`min-w-11 shrink-0 border-b-4 py-3.5 text-[15px] font-semibold transition-colors ${
                 active ? 'border-ultra text-ink' : 'border-transparent text-ink-soft hover:text-ink'
               }`}
             >
@@ -40,9 +42,16 @@ export default function JobFinder() {
             style={{ '--d': `${i * 55}ms` } as CSSProperties}
           >
             <div>
-              <p className="nums wide text-2xl">{job.match}%</p>
+              <p className="nums wide text-2xl">
+                <CountUp to={job.match} />%
+              </p>
               <div className="mt-1.5 h-1 bg-rule">
-                <div className="h-full bg-ultra" style={{ width: `${job.match}%` }} />
+                <Reveal
+                  kind="bar"
+                  delay={i * 55 + 200}
+                  className="h-full bg-ultra"
+                  style={{ '--to': job.match / 100 } as CSSProperties}
+                />
               </div>
             </div>
             <div className="min-w-0">

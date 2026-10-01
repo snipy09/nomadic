@@ -10,6 +10,7 @@ import {
   STAGES,
 } from '../content';
 import { usePrefersReducedMotion } from '../hooks';
+import Logo from './Logo';
 
 const DWELL = 5600;
 
@@ -182,14 +183,14 @@ export default function HeroDemo() {
 
   return (
     <div className="anim-window border-2 border-ink bg-white text-ink shadow-[8px_8px_0_0_#0A0F2C]" style={delay(900)}>
-      <div className="flex h-10 items-center justify-between border-b-2 border-ink bg-fog px-3">
-        <span className="wide text-sm">Nomadic</span>
-        <div className="flex items-center gap-4 text-xs">
-          <span className="text-ink-soft">Sample data</span>
+      <div className="flex min-h-11 items-center justify-between gap-3 border-b-2 border-ink bg-fog px-3">
+        <Logo className="h-4 shrink-0" />
+        <div className="flex items-center gap-3 text-xs sm:gap-4">
+          <span className="hidden text-ink-soft min-[380px]:inline">Sample data</span>
           <button
             type="button"
             onClick={() => setPlaying((value) => !value)}
-            className="font-bold underline decoration-2 underline-offset-2"
+            className="py-3 font-bold underline decoration-2 underline-offset-2"
           >
             {playing ? 'Pause demo' : 'Play demo'}
           </button>
@@ -202,7 +203,7 @@ export default function HeroDemo() {
           aria-label="What Nomadic does"
           aria-orientation="vertical"
           onKeyDown={onKeyDown}
-          className="grid grid-cols-4 border-b-2 border-ink bg-fog sm:grid-cols-1 sm:border-b-0 sm:border-r-2"
+          className="grid grid-cols-[repeat(4,minmax(0,1fr))] border-b-2 border-ink bg-fog sm:grid-cols-1 sm:border-b-0 sm:border-r-2"
         >
           {STAGES.map((item, i) => {
             const active = i === stage;
@@ -216,7 +217,7 @@ export default function HeroDemo() {
                 aria-controls="demo-panel"
                 tabIndex={active ? 0 : -1}
                 onClick={() => pick(i)}
-                className={`relative flex items-center gap-2 px-3 py-3 text-left text-[15px] font-semibold sm:py-4 ${
+                className={`relative flex min-h-12 min-w-0 flex-col items-start justify-center gap-0.5 px-2 py-2 text-left text-sm font-semibold sm:min-h-0 sm:flex-row sm:items-center sm:justify-start sm:gap-2 sm:px-3 sm:py-4 sm:text-[15px] ${
                   active ? 'bg-marigold' : 'hover:bg-white'
                 }`}
               >
@@ -239,7 +240,7 @@ export default function HeroDemo() {
           id="demo-panel"
           role="tabpanel"
           aria-labelledby={`demo-tab-${STAGES[stage].id}`}
-          className="min-h-[21.5rem] p-4 sm:p-5"
+          className="min-h-[21.5rem] min-w-0 p-3 min-[400px]:p-4 sm:p-5"
         >
           <Pane key={stage} />
         </div>
