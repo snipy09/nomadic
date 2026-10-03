@@ -190,6 +190,14 @@ export async function initLocalDatabase(userDataPath: string): Promise<Database>
       created_at       DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at       DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    -- OS-keychain (Electron safeStorage) encrypted secrets, base64 encoded.
+    -- See services/secrets.ts; replaces plaintext master_profile key columns.
+    CREATE TABLE IF NOT EXISTS secure_secrets (
+      name       TEXT PRIMARY KEY,
+      cipher     TEXT NOT NULL,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   // Migrate existing databases safely
@@ -629,6 +637,48 @@ export function adminAssignPlanDb(emailOrId: string | number, planTier: string, 
     return true;
   } catch {
     return false;
+  }
+}
+
+export interface CachedUserRecord {
+  id: string;
+  email: string;
+  fullName: string;
+  role: string;
+  tier: string;
+  licenseKey: string;
+  status: string;
+  appsCount: number;
+  createdAt: string;
+  expiresAt?: string;
+  lastLogin?: string;
+}
+
+/** Every account cached by a successful login on this machine (`user_cache`). */
+export function getAllCachedUsersDb(): CachedUserRecord[] {
+  try {
+    const database = getDb();
+    const res = database.exec(
+      `SELECT email, supabase_id, full_name, role, tier, license_key, status, apps_count,
+              created_at, expires_at, last_login
+         FROM user_cache`
+    );
+    if (!res.length || !res[0].values.length) return [];
+    return res[0].values.map(v => ({
+      id: String(v[1] || v[0]),
+      email: String(v[0]),
+      fullName: String(v[2] ?? ''),
+      role: String(v[3] ?? 'user'),
+      tier: String(v[4] ?? 'free'),
+      licenseKey: String(v[5] ?? ''),
+      status: String(v[6] ?? 'active'),
+      appsCount: Number(v[7] ?? 0),
+      createdAt: String(v[8] ?? ''),
+      expiresAt: v[9] ? String(v[9]) : undefined,
+      lastLogin: v[10] ? String(v[10]) : undefined,
+    }));
+  } catch {
+    return [];
   }
 }
 
