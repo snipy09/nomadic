@@ -323,210 +323,125 @@ export async function extractDetailUrlsFromListing(listingUrl: string): Promise<
   }
 }
 
-/**
- * 6. Verified Active Indian Tech Openings (Guaranteed Direct Detail Endpoints)
- */
-const VERIFIED_INDIAN_TECH_OPENINGS: Array<{
-  title: string;
-  company: string;
-  location: string;
-  stipend: string;
-  skills: string;
-  applyUrl: string;
-}> = [
-  {
-    title: 'Frontend Developer Intern (React / TypeScript)',
-    company: 'Razorpay',
-    location: 'Bengaluru / Remote',
-    stipend: '₹35,000 /month',
-    skills: 'React, TypeScript, TailwindCSS',
-    applyUrl: 'https://jobs.lever.co/razorpay',
-  },
-  {
-    title: 'Backend Engineering Intern (Node.js / Go)',
-    company: 'Swiggy Platform',
-    location: 'Bengaluru, Karnataka',
-    stipend: '₹40,000 /month',
-    skills: 'Node.js, Golang, PostgreSQL, Redis',
-    applyUrl: 'https://jobs.lever.co/swiggy',
-  },
-  {
-    title: 'Full Stack Development Intern',
-    company: 'CRED Engineering',
-    location: 'Bengaluru, Karnataka',
-    stipend: '₹45,000 /month',
-    skills: 'TypeScript, React, Node.js, AWS',
-    applyUrl: 'https://boards.greenhouse.io/cred',
-  },
-  {
-    title: 'Software Development Engineer Intern (SDE)',
-    company: 'Zomato Tech',
-    location: 'Gurgaon / Delhi NCR',
-    stipend: '₹35,000 /month',
-    skills: 'Java, Python, System Design',
-    applyUrl: 'https://boards.greenhouse.io/zomato',
-  },
-  {
-    title: 'AI / Machine Learning Intern',
-    company: 'InMobi AI Labs',
-    location: 'Bengaluru / Remote',
-    stipend: '₹40,000 /month',
-    skills: 'Python, PyTorch, LLMs, NLP',
-    applyUrl: 'https://boards.greenhouse.io/inmobi',
-  },
-  {
-    title: 'Data Analyst / Engineering Intern',
-    company: 'Groww Data Platform',
-    location: 'Bengaluru, Karnataka',
-    stipend: '₹30,000 /month',
-    skills: 'SQL, Python, Spark, Tableau',
-    applyUrl: 'https://boards.greenhouse.io/groww',
-  },
-  {
-    title: 'DevOps & Cloud Infrastructure Intern',
-    company: 'Postman India',
-    location: 'Bengaluru / Remote',
-    stipend: '₹35,000 /month',
-    skills: 'Docker, Kubernetes, AWS, CI/CD',
-    applyUrl: 'https://boards.greenhouse.io/postman',
-  },
-  {
-    title: 'Frontend Systems Engineering Intern',
-    company: 'BrowserStack',
-    location: 'Mumbai / Remote',
-    stipend: '₹35,000 /month',
-    skills: 'React, JavaScript, Web Performance',
-    applyUrl: 'https://boards.greenhouse.io/browserstack',
-  },
-  {
-    title: 'Mobile App Developer Intern (Flutter / React Native)',
-    company: 'Zepto Tech',
-    location: 'Mumbai, Maharashtra',
-    stipend: '₹30,000 /month',
-    skills: 'Flutter, React Native, Mobile SDKs',
-    applyUrl: 'https://jobs.lever.co/zepto',
-  },
-  {
-    title: 'Cloud Backend Developer Intern',
-    company: 'Hasura India',
-    location: 'Bengaluru / Remote',
-    stipend: '₹40,000 /month',
-    skills: 'GraphQL, PostgreSQL, Node.js',
-    applyUrl: 'https://boards.greenhouse.io/hasura',
-  },
+const INTERNSHALA_LISTING_URLS = [
+  'https://internshala.com/internships/work-from-home-computer-science-internships/',
+  'https://internshala.com/internships/computer-science-internship/',
+  'https://internshala.com/jobs/developer-jobs/',
 ];
 
 /**
- * 7. Master Internshala & India Direct Scraper:
- * - Scrapes live listings and extracts genuine detail URLs
- * - Guarantees 0 category index URLs
+ * Builds a posting from an Internshala detail URL using only what the slug tells us.
+ * e.g. /internship/detail/full-stack-development-internship-in-bangalore-at-xyz12345
+ * Salary is left empty: the listing page does not expose it and we never invent one.
  */
-export async function scrapeInternshala(): Promise<InternshalaJob[]> {
+export function internshalaJobFromDetailUrl(detailUrl: string, createdAt: string): InternshalaJob {
+  const slug = detailUrl.split('/detail/')[1] || '';
+  const parts = slug.split('-at-');
+  const rolePart = parts[0] ? parts[0].replace(/-/g, ' ') : 'Software Development Intern';
+  const companyPart = parts[1] ? parts[1].replace(/[0-9]+$/, '').replace(/-/g, ' ') : 'Tech Partner';
+
+  const title = (rolePart.charAt(0).toUpperCase() + rolePart.slice(1)).trim() || 'Software Engineering Intern';
+  const company = (companyPart.charAt(0).toUpperCase() + companyPart.slice(1)).trim() || 'Tech Innovator';
+  const isJob = detailUrl.includes('/job/detail/');
+
+  return {
+    company,
+    title,
+    location: 'India / Remote',
+    applyUrl: detailUrl,
+    canonicalUrl: detailUrl,
+    source: 'Internshala',
+    description: `Live ${isJob ? 'job' : 'internship'} opportunity at ${company}. Direct application portal on Internshala.`,
+    jobHash: computeJobHash(company, title, detailUrl),
+    employmentType: isJob ? 'job' : 'internship',
+    workplaceType: 'hybrid',
+    experienceLevel: 'entry',
+    createdAt,
+  };
+}
+
+/**
+ * Internshala only: crawls public listing pages and returns one posting per detail URL.
+ * Never returns category index URLs.
+ */
+export async function scrapeInternshalaListings(
+  listingUrls: string[] = INTERNSHALA_LISTING_URLS
+): Promise<InternshalaJob[]> {
+  const now = Date.now();
+  const extracted = await Promise.allSettled(listingUrls.map(url => extractDetailUrlsFromListing(url)));
+
+  const detailUrls = new Set<string>();
+  for (const res of extracted) {
+    if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+      res.value.forEach(u => detailUrls.add(u));
+    }
+  }
+
+  return [...detailUrls].map((url, idx) =>
+    internshalaJobFromDetailUrl(url, new Date(now - idx * 60000).toISOString())
+  );
+}
+
+/**
+ * Jobicy public remote-jobs API (developer tag).
+ */
+export async function scrapeJobicy(count: number = 25): Promise<InternshalaJob[]> {
   const jobs: InternshalaJob[] = [];
   const now = Date.now();
-  let discoveredCount = 0;
-  let successCount = 0;
+  const res = await fetch(`https://jobicy.com/api/v2/remote-jobs?count=${count}&tag=dev`, {
+    headers: BROWSER_HEADERS,
+    signal: AbortSignal.timeout(6000),
+  });
+  if (!res.ok) throw new Error(`jobicy_http_${res.status}`);
+  const data: any = await res.json();
+  if (!data || !Array.isArray(data.jobs)) return jobs;
 
-  // 1. Extract live detail URLs from Internshala public streams
-  try {
-    const listingUrls = [
-      'https://internshala.com/internships/work-from-home-computer-science-internships/',
-      'https://internshala.com/internships/computer-science-internship/',
-      'https://internshala.com/jobs/developer-jobs/',
-    ];
+  for (let i = 0; i < data.jobs.length; i++) {
+    const item = data.jobs[i];
+    if (!item.url || !item.jobTitle) continue;
 
-    const detailUrlPromises = listingUrls.map(url => extractDetailUrlsFromListing(url));
-    const extractedLists = await Promise.allSettled(detailUrlPromises);
+    const titleLower = String(item.jobTitle).toLowerCase();
+    const isIntern = titleLower.includes('intern') || titleLower.includes('junior') || titleLower.includes('entry');
+    const isSenior = titleLower.includes('senior') || titleLower.includes('lead') || titleLower.includes('staff');
+    const hasSalary = Boolean(item.annualSalaryMin && item.annualSalaryMax);
+    const currency = item.salaryCurrency || 'USD';
 
-    const allDiscoveredDetails = new Set<string>();
-    for (const res of extractedLists) {
-      if (res.status === 'fulfilled' && Array.isArray(res.value)) {
-        res.value.forEach(u => allDiscoveredDetails.add(u));
-      }
-    }
-
-    // Process discovered direct detail postings
-    let itemIdx = 0;
-    for (const detailUrl of allDiscoveredDetails) {
-      discoveredCount++;
-      // Extract title and company hints from the slug
-      // e.g. /internship/detail/full-stack-development-internship-in-bangalore-at-xyz12345
-      const slug = detailUrl.split('/detail/')[1] || '';
-      const parts = slug.split('-at-');
-      const rolePart = parts[0] ? parts[0].replace(/-/g, ' ') : 'Software Development Intern';
-      const companyPart = parts[1] ? parts[1].replace(/[0-9]+$/, '').replace(/-/g, ' ') : 'Tech Partner';
-
-      const title = rolePart.charAt(0).toUpperCase() + rolePart.slice(1);
-      const company = companyPart.charAt(0).toUpperCase() + companyPart.slice(1);
-
-      jobs.push({
-        company: company.trim() || 'Tech Innovator',
-        title: title.trim() || 'Software Engineering Intern',
-        location: 'India / Remote',
-        salary: '₹25,000 - ₹45,000 /month',
-        stipendOrSalary: '₹25,000 - ₹45,000 /month',
-        applyUrl: detailUrl,
-        canonicalUrl: detailUrl,
-        source: 'Internshala',
-        description: `Live internship opportunity at ${company}. Direct application portal on Internshala.`,
-        jobHash: computeJobHash(company, title, detailUrl),
-        employmentType: 'internship',
-        workplaceType: 'hybrid',
-        experienceLevel: 'entry',
-        createdAt: new Date(now - itemIdx * 60000).toISOString(),
-      });
-      successCount++;
-      itemIdx++;
-    }
-  } catch (err: any) {
-    console.warn('[Internshala Live Parser] Warning:', err?.message);
-  }
-
-  // 2. Jobicy Developer Placements Stream (Live API)
-  try {
-    const res = await fetch('https://jobicy.com/api/v2/remote-jobs?count=25&tag=dev', {
-      headers: BROWSER_HEADERS,
-      signal: AbortSignal.timeout(6000),
+    jobs.push({
+      company: item.companyName || 'Tech Innovator',
+      title: item.jobTitle,
+      location: item.jobGeo || 'Remote',
+      salary: hasSalary ? `${currency} ${item.annualSalaryMin} - ${item.annualSalaryMax} /yr` : undefined,
+      salaryMin: hasSalary ? Number(item.annualSalaryMin) : null,
+      salaryMax: hasSalary ? Number(item.annualSalaryMax) : null,
+      salaryCurrency: hasSalary ? currency : undefined,
+      salaryPeriod: hasSalary ? 'year' : undefined,
+      applyUrl: item.url,
+      canonicalUrl: item.url,
+      source: 'Verified Placements Feed',
+      description: item.jobDescription ? String(item.jobDescription).replace(/<[^>]*>?/gm, '').slice(0, 3000) : '',
+      jobHash: computeJobHash(item.companyName || 'Tech', item.jobTitle, item.url),
+      employmentType: isIntern ? 'internship' : 'job',
+      workplaceType: 'remote',
+      experienceLevel: isIntern ? 'entry' : isSenior ? 'senior' : 'mid',
+      createdAt: item.pubDate || new Date(now - (i + 20) * 180000).toISOString(),
     });
-    if (res.ok) {
-      const data: any = await res.json();
-      if (data && Array.isArray(data.jobs)) {
-        for (let i = 0; i < data.jobs.length; i++) {
-          const item = data.jobs[i];
-          if (!item.url || !item.jobTitle) continue;
-
-          discoveredCount++;
-          const titleLower = item.jobTitle.toLowerCase();
-          const isIntern = titleLower.includes('intern') || titleLower.includes('junior') || titleLower.includes('entry');
-          const isSenior = titleLower.includes('senior') || titleLower.includes('lead') || titleLower.includes('staff');
-          const itemDate = item.pubDate || new Date(now - (i + 20) * 180000).toISOString();
-
-          jobs.push({
-            company: item.companyName || 'Tech Innovator',
-            title: item.jobTitle,
-            location: item.jobGeo || 'India / Remote',
-            salary: item.annualSalaryMin && item.annualSalaryMax
-              ? `$${item.annualSalaryMin.toLocaleString()} - $${item.annualSalaryMax.toLocaleString()} /yr`
-              : 'Competitive / Market Rate',
-            stipendOrSalary: item.annualSalaryMin ? `$${item.annualSalaryMin} /yr` : 'Competitive',
-            applyUrl: item.url,
-            canonicalUrl: item.url,
-            source: 'Verified Placements Feed',
-            description: item.jobDescription ? item.jobDescription.replace(/<[^>]*>?/gm, '').slice(0, 3000) : '',
-            jobHash: computeJobHash(item.companyName || 'Tech', item.jobTitle, item.url),
-            employmentType: isIntern ? 'internship' : 'job',
-            workplaceType: 'remote',
-            experienceLevel: isIntern ? 'entry' : isSenior ? 'senior' : 'mid',
-            createdAt: itemDate,
-          });
-          successCount++;
-        }
-      }
-    }
-  } catch (err: any) {
-    console.warn('[Live Placements Scraper] Failed:', err?.message);
   }
+  return jobs;
+}
 
-  console.log(`[Direct Scraper Summary] Discovered: ${discoveredCount}, Valid Direct Postings: ${successCount}`);
+/**
+ * Legacy combined scraper used by runAllScrapers: Internshala listings plus Jobicy.
+ * The pipeline (pipeline/run.ts) uses scrapeInternshalaListings and scrapeJobicy
+ * as separate sources instead.
+ */
+export async function scrapeInternshala(): Promise<InternshalaJob[]> {
+  const [internshala, jobicy] = await Promise.allSettled([scrapeInternshalaListings(), scrapeJobicy()]);
+  const jobs: InternshalaJob[] = [];
+  if (internshala.status === 'fulfilled') jobs.push(...internshala.value);
+  else console.warn('[Internshala Live Parser] Warning:', internshala.reason?.message);
+  if (jobicy.status === 'fulfilled') jobs.push(...jobicy.value);
+  else console.warn('[Live Placements Scraper] Failed:', jobicy.reason?.message);
+
+  console.log(`[Direct Scraper Summary] Valid Direct Postings: ${jobs.length}`);
   return jobs;
 }

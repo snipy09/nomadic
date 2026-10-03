@@ -5,7 +5,9 @@ import {
   validateInternshalaJobPage,
   parseInternshalaDetailPage,
   fetchInternshalaDetail,
-  scrapeInternshala
+  scrapeInternshala,
+  scrapeInternshalaListings,
+  scrapeJobicy,
 } from '../internshala-scraper.js';
 
 describe('Internshala Scraper Resilience & URL Normalization', () => {
@@ -172,19 +174,81 @@ describe('Internshala Scraper Resilience & URL Normalization', () => {
     });
   });
 
-  describe('scrapeInternshala pipeline resilience', () => {
-    it('executes scrapeInternshala without throwing and returns formatted postings', async () => {
+  describe('scrapeInternshala pipeline resilience (hermetic, fetch mocked)', () => {
+    const listingHtml = `
+      <div class="individual_internship" data-href="/internship/detail/frontend-developer-internship-in-bangalore-at-acme-labs1234?utm_source=x"></div>
+      <a href="/job/detail/backend-engineer-job-at-widgets-inc567">Backend Engineer</a>
+      <a href="/internships/computer-science-internship/">Category index (must be ignored)</a>`;
+
+    function mockResponse(body: unknown, init: { ok?: boolean; status?: number } = {}) {
+      const ok = init.ok ?? true;
+      return {
+        ok,
+        status: init.status ?? (ok ? 200 : 500),
+        text: async () => (typeof body === 'string' ? body : JSON.stringify(body)),
+        json: async () => body,
+      } as unknown as Response;
+    }
+
+    beforeEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('returns formatted Internshala postings from listing pages without touching the network', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input: any) => {
+        const url = String(input);
+        if (url.includes('internshala.com')) return mockResponse(listingHtml);
+        if (url.includes('jobicy.com')) return mockResponse({ jobs: [] });
+        throw new Error(`unexpected fetch ${url}`);
+      });
+
       const jobs = await scrapeInternshala();
-      expect(Array.isArray(jobs)).toBe(true);
-      expect(jobs.length).toBeGreaterThan(0);
-      
+      expect(fetchSpy).toHaveBeenCalled();
+      expect(jobs).toHaveLength(2);
+
       const first = jobs[0];
-      expect(first.company).toBeDefined();
-      expect(first.title).toBeDefined();
-      expect(first.applyUrl).toMatch(/^https:\/\/internshala\.com/);
+      expect(first.title).toBe('Frontend developer internship in bangalore');
+      expect(first.company).toBe('Acme labs');
+      expect(first.applyUrl).toBe('https://internshala.com/internship/detail/frontend-developer-internship-in-bangalore-at-acme-labs1234');
       expect(first.source).toBe('Internshala');
-      expect(first.jobHash).toBeDefined();
-    }, 25000);
+      expect(first.employmentType).toBe('internship');
+      expect(first.jobHash).toHaveLength(64);
+      // Listing pages don't expose pay, so no salary may be invented.
+      expect(first.salary).toBeUndefined();
+
+      expect(jobs[1].employmentType).toBe('job');
+      expect(jobs.every(j => !j.applyUrl.endsWith('/internships/computer-science-internship'))).toBe(true);
+    });
+
+    it('keeps Internshala results when the Jobicy feed fails', async () => {
+      vi.spyOn(globalThis, 'fetch').mockImplementation(async (input: any) => {
+        const url = String(input);
+        if (url.includes('internshala.com')) return mockResponse(listingHtml);
+        return mockResponse('oops', { ok: false, status: 503 });
+      });
+      const jobs = await scrapeInternshala();
+      expect(jobs.map(j => j.source)).toEqual(['Internshala', 'Internshala']);
+    });
+
+    it('maps Jobicy salary fields only when both bounds are present', async () => {
+      vi.spyOn(globalThis, 'fetch').mockImplementation(async () =>
+        mockResponse({
+          jobs: [
+            { url: 'https://jobicy.com/jobs/1', jobTitle: 'Senior Go Engineer', companyName: 'Gopher', annualSalaryMin: 90000, annualSalaryMax: 120000, salaryCurrency: 'USD' },
+            { url: 'https://jobicy.com/jobs/2', jobTitle: 'Junior QA', companyName: 'Bugs' },
+          ],
+        })
+      );
+      const jobs = await scrapeJobicy();
+      expect(jobs[0]).toMatchObject({ salaryMin: 90000, salaryMax: 120000, salaryCurrency: 'USD', experienceLevel: 'senior' });
+      expect(jobs[1].salary).toBeUndefined();
+      expect(jobs[1].experienceLevel).toBe('entry');
+    });
+
+    it('returns an empty list when every listing page fails', async () => {
+      vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
+      await expect(scrapeInternshalaListings()).resolves.toEqual([]);
+    });
   });
 
 });

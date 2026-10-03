@@ -299,7 +299,9 @@ export async function runAllScrapers(
         created_at: j.createdAt || new Date().toISOString()
       }));
 
-      supabase.from('jobs').upsert(rows, { onConflict: 'job_hash', ignoreDuplicates: true }).then(({ error }) => {
+      Promise.resolve(
+        supabase.from('jobs').upsert(rows, { onConflict: 'job_hash', ignoreDuplicates: true })
+      ).then(({ error }) => {
         if (!error) console.log(`[Scraper Cloud Sync] Upserted ${rows.length} jobs to Supabase.`);
       }).catch(() => {});
     }
