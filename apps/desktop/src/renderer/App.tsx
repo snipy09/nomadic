@@ -16,7 +16,7 @@ import { FeedView } from './features/feed/FeedView';
 import { OutreachView } from './components/OutreachView';
 import { ApplicationsView } from './features/applications/ApplicationsView';
 import { ProfileView } from './features/profile/ProfileView';
-import { AdminView } from './components/AdminView';
+import { AdminView } from './features/admin/AdminView';
 import { AuthScreen } from './features/auth/AuthScreen';
 import { ResourceVaultView } from './components/ResourceVaultView';
 import { InterviewPrepView } from './components/InterviewPrepView';
@@ -506,10 +506,7 @@ export default function App() {
             )}
 
             {Boolean(activeTab && activeTab.startsWith('admin')) && (
-              <AdminView
-                onLog={addLog}
-                currentUser={currentUser}
-              />
+              <AdminView currentUser={currentUser} />
             )}
 
             {/* Safe Fallback: if activeTab does not match any known route, render FeedView */}

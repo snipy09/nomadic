@@ -1,40 +1,16 @@
-import { ElectronAPI, Job, Application, AppUser, BillingRecord, AdminMetrics, DependencyStatus, ResumeRecord } from './types';
+import { ElectronAPI, Job, Application, AppUser, DependencyStatus, ResumeRecord } from './types';
 
 // In-memory / localStorage simulation for browser preview mode
 export function createBrowserApiShim(): ElectronAPI {
   console.info('🌐 [Nomadic] Initializing Interactive Browser Mode Provider');
 
-  // Preview mode ships no demo accounts or fake billing. Real accounts live in
-  // Supabase and are managed only by the operator (service role). The admin
-  // panel is inert in browser preview.
-  const INITIAL_USERS: AppUser[] = [];
-  const INITIAL_BILLING: BillingRecord[] = [];
-
-  const getStoredUsers = (): AppUser[] => {
-    try {
-      const s = localStorage.getItem('nomadic_mock_users');
-      return s ? JSON.parse(s) : INITIAL_USERS;
-    } catch {
-      return INITIAL_USERS;
-    }
-  };
-
-  const saveStoredUsers = (users: AppUser[]) => {
-    localStorage.setItem('nomadic_mock_users', JSON.stringify(users));
-  };
-
-  const getStoredBilling = (): BillingRecord[] => {
-    try {
-      const s = localStorage.getItem('nomadic_mock_billing');
-      return s ? JSON.parse(s) : INITIAL_BILLING;
-    } catch {
-      return INITIAL_BILLING;
-    }
-  };
-
-  const saveStoredBilling = (billing: BillingRecord[]) => {
-    localStorage.setItem('nomadic_mock_billing', JSON.stringify(billing));
-  };
+  // Admin tools need a signed-in desktop session (session-checked RPCs, migration 014);
+  // preview mode has none, so every admin call reports that clearly.
+  const adminUnavailable = async () => ({
+    ok: false as const,
+    code: 'not_configured',
+    error: 'Admin tools are not available in browser preview. Use the desktop app.',
+  });
 
   // Read from Vite env at build time. The anon key is safe to expose in the
   // client because RLS (migration 002) restricts it to reading the public job
@@ -749,212 +725,15 @@ export function createBrowserApiShim(): ElectronAPI {
       }
     },
 
-    adminGetUsers: async () => {
-      if (SUPABASE_REST_URL && SUPABASE_ANON_KEY) {
-        try {
-          const res = await fetch(`${SUPABASE_REST_URL}/users_profile?select=*&order=created_at.desc`, {
-            headers: {
-              apikey: SUPABASE_ANON_KEY,
-              Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-            },
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data) && data.length > 0) {
-              return data.map((u: any) => ({
-                id: String(u.id || u.email),
-                email: String(u.email),
-                fullName: String(u.full_name || u.email.split('@')[0]),
-                role: u.role === 'admin' ? 'admin' : 'user',
-                tier: u.subscription_tier || 'free',
-                licenseKey: String(u.license_key || ''),
-                status: u.status === 'suspended' ? 'suspended' : 'active',
-                appsCount: Number(u.apps_count || 0),
-                createdAt: String(u.created_at || new Date().toISOString()),
-                expiresAt: u.expires_at ? String(u.expires_at) : undefined,
-                lastLogin: u.last_login ? String(u.last_login) : undefined,
-              }));
-            }
-          }
-        } catch {}
-      }
-      return getStoredUsers();
-    },
-
-    adminCreateUser: async (user) => {
-      const users = getStoredUsers();
-      const tierPrefix = user.tier === 'trial' ? 'TRL' : user.tier === 'max' ? 'MAX' : user.tier === 'lifetime' ? 'LIFE' : 'PRO';
-      const r1 = Math.floor(1000 + Math.random() * 9000);
-      const r2 = Math.floor(1000 + Math.random() * 9000);
-      const licenseKey = user.licenseKey || `JMX-${tierPrefix}-${r1}-${r2}`;
-
-      const expiresAt = user.tier === 'trial'
-        ? new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]
-        : user.tier === 'lifetime'
-        ? undefined
-        : new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
-
-      const newUser: AppUser = {
-        id: Date.now(),
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role || 'user',
-        tier: user.tier,
-        licenseKey,
-        status: 'active',
-        appsCount: 0,
-        createdAt: new Date().toISOString().split('T')[0],
-        expiresAt,
-      };
-
-      const updated = [newUser, ...users];
-      saveStoredUsers(updated);
-
-      // Add billing record
-      const billings = getStoredBilling();
-      const price = user.tier === 'trial' ? '$0.00' : user.tier === 'max' ? '$99.00' : user.tier === 'lifetime' ? '$299.00' : '$49.00';
-      const newBill: BillingRecord = {
-        id: Date.now(),
-        userEmail: user.email,
-        amount: price,
-        plan: `${user.tier.toUpperCase()} License`,
-        status: 'paid',
-        paymentMethod: 'Manual Admin Grant / Stripe',
-        createdAt: new Date().toISOString().split('T')[0],
-      };
-      saveStoredBilling([newBill, ...billings]);
-
-      emitLog(`[Admin] Issued new ${user.tier.toUpperCase()} license: ${licenseKey} for ${user.email}`);
-      return { success: true, id: newUser.id };
-    },
-
-    adminUpdateUserStatus: async (id, status) => {
-      const users = getStoredUsers();
-      const updated = users.map(u => u.id === id ? { ...u, status } : u);
-      saveStoredUsers(updated);
-      emitLog(`[Admin] User ID ${id} status updated to: ${status}`);
-      return { success: true };
-    },
-
-    adminDeleteUser: async (id) => {
-      const users = getStoredUsers();
-      const updated = users.filter(u => u.id !== id);
-      saveStoredUsers(updated);
-      emitLog(`[Admin] Deleted user ID ${id}`);
-      return { success: true };
-    },
-
-    adminAssignPlan: async (data) => {
-      if (SUPABASE_REST_URL && SUPABASE_ANON_KEY && data.email) {
-        try {
-          await fetch(`${SUPABASE_REST_URL}/users_profile?email=eq.${encodeURIComponent(data.email.toLowerCase())}`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              apikey: SUPABASE_ANON_KEY,
-              Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-            },
-            body: JSON.stringify({
-              subscription_tier: data.planTier,
-              updated_at: new Date().toISOString(),
-            }),
-          });
-        } catch {}
-      }
-
-      const users = getStoredUsers();
-      const updated = users.map(u => {
-        if (u.id === data.userId || String(u.id) === String(data.userId) || (data.email && u.email.toLowerCase() === data.email.toLowerCase())) {
-          return {
-            ...u,
-            tier: data.planTier as any,
-            expiresAt: data.expiresAt || (data.planTier === 'lifetime' ? undefined : new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]),
-          };
-        }
-        return u;
-      });
-      saveStoredUsers(updated);
-      emitLog(`[Admin] Assigned plan "${data.planTier}" to user ${data.email || data.userId}.`);
-      return { success: true };
-    },
-
-    adminGetLearningResources: async () => {
-      try {
-        const s = localStorage.getItem('nomadic_curated_resources');
-        if (s) return JSON.parse(s);
-      } catch {}
-      return [
-        {
-          id: 1,
-          title: 'Next.js 14 Full Stack Architecture & Server Components',
-          youtubeUrl: 'https://www.youtube.com/watch?v=wm5gMKuwSYk',
-          topic: 'React & Next.js',
-          targetRole: 'Frontend Engineer, Full Stack Developer',
-          summary: 'Deep dive into React Server Components, streaming SSR, App Router architecture, and edge caching.',
-          duration: '35 mins',
-        },
-        {
-          id: 2,
-          title: 'System Design Interview: Distributed Cache & Redis Sharding',
-          youtubeUrl: 'https://www.youtube.com/watch?v=iuqZvajTOyA',
-          topic: 'System Design & Scalability',
-          targetRole: 'Backend Engineer, Full Stack Developer, Systems Architect',
-          summary: 'LRU eviction algorithms, cache-aside patterns, write-through vs write-back, and cluster failover mechanisms.',
-          duration: '45 mins',
-        },
-        {
-          id: 3,
-          title: 'Node.js Event Loop, Worker Threads & Concurrency In-Depth',
-          youtubeUrl: 'https://www.youtube.com/watch?v=8aGhZQkoFbQ',
-          topic: 'Node.js & Backend Architecture',
-          targetRole: 'Backend Developer, Node.js Engineer, Full Stack',
-          summary: 'Microtask queues, libuv thread pool architecture, non-blocking asynchronous I/O, and CPU profiling.',
-          duration: '28 mins',
-        },
-        {
-          id: 4,
-          title: 'Docker & Production Kubernetes Deployment Pipelines',
-          youtubeUrl: 'https://www.youtube.com/watch?v=X48VuDVv0do',
-          topic: 'DevOps & Cloud Infrastructure',
-          targetRole: 'DevOps Engineer, Platform Engineer, Cloud Architect',
-          summary: 'Multi-stage container optimization, zero-downtime rolling deploys, Helm templates, and ingress networking.',
-          duration: '40 mins',
-        },
-      ];
-    },
-
-    adminAddLearningResource: async (resource) => {
-      try {
-        const s = localStorage.getItem('nomadic_curated_resources');
-        const list = s ? JSON.parse(s) : [];
-        const newItem = {
-          id: Date.now(),
-          ...resource,
-          createdAt: new Date().toISOString().split('T')[0],
-        };
-        list.unshift(newItem);
-        localStorage.setItem('nomadic_curated_resources', JSON.stringify(list));
-        emitLog(`[Admin Curator] Added learning video: ${resource.title}`);
-        return { success: true, id: newItem.id };
-      } catch (err: any) {
-        return { success: false, error: err?.message };
-      }
-    },
-
-    adminDeleteLearningResource: async (id) => {
-      try {
-        const s = localStorage.getItem('nomadic_curated_resources');
-        if (s) {
-          const list = JSON.parse(s);
-          const updated = list.filter((r: any) => r.id !== id && String(r.id) !== String(id));
-          localStorage.setItem('nomadic_curated_resources', JSON.stringify(updated));
-        }
-        emitLog(`[Admin Curator] Deleted resource #${id}`);
-        return { success: true };
-      } catch (err: any) {
-        return { success: false, error: err?.message };
-      }
-    },
+    adminListUsers: adminUnavailable,
+    adminSetUserPlan: adminUnavailable,
+    adminSetUserStatus: adminUnavailable,
+    adminListAudit: adminUnavailable,
+    adminScrapeHealth: adminUnavailable,
+    adminListContent: adminUnavailable,
+    adminUpdateLesson: adminUnavailable,
+    adminSetResourceStatus: adminUnavailable,
+    adminContentHistory: adminUnavailable,
 
     getRecommendedResourcesForJob: async (params) => {
       let list = [];
@@ -1012,56 +791,6 @@ export function createBrowserApiShim(): ElectronAPI {
       return matched.length > 0 ? matched.slice(0, 4) : list.slice(0, 3);
     },
 
-    adminGetBilling: async () => getStoredBilling(),
-
-    adminCreateBillingRecord: async (record) => {
-      const billings = getStoredBilling();
-      const newBill: BillingRecord = {
-        id: Date.now(),
-        userEmail: record.userEmail,
-        amount: record.amount,
-        plan: record.plan,
-        status: 'paid',
-        paymentMethod: record.paymentMethod,
-        createdAt: new Date().toISOString().split('T')[0],
-      };
-      saveStoredBilling([newBill, ...billings]);
-      return { success: true };
-    },
-
-    adminGetMetrics: async (): Promise<AdminMetrics> => {
-      const users = getStoredUsers();
-      const billing = getStoredBilling();
-
-      const totalUsers = users.length;
-      const activeUsers = users.filter(u => u.status === 'active').length;
-      const totalApps = users.reduce((acc, u) => acc + (u.appsCount || 0), 0);
-      const trialUsers = users.filter(u => u.tier === 'trial').length;
-      const proUsers = users.filter(u => u.tier === 'pro').length;
-      const maxUsers = users.filter(u => u.tier === 'max').length;
-      const lifetimeUsers = users.filter(u => u.tier === 'lifetime').length;
-
-      let totalRevenueCents = 0;
-      billing.forEach(b => {
-        const num = parseFloat(b.amount.replace(/[^0-9.]/g, '') || '0');
-        totalRevenueCents += num * 100;
-      });
-
-      const totalRevenue = `$${(totalRevenueCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-      const mrr = `$${((proUsers * 49) + (maxUsers * 99)).toLocaleString()}/mo`;
-
-      return {
-        totalUsers,
-        activeUsers,
-        totalApps,
-        totalRevenue,
-        mrr,
-        trialUsers,
-        proUsers,
-        maxUsers,
-        lifetimeUsers,
-      };
-    },
     authSignup: async (cred: any) => {
       const email = String(cred.email || 'user@nomadic.app').trim().toLowerCase();
       const user: AppUser = {

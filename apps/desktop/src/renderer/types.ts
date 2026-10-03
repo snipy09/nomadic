@@ -1,4 +1,4 @@
-import type { AutoApplyProgressEvent, BatchOverrides, BatchSnapshot, BatchStartOptions, BatchSubmitResult, BatchTarget, CheckoutResult, EntitlementsResult } from '../shared/ipc';
+import type { AutoApplyProgressEvent, BatchOverrides, BatchSnapshot, BatchStartOptions, BatchSubmitResult, BatchTarget, CheckoutResult, EntitlementsResult, NomadicApi } from '../shared/ipc';
 
 export type WorkspaceMode = 'learner_only' | 'seeker_only' | 'unified';
 export type OpportunityType = 'job' | 'internship' | 'both';
@@ -133,10 +133,6 @@ export type TabType =
   | 'learner-vault'
   | 'learner-drills'
   | 'admin-overview'
-  | 'admin-users'
-  | 'admin-billing'
-  | 'admin-metrics'
-  | 'admin-curator'
   | 'logs'
   | 'settings'
   | 'account';
@@ -168,28 +164,6 @@ export interface AppUser {
   expiresAt?: string;
   lastLogin?: string;
   onboardingCompleted?: boolean;
-}
-
-export interface BillingRecord {
-  id: number;
-  userEmail: string;
-  amount: string;
-  plan: string;
-  status: 'paid' | 'pending' | 'refunded';
-  paymentMethod: string;
-  createdAt: string;
-}
-
-export interface AdminMetrics {
-  totalUsers: number;
-  activeUsers: number;
-  totalApps: number;
-  totalRevenue: string;
-  mrr: string;
-  trialUsers: number;
-  proUsers: number;
-  maxUsers: number;
-  lifetimeUsers: number;
 }
 
 export interface CustomRoadmapRecord {
@@ -372,7 +346,7 @@ export interface ElectronAPI {
     improvements?: string[];
   }>;
 
-  // Admin & Auth Handlers
+  // Auth Handlers
   authLogin: (credentials: {
     username?: string;
     email?: string;
@@ -401,49 +375,21 @@ export interface ElectronAPI {
   }>;
   authGoogle: () => Promise<{ success: boolean; error?: string }>;
   onOauthCallback: (callback: (url: string) => void) => () => void;
-  adminGetUsers: () => Promise<AppUser[]>;
-  adminCreateUser: (user: {
-    email: string;
-    password?: string;
-    fullName: string;
-    tier: 'trial' | 'pro' | 'max' | 'lifetime';
-    licenseKey?: string;
-    role?: 'admin' | 'user';
-  }) => Promise<{ success: boolean; id?: number | string; error?: string }>;
-  adminUpdateUserStatus: (id: number | string, status: 'active' | 'suspended') => Promise<{ success: boolean; error?: string }>;
-  adminDeleteUser: (id: number | string) => Promise<{ success: boolean; error?: string }>;
-  adminAssignPlan: (data: {
-    userId: string | number;
-    email?: string;
-    planTier: string;
-    expiresAt?: string;
-  }) => Promise<{ success: boolean; error?: string }>;
-
-  // Admin Curated Video & Learning Resource Management
-  adminGetLearningResources: () => Promise<CuratedResource[]>;
-  adminAddLearningResource: (resource: {
-    title: string;
-    youtubeUrl: string;
-    topic: string;
-    targetRole: string;
-    summary?: string;
-    duration?: string;
-  }) => Promise<{ success: boolean; id?: number; error?: string }>;
-  adminDeleteLearningResource: (id: number | string) => Promise<{ success: boolean; error?: string }>;
+  // Admin tools (F12): session-checked RPCs; the server re-checks the admin role on every call.
+  adminListUsers: NomadicApi['adminListUsers'];
+  adminSetUserPlan: NomadicApi['adminSetUserPlan'];
+  adminSetUserStatus: NomadicApi['adminSetUserStatus'];
+  adminListAudit: NomadicApi['adminListAudit'];
+  adminScrapeHealth: NomadicApi['adminScrapeHealth'];
+  adminListContent: NomadicApi['adminListContent'];
+  adminUpdateLesson: NomadicApi['adminUpdateLesson'];
+  adminSetResourceStatus: NomadicApi['adminSetResourceStatus'];
+  adminContentHistory: NomadicApi['adminContentHistory'];
   getRecommendedResourcesForJob: (params: {
     title: string;
     description?: string;
     techStack?: string;
   }) => Promise<CuratedResource[]>;
-
-  adminGetBilling: () => Promise<BillingRecord[]>;
-  adminCreateBillingRecord: (record: {
-    userEmail: string;
-    amount: string;
-    plan: string;
-    paymentMethod: string;
-  }) => Promise<{ success: boolean; error?: string }>;
-  adminGetMetrics: () => Promise<AdminMetrics>;
 
   // In-App Updates
   checkForUpdates?: () => Promise<AppUpdateInfo>;

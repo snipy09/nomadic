@@ -81,23 +81,23 @@ const apiObj: NomadicApi = {
   // Interview Evaluation
   evaluateInterviewAnswer: (params) => invoke('evaluate-interview-answer', params),
 
-  // Admin & Authentication APIs
+  // Authentication APIs
   authLogin: (credentials) => invoke('auth-login', credentials),
   authSignup: (credentials) => invoke('auth-signup', credentials),
   authGoogle: () => invoke('auth-google'),
   onOauthCallback: (cb) => subscribe('oauth-callback', cb),
-  adminGetUsers: () => invoke('admin-get-users'),
-  adminCreateUser: (user) => invoke('admin-create-user', user),
-  adminUpdateUserStatus: (id, status) => invoke('admin-update-user-status', { id, status }),
-  adminDeleteUser: (id) => invoke('admin-delete-user', id),
-  adminAssignPlan: (data) => invoke('admin-assign-plan', data),
-  adminGetLearningResources: () => invoke('admin-get-learning-resources'),
-  adminAddLearningResource: (resource) => invoke('admin-add-learning-resource', resource),
-  adminDeleteLearningResource: (id) => invoke('admin-delete-learning-resource', id),
   getRecommendedResourcesForJob: (params) => invoke('get-recommended-resources-for-job', params),
-  adminGetBilling: () => invoke('admin-get-billing'),
-  adminCreateBillingRecord: (record) => invoke('admin-create-billing-record', record),
-  adminGetMetrics: () => invoke('admin-get-metrics'),
+
+  // Admin (F12): every call is re-authorized server side (session + admin role)
+  adminListUsers: (query) => invoke('admin-list-users', query),
+  adminSetUserPlan: (input) => invoke('admin-set-user-plan', input),
+  adminSetUserStatus: (input) => invoke('admin-set-user-status', input),
+  adminListAudit: (query) => invoke('admin-list-audit', query),
+  adminScrapeHealth: (days) => invoke('admin-scrape-health', days),
+  adminListContent: (query) => invoke('admin-list-content', query),
+  adminUpdateLesson: (input) => invoke('admin-update-lesson', input),
+  adminSetResourceStatus: (input) => invoke('admin-set-resource-status', input),
+  adminContentHistory: (query) => invoke('admin-content-history', query),
 
   // In-App Updates
   checkForUpdates: () => invoke('check-for-updates'),

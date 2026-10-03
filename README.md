@@ -172,7 +172,7 @@ Hyper-personalized cold outreach engine (`OutreachView.tsx`):
 * **Server-Side Verification:** Privileged IPC actions (`launch-autonomous`, `start-batch-copilot`, `ask-nomadic-assistant`, `send-outreach`) verify subscriptions directly against Supabase `users_profile` (`getVerifiedServerUserTier`). Local SQLite tampering cannot bypass gating.
 * **Lossless Tier Normalizer:** Maps legacy database strings (`learner_pro`, `seeker_pro`, `lite` → `pro`; `seeker_max` → `max`).
 * **Zero Hardcoded Credentials:** Test accounts and bypass keys (`admin@jobmaxxer.com`, `admin123`) have been removed.
-* **Master Admin Accounts:** `sajalmishra0906@gmail.com` and `sajalmishra222@gmail.com` (assigned `max` tier and `admin` role).
+* **Admin Access:** The admin role exists only in the database (`users_profile.role`, set by the operator in SQL). Admin tools call session-checked RPCs (migration `014`) that re-check the role on every call and write an append-only audit log; the desktop app never holds the service-role key.
 
 ---
 
@@ -263,7 +263,6 @@ nomadic/
 │   │   │           ├── ProfileView.tsx  # Multi-resume library & user info
 │   │   │           ├── ResourceVaultView.tsx # 428+ LeetCode banks & textbooks
 │   │   │           ├── ApplicationsView.tsx # SQLite application status tracker
-│   │   │           ├── AdminView.tsx    # Master admin dashboard
 │   │   │           └── UpgradeModal.tsx # Plan selection & WhatsApp upgrade flow
 │   └── web/                             # React + Vite Web Landing Portal (prerendered)
 │       └── src/                         # Landing, download, terms & privacy pages

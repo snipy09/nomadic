@@ -1,304 +1,376 @@
 import type {
-  AdminCreateUserInput,
-  AdminMetrics,
-  AdminUser,
-  AssignPlanInput,
-  BillingRecord,
-  BillingRecordInput,
-  CuratedResource,
-  CuratedResourceInput,
-  IdStatusInput,
-} from '../../shared/ipc.js';
-import {
-  adminAssignPlanDb,
-  addCuratedLearningResourceDb,
-  deleteCuratedLearningResourceDb,
-  getAllCachedUsersDb,
-  getCuratedLearningResourcesDb,
-} from '../db.js';
+  AdminAuditEntry,
+  AdminAuditPage,
+  AdminAuditQuery,
+  AdminAuditTargetType,
+  AdminChangeResult,
+  AdminContentHistoryQuery,
+  AdminContentList,
+  AdminContentQuery,
+  AdminContentVersion,
+  AdminLessonItem,
+  AdminLessonUpdate,
+  AdminPracticeItem,
+  AdminResourceItem,
+  AdminResourceStatusUpdate,
+  AdminResult,
+  AdminSetPlanInput,
+  AdminSetStatusInput,
+  AdminSkillItem,
+  AdminStatusChangeResult,
+  AdminUserQuery,
+  AdminUserRow,
+  AdminUsersPage,
+  AdminVersionResult,
+  ContentStatus,
+  ResourceStatus,
+  ScrapeHealth,
+  ScrapeRunRow,
+  ScrapeSourceHealth,
+} from '../../shared/admin.js';
 import { log } from './app-context.js';
-import { ADMIN_NO_SERVICE_ERR, getAdminSupabase } from './supabase.js';
-import { normalizeTier } from './auth.js';
+import { getActiveSyncSession } from './session.js';
+import { getAnonSupabase } from './supabase.js';
 
-// ── Admin Dashboard ─────────────────────────────────────────────────────────
-// Every admin action goes through the SERVICE-ROLE Supabase client, which
-// exists ONLY on the operator's machine (SUPABASE_SERVICE_ROLE_KEY). Customer
-// builds never ship that key, so these handlers are inert there — and the
-// renderer only exposes the Admin panel to role === 'admin' anyway.
+// ── Admin tools (F12) ───────────────────────────────────────────────────────
+// No service-role key: every call is a SECURITY DEFINER RPC (migration 014)
+// made with the anon key plus this device's session. The server verifies the
+// session AND users_profile.role = 'admin' on every call, and writes the audit
+// log row for every change. Nothing here trusts the renderer's idea of the
+// user's role.
 
-export async function getUsers(): Promise<AdminUser[]> {
-  const supabase = getAdminSupabase();
-  let cloudUsers: any[] = [];
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('users_profile')
-        .select('id,email,full_name,subscription_tier,role,status,license_key,apps_count,created_at,expires_at,last_login')
-        .order('created_at', { ascending: false });
-      if (!error && data) {
-        cloudUsers = data;
-      }
-    } catch (err: unknown) {
-      log(`[Admin] Cloud users fetch note: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }
+/** User-facing text for every error code the admin RPCs (or this module) return. */
+export const ADMIN_ERROR_MESSAGES: Record<string, string> = {
+  unauthorized: 'Your session has ended. Sign in again to use admin tools.',
+  forbidden: 'This account does not have admin access.',
+  no_session: 'Sign in to use admin tools.',
+  not_configured: 'Cloud access is not configured in this build, so admin tools are unavailable.',
+  server_outdated: 'The server does not have the admin functions yet (migration 014). Ask the operator to apply it.',
+  network: 'Could not reach the server. Check your connection and try again.',
+  bad_response: 'The server sent an unexpected response. Try again.',
+  reason_required: 'Add a reason (3 to 500 characters). It is saved in the audit log.',
+  cannot_change_self: 'You cannot change your own account. Ask another admin to do it.',
+  invalid_plan: 'That plan cannot be assigned.',
+  invalid_expiry: 'Pick an expiry date in the future, or choose no expiry.',
+  invalid_status: 'That status is not allowed.',
+  not_found: 'This record no longer exists. Refresh and try again.',
+  no_change: 'Nothing changed, so nothing was saved.',
+  version_conflict: 'This was changed by someone else since you opened it. Reload to get the latest version.',
+  invalid_transition: 'That status change is not allowed. Lessons go draft, then review, then published.',
+  urls_not_allowed: 'Lesson text cannot contain links. Links come only from curated resources.',
+  invalid_content: 'Check the title (up to 200 characters), text (up to 20,000) and key points (up to 20, 300 characters each).',
+  link_check_required: 'Only resources that passed their last link check can be made active.',
+  invalid_kind: 'Unknown content type.',
+};
 
-  const localUsers = getAllCachedUsersDb();
-  const userMap = new Map<string, AdminUser>();
+export function adminErrorMessage(code: string): string {
+  return ADMIN_ERROR_MESSAGES[code] ?? `The server refused the request (${code}).`;
+}
 
-  // Populate local cache first
-  for (const u of localUsers) {
-    userMap.set(u.email.toLowerCase(), {
-      id: String(u.id || u.email),
-      email: String(u.email),
-      fullName: String(u.fullName || u.email.split('@')[0]),
-      role: u.role === 'admin' ? 'admin' : 'user',
-      tier: normalizeTier(u.tier),
-      licenseKey: String(u.licenseKey || ''),
-      status: u.status === 'suspended' ? 'suspended' : 'active',
-      appsCount: Number(u.appsCount || 0),
-      createdAt: String(u.createdAt || new Date().toISOString()),
-      expiresAt: u.expiresAt ? String(u.expiresAt) : undefined,
-      lastLogin: u.lastLogin ? String(u.lastLogin) : undefined,
+function fail<T>(code: string, currentVersion?: number): AdminResult<T> {
+  return currentVersion === undefined
+    ? { ok: false, code, error: adminErrorMessage(code) }
+    : { ok: false, code, error: adminErrorMessage(code), currentVersion };
+}
+
+type Row = Record<string, unknown>;
+
+const str = (v: unknown): string => (v === null || v === undefined ? '' : String(v));
+const strOrNull = (v: unknown): string | null => (v === null || v === undefined || v === '' ? null : String(v));
+const num = (v: unknown): number => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+const numOrNull = (v: unknown): number | null => (v === null || v === undefined ? null : num(v));
+const strList = (v: unknown): string[] => (Array.isArray(v) ? v.map(String) : []);
+const rows = (v: unknown): Row[] => (Array.isArray(v) ? v.filter((x): x is Row => !!x && typeof x === 'object') : []);
+const obj = (v: unknown): Row | null => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Row) : null);
+
+/**
+ * Calls one admin RPC with the active device session. Returns the RPC's JSON
+ * body when it reports ok, otherwise a typed failure with a readable message.
+ */
+export async function callAdminRpc(fn: string, params: Record<string, unknown>): Promise<AdminResult<Row>> {
+  const session = getActiveSyncSession();
+  if (!session) return fail('no_session');
+  const supabase = getAnonSupabase();
+  if (!supabase) return fail('not_configured');
+
+  try {
+    const { data, error } = await supabase.rpc(fn, {
+      p_user_id: session.userId,
+      p_session_token: session.sessionToken,
+      p_device_fingerprint: session.deviceFingerprint,
+      ...params,
     });
-  }
-
-  // Cloud users take authoritative precedence
-  for (const u of cloudUsers) {
-    userMap.set(String(u['email']).toLowerCase(), {
-      id: String(u['id'] || u['email']),
-      email: String(u['email']),
-      fullName: String(u['full_name'] ?? u['email'].split('@')[0]),
-      role: u['role'] === 'admin' ? 'admin' : 'user',
-      tier: normalizeTier(u['subscription_tier']),
-      licenseKey: String(u['license_key'] ?? ''),
-      status: u['status'] === 'suspended' ? 'suspended' : 'active',
-      appsCount: Number(u['apps_count'] ?? 0),
-      createdAt: String(u['created_at'] ?? new Date().toISOString()),
-      expiresAt: u['expires_at'] ? String(u['expires_at']) : undefined,
-      lastLogin: u['last_login'] ? String(u['last_login']) : undefined,
-    });
-  }
-
-  return Array.from(userMap.values()).sort((a, b) => {
-    const tA = new Date(a.createdAt || 0).getTime();
-    const tB = new Date(b.createdAt || 0).getTime();
-    return tB - tA;
-  });
-}
-
-export async function createUser(user: AdminCreateUserInput): Promise<{ success: boolean; id?: string; error?: string }> {
-  const supabase = getAdminSupabase();
-  try {
-    const email = String(user['email'] ?? '').trim().toLowerCase();
-    const fullName = String(user['fullName'] ?? '').trim();
-    const rawTier = String(user['tier'] ?? 'lite').toLowerCase();
-    const tier: string = normalizeTier(rawTier);
-    const role = String(user['role'] ?? 'user').toLowerCase();
-
-    if (!email || !email.includes('@')) return { success: false, error: 'A valid email is required.' };
-
-    const tierPrefix = tier === 'lite' ? 'LIT' : tier === 'pro' ? 'PRO' : tier === 'max' ? 'MAX' : 'FRE';
-    const r1 = Math.floor(1000 + Math.random() * 9000);
-    const r2 = Math.floor(1000 + Math.random() * 9000);
-    const licenseKey = String(user['licenseKey'] ?? `NOMADIC-${tierPrefix}-${r1}-${r2}`).trim();
-
-    const expiresAt =
-      tier === 'lifetime' || tier === 'free'
-        ? null
-        : new Date(Date.now() + 30 * 86400000).toISOString();
-
-    let insertedId: string | undefined;
-    if (supabase) {
-      const { data: inserted, error: insErr } = await supabase
-        .from('users_profile')
-        .upsert({
-          email,
-          full_name: fullName,
-          subscription_tier: tier,
-          role,
-          status: 'active',
-          license_key: licenseKey,
-          apps_count: 0,
-          expires_at: expiresAt,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'email' })
-        .select('id')
-        .maybeSingle();
-
-      if (!insErr && inserted) {
-        insertedId = String(inserted['id']);
-      }
+    if (error) {
+      const code = (error as { code?: string }).code;
+      const missing = code === 'PGRST202' || code === '42883' || /could not find the function/i.test(error.message ?? '');
+      log(`[Admin] ${fn} failed: ${error.message}`);
+      return fail(missing ? 'server_outdated' : 'network');
     }
-
-    log(`[Admin] Provisioned user ${email} (${tier}, ${licenseKey})`);
-    return { success: true, id: insertedId };
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    log(`[Admin] Create user error: ${msg}`);
-    return { success: false, error: msg };
-  }
-}
-
-export async function updateUserStatus(data: IdStatusInput): Promise<{ success: boolean; error?: string }> {
-  const supabase = getAdminSupabase();
-  try {
-    const status = data.status === 'suspended' ? 'suspended' : 'active';
-    if (supabase) {
-      await supabase.from('users_profile').update({ status }).eq('id', String(data.id));
+    const body = obj(Array.isArray(data) ? data[0] : data);
+    if (!body) return fail('bad_response');
+    if (body['ok'] !== true) {
+      const code = str(body['error']) || 'bad_response';
+      if (code !== 'no_change') log(`[Admin] ${fn} refused: ${code}`);
+      return fail(code, body['current_version'] === undefined ? undefined : num(body['current_version']));
     }
-    log(`[Admin] User ${data.id} status -> ${status}`);
-    return { success: true };
+    return { ok: true, data: body };
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    log(`[Admin] Update user status error: ${msg}`);
-    return { success: false, error: msg };
+    log(`[Admin] ${fn} error: ${err instanceof Error ? err.message : String(err)}`);
+    return fail('network');
   }
 }
 
-export async function deleteUser(id: number | string): Promise<{ success: boolean; error?: string }> {
-  const supabase = getAdminSupabase();
-  try {
-    if (supabase) {
-      await supabase.from('users_profile').delete().eq('id', String(id));
-    }
-    log(`[Admin] Deleted user ${id}`);
-    return { success: true };
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    log(`[Admin] Delete user error: ${msg}`);
-    return { success: false, error: msg };
-  }
+function mapOk<T>(res: AdminResult<Row>, map: (body: Row) => T): AdminResult<T> {
+  return res.ok ? { ok: true, data: map(res.data) } : res;
 }
 
-export async function getBilling(): Promise<BillingRecord[]> {
-  const supabase = getAdminSupabase();
-  if (!supabase) return [];
-  try {
-    const { data, error } = await supabase
-      .from('billing_records')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    return (data ?? []).map((b: Record<string, unknown>) => ({
-      id: String(b['id']),
-      userEmail: String(b['user_email']),
-      amount: String(b['amount']),
-      plan: String(b['plan']),
-      status: (['paid', 'pending', 'refunded'].includes(String(b['status'])) ? b['status'] : 'paid') as
-        | 'paid'
-        | 'pending'
-        | 'refunded',
-      paymentMethod: String(b['payment_method'] ?? ''),
-      createdAt: String(b['created_at'] ?? ''),
-    }));
-  } catch (err: unknown) {
-    log(`[Admin] Fetch billing error: ${err instanceof Error ? err.message : String(err)}`);
-    return [];
-  }
-}
+// ── Row mappers (exported for tests) ────────────────────────────────────────
 
-export async function createBillingRecord(record: BillingRecordInput): Promise<{ success: boolean; error?: string }> {
-  const supabase = getAdminSupabase();
-  if (!supabase) return { success: false, error: ADMIN_NO_SERVICE_ERR };
-  try {
-    const { error } = await supabase.from('billing_records').insert({
-      user_email: String(record['userEmail'] ?? ''),
-      amount: String(record['amount'] ?? '₹149'),
-      plan: String(record['plan'] ?? 'Seeker Pro'),
-      status: 'paid',
-      payment_method: String(record['paymentMethod'] ?? 'Manual Admin Grant'),
-    });
-    if (error) throw error;
-    log(`[Admin] Recorded transaction: ${record['amount']} for ${record['userEmail']}`);
-    return { success: true };
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    log(`[Admin] Create billing error: ${msg}`);
-    return { success: false, error: msg };
-  }
-}
-
-export async function getMetrics(): Promise<AdminMetrics> {
-  const empty = {
-    totalUsers: 0, activeUsers: 0, totalApps: 0, totalRevenue: '₹0',
-    mrr: '₹0/mo', trialUsers: 0, proUsers: 0, maxUsers: 0, lifetimeUsers: 0,
+export function toUserRow(r: Row): AdminUserRow {
+  return {
+    id: str(r['id']),
+    email: str(r['email']),
+    fullName: str(r['full_name']),
+    tier: str(r['subscription_tier']) || 'trial',
+    role: r['role'] === 'admin' ? 'admin' : 'user',
+    status: r['status'] === 'suspended' ? 'suspended' : 'active',
+    expiresAt: strOrNull(r['expires_at']),
+    createdAt: strOrNull(r['created_at']),
+    lastLogin: strOrNull(r['last_login']),
+    appsCount: num(r['apps_count']),
+    activeSessions: num(r['active_sessions']),
   };
-  const supabase = getAdminSupabase();
-  if (!supabase) return empty;
-  try {
-    const { data: users, error: uErr } = await supabase
-      .from('users_profile')
-      .select('subscription_tier,status,apps_count');
-    if (uErr) throw uErr;
+}
 
-    const list = (users ?? []) as Array<Record<string, unknown>>;
-    const totalUsers = list.length;
-    const activeUsers = list.filter((u) => String(u['status']) === 'active').length;
-    const totalApps = list.reduce((acc, u) => acc + (Number(u['apps_count']) || 0), 0);
-    const trialUsers = list.filter((u) => normalizeTier(String(u['subscription_tier'])) === 'free').length;
-    const proUsers = list.filter((u) => normalizeTier(String(u['subscription_tier'])) === 'pro').length;
-    const maxUsers = list.filter((u) => normalizeTier(String(u['subscription_tier'])) === 'max').length;
-    const lifetimeUsers = list.filter((u) => String(u['subscription_tier']) === 'lifetime').length;
+const AUDIT_TARGETS: readonly AdminAuditTargetType[] = ['user', 'lesson', 'resource', 'admin'];
 
-    const mrr = `₹${(proUsers * 249 + maxUsers * 599).toLocaleString('en-IN')}/mo`;
-    const totalRevenue = `₹${(proUsers * 249 + maxUsers * 599).toLocaleString('en-IN')}`;
+export function toAuditEntry(r: Row): AdminAuditEntry {
+  const t = str(r['target_type']) as AdminAuditTargetType;
+  return {
+    id: num(r['id']),
+    actorId: strOrNull(r['actor_id']),
+    actorEmail: strOrNull(r['actor_email']),
+    action: str(r['action']),
+    targetType: AUDIT_TARGETS.includes(t) ? t : 'admin',
+    targetId: strOrNull(r['target_id']),
+    targetLabel: strOrNull(r['target_label']),
+    reason: strOrNull(r['reason']),
+    before: obj(r['before']),
+    after: obj(r['after']),
+    createdAt: str(r['created_at']),
+  };
+}
 
-    return { totalUsers, activeUsers, totalApps, totalRevenue, mrr, trialUsers, proUsers, maxUsers, lifetimeUsers };
-  } catch (err: unknown) {
-    log(`[Admin] Metrics computation error: ${err instanceof Error ? err.message : String(err)}`);
-    return empty;
+export function toScrapeRun(r: Row): ScrapeRunRow {
+  return {
+    id: str(r['id']),
+    runId: str(r['run_id']),
+    source: str(r['source']),
+    tier: num(r['tier']),
+    status: r['status'] === 'error' ? 'error' : 'ok',
+    startedAt: str(r['started_at']),
+    finishedAt: str(r['finished_at']),
+    durationMs: num(r['duration_ms']),
+    fetched: num(r['fetched']),
+    valid: num(r['valid']),
+    invalid: num(r['invalid']),
+    duplicates: num(r['duplicates']),
+    linkFailed: num(r['link_failed']),
+    upserted: num(r['upserted']),
+    expired: num(r['expired']),
+    error: strOrNull(r['error']),
+    alert: strOrNull(r['alert']),
+    published: r['published'] !== false,
+  };
+}
+
+export function toSourceHealth(r: Row): ScrapeSourceHealth {
+  const last = r['last_status'];
+  return {
+    source: str(r['source']),
+    runs: num(r['runs']),
+    failures: num(r['failures']),
+    lastRunAt: strOrNull(r['last_run_at']),
+    lastStatus: last === 'ok' || last === 'error' ? last : null,
+    lastOkAt: strOrNull(r['last_ok_at']),
+    lastError: strOrNull(r['last_error']),
+    fetched: num(r['fetched']),
+    upserted: num(r['upserted']),
+    linkFailed: num(r['link_failed']),
+    avgDurationMs: num(r['avg_duration_ms']),
+  };
+}
+
+export function toScrapeHealth(body: Row): ScrapeHealth {
+  const jobs = obj(body['active_jobs_by_source']) ?? {};
+  return {
+    since: str(body['since']),
+    runs: rows(body['runs']).map(toScrapeRun),
+    sources: rows(body['sources']).map(toSourceHealth),
+    activeJobsBySource: Object.fromEntries(Object.entries(jobs).map(([k, v]) => [k, num(v)])),
+  };
+}
+
+const toSkill = (r: Row): AdminSkillItem => ({
+  id: str(r['id']),
+  name: str(r['name']),
+  category: str(r['category']),
+  level: num(r['level']),
+  estimatedHours: num(r['estimated_hours']),
+  lessonCount: num(r['lesson_count']),
+  resourceCount: num(r['resource_count']),
+  practiceCount: num(r['practice_count']),
+  updatedAt: strOrNull(r['updated_at']),
+});
+
+const toLesson = (r: Row): AdminLessonItem => ({
+  id: str(r['id']),
+  skillId: str(r['skill_id']),
+  title: str(r['title']),
+  status: str(r['status']) as ContentStatus,
+  version: num(r['version']) || 1,
+  aiDrafted: r['ai_drafted'] === true,
+  isCore: r['is_core'] !== false,
+  estimatedMinutes: num(r['estimated_minutes']),
+  summaryMd: str(r['summary_md']),
+  keyPoints: strList(r['key_points']),
+  resourceIds: strList(r['resource_ids']),
+  updatedAt: strOrNull(r['updated_at']),
+});
+
+const toResource = (r: Row): AdminResourceItem => ({
+  id: str(r['id']),
+  title: str(r['title']),
+  url: str(r['url']),
+  provider: str(r['provider']),
+  type: str(r['type']),
+  status: str(r['status']) as ResourceStatus,
+  version: num(r['version']) || 1,
+  skillIds: strList(r['skill_ids']),
+  lastChecked: strOrNull(r['last_checked']),
+  httpStatus: numOrNull(r['http_status']),
+  failCount: num(r['fail_count']),
+  source: str(r['source']),
+  updatedAt: strOrNull(r['updated_at']),
+});
+
+const toPractice = (r: Row): AdminPracticeItem => ({
+  id: str(r['id']),
+  skillId: str(r['skill_id']),
+  lessonId: strOrNull(r['lesson_id']),
+  kind: str(r['kind']),
+  difficulty: str(r['difficulty']),
+  status: str(r['status']) as ContentStatus,
+  version: num(r['version']) || 1,
+  aiDrafted: r['ai_drafted'] === true,
+  prompt: str(r['prompt']),
+});
+
+export function toContentList(kind: AdminContentQuery['kind'], body: Row): AdminContentList {
+  const items = rows(body['items']);
+  switch (kind) {
+    case 'skills':
+      return { kind, items: items.map(toSkill) };
+    case 'lessons':
+      return { kind, items: items.map(toLesson) };
+    case 'resources':
+      return { kind, items: items.map(toResource) };
+    case 'practice':
+      return { kind, items: items.map(toPractice) };
   }
 }
 
-export async function assignPlan(data: AssignPlanInput): Promise<{ success: boolean }> {
-  log(`[Admin Plan Assignment] Updating user ${data.email || data.userId} to ${data.planTier}...`);
-  const ok = adminAssignPlanDb(data.email || data.userId, data.planTier, data.expiresAt);
+// ── Calls ───────────────────────────────────────────────────────────────────
 
-  const supabase = getAdminSupabase();
-  if (supabase) {
-    try {
-      if (data.email) {
-        await supabase
-          .from('users_profile')
-          .update({
-            subscription_tier: data.planTier,
-            expires_at: data.expiresAt || null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('email', data.email.toLowerCase());
-      } else if (data.userId) {
-        await supabase
-          .from('users_profile')
-          .update({
-            subscription_tier: data.planTier,
-            expires_at: data.expiresAt || null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', String(data.userId));
-      }
-      log(`[Admin Plan Assignment] Synced user plan to Supabase ✓`);
-    } catch (err: any) {
-      log(`[Admin Plan Assignment] Supabase sync note: ${err?.message}`);
-    }
-  }
-
-  return { success: ok };
+export async function listUsers(q: AdminUserQuery): Promise<AdminResult<AdminUsersPage>> {
+  const res = await callAdminRpc('admin_list_users', {
+    p_query: q.query?.trim() || null,
+    p_tier: q.tier || null,
+    p_status: q.status || null,
+    p_limit: q.limit ?? 50,
+    p_offset: q.offset ?? 0,
+  });
+  return mapOk(res, (b) => ({ users: rows(b['users']).map(toUserRow), total: num(b['total']) }));
 }
 
-// ── Admin Learning Resource Management ──────────────────────────────────────
-export function getLearningResources(): CuratedResource[] {
-  return getCuratedLearningResourcesDb();
+export async function setUserPlan(input: AdminSetPlanInput): Promise<AdminResult<AdminChangeResult>> {
+  const res = await callAdminRpc('admin_set_user_plan', {
+    p_target_id: input.targetId,
+    p_tier: input.tier,
+    p_expires_at: input.tier === 'lifetime' ? null : input.expiresAt,
+    p_reason: input.reason.trim(),
+  });
+  if (res.ok) log(`[Admin] Plan for ${input.targetId} set to ${input.tier} (audit #${num(res.data['audit_id'])})`);
+  return mapOk(res, (b) => ({ auditId: num(b['audit_id']) }));
 }
 
-export function addLearningResource(res: CuratedResourceInput): { success: boolean; id?: number } {
-  const result = addCuratedLearningResourceDb(res);
-  log(`[Admin Curator] Added resource: "${res.title}" for topic ${res.topic}`);
-  return result;
+export async function setUserStatus(input: AdminSetStatusInput): Promise<AdminResult<AdminStatusChangeResult>> {
+  const res = await callAdminRpc('admin_set_user_status', {
+    p_target_id: input.targetId,
+    p_status: input.status,
+    p_reason: input.reason.trim(),
+  });
+  if (res.ok) log(`[Admin] Status for ${input.targetId} set to ${input.status} (audit #${num(res.data['audit_id'])})`);
+  return mapOk(res, (b) => ({ auditId: num(b['audit_id']), sessionsEnded: num(b['sessions_ended']) }));
 }
 
-export function deleteLearningResource(id: number | string): { success: boolean } {
-  const ok = deleteCuratedLearningResourceDb(id);
-  log(`[Admin Curator] Removed resource #${id}`);
-  return { success: ok };
+export async function listAudit(q: AdminAuditQuery): Promise<AdminResult<AdminAuditPage>> {
+  const res = await callAdminRpc('admin_list_audit', {
+    p_limit: q.limit ?? 50,
+    p_before_id: q.beforeId ?? null,
+    p_target_type: q.targetType ?? null,
+    p_target_id: q.targetId ?? null,
+  });
+  return mapOk(res, (b) => ({ entries: rows(b['entries']).map(toAuditEntry), hasMore: b['has_more'] === true }));
+}
+
+export async function scrapeHealth(days: number): Promise<AdminResult<ScrapeHealth>> {
+  return mapOk(await callAdminRpc('admin_scrape_health', { p_days: days }), toScrapeHealth);
+}
+
+export async function listContent(q: AdminContentQuery): Promise<AdminResult<AdminContentList>> {
+  const res = await callAdminRpc('admin_list_content', {
+    p_kind: q.kind,
+    p_status: q.status || null,
+    p_query: q.query?.trim() || null,
+  });
+  return mapOk(res, (b) => toContentList(q.kind, b));
+}
+
+export async function updateLesson(input: AdminLessonUpdate): Promise<AdminResult<AdminVersionResult>> {
+  const res = await callAdminRpc('admin_update_lesson', {
+    p_lesson_id: input.id,
+    p_expected_version: input.expectedVersion,
+    p_title: input.title.trim(),
+    p_summary_md: input.summaryMd.trim(),
+    p_key_points: input.keyPoints.map((k) => k.trim()).filter(Boolean),
+    p_status: input.status,
+    p_reason: input.reason.trim(),
+  });
+  return mapOk(res, (b) => ({ auditId: num(b['audit_id']), version: num(b['version']) }));
+}
+
+export async function setResourceStatus(input: AdminResourceStatusUpdate): Promise<AdminResult<AdminVersionResult>> {
+  const res = await callAdminRpc('admin_set_resource_status', {
+    p_resource_id: input.id,
+    p_expected_version: input.expectedVersion,
+    p_status: input.status,
+    p_reason: input.reason.trim(),
+  });
+  return mapOk(res, (b) => ({ auditId: num(b['audit_id']), version: num(b['version']) }));
+}
+
+export async function contentHistory(q: AdminContentHistoryQuery): Promise<AdminResult<AdminContentVersion[]>> {
+  const res = await callAdminRpc('admin_content_history', { p_content_type: q.type, p_content_id: q.id });
+  return mapOk(res, (b) =>
+    rows(b['versions']).map((v) => ({
+      version: num(v['version']),
+      snapshot: obj(v['snapshot']) ?? {},
+      editedByEmail: strOrNull(v['edited_by_email']),
+      createdAt: str(v['created_at']),
+    }))
+  );
 }

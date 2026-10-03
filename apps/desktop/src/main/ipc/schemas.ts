@@ -1,6 +1,15 @@
 import { z } from 'zod';
 import type { ArgSchemas } from './handle.js';
 import { USER_APPLICATION_STATUSES } from '../../shared/ipc.js';
+import {
+  ADMIN_ASSIGNABLE_TIERS,
+  ADMIN_CONTENT_KINDS,
+  ADMIN_REASON_MAX,
+  ADMIN_REASON_MIN,
+  ADMIN_USER_STATUSES,
+  CONTENT_STATUSES,
+  RESOURCE_STATUSES,
+} from '../../shared/admin.js';
 
 /**
  * Zod schemas for every IPC channel that accepts renderer input. They check
@@ -103,8 +112,6 @@ export const saveJobArgs: ArgSchemas<'save-job'> = [saveJobInput];
 export const applyUrlArgs: ArgSchemas<'remove-saved-job'> = [url];
 
 // ── applications & auto-apply ──────────────────────────────────────────────
-const idStatus = z.object({ id, status: str(100) }).passthrough();
-export const idStatusArgs: ArgSchemas<'admin-update-user-status'> = [idStatus];
 export const idArgs: ArgSchemas<'delete-application'> = [id];
 
 /** Notes on one application (synced, so bounded like the cloud RPC). */
@@ -280,47 +287,78 @@ const heartbeatOptions = z
   .passthrough();
 export const heartbeatArgs: ArgSchemas<'start-heartbeat'> = [heartbeatOptions];
 
-// ── admin ──────────────────────────────────────────────────────────────────
-const adminCreateUserInput = z
-  .object({
-    email: opt(str(320)),
-    fullName: opt(str()),
-    password: opt(str()),
-    tier: opt(str(100)),
-    role: opt(str(100)),
-    licenseKey: opt(str(200)),
-  })
-  .passthrough();
-export const adminCreateUserArgs: ArgSchemas<'admin-create-user'> = [adminCreateUserInput];
+// ── admin (F12) ────────────────────────────────────────────────────────────
+// Strict objects: admin payloads have no legacy callers. The server re-validates
+// everything (and re-checks the session and admin role) on each call.
+const uuid = z.string().uuid();
+const slug = z.string().min(1).max(200);
+const reason = z.string().trim().min(ADMIN_REASON_MIN).max(ADMIN_REASON_MAX);
+const pageLimit = z.number().int().min(1).max(200).optional();
 
-const billingRecordInput = z
-  .object({
-    userEmail: opt(str(320)),
-    amount: opt(str(100)),
-    plan: opt(str(200)),
-    paymentMethod: opt(str(200)),
-  })
-  .passthrough();
-export const billingRecordArgs: ArgSchemas<'admin-create-billing-record'> = [billingRecordInput];
+export const adminListUsersArgs: ArgSchemas<'admin-list-users'> = [
+  z
+    .object({
+      query: str(200).optional(),
+      tier: str(50).optional(),
+      status: z.enum(ADMIN_USER_STATUSES).optional(),
+      limit: pageLimit,
+      offset: z.number().int().min(0).max(1_000_000).optional(),
+    })
+    .strict(),
+];
 
-const assignPlanInput = z
-  .object({
-    userId: id,
-    email: opt(str(320)),
-    planTier: str(100),
-    expiresAt: opt(str(100)),
-  })
-  .passthrough();
-export const assignPlanArgs: ArgSchemas<'admin-assign-plan'> = [assignPlanInput];
+export const adminSetUserPlanArgs: ArgSchemas<'admin-set-user-plan'> = [
+  z
+    .object({
+      targetId: uuid,
+      tier: z.enum(ADMIN_ASSIGNABLE_TIERS),
+      expiresAt: z.string().datetime({ offset: true }).nullable(),
+      reason,
+    })
+    .strict(),
+];
 
-const curatedResourceInput = z
-  .object({
-    title: str(),
-    youtubeUrl: url,
-    topic: str(),
-    targetRole: str(),
-    summary: opt(str(MEDIUM)),
-    duration: opt(str(100)),
-  })
-  .passthrough();
-export const curatedResourceArgs: ArgSchemas<'admin-add-learning-resource'> = [curatedResourceInput];
+export const adminSetUserStatusArgs: ArgSchemas<'admin-set-user-status'> = [
+  z.object({ targetId: uuid, status: z.enum(ADMIN_USER_STATUSES), reason }).strict(),
+];
+
+export const adminListAuditArgs: ArgSchemas<'admin-list-audit'> = [
+  z
+    .object({
+      limit: pageLimit,
+      beforeId: z.number().int().positive().optional(),
+      targetType: z.enum(['user', 'lesson', 'resource', 'admin']).optional(),
+      targetId: str(200).optional(),
+    })
+    .strict(),
+];
+
+export const adminScrapeHealthArgs: ArgSchemas<'admin-scrape-health'> = [z.number().int().min(1).max(30)];
+
+export const adminListContentArgs: ArgSchemas<'admin-list-content'> = [
+  z.object({ kind: z.enum(ADMIN_CONTENT_KINDS), status: str(50).optional(), query: str(200).optional() }).strict(),
+];
+
+export const adminUpdateLessonArgs: ArgSchemas<'admin-update-lesson'> = [
+  z
+    .object({
+      id: slug,
+      expectedVersion: z.number().int().positive(),
+      title: z.string().trim().min(1).max(200),
+      summaryMd: z.string().trim().min(1).max(20_000),
+      keyPoints: z.array(z.string().max(300)).max(20),
+      status: z.enum(CONTENT_STATUSES),
+      reason,
+    })
+    .strict(),
+];
+
+export const adminSetResourceStatusArgs: ArgSchemas<'admin-set-resource-status'> = [
+  z
+    .object({ id: slug, expectedVersion: z.number().int().positive(), status: z.enum(RESOURCE_STATUSES), reason })
+    .strict(),
+];
+
+export const adminContentHistoryArgs: ArgSchemas<'admin-content-history'> = [
+  z.object({ type: z.enum(['lesson', 'resource']), id: slug }).strict(),
+];
