@@ -10,6 +10,7 @@ export default defineConfig({
   test: {
     projects: [
       'packages/ui/vitest.config.ts',
+      'packages/learning/vitest.config.ts',
       {
         test: {
           name: 'packages',
