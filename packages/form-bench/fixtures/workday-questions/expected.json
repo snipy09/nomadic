@@ -1,0 +1,66 @@
+{
+  "id": "workday-questions",
+  "ats": "workday",
+  "title": "Workday: application questions (dropdown portals, date text)",
+  "sourceUrl": "https://<tenant>.wd3.myworkdayjobs.com/<site>/job/<id>/apply",
+  "profile": "sample.json",
+  "walls": [],
+  "fields": {
+    "Are you legally authorized to work in the country for which you are applying?": {
+      "expected": "Yes",
+      "selector": "button[data-wd-select=\"q1\"]",
+      "read": "wdselect",
+      "category": "profile",
+      "required": true
+    },
+    "Will you now or in the future require sponsorship for employment visa status (e.g., H-1B)?": {
+      "expected": "No",
+      "selector": "button[data-wd-select=\"q2\"]",
+      "read": "wdselect",
+      "category": "profile",
+      "required": true
+    },
+    "Are you willing to relocate for this position?": {
+      "expected": "Yes",
+      "selector": "input[name=\"q3\"]",
+      "read": "radio",
+      "category": "profile",
+      "required": true
+    },
+    "Earliest Start Date": {
+      "expected": "11/02/2026",
+      "selector": "#input-4",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Desired Salary": {
+      "expected": "$145,000",
+      "selector": "#input-5",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Do you have any relatives currently employed by Orion Logistics?": {
+      "expected": "@empty",
+      "selector": "button[data-wd-select=\"q6\"]",
+      "read": "wdselect",
+      "category": "trap",
+      "required": true
+    },
+    "Highest Level of Education": {
+      "expected": "Bachelor's Degree",
+      "selector": "button[data-wd-select=\"q7\"]",
+      "read": "wdselect",
+      "category": "profile",
+      "required": true
+    },
+    "Please describe your experience building distributed systems.": {
+      "expected": "@nonempty",
+      "selector": "#input-8",
+      "read": "value",
+      "category": "open",
+      "required": true
+    }
+  }
+}

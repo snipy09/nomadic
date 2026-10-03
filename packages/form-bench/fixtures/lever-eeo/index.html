@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arcadia Bio - Frontend Engineer</title>
+<link rel="stylesheet" href="../_shared/fixture.css">
+<script src="../_shared/runtime.js"></script>
+
+</head>
+<body class="">
+
+<div class="page-application">
+  <div class="main-header page-full-width section-wrapper"><div class="main-header-content page-centered narrow-section"><a class="main-header-logo" href="#">Arcadia Bio</a></div></div>
+  <div class="section-wrapper page-full-width"><div class="section page-centered posting-header"><div class="posting-headline"><h2>Frontend Engineer</h2><div class="posting-categories"><div class="sort-by-time posting-category">Austin, TX</div><div class="sort-by-team posting-category">Engineering</div></div></div></div></div>
+  <form id="application-form" method="POST" enctype="multipart/form-data" data-qa="application-form">
+    <div class="section page-centered application-form"><h4>Submit your application</h4><ul><li class="application-question resume">
+  <label><div class="application-label">Resume/CV<span class="required">&#10033;</span></div>
+  <div class="application-field"><a class="postings-btn template-btn-utility visible-resume-upload"><input type="file" id="resume-upload-input" name="resume" class="application-file-input" style="opacity:0;position:absolute;width:1px;height:1px" required><span class="default-label">ATTACH RESUME/CV</span><span class="filename"></span></a></div></label>
+</li>
+<li class="application-question">
+  <label><div class="application-label">Full name<span class="required">&#10033;</span></div>
+  <div class="application-field"><input type="text" name="name" data-qa="name-input" required></div></label>
+</li>
+<li class="application-question">
+  <label><div class="application-label">Email<span class="required">&#10033;</span></div>
+  <div class="application-field"><input type="email" name="email" data-qa="email-input" required></div></label>
+</li>
+<li class="application-question">
+  <label><div class="application-label">Phone</div>
+  <div class="application-field"><input type="text" name="phone" data-qa="phone-input"></div></label>
+</li>
+<li class="application-question">
+  <label><div class="application-label">LinkedIn URL</div>
+  <div class="application-field"><input type="text" name="urls[LinkedIn]" data-qa="urls-LinkedIn--input"></div></label>
+</li></ul></div>
+<div class="section page-centered application-form eeo-section"><h4>U.S. Equal Employment Opportunity information (Completion is voluntary and will not subject you to adverse treatment)</h4><ul><li class="application-question">
+  <label><div class="application-label">Gender</div>
+  <div class="application-field"><select name="eeo[gender]"><option value="">Select ...</option><option value="Male">Male</option><option value="Female">Female</option><option value="Decline to self-identify">Decline to self-identify</option></select></div></label>
+</li>
+<li class="application-question">
+  <label><div class="application-label">Race</div>
+  <div class="application-field"><select name="eeo[race]"><option value="">Select ...</option><option value="American Indian or Alaskan Native">American Indian or Alaskan Native</option><option value="Asian">Asian</option><option value="Black or African American">Black or African American</option><option value="Hispanic or Latino">Hispanic or Latino</option><option value="White">White</option><option value="Native Hawaiian or Other Pacific Islander">Native Hawaiian or Other Pacific Islander</option><option value="Two or More Races">Two or More Races</option><option value="Decline to self-identify">Decline to self-identify</option></select></div></label>
+</li>
+<li class="application-question">
+  <label><div class="application-label">Veteran status</div>
+  <div class="application-field"><select name="eeo[veteran]"><option value="">Select ...</option><option value="I am a veteran">I am a veteran</option><option value="I am not a veteran">I am not a veteran</option><option value="Decline to self-identify">Decline to self-identify</option></select></div></label>
+</li></ul></div>
+<div class="section page-centered application-form"><h4>Privacy</h4><ul><li class="application-question consent">
+  <label class="consent-label"><input type="checkbox" name="consent[store]" value="true" required> <span>I agree to Arcadia Bio processing my data in accordance with its Candidate Privacy Notice.</span></label>
+</li>
+<li class="application-question consent">
+  <label class="consent-label"><input type="checkbox" name="consent[marketing]" value="true"> <span>Send me occasional emails about new roles and company news.</span></label>
+</li></ul></div>
+    <div class="section page-centered last-section-submit"><button type="submit" class="postings-btn template-btn-submit hex-color" id="btn-submit" data-qa="btn-submit">Submit application</button></div>
+  </form>
+</div>
+</body>
+</html>

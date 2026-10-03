@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pinecrest - Senior Backend Engineer</title>
+<link rel="stylesheet" href="../_shared/fixture.css">
+<script src="../_shared/runtime.js"></script>
+
+</head>
+<body class="">
+
+<div class="page-application">
+  <div class="main-header page-full-width section-wrapper"><div class="main-header-content page-centered narrow-section"><a class="main-header-logo" href="#">Pinecrest</a></div></div>
+  <div class="section-wrapper page-full-width"><div class="section page-centered posting-header"><div class="posting-headline"><h2>Senior Backend Engineer</h2><div class="posting-categories"><div class="sort-by-time posting-category">Austin, TX</div><div class="sort-by-team posting-category">Engineering</div></div></div></div></div>
+  <form id="application-form" method="POST" enctype="multipart/form-data" data-qa="application-form">
+    <div class="section page-centered application-form"><h4>Submit your application</h4><ul><li class="application-question resume">
+  <label><div class="application-label">Resume/CV<span class="required">&#10033;</span></div>
+  <div class="application-field"><a class="postings-btn template-btn-utility visible-resume-upload"><input type="file" id="resume-upload-input" name="resume" class="application-file-input" style="opacity:0;position:absolute;width:1px;height:1px" required><span class="default-label">ATTACH RESUME/CV</span><span class="filename"></span></a></div></label>
+</li>
+<li class="application-question">
+  <label><div class="application-label">Full name<span class="required">&#10033;</span></div>
+  <div class="application-field"><input type="text" name="name" data-qa="name-input" required></div></label>
+</li>
+<li class="application-question">
+  <label><div class="application-label">Email<span class="required">&#10033;</span></div>
+  <div class="application-field"><input type="email" name="email" data-qa="email-input" required></div></label>
+</li>
+<li class="application-question">
+  <label><div class="application-label">Phone</div>
+  <div class="application-field"><input type="text" name="phone" data-qa="phone-input"></div></label>
+</li></ul></div>
+<div class="section page-centered application-form"><h4>Additional questions</h4><ul><li class="application-question custom-question">
+  <div class="application-label full-width">Are you currently authorized to work in the United States?<span class="required">&#10033;</span></div>
+  <div class="application-field full-width"><ul data-qa="multiple-choice"><li><label><input type="radio" name="cards[994aa81d-4a4e-410d-a1cd-a1cd0438994a][field0]" value="Yes" required><span class="application-answer-alternative">Yes</span></label></li><li><label><input type="radio" name="cards[994aa81d-4a4e-410d-a1cd-a1cd0438994a][field0]" value="No" required><span class="application-answer-alternative">No</span></label></li></ul></div>
+</li>
+<li class="application-question custom-question">
+  <div class="application-label full-width">Will you now or in the future require sponsorship to work in the US?<span class="required">&#10033;</span></div>
+  <div class="application-field full-width"><ul data-qa="multiple-choice"><li><label><input type="radio" name="cards[994aa81d-4a4e-410d-a1cd-a1cd0438994a][field1]" value="Yes" required><span class="application-answer-alternative">Yes</span></label></li><li><label><input type="radio" name="cards[994aa81d-4a4e-410d-a1cd-a1cd0438994a][field1]" value="No" required><span class="application-answer-alternative">No</span></label></li></ul></div>
+</li>
+<li class="application-question custom-question">
+  <div class="application-label full-width">How many years of backend development experience do you have?<span class="required">&#10033;</span></div>
+  <div class="application-field full-width"><select name="cards[994aa81d-4a4e-410d-a1cd-a1cd0438994a][field2]" required><option value="">Select...</option><option value="0-1 years">0-1 years</option><option value="2-4 years">2-4 years</option><option value="5-7 years">5-7 years</option><option value="8+ years">8+ years</option></select></div>
+</li>
+<li class="application-question custom-question">
+  <div class="application-label full-width">Have you interviewed with Pinecrest in the last 12 months?<span class="required">&#10033;</span></div>
+  <div class="application-field full-width"><ul data-qa="multiple-choice"><li><label><input type="radio" name="cards[994aa81d-4a4e-410d-a1cd-a1cd0438994a][field3]" value="Yes" required><span class="application-answer-alternative">Yes</span></label></li><li><label><input type="radio" name="cards[994aa81d-4a4e-410d-a1cd-a1cd0438994a][field3]" value="No" required><span class="application-answer-alternative">No</span></label></li></ul></div>
+</li>
+<li class="application-question custom-question">
+  <div class="application-label full-width text">Expected base salary (USD)<span class="required">&#10033;</span></div>
+  <div class="application-field full-width"><input type="text" name="cards[994aa81d-4a4e-410d-a1cd-a1cd0438994a][field4]" class="card-field-input" required></div>
+</li></ul></div>
+    <div class="section page-centered last-section-submit"><button type="submit" class="postings-btn template-btn-submit hex-color" id="btn-submit" data-qa="btn-submit">Submit application</button></div>
+  </form>
+</div>
+</body>
+</html>

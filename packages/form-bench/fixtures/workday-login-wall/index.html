@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign In - Kestrel Workday</title>
+<link rel="stylesheet" href="../_shared/fixture.css">
+<script src="../_shared/runtime.js"></script>
+
+</head>
+<body class="">
+
+<div data-automation-id="wd-app" class="wd-root">
+  <header data-automation-id="header"><span>Kestrel Careers</span></header>
+  <div data-automation-id="signInContent" class="sign-in">
+    <h2 data-automation-id="signInHeader">Sign In</h2>
+    <form data-automation-id="signInForm">
+      <div data-automation-id="formField-email" data-field><label for="email">Email Address<abbr>*</abbr></label><input id="email" type="text" data-automation-id="email" autocomplete="email" aria-required="true"></div>
+      <div data-automation-id="formField-password" data-field><label for="password">Password<abbr>*</abbr></label><input id="password" type="password" data-automation-id="password" aria-required="true"></div>
+      <button type="submit" data-automation-id="signInSubmitButton">Sign In</button>
+      <a href="#" data-automation-id="forgotPasswordLink">Forgot your password?</a>
+    </form>
+    <div class="create-account" data-automation-id="createAccountContent">
+      <h3>Create Account</h3>
+      <div data-field><label for="verifyPassword">Verify New Password<abbr>*</abbr></label><input id="verifyPassword" type="password" data-automation-id="verifyPassword" aria-required="true"></div>
+      <button type="button" data-automation-id="createAccountSubmitButton">Create Account</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

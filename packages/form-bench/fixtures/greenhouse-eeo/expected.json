@@ -1,0 +1,83 @@
+{
+  "id": "greenhouse-eeo",
+  "ats": "greenhouse",
+  "title": "Greenhouse classic: EEOC section",
+  "sourceUrl": "https://boards.greenhouse.io/<org>/jobs/<id>",
+  "profile": "sample.json",
+  "walls": [],
+  "fields": {
+    "First Name": {
+      "expected": "Jordan",
+      "selector": "#first_name",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Last Name": {
+      "expected": "Rivera",
+      "selector": "#last_name",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Email": {
+      "expected": "jordan.rivera@example.com",
+      "selector": "#email",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Phone": {
+      "expected": "+1 512 555 0142",
+      "selector": "#phone",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    },
+    "Resume/CV": {
+      "expected": "@file",
+      "selector": "#resume_file",
+      "read": "file",
+      "category": "file",
+      "required": true
+    },
+    "LinkedIn Profile": {
+      "expected": "https://www.linkedin.com/in/jordan-rivera-dev",
+      "selector": "#job_application_answers_attributes_0_text_value",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    },
+    "How did you hear about this job?": {
+      "expected": "LinkedIn",
+      "selector": "#job_application_answers_attributes_1_answer_selected_options_attributes_0_question_option_id",
+      "read": "select",
+      "category": "profile",
+      "required": true
+    },
+    "Gender": {
+      "expected": "Decline To Self Identify",
+      "selector": "#job_application_gender",
+      "read": "select",
+      "category": "eeo"
+    },
+    "Are you Hispanic/Latino?": {
+      "expected": "Decline To Self Identify",
+      "selector": "#job_application_hispanic_ethnicity",
+      "read": "select",
+      "category": "eeo"
+    },
+    "Veteran Status": {
+      "expected": "I don't wish to answer",
+      "selector": "#job_application_veteran_status",
+      "read": "select",
+      "category": "eeo"
+    },
+    "Disability Status": {
+      "expected": "I don't wish to answer",
+      "selector": "#job_application_disability_status",
+      "read": "select",
+      "category": "eeo"
+    }
+  }
+}

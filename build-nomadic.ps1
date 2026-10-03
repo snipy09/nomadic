@@ -1,30 +1,35 @@
 <#
-  build-jobmaxxer.ps1
-  Builds JobMaxxer v2.0.0 for Windows and copies the finished .exe into your
-  Downloads folder. Run this on your Windows machine (it cannot run in the
-  Claude Linux sandbox — the packaged app needs native Windows binaries).
+  build-nomadic.ps1
+  Builds the Nomadic desktop app for Windows and copies the finished .exe files
+  into your Downloads folder. Run this on Windows (the packaged app needs native
+  Windows binaries).
 
-  USAGE (PowerShell, from the repo root C:\Users\sajal\job-automator):
+  USAGE (PowerShell, from the repo root):
 
-    # With your Supabase creds (so login works) — recommended:
-    .\build-jobmaxxer.ps1 -SupabaseUrl "https://xxxx.supabase.co" -SupabaseAnonKey "your-anon-key"
+    # Credentials come from the environment or from the repo's .env file:
+    .\build-nomadic.ps1
 
-    # Or, if you've already set SUPABASE_URL / SUPABASE_ANON_KEY in your env:
-    .\build-jobmaxxer.ps1
+    # Or pass them explicitly:
+    .\build-nomadic.ps1 -SupabaseUrl "https://xxxx.supabase.co" -SupabaseAnonKey "your-anon-key"
 
     # Just to see the UI build (login won't reach the server):
-    .\build-jobmaxxer.ps1 -SkipCredsCheck
+    .\build-nomadic.ps1 -SkipCredsCheck
+
+  CODE SIGNING (optional):
+    Set these environment variables before running (never commit the .pfx):
+      WIN_CSC_LINK          path to the .pfx (or the .pfx as a base64 string)
+      WIN_CSC_KEY_PASSWORD  password for the .pfx
+    When they are not set the build continues unsigned.
 
   If you get an execution-policy error, run once:
     Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 #>
 
 param(
-  # Defaults are baked to sajal's project so this runs with ZERO arguments.
-  # Precedence: explicit -arg  >  environment variable  >  baked default below.
-  # NOTE: use the BASE project URL (no /rest/v1) — the app appends the path.
-  [string]$SupabaseUrl     = $(if ($env:SUPABASE_URL)      { $env:SUPABASE_URL }      else { "https://jympejesevicwleptfzq.supabase.co" }),
-  [string]$SupabaseAnonKey = $(if ($env:SUPABASE_ANON_KEY) { $env:SUPABASE_ANON_KEY } else { "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5bXBlamVzZXZpY3dsZXB0ZnpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczOTU5NzQsImV4cCI6MjEwMjk3MTk3NH0.1b6XFrIxH1hLVdjp2arHLdJ4fkiKV-0gb6yNZ7eMbPA" }),
+  # Precedence: explicit -arg  >  environment variable  >  .env file in the repo root.
+  # NOTE: use the BASE project URL (no /rest/v1); the app appends the path.
+  [string]$SupabaseUrl     = $env:SUPABASE_URL,
+  [string]$SupabaseAnonKey = $env:SUPABASE_ANON_KEY,
   [switch]$SkipCredsCheck
 )
 
@@ -32,20 +37,38 @@ $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
 Set-Location $root
 
+# --- 0. Load .env (only for variables that are not already set) ---------------
+$envFile = Join-Path $root ".env"
+if (Test-Path $envFile) {
+  foreach ($line in Get-Content $envFile) {
+    if ($line -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$') {
+      $name  = $Matches[1]
+      $value = $Matches[2].Trim().Trim('"').Trim("'")
+      if (-not [Environment]::GetEnvironmentVariable($name, "Process")) {
+        [Environment]::SetEnvironmentVariable($name, $value, "Process")
+      }
+    }
+  }
+}
+if (-not $SupabaseUrl)     { $SupabaseUrl     = $env:SUPABASE_URL }
+if (-not $SupabaseAnonKey) { $SupabaseAnonKey = $env:SUPABASE_ANON_KEY }
+
+$version = (Get-Content (Join-Path $root "apps\desktop\package.json") -Raw | ConvertFrom-Json).version
+
 Write-Host ""
 Write-Host "===============================================" -ForegroundColor Cyan
-Write-Host " Nomadic v1.0.0  -  Windows build & package" -ForegroundColor Cyan
+Write-Host " Nomadic v$version  -  Windows build & package" -ForegroundColor Cyan
 Write-Host "===============================================" -ForegroundColor Cyan
 
 # --- 1. Credentials -----------------------------------------------------------
 # SUPABASE_URL + SUPABASE_ANON_KEY are baked into the app at build time so a
-# fresh install can reach the licensing server. The service_role key is NOT
-# baked (it stays on your machine only). See DEPLOY.md Part B.
+# fresh install can reach the licensing server. The service_role key is NEVER
+# baked into the app.
 if ((-not $SupabaseUrl -or -not $SupabaseAnonKey) -and -not $SkipCredsCheck) {
   Write-Warning "SUPABASE_URL / SUPABASE_ANON_KEY were not provided."
   Write-Warning "The app will still build, but NOBODY will be able to log in until"
-  Write-Warning "it is rebuilt with them. Pass -SupabaseUrl / -SupabaseAnonKey, or"
-  Write-Warning "re-run with -SkipCredsCheck if you just want to see the UI build."
+  Write-Warning "it is rebuilt with them. Set them in .env, pass -SupabaseUrl /"
+  Write-Warning "-SupabaseAnonKey, or re-run with -SkipCredsCheck to just build the UI."
   $answer = Read-Host "Continue without credentials? (y/N)"
   if ($answer -ne "y") { Write-Host "Aborted."; exit 1 }
 }
@@ -55,19 +78,42 @@ $env:SUPABASE_ANON_KEY      = $SupabaseAnonKey
 $env:VITE_SUPABASE_URL      = $SupabaseUrl   # renderer (Vite) copy
 $env:VITE_SUPABASE_ANON_KEY = $SupabaseAnonKey
 
-# --- 2. Dependencies ----------------------------------------------------------
+# --- 2. Code signing ----------------------------------------------------------
+# electron-builder reads WIN_CSC_LINK / WIN_CSC_KEY_PASSWORD (or CSC_LINK /
+# CSC_KEY_PASSWORD) directly. Without them, disable cert auto-discovery so the
+# build produces unsigned binaries instead of failing.
+$certLink = if ($env:WIN_CSC_LINK) { $env:WIN_CSC_LINK } else { $env:CSC_LINK }
+# A short value that is not an existing file is a bad path (a base64 .pfx is much longer).
+if ($certLink -and $certLink.Length -le 100 -and -not (Test-Path $certLink)) {
+  Write-Warning "WIN_CSC_LINK points to '$certLink', which does not exist. Building unsigned."
+  Remove-Item Env:WIN_CSC_LINK, Env:CSC_LINK -ErrorAction SilentlyContinue
+  $certLink = $null
+}
+if ($certLink) {
+  if (-not ($env:WIN_CSC_KEY_PASSWORD -or $env:CSC_KEY_PASSWORD)) {
+    Write-Warning "WIN_CSC_LINK is set but WIN_CSC_KEY_PASSWORD is not; signing may fail."
+  }
+  Write-Host "`nCode signing: enabled (certificate from WIN_CSC_LINK / CSC_LINK)." -ForegroundColor Green
+} else {
+  $env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
+  Write-Host "`nCode signing: skipped (WIN_CSC_LINK not set). Binaries will be unsigned." -ForegroundColor DarkYellow
+}
+
+# --- 3. Dependencies ----------------------------------------------------------
 if (-not (Test-Path (Join-Path $root "node_modules"))) {
   Write-Host "`n[1/3] Installing dependencies (first run only, a few minutes)..." -ForegroundColor Yellow
   npm install
+  npm run setup:browsers
 } else {
   Write-Host "`n[1/3] Dependencies already installed - skipping npm install." -ForegroundColor DarkGray
 }
 
-# --- 3. Build + package -------------------------------------------------------
+# --- 4. Build + package -------------------------------------------------------
 Write-Host "`n[2/3] Building renderer + main and packaging the Windows installer..." -ForegroundColor Yellow
 npm run package:desktop
+if ($LASTEXITCODE -ne 0) { throw "npm run package:desktop failed with exit code $LASTEXITCODE" }
 
-# --- 4. Copy artifacts to Downloads ------------------------------------------
+# --- 5. Copy artifacts to Downloads ------------------------------------------
 Write-Host "`n[3/3] Copying the app to your Downloads folder..." -ForegroundColor Yellow
 $dist      = Join-Path $root "apps\desktop\dist-electron"
 $downloads = Join-Path $env:USERPROFILE "Downloads"
@@ -91,6 +137,6 @@ foreach ($exe in $exes) {
 }
 
 Write-Host "`nDone. Your app is in: $downloads" -ForegroundColor Cyan
-Write-Host "  - 'Nomadic Setup 1.0.0.exe'    = installer (recommended)" -ForegroundColor Gray
-Write-Host "  - 'Nomadic 1.0.0.exe'          = portable, no install" -ForegroundColor Gray
+Write-Host "  - 'Nomadic.Setup.$version.exe'  = installer (recommended)" -ForegroundColor Gray
+Write-Host "  - 'Nomadic.$version.exe'        = portable, no install" -ForegroundColor Gray
 Start-Process explorer.exe $downloads

@@ -435,8 +435,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ onLog, currentUser }) => {
   const getTierDisplay = (tier: string) => {
     const norm = normalizeTier(tier);
     switch (norm) {
-      case 'lite':
-        return { label: 'Lite Plan', badge: 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800' };
       case 'pro':
         return { label: 'Pro Plan', badge: 'bg-powder-50 text-powder-800 border-powder-200 dark:bg-powder-950/50 dark:text-powder-300 dark:border-powder-800' };
       case 'max':

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apply - Halcyon Energy</title>
+<link rel="stylesheet" href="../_shared/fixture.css">
+<script src="../_shared/runtime.js"></script>
+
+</head>
+<body class="">
+
+<div class="sf-app"><h1>Apply: Software Engineer II</h1>
+<form id="sfApplyForm" class="sf-form">
+  <x-field-input label="First Name" name="firstName" required></x-field-input>
+  <x-field-input label="Last Name" name="lastName" required></x-field-input>
+  <x-field-input label="E-mail" name="email" type="email" required></x-field-input>
+  <x-field-input label="Cell Phone" name="cellPhone" type="tel"></x-field-input>
+  <x-field-input label="City" name="city"></x-field-input>
+  <x-field-select label="Country of Residence" name="country" options='["India","United Kingdom","United States"]' required></x-field-select>
+  <x-field-select label="Are you legally authorized to work in this country?" name="authorized" options='["Yes","No"]' required></x-field-select>
+  <x-field-input label="LinkedIn Profile URL" name="linkedin" type="url"></x-field-input>
+  <x-field-checkbox label="I have read and accept the Data Privacy Statement" name="privacyConsent" required></x-field-checkbox>
+  <x-field-checkbox label="Subscribe me to job alerts" name="jobAlerts"></x-field-checkbox>
+  <button type="submit">Apply</button>
+</form></div>
+</body>
+</html>

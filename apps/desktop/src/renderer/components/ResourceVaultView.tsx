@@ -55,7 +55,7 @@ export const ResourceVaultView: React.FC<ResourceVaultViewProps> = ({
   const [problemSearch, setProblemSearch] = useState<string>('');
   const [difficultyFilter, setDifficultyFilter] = useState<'ALL' | 'EASY' | 'MEDIUM' | 'HARD'>('ALL');
 
-  const hasLiteOrAbove = hasFeatureAccess(currentUser?.tier || currentUser?.subscription_tier, 'lite');
+  const hasLiteOrAbove = hasFeatureAccess(currentUser?.tier || currentUser?.subscription_tier, 'pro');
   const isFree = !hasLiteOrAbove;
 
   const FREE_PREVIEW_COMPANIES = ['Google', 'Meta', 'Amazon'];

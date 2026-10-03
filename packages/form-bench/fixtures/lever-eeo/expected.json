@@ -1,0 +1,77 @@
+{
+  "id": "lever-eeo",
+  "ats": "lever",
+  "title": "Lever: EEO selects + consent",
+  "sourceUrl": "https://jobs.lever.co/arcadiabio/<posting-uuid>/apply",
+  "profile": "sample.json",
+  "walls": [],
+  "fields": {
+    "Resume/CV": {
+      "expected": "@file",
+      "selector": "#resume-upload-input",
+      "read": "file",
+      "category": "file",
+      "required": true
+    },
+    "Full name": {
+      "expected": "Jordan Rivera",
+      "selector": "input[name=\"name\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Email": {
+      "expected": "jordan.rivera@example.com",
+      "selector": "input[name=\"email\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Phone": {
+      "expected": "+1 512 555 0142",
+      "selector": "input[name=\"phone\"]",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    },
+    "LinkedIn URL": {
+      "expected": "https://www.linkedin.com/in/jordan-rivera-dev",
+      "selector": "input[name=\"urls[LinkedIn]\"]",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    },
+    "Gender": {
+      "expected": "Decline to self-identify",
+      "selector": "select[name=\"eeo[gender]\"]",
+      "read": "select",
+      "category": "eeo"
+    },
+    "Race": {
+      "expected": "Decline to self-identify",
+      "selector": "select[name=\"eeo[race]\"]",
+      "read": "select",
+      "category": "eeo"
+    },
+    "Veteran status": {
+      "expected": "Decline to self-identify",
+      "selector": "select[name=\"eeo[veteran]\"]",
+      "read": "select",
+      "category": "eeo"
+    },
+    "I agree to Arcadia Bio processing my data in accordance with its Candidate Privacy Notice.": {
+      "expected": true,
+      "selector": "input[name=\"consent[store]\"]",
+      "read": "checkbox",
+      "category": "policy",
+      "required": true
+    },
+    "Send me occasional emails about new roles and company news.": {
+      "expected": false,
+      "selector": "input[name=\"consent[marketing]\"]",
+      "read": "checkbox",
+      "category": "policy",
+      "required": false
+    }
+  }
+}

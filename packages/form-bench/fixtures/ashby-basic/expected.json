@@ -1,0 +1,80 @@
+{
+  "id": "ashby-basic",
+  "ats": "ashby",
+  "title": "Ashby: system fields + links + resume",
+  "sourceUrl": "https://jobs.ashbyhq.com/lumenlabs/<posting-uuid>/application",
+  "profile": "sample.json",
+  "walls": [],
+  "fields": {
+    "Name": {
+      "expected": "Jordan Rivera",
+      "selector": "[id=\"_systemfield_name\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Email": {
+      "expected": "jordan.rivera@example.com",
+      "selector": "[id=\"_systemfield_email\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Resume": {
+      "expected": "@file",
+      "selector": "#_systemfield_resume",
+      "read": "file",
+      "category": "file",
+      "required": true
+    },
+    "Phone": {
+      "expected": "+1 512 555 0142",
+      "selector": "[id=\"a2968ccd-58af-4ebd-aee3-9ee315e8a296\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "LinkedIn Profile": {
+      "expected": "https://www.linkedin.com/in/jordan-rivera-dev",
+      "selector": "[id=\"73e8538f-28d9-4cdf-a543-4543079673e8\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "GitHub": {
+      "expected": "https://github.com/jrivera-dev",
+      "selector": "[id=\"5a3e1b5e-a512-49fe-a266-8266739d5a3e\"]",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    },
+    "Website or Portfolio": {
+      "expected": "https://jordanrivera.dev",
+      "selector": "[id=\"581b3e84-b1be-4d44-a150-0150b2a7581b\"]",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    },
+    "Current Company": {
+      "expected": "Nimbus Analytics",
+      "selector": "[id=\"c6f5012b-2730-41bb-aa93-8a9344d2c6f5\"]",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    },
+    "Are you legally authorized to work in the United States?": {
+      "expected": "Yes",
+      "selector": ".yesno[data-name=\"fccac116-ad2c-4636-a9d6-a9d68e25fcca\"]",
+      "read": "pressed",
+      "category": "profile",
+      "required": true
+    },
+    "Will you now or in the future require visa sponsorship to work in the United States?": {
+      "expected": "No",
+      "selector": ".yesno[data-name=\"63fb5472-6c2d-44d2-a263-72635ea163fb\"]",
+      "read": "pressed",
+      "category": "profile",
+      "required": true
+    }
+  }
+}

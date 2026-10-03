@@ -52,6 +52,7 @@ export interface Job {
   workplaceType?: 'remote' | 'hybrid' | 'onsite';
   experienceLevel?: 'entry' | 'mid' | 'senior';
   createdAt?: string;
+  jobHash?: string;
 }
 
 export interface Application {
@@ -152,6 +153,8 @@ export interface AppUser {
   appsCount: number;
   createdAt: string;
   expiresAt?: string;
+  lastLogin?: string;
+  onboardingCompleted?: boolean;
 }
 
 export interface BillingRecord {
@@ -208,6 +211,8 @@ export interface AppUpdateInfo {
 export interface ElectronAPI {
   getMasterProfile: () => Promise<Record<string, unknown> | null>;
   saveMasterProfile: (data: Record<string, unknown>) => Promise<{ success: boolean; error?: string }>;
+  /** Not exposed by the current preload; callers must feature-check before use. */
+  updateMasterProfile?: (data: Partial<MasterProfile>) => Promise<{ success: boolean; error?: string }>;
   getResumes: () => Promise<ResumeRecord[]>;
   saveResume: (resume: { name: string; targetRole: string; filePath: string; isDefault: boolean }) =>
     Promise<{ success: boolean; id?: number; error?: string }>;
@@ -246,6 +251,8 @@ export interface ElectronAPI {
   installDependencies: () => Promise<{ success: boolean; error?: string }>;
   testGroqKey: (key: string) => Promise<{ success: boolean; error?: string }>;
   onLog: (callback: (msg: string) => void) => () => void;
+  /** Not exposed by the current preload; callers must feature-check before use. */
+  onAutoApplyProgress?: (callback: (data: any) => void) => () => void;
   getApplications: () => Promise<Application[]>;
   saveApplication: (app: { company: string; title: string; apply_url: string; status?: string; mode?: string }) =>
     Promise<{ success: boolean; id?: number; error?: string }>;
@@ -277,6 +284,8 @@ export interface ElectronAPI {
     experienceLevel?: string;
     bioOrResumeText?: string;
     customSkills?: string[];
+    targetHorizon?: string;
+    dailyCommitment?: string;
     geminiKey?: string;
     groqKey?: string;
   }) => Promise<{
