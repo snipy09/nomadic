@@ -16,6 +16,8 @@ export interface ApplyRunViewProps {
   onCancel: () => void;
   /** Close after the run finished. */
   onClose: () => void;
+  /** Today's remaining applies from the server, e.g. "2 of 3 applications left today". */
+  quotaNote?: string;
 }
 
 function headline(state: RunState): { title: string; description: string } {
@@ -34,7 +36,7 @@ function headline(state: RunState): { title: string; description: string } {
 }
 
 /** Live apply run: per-application progress, review with inline edits, and submit of the reviewed subset only. */
-export function ApplyRunView({ open, state, onEdit, onApprove, onSkip, onRetry, onSubmit, onCancel, onClose }: ApplyRunViewProps) {
+export function ApplyRunView({ open, state, onEdit, onApprove, onSkip, onRetry, onSubmit, onCancel, onClose, quotaNote }: ApplyRunViewProps) {
   const [selected, setSelected] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const current = state.apps.find((a) => a.url === selected) ?? state.apps[0];
@@ -94,9 +96,13 @@ export function ApplyRunView({ open, state, onEdit, onApprove, onSkip, onRetry, 
         }
         footer={
           done ? (
-            <Button onClick={onClose}>Close</Button>
+            <>
+              {quotaNote && <span className="mr-auto text-caption text-fg-muted" data-testid="quota-note">{quotaNote}</span>}
+              <Button onClick={onClose}>Close</Button>
+            </>
           ) : (
             <>
+              {quotaNote && <span className="mr-auto text-caption text-fg-muted" data-testid="quota-note">{quotaNote}</span>}
               <Button variant="secondary" onClick={onCancel}>
                 {state.stage === 'submitting' ? 'Stop remaining' : 'Cancel'}
               </Button>

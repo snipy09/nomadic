@@ -2,7 +2,8 @@ import React, { useEffect, useReducer, useRef } from 'react';
 import { useToast } from '@nomadic/ui';
 import { getApi, type AppUser, type MasterProfile } from '../../types';
 import { CompleteProfileModal } from '../onboarding/CompleteProfileModal';
-import { hasFeatureAccess } from '../../utils/tier-utils';
+import { appliesLeftLabel, applyGate } from '../billing/billingLogic';
+import { useEntitlements, useInvalidateEntitlements } from '../billing/useEntitlements';
 import { ApplyRunView } from './ApplyRunView';
 import { buildOverrides, canSubmit, initialRun, reviewedIds, runReducer, type ApplyTarget } from './runModel';
 
@@ -10,6 +11,7 @@ export type { ApplyTarget } from './runModel';
 
 interface Options {
   profile: MasterProfile;
+  /** Unused: the plan comes from the server (useEntitlements). Kept for callers. */
   currentUser?: AppUser | null;
   onLog: (msg: string) => void;
   onOpenUpgrade?: (feature?: string) => void;
@@ -18,13 +20,15 @@ interface Options {
 }
 
 /**
- * Apply flow: gate (plan, profile, resume) -> pre-fill every form (held open, never submitted)
+ * Apply flow: gate (server plan + today's remaining applies, profile, resume) -> pre-fill every form (held open, never submitted)
  * -> the apply run view shows live progress and every answer -> the candidate reviews and approves
  * each application -> only approved applications are submitted.
  * There is no path from here to `launchAutonomous` (direct submit).
  */
-export function useApplyRunner({ profile, currentUser, onLog, onOpenUpgrade, onUpdateProfile, onSubmitted }: Options) {
+export function useApplyRunner({ profile, onLog, onOpenUpgrade, onUpdateProfile, onSubmitted }: Options) {
   const { toast } = useToast();
+  const ent = useEntitlements();
+  const invalidateEntitlements = useInvalidateEntitlements();
   const [run, dispatch] = useReducer(runReducer, initialRun);
   const [pending, setPending] = React.useState<ApplyTarget[] | null>(null);
   const [open, setOpen] = React.useState(false);
@@ -66,9 +70,28 @@ export function useApplyRunner({ profile, currentUser, onLog, onOpenUpgrade, onU
 
   const start = async (targets: ApplyTarget[]) => {
     if (!targets.length) return;
-    if (!hasFeatureAccess(currentUser?.tier || currentUser?.subscription_tier, 'pro')) {
-      onOpenUpgrade?.('Auto-apply (Pro / Max)');
+    // Client-side gate is only a courtesy; the server counts every submission (consume_apply_quota).
+    const gate = applyGate(ent.status, ent.entitlements, ent.error ?? undefined);
+    if (gate.kind === 'loading' || gate.kind === 'unknown') {
+      toast({ title: 'Could not check your plan', description: 'Applying needs a connection to Nomadic. Check your connection and try again.', tone: 'warning' });
+      void ent.refresh();
       return;
+    }
+    if (gate.kind === 'suspended') {
+      toast({ title: 'This account is suspended', description: 'Contact support.', tone: 'danger' });
+      return;
+    }
+    if (gate.kind === 'limit_reached') {
+      toast({ title: 'Daily apply limit reached', description: `Your plan allows ${gate.limit} a day. It resets at midnight.`, tone: 'warning' });
+      onOpenUpgrade?.('More applications per day');
+      return;
+    }
+    if (gate.remaining !== null && targets.length > gate.remaining) {
+      toast({
+        title: `${gate.remaining} application${gate.remaining === 1 ? '' : 's'} left today`,
+        description: `You can prepare all ${targets.length}, but only ${gate.remaining} can be submitted today.`,
+        tone: 'warning',
+      });
     }
     const api = getApi();
     let hasResume = Boolean(profile.resumeFilePath?.trim());
@@ -128,13 +151,17 @@ export function useApplyRunner({ profile, currentUser, onLog, onOpenUpgrade, onU
       const res = await api.submitAllBatchCoPilot(overrides, ids);
       if (id !== runId.current) return;
       dispatch({ type: 'submitDone', result: res ?? { success: false, error: 'No response' }, ids });
+      invalidateEntitlements();
       if (!res?.success) throw new Error(res?.error || 'Submission failed.');
       const applied = res.applied ?? 0;
       toast({
         title: applied ? `Submitted ${applied} application${applied === 1 ? '' : 's'}` : 'Nothing was submitted',
-        description: res.failed ? `${res.failed} could not be sent. See the run for details.` : undefined,
+        description: res.limitReached
+          ? `Daily apply limit reached. ${res.failed ?? 0} not sent; they stay in your list for tomorrow or after an upgrade.`
+          : res.error ?? (res.failed ? `${res.failed} could not be sent. See the run for details.` : undefined),
         tone: res.failed || !applied ? 'warning' : 'success',
       });
+      if (res.limitReached) onOpenUpgrade?.('More applications per day');
       onLog(`[Apply] Submitted ${applied}, not sent ${res.failed ?? 0}`);
       if (applied) onSubmitted?.();
     } catch (e) {
@@ -155,6 +182,7 @@ export function useApplyRunner({ profile, currentUser, onLog, onOpenUpgrade, onU
         onSubmit={() => void submit()}
         onCancel={() => void cancel()}
         onClose={() => setOpen(false)}
+        quotaNote={appliesLeftLabel(ent.entitlements) ?? (ent.status === 'unknown' ? 'Could not check your apply limit' : undefined)}
       />
       <CompleteProfileModal
         isOpen={Boolean(pending)}

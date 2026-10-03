@@ -7,6 +7,8 @@ import type { AppUser, Job, MasterProfile } from '../../types';
 import { isTabEnabled } from '../../features';
 import { prefs } from '../../store/preferences';
 import { useApplyRunner } from '../apply/useApplyRunner';
+import { feedLimit } from '../billing/billingLogic';
+import { useEntitlements } from '../billing/useEntitlements';
 import { filterAndSort, pageRange, type FeedTab, type LocationFilter, type ScoredJob, type SortKey } from './feedLogic';
 import { inferRole, matchJob, profileMastery } from './match';
 import { useFeed } from './useFeed';
@@ -22,7 +24,6 @@ interface FeedViewProps {
   onOpenUpgrade?: (feature?: string) => void;
 }
 
-const FREE_LIMIT = 10;
 const TABS: Array<{ id: FeedTab; label: string }> = [
   { id: 'all', label: 'All' },
   { id: 'jobs', label: 'Jobs' },
@@ -67,9 +68,11 @@ export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, on
   const scored = useMemo<ScoredJob[]>(() => pool.map((j) => ({ ...j, match: matchJob(j, mastery, role) })), [pool, mastery, role]);
   const visible = useMemo(() => filterAndSort(scored, { search, tab, location, sort }), [scored, search, tab, location, sort]);
 
-  const isFree = !currentUser?.tier || currentUser.tier === 'free';
-  const limited = isFree && tab !== 'saved';
-  const shown = limited ? visible.slice(0, FREE_LIMIT) : tab === 'saved' ? visible.slice((page - 1) * pageSize, page * pageSize) : visible;
+  // Listing limit comes from the server; unknown (offline) falls back to Free. Saved jobs are never limited.
+  const ent = useEntitlements();
+  const limit = feedLimit(ent.status, ent.entitlements);
+  const limited = limit !== null && tab !== 'saved';
+  const shown = limited ? visible.slice(0, limit) : tab === 'saved' ? visible.slice((page - 1) * pageSize, page * pageSize) : visible;
   const totalPages = limited ? 1 : Math.max(1, Math.ceil((tab === 'saved' ? visible.length : feed.total) / pageSize));
   const hasProfileSkills = Object.keys(mastery).length > 0;
 
@@ -165,11 +168,15 @@ export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, on
         </ul>
       )}
 
-      {limited && visible.length > FREE_LIMIT && (
+      {limited && limit !== null && visible.length > limit && (
         <Card padding="md" className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="text-body font-strong text-fg">{visible.length - FREE_LIMIT} more openings on this page</div>
-            <div className="text-caption text-fg-subtle">The free plan shows {FREE_LIMIT} jobs. Upgrade to see the full board.</div>
+            <div className="text-body font-strong text-fg">{visible.length - limit} more openings on this page</div>
+            <div className="text-caption text-fg-subtle">
+              {ent.status === 'unknown'
+                ? `Showing ${limit} jobs because your plan could not be checked. Reconnect to see everything your plan includes.`
+                : `Your plan shows ${limit} jobs. Upgrade to see the full board.`}
+            </div>
           </div>
           <Button onClick={() => onOpenUpgrade?.('Full job board')}>Upgrade</Button>
         </Card>

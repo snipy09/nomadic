@@ -9,7 +9,9 @@ import { TopBar } from './components/TopBar';
 import { Sidebar } from './components/Sidebar';
 import { HomeView } from './components/HomeView';
 import { LearnerView } from './components/LearnerView';
-import { UpgradeModal } from './components/UpgradeModal';
+import { UpgradeDialog } from './features/billing/UpgradeDialog';
+import { ENTITLEMENTS_KEY } from './features/billing/useEntitlements';
+import { queryClient } from './queryClient';
 import { FeedView } from './features/feed/FeedView';
 import { OutreachView } from './components/OutreachView';
 import { ApplicationsView } from './features/applications/ApplicationsView';
@@ -181,6 +183,7 @@ export default function App() {
   };
 
   const handleLoginSuccess = async (user: AppUser) => {
+    void queryClient.invalidateQueries({ queryKey: ENTITLEMENTS_KEY });
     setCurrentUser(user);
     prefs.setUser(user);
 
@@ -207,6 +210,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    queryClient.removeQueries({ queryKey: ENTITLEMENTS_KEY });
     setCurrentUser(null);
     try {
       prefs.setUser(null);
@@ -271,7 +275,7 @@ export default function App() {
   };
 
   const handleOpenUpgrade = (featureName?: string) => {
-    setUpgradeFeature(featureName || 'Seeker Automation');
+    setUpgradeFeature(featureName || '');
     setShowUpgradeModal(true);
   };
 
@@ -497,6 +501,7 @@ export default function App() {
                 onNavigateTab={handleNavigate}
                 onLogout={handleLogout}
                 onRerunOnboarding={() => setShowOnboarding(true)}
+                onOpenUpgrade={() => handleOpenUpgrade('')}
               />
             )}
 
@@ -523,15 +528,12 @@ export default function App() {
             )}
           </div>
 
-        {showUpgradeModal && (
-          <UpgradeModal
-            isOpen={showUpgradeModal}
-            onClose={() => setShowUpgradeModal(false)}
-            currentUser={currentUser}
-            triggerFeature={upgradeFeature}
-            onUpgradeSuccess={() => addLog('[Upgrade] Subscription verified.')}
-          />
-        )}
+        <UpgradeDialog
+          open={showUpgradeModal}
+          onOpenChange={setShowUpgradeModal}
+          feature={upgradeFeature || undefined}
+          email={currentUser?.email}
+        />
 
         {showCommandPalette && (
           <CommandPalette
@@ -549,7 +551,7 @@ export default function App() {
             currentUser={currentUser}
             onNavigateTab={handleNavigate}
             onTriggerAutoApply={(_urls) => handleNavigate('feed')}
-            onOpenUpgrade={(feat) => handleOpenUpgrade(feat || 'Nomadic Autonomous Co-Pilot on Steroids')}
+            onOpenUpgrade={(feat) => handleOpenUpgrade(feat)}
             onLog={addLog}
           />
         )}

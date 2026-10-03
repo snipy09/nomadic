@@ -4,7 +4,7 @@ import {
   Badge, Button, Card, CardContent, CardHeader, EmptyState, Field, IconButton, Input, RadioGroup, Skeleton, Switch, VStack,
 } from '@nomadic/ui';
 import { getApi, type AppUser } from '../../types';
-import { getTierDisplayName } from '../../utils/tier-utils';
+import { PlanStatus } from '../billing/PlanStatus';
 import type { FieldErrors, ProfileForm } from './profileForm';
 import type { ResumesState } from './useResumes';
 
@@ -242,14 +242,14 @@ export const PortalsSection: React.FC = () => (
   </Card>
 );
 
-export const AccountSection: React.FC<{ user?: AppUser | null; onLogout?: () => void; onRerunOnboarding?: () => void }> = ({ user, onLogout, onRerunOnboarding }) => (
+export const AccountSection: React.FC<{ user?: AppUser | null; onLogout?: () => void; onRerunOnboarding?: () => void; onOpenUpgrade?: () => void }> = ({ user, onLogout, onRerunOnboarding, onOpenUpgrade }) => (
   <Card>
     <CardHeader title="Account" description="Your plan, sign-in and data." />
     <CardContent>
       <VStack gap={4}>
-        <dl className="grid gap-3 sm:grid-cols-2">
+        <dl className="grid gap-3">
           <div><dt className="text-caption text-fg-subtle">Email</dt><dd className="text-body text-fg">{user?.email ?? '—'}</dd></div>
-          <div><dt className="text-caption text-fg-subtle">Plan</dt><dd><Badge tone="accent">{getTierDisplayName(user?.tier || user?.subscription_tier)}</Badge></dd></div>
+          <div><dt className="mb-1 text-caption text-fg-subtle">Plan</dt><dd><PlanStatus onUpgrade={onOpenUpgrade} /></dd></div>
         </dl>
         <p className="text-caption text-fg-subtle">
           Your profile and resumes are stored on this computer and synced to your Nomadic account so they follow you to a new install.

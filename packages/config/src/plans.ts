@@ -9,8 +9,13 @@ export interface PlanLimits {
   learnTracks: number;
   /** Graded practice attempts per day. */
   practicePerDay: number;
-  /** Applications the auto-apply engine may submit per week. */
-  applicationsPerWeek: number;
+  /**
+   * Reviewed applications that may be submitted per day (Asia/Kolkata day).
+   * Enforced by the server (migration 011 consume_apply_quota).
+   */
+  appliesPerDay: number;
+  /** Job board listings visible per page; Infinity = the full board with paging. */
+  feedJobs: number;
   autonomousApply: boolean;
   companyQuestionSets: boolean;
   aiFeedback: boolean;
@@ -41,13 +46,15 @@ export const PLANS: readonly Plan[] = [
       '1 active learning track',
       '10 practice questions a day, with spaced review',
       'Top 10 curated direct jobs',
+      'Apply with review, 3 applications a day',
       'Job match score on every listing',
       'Local-first candidate storage',
     ],
     limits: {
       learnTracks: 1,
       practicePerDay: 10,
-      applicationsPerWeek: 0,
+      appliesPerDay: 3,
+      feedJobs: 10,
       autonomousApply: false,
       companyQuestionSets: false,
       aiFeedback: false,
@@ -64,13 +71,14 @@ export const PLANS: readonly Plan[] = [
       'Unlimited learning tracks and practice',
       'Company question sets and AI feedback on answers',
       'Full direct ATS job feed with 18, 36 and 54 per page',
-      'Semi-auto apply, 50 applications a week',
+      'Apply with review, 10 applications a day',
       '5 resumes',
     ],
     limits: {
       learnTracks: Infinity,
       practicePerDay: Infinity,
-      applicationsPerWeek: 50,
+      appliesPerDay: 10,
+      feedJobs: Infinity,
       autonomousApply: false,
       companyQuestionSets: true,
       aiFeedback: true,
@@ -85,14 +93,15 @@ export const PLANS: readonly Plan[] = [
     featured: false,
     features: [
       'Everything in Pro',
-      'Autonomous auto-apply, unlimited',
+      'Unlimited applications, including autonomous apply',
       'Priority job feed refresh',
       'Priority form solver and cloud sync',
     ],
     limits: {
       learnTracks: Infinity,
       practicePerDay: Infinity,
-      applicationsPerWeek: Infinity,
+      appliesPerDay: Infinity,
+      feedJobs: Infinity,
       autonomousApply: true,
       companyQuestionSets: true,
       aiFeedback: true,
@@ -116,4 +125,29 @@ export function pricingSentence(): string {
   const [free, ...paid] = PLANS;
   const parts = paid.map((p) => `${p.name} is ${formatPrice(p.priceInr)} a month`);
   return `${free.name} costs ${formatPrice(free.priceInr)}. ${parts.join(' and ')}.`;
+}
+
+/** Unlimited (Infinity) limits travel as null over JSON, IPC and SQL. */
+export function limitOrNull(n: number): number | null {
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Remaining allowance (null = unlimited), never below zero. */
+export function remainingAllowance(limit: number | null, used: number): number | null {
+  return limit === null ? null : Math.max(0, limit - used);
+}
+
+/**
+ * The rows of `public.plan_limits()` in migration 011, rendered from PLANS.
+ * A test asserts the migration contains exactly these lines, so limits stay
+ * defined only here. Column order: (plan, applies_per_day, feed_jobs,
+ * learn_tracks, practice_per_day, autonomous_apply, resumes); NULL = unlimited.
+ */
+export function planLimitsSqlRows(): string[] {
+  const n = (v: number) => (Number.isFinite(v) ? String(v) : 'NULL');
+  return PLANS.map((p, i) => {
+    const l = p.limits;
+    const row = `('${p.id}', ${n(l.appliesPerDay)}, ${n(l.feedJobs)}, ${n(l.learnTracks)}, ${n(l.practicePerDay)}, ${l.autonomousApply ? 'TRUE' : 'FALSE'}, ${n(l.resumes)})`;
+    return i < PLANS.length - 1 ? `${row},` : row;
+  });
 }

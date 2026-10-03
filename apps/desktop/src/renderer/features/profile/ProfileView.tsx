@@ -26,12 +26,13 @@ interface ProfileViewProps {
   onNavigateTab?: (tab: TabType) => void;
   onLogout?: () => void;
   onRerunOnboarding?: () => void;
+  onOpenUpgrade?: () => void;
   saving?: boolean;
 }
 
 const fromSaved = () => ({ workspaceMode: prefs.getWorkspaceMode(), opportunityType: prefs.getOppType() });
 
-export const ProfileView: React.FC<ProfileViewProps> = ({ profile, onSaveProfile, onLog, currentUser, onLogout, onRerunOnboarding }) => {
+export const ProfileView: React.FC<ProfileViewProps> = ({ profile, onSaveProfile, onLog, currentUser, onLogout, onRerunOnboarding, onOpenUpgrade }) => {
   const { toast } = useToast();
   const [section, setSection] = useState<Section>('profile');
   const [form, setForm] = useState<ProfileForm>(() => toForm(profile, currentUser, fromSaved()));
@@ -110,7 +111,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile, onSaveProfile
             {section === 'resumes' && <ResumesSection state={resumes} targetRole={form.targetRole} />}
             {section === 'answers' && <AnswersSection {...props} />}
             {section === 'portals' && <PortalsSection />}
-            {section === 'account' && <AccountSection user={currentUser} onLogout={onLogout} onRerunOnboarding={onRerunOnboarding} />}
+            {section === 'account' && <AccountSection user={currentUser} onLogout={onLogout} onRerunOnboarding={onRerunOnboarding} onOpenUpgrade={onOpenUpgrade} />}
           </div>
         </div>
       </div>

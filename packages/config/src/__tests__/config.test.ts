@@ -5,7 +5,9 @@ import {
   getPlan,
   hasPlanAccess,
   isFeatureEnabled,
+  limitOrNull,
   normalizeTier,
+  remainingAllowance,
   parseFeatureOverrides,
   pricingSentence,
   resolveFeatures,
@@ -25,6 +27,20 @@ describe('plans', () => {
   it('free Learn limits are 1 track + 10 practice/day', () => {
     expect(getPlan('free').limits).toMatchObject({ learnTracks: 1, practicePerDay: 10 });
     expect(getPlan('pro').limits.practicePerDay).toBe(Infinity);
+  });
+  it('apply limits: Free and Pro are capped per day, Max is unlimited; plan copy states the cap', () => {
+    expect(PLANS.map((p) => [p.id, p.limits.appliesPerDay])).toEqual([
+      ['free', 3],
+      ['pro', 10],
+      ['max', Infinity],
+    ]);
+    for (const p of PLANS.filter((x) => Number.isFinite(x.limits.appliesPerDay))) {
+      expect(p.features.join(' ')).toContain(`${p.limits.appliesPerDay} applications a day`);
+    }
+    expect(getPlan('free').limits.feedJobs).toBe(10);
+    expect(limitOrNull(Infinity)).toBeNull();
+    expect(remainingAllowance(3, 5)).toBe(0);
+    expect(remainingAllowance(null, 5)).toBeNull();
   });
   it('no plan advertises a hidden feature', () => {
     const text = PLANS.flatMap((p) => p.features)

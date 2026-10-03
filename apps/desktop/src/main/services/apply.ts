@@ -11,16 +11,11 @@ import type {
   BatchTarget,
 } from '../../shared/ipc.js';
 import { toSnapshot } from './batch-review.js';
-import {
-  getDb,
-  persistDb,
-  saveCachedFormAnswerDb,
-  checkUserPlanLimitDb,
-} from '../db.js';
+import { getDb, persistDb, saveCachedFormAnswerDb } from '../db.js';
 import { getMainWindow, log } from './app-context.js';
 import { logAndSyncApplication } from './cloud-sync.js';
 import { buildAutomationProfile, getMasterProfileRow } from './profile.js';
-import { getVerifiedServerUserTier } from './auth.js';
+import { consumeApplyQuota, getEntitlements } from './entitlements.js';
 
 const NO_PROFILE_ERR = 'No master profile saved. Fill in your profile first.';
 
@@ -99,34 +94,23 @@ export async function launchAutonomous(jobUrls: string[]): Promise<AutonomousApp
       return { success: false, error: NO_PROFILE_ERR };
     }
 
-    // 1. Enforce verified server tier & usage limits
-    const userTier = await getVerifiedServerUserTier(profile.email);
-    if (userTier === 'suspended') {
+    // 1. Plan check on the server (fail closed): autonomous apply is a Max entitlement.
+    // Each submission below is also counted by consume_apply_quota before it starts.
+    const ent = await getEntitlements({ fresh: true });
+    if (!ent.success) {
+      return { success: false, error: `${ent.error} Nothing was submitted.` };
+    }
+    if (ent.entitlements.accountStatus === 'suspended') {
       return { success: false, error: 'This account is suspended. Contact support.' };
     }
-    if (userTier === 'free' && jobUrls.length > 1) {
+    if (!ent.entitlements.limits.autonomousApply) {
       return {
         success: false,
-        error: 'Autonomous batch applications are reserved for Pro and Max subscribers. Upgrade to proceed.',
+        error: 'Autonomous apply is part of the Max plan. Use "Apply with review" from the job board, or upgrade.',
         limitReached: true,
-        currentUsage: 0,
-        maxAllowed: 1
+        currentUsage: ent.entitlements.usage.appliesToday,
+        maxAllowed: ent.entitlements.limits.appliesPerDay ?? undefined,
       };
-    }
-
-    // Allow single targeted job applies directly without batch throttling
-    if (jobUrls.length > 1) {
-      const planCheck = checkUserPlanLimitDb(jobUrls.length, userTier);
-      if (!planCheck.allowed) {
-        log(`[Plan Rules] Submission halted: ${planCheck.reason}`);
-        return {
-          success: false,
-          error: planCheck.reason,
-          limitReached: true,
-          currentUsage: planCheck.currentUsage,
-          maxAllowed: planCheck.maxAllowed,
-        };
-      }
     }
 
     // 2. Sequential batch processing: chunk jobs into 5-job batches (e.g. 50 jobs = 10 batches of 5)
@@ -155,6 +139,22 @@ export async function launchAutonomous(jobUrls: string[]): Promise<AutonomousApp
         const url = currentBatch[i];
         totalProcessed++;
         const { company: jobCompany, title: jobTitle } = lookupSavedJob(url);
+
+        const quota = await consumeApplyQuota(1);
+        if (!quota.ok) {
+          log(`[Plan Rules] Submission halted: ${quota.error}`);
+          persistDb();
+          return {
+            success: applied > 0,
+            applied,
+            skipped,
+            totalBatches: batches.length,
+            error: quota.error,
+            limitReached: quota.limitReached,
+            currentUsage: quota.appliesUsed,
+            maxAllowed: quota.appliesPerDay ?? undefined,
+          };
+        }
 
         log(`[Auto-Apply ${totalProcessed}/${jobUrls.length}] Submitting to ${jobCompany} (${url})...`);
 
@@ -339,9 +339,17 @@ export async function submitAllBatchCopilot(
     }
 
     const results: BatchSubmitItemResult[] = [];
+    // Set once the server refuses the quota; every later application is left unsent.
+    let refusal: string | null = null;
+    let limitReached = false;
+    let appliesRemaining: number | null | undefined;
     for (const id of chosen) {
       if (isAutoApplyCanceled || seq !== batchRunSeq) {
         results.push({ id, submitted: false, confirmed: false, error: 'Cancelled before submitting.' });
+        continue;
+      }
+      if (refusal) {
+        results.push({ id, submitted: false, confirmed: false, error: refusal });
         continue;
       }
       const held = heldApplications.get(id);
@@ -349,6 +357,17 @@ export async function submitAllBatchCopilot(
         results.push({ id, submitted: false, confirmed: false, error: 'This form is no longer open. Retry it to fill it again.' });
         continue;
       }
+      // Server-side daily limit: counted right before this application is sent, never after.
+      const quota = await consumeApplyQuota(1);
+      if (!quota.ok) {
+        refusal = quota.error ?? 'Your apply limit could not be checked. Nothing further was submitted.';
+        limitReached = Boolean(quota.limitReached);
+        if (quota.limitReached) appliesRemaining = 0;
+        log(`[Apply] Not submitting: ${refusal}`);
+        results.push({ id, submitted: false, confirmed: false, error: refusal });
+        continue;
+      }
+      appliesRemaining = quota.appliesRemaining;
       const { target, handle } = held;
       try {
         const res = await AutoApplyEngine.submitReviewed(handle, overrides?.[id] ?? {}, (ev) => {
@@ -373,7 +392,15 @@ export async function submitAllBatchCopilot(
     }
 
     const applied = results.filter((r) => r.submitted).length;
-    return { success: true, applied, failed: results.length - applied, total: results.length, results };
+    return {
+      success: true,
+      applied,
+      failed: results.length - applied,
+      total: results.length,
+      results,
+      ...(refusal ? { error: refusal, limitReached } : {}),
+      ...(appliesRemaining !== undefined ? { appliesRemaining } : {}),
+    };
   } catch (err: unknown) {
     return { success: false, error: err instanceof Error ? err.message : String(err) };
   }

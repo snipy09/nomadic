@@ -39,6 +39,9 @@ async function build() {
     'process.env.GEMINI_API_KEY': JSON.stringify(env('GEMINI_API_KEY')),
     'process.env.GEMINI_API_KEY_1': JSON.stringify(env('GEMINI_API_KEY_1')),
     'process.env.GEMINI_API_KEY_2': JSON.stringify(env('GEMINI_API_KEY_2')),
+    // Razorpay Payment Page URLs per plan (public, not secrets); empty = manual upgrade route only.
+    'process.env.RAZORPAY_CHECKOUT_URL_PRO': JSON.stringify(env('RAZORPAY_CHECKOUT_URL_PRO')),
+    'process.env.RAZORPAY_CHECKOUT_URL_MAX': JSON.stringify(env('RAZORPAY_CHECKOUT_URL_MAX')),
   };
 
   // Ensure out/main directory exists

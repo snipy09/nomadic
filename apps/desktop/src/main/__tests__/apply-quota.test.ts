@@ -1,0 +1,101 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// F9: reviewed applications are counted by the server (consume_apply_quota)
+// right before each one is sent; a refusal stops the run and nothing further is submitted.
+
+const { submitApplication, submitReviewed, consumeApplyQuota, getEntitlements } = vi.hoisted(() => ({
+  submitApplication: vi.fn(),
+  submitReviewed: vi.fn(),
+  consumeApplyQuota: vi.fn(),
+  getEntitlements: vi.fn(),
+}));
+
+vi.mock('electron', () => ({ app: { getPath: () => '/tmp/nomadic-test' } }));
+vi.mock('@job-automator/automation', () => ({
+  AutoApplyEngine: { submitApplication, submitReviewed, prefillParallelTabs: vi.fn() },
+  outcomeKey: (o: unknown) => String(o),
+}));
+vi.mock('../db.js', () => ({ getDb: () => ({ exec: () => [], run: vi.fn() }), persistDb: vi.fn(), saveCachedFormAnswerDb: vi.fn() }));
+vi.mock('../services/app-context.js', () => ({ log: vi.fn(), getMainWindow: () => null }));
+vi.mock('../services/cloud-sync.js', () => ({ logAndSyncApplication: vi.fn() }));
+vi.mock('../services/profile.js', () => ({
+  buildAutomationProfile: () => ({ email: 'a@b.co', firstName: 'A' }),
+  getMasterProfileRow: () => ({}),
+}));
+vi.mock('../services/entitlements.js', () => ({ consumeApplyQuota, getEntitlements }));
+
+import { launchAutonomous, startBatchCopilot, submitAllBatchCopilot } from '../services/apply';
+
+const targets = [1, 2, 3].map((n) => ({ url: `https://jobs.example/${n}`, company: `Co ${n}`, title: 'Dev' }));
+
+async function holdThree() {
+  submitApplication.mockImplementation(async (_url: string, _p: unknown, _cb: unknown, opts: { onReadyForReview?: (h: unknown) => void }) => {
+    opts.onReadyForReview?.({ id: Math.random() });
+    return { prefilled: true, fieldsFilledCount: 3, report: undefined };
+  });
+  const res = await startBatchCopilot(targets);
+  return res.snapshots!.map((s) => s.id);
+}
+
+beforeEach(() => {
+  submitApplication.mockReset();
+  submitReviewed.mockReset().mockResolvedValue({ submitted: true });
+  consumeApplyQuota.mockReset();
+  getEntitlements.mockReset();
+});
+
+describe('submitAllBatchCopilot quota', () => {
+  it('counts each application before sending and stops at the limit', async () => {
+    const ids = await holdThree();
+    consumeApplyQuota
+      .mockResolvedValueOnce({ ok: true, appliesRemaining: 1 })
+      .mockResolvedValueOnce({ ok: true, appliesRemaining: 0 })
+      .mockResolvedValueOnce({ ok: false, limitReached: true, error: 'Daily apply limit reached (3 of 3 used today).' });
+    const res = await submitAllBatchCopilot({}, ids);
+    expect(consumeApplyQuota).toHaveBeenCalledTimes(3);
+    expect(submitReviewed).toHaveBeenCalledTimes(2);
+    expect(res).toMatchObject({ success: true, applied: 2, failed: 1, limitReached: true, appliesRemaining: 0 });
+    expect(res.results![2]).toMatchObject({ submitted: false, error: expect.stringMatching(/daily apply limit/i) });
+  });
+
+  it('submits nothing when the quota cannot be checked', async () => {
+    const ids = await holdThree();
+    consumeApplyQuota.mockResolvedValue({ ok: false, error: 'Could not reach Nomadic to check your apply limit. Nothing was submitted.' });
+    const res = await submitAllBatchCopilot({}, ids);
+    expect(submitReviewed).not.toHaveBeenCalled();
+    expect(consumeApplyQuota).toHaveBeenCalledTimes(1);
+    expect(res.applied).toBe(0);
+    expect(res.results!.every((r) => !r.submitted && /nothing was submitted/i.test(r.error ?? ''))).toBe(true);
+  });
+});
+
+describe('launchAutonomous gate', () => {
+  const ent = (over: Record<string, unknown> = {}) => ({
+    success: true,
+    entitlements: { plan: 'pro', accountStatus: 'active', limits: { autonomousApply: false, appliesPerDay: 10 }, usage: { appliesToday: 0 }, ...over },
+  });
+
+  it('refuses without the autonomous entitlement and never opens a form', async () => {
+    getEntitlements.mockResolvedValue(ent());
+    const res = await launchAutonomous(['https://jobs.example/1']);
+    expect(res).toMatchObject({ success: false, limitReached: true });
+    expect(res.error).toMatch(/max plan/i);
+    expect(submitApplication).not.toHaveBeenCalled();
+  });
+
+  it('refuses when entitlements are unavailable (fail closed)', async () => {
+    getEntitlements.mockResolvedValue({ success: false, code: 'offline', error: 'Could not reach Nomadic.' });
+    const res = await launchAutonomous(['https://jobs.example/1']);
+    expect(res.success).toBe(false);
+    expect(submitApplication).not.toHaveBeenCalled();
+  });
+
+  it('counts each job and stops when the quota is refused', async () => {
+    getEntitlements.mockResolvedValue(ent({ plan: 'max', limits: { autonomousApply: true, appliesPerDay: null } }));
+    submitApplication.mockResolvedValue({ submitted: true });
+    consumeApplyQuota.mockResolvedValueOnce({ ok: true }).mockResolvedValueOnce({ ok: false, error: 'Account suspended' });
+    const res = await launchAutonomous(['https://jobs.example/1', 'https://jobs.example/2', 'https://jobs.example/3']);
+    expect(submitApplication).toHaveBeenCalledTimes(1);
+    expect(res).toMatchObject({ applied: 1, error: 'Account suspended' });
+  });
+});

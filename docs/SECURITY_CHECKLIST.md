@@ -39,6 +39,7 @@ Legend: ✅ fixed and verified · ⚠️ mitigated, follow-up needed · ☐ open
 - RLS is enabled on every table. `users_profile`, `user_sessions`, `user_preferences`, `user_job_matches`, `billing_records`, `razorpay_payments`, `user_cloud_profiles`, `user_applications`, `user_saved_jobs`, `user_resumes`, `scrape_runs`, `learning_events`, `user_tracks`, `practice_solutions`, `login_attempts`, `login_tickets`, `app_security` have **no** anon/authenticated policy: they are reachable only through session-checked SECURITY DEFINER RPCs or the service role.
 - All `sync_*` RPCs check `session_token + user_id + device_fingerprint + is_active` before touching data.
 - `learning_*` RPCs (`007`) check the device session and enforce the free tier server-side (1 active track, 10 practice attempts/day); `learning_events` is append-only (update trigger).
+- `get_entitlements` / `consume_apply_quota` (`011`) check the device session; plan limits come from `plan_limits()` (rows rendered from `packages/config`, parity-tested). Daily applies are counted in `usage_counters` (RLS on, no anon/authenticated access) under a per-user advisory lock, all or nothing. There is no refund RPC, so a client cannot reset its own count. The desktop calls `consume_apply_quota` before every submission and refuses to submit when it is refused or unreachable. Helpers (`plan_limits`, `billing_effective_plan`, `billing_session_ok`, `billing_today`) are not callable by anon.
 - Learn content tables expose only published lessons/practice and `active` (link-checked) resources.
 - SECURITY DEFINER functions added in `002`–`008` pin `search_path`.
 - The Razorpay webhook verifies the HMAC signature and refuses to run without `RAZORPAY_WEBHOOK_SECRET`.
@@ -48,8 +49,8 @@ Legend: ✅ fixed and verified · ⚠️ mitigated, follow-up needed · ☐ open
 `authenticate_user`, `register_device_session`, `verify_and_update_session`, `sync_pull_user_data`,
 `sync_push_user_profile`, `sync_push_application`, `sync_push_saved_job`, `sync_remove_saved_job`,
 `sync_push_resume`, `sync_delete_resume`, `sync_delete_application` (010), `learning_start_track`, `learning_archive_track`,
-`learning_record_events`, `learning_pull_events`. Any new client RPC must be added to this list in a
-migration; everything else is denied by default.
+`learning_record_events`, `learning_pull_events`, `get_entitlements` (011), `consume_apply_quota` (011).
+Any new client RPC must be added to this list in a migration; everything else is denied by default.
 
 ## Owner actions
 
