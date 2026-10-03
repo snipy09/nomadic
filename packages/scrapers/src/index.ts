@@ -7,7 +7,7 @@ import { scrapeInternshala, type InternshalaJob } from './internshala-scraper.ts
 import { scrapeNaukriIndia, scrapeIndeedIndia } from './indian-portals-scraper.ts';
 import { computeJobHash } from './hasher.ts';
 import { scrapeRecruiterLeads, type RecruiterLead } from './recruiter-scraper.ts';
-import { getScraperSupabase } from './env-helper.ts';
+import { getScraperEnv, getScraperSupabase } from './env-helper.ts';
 import { batchResolveAndFilterJobs } from './form-link-resolver.ts';
 
 export {
@@ -282,9 +282,11 @@ export async function runAllScrapers(
     `(India Priority + At least 4 Remote/10 + Internshala).`
   );
 
-  // Auto-push scraped jobs to Supabase if connected
+  // Auto-push scraped jobs to Supabase if connected. Writes to `jobs` need the
+  // service role key since migration 002 (the anon key is read-only), so skip
+  // the attempt entirely without it instead of firing a request that must fail.
   try {
-    const supabase = getScraperSupabase();
+    const supabase = getScraperEnv().isServiceRole ? getScraperSupabase() : null;
     if (supabase && scored.length > 0) {
       const rows = scored.map((j) => ({
         title: j.title,
@@ -299,7 +301,9 @@ export async function runAllScrapers(
         created_at: j.createdAt || new Date().toISOString()
       }));
 
-      supabase.from('jobs').upsert(rows, { onConflict: 'job_hash', ignoreDuplicates: true }).then(({ error }) => {
+      Promise.resolve(
+        supabase.from('jobs').upsert(rows, { onConflict: 'job_hash', ignoreDuplicates: true })
+      ).then(({ error }) => {
         if (!error) console.log(`[Scraper Cloud Sync] Upserted ${rows.length} jobs to Supabase.`);
       }).catch(() => {});
     }

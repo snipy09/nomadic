@@ -17,7 +17,7 @@ export interface RawJob {
 
 export interface AtsBoardConfig {
   name: string;
-  type: 'lever' | 'ashby';
+  type: 'greenhouse' | 'lever' | 'ashby';
   boardId: string;
 }
 

@@ -1,0 +1,38 @@
+{
+  "apiVersion": "2",
+  "jobCount": 2,
+  "lastUpdate": "2026-09-30 10:00:00",
+  "jobs": [
+    {
+      "id": 118201,
+      "url": "https://jobicy.com/jobs/118201-senior-backend-engineer-go",
+      "jobSlug": "118201-senior-backend-engineer-go",
+      "jobTitle": "Senior Backend Engineer (Go)",
+      "companyName": "Orbital Systems",
+      "jobIndustry": ["Programming"],
+      "jobType": ["full-time"],
+      "jobGeo": "Europe, India",
+      "jobLevel": "Senior",
+      "jobExcerpt": "Build distributed systems in Go.",
+      "jobDescription": "<p>Build distributed systems in Go and PostgreSQL. Kubernetes experience is a plus.</p>",
+      "pubDate": "2026-09-29 08:15:00",
+      "annualSalaryMin": 90000,
+      "annualSalaryMax": 120000,
+      "salaryCurrency": "USD"
+    },
+    {
+      "id": 118202,
+      "url": "https://jobicy.com/jobs/118202-junior-frontend-developer",
+      "jobSlug": "118202-junior-frontend-developer",
+      "jobTitle": "Junior Frontend Developer",
+      "companyName": "Brightleaf",
+      "jobIndustry": ["Programming"],
+      "jobType": ["full-time"],
+      "jobGeo": "Anywhere",
+      "jobLevel": "Junior",
+      "jobExcerpt": "React and TypeScript.",
+      "jobDescription": "<p>Work with React and TypeScript on our dashboard.</p>",
+      "pubDate": "2026-09-28 12:00:00"
+    }
+  ]
+}

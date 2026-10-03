@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
+import { readFileSync } from 'fs';
+import { createFixtureFetch } from '../http/fixture-fetch.js';
 import {
   normalizeInternshalaUrl,
   isInternshala404Page,
@@ -173,18 +175,60 @@ describe('Internshala Scraper Resilience & URL Normalization', () => {
   });
 
   describe('scrapeInternshala pipeline resilience', () => {
-    it('executes scrapeInternshala without throwing and returns formatted postings', async () => {
+    const listingHtml = readFileSync(new URL('./fixtures/internshala-listing.html', import.meta.url), 'utf8');
+    const jobicyJson = JSON.parse(readFileSync(new URL('./fixtures/jobicy.json', import.meta.url), 'utf8'));
+    const originalFetch = globalThis.fetch;
+
+    afterEach(() => {
+      globalThis.fetch = originalFetch;
+    });
+
+    it('parses recorded listing + placements fixtures into formatted postings (hermetic)', async () => {
+      const fixtureFetch = createFixtureFetch([
+        { match: 'https://internshala.com/internships/*', body: listingHtml },
+        { match: 'https://internshala.com/jobs/*', body: listingHtml },
+        { match: 'https://jobicy.com/api/v2/remote-jobs*', body: jobicyJson },
+      ]);
+      globalThis.fetch = fixtureFetch;
+
       const jobs = await scrapeInternshala();
-      expect(Array.isArray(jobs)).toBe(true);
+      expect(fixtureFetch.misses).toEqual([]);
+
+      const internshala = jobs.filter(j => j.source === 'Internshala');
+      // 3 unique detail links even though the same listing is served for all 3 listing URLs
+      expect(internshala).toHaveLength(3);
+      for (const job of internshala) {
+        expect(job.applyUrl).toMatch(/^https:\/\/internshala\.com\/(internship|job)\/detail\//);
+        expect(job.applyUrl).not.toContain('utm_source');
+        expect(job.jobHash).toHaveLength(64);
+      }
+      expect(internshala[0].company).toBe('Acme labs');
+
+      const placements = jobs.filter(j => j.source === 'Verified Placements Feed');
+      expect(placements).toHaveLength(2);
+      expect(placements[0].company).toBe('Orbital Systems');
+      expect(placements[0].experienceLevel).toBe('senior');
+    });
+
+    it('returns an empty list (not a throw) when every request fails', async () => {
+      globalThis.fetch = createFixtureFetch([]);
+      const jobs = await scrapeInternshala();
+      expect(jobs).toEqual([]);
+    });
+
+    it('fetchInternshalaDetail maps 404 to expired', async () => {
+      globalThis.fetch = createFixtureFetch([
+        { match: 'https://internshala.com/internship/detail/gone-1', status: 404, body: 'Not Found' },
+      ]);
+      const res = await fetchInternshalaDetail('https://internshala.com/internship/detail/gone-1', 0);
+      expect(res.status).toBe('expired');
+    });
+
+    // Live check: opt in with SCRAPERS_LIVE=1 (needs outbound network).
+    it.skipIf(!process.env.SCRAPERS_LIVE)('live: scrapeInternshala returns postings', async () => {
+      const jobs = await scrapeInternshala();
       expect(jobs.length).toBeGreaterThan(0);
-      
-      const first = jobs[0];
-      expect(first.company).toBeDefined();
-      expect(first.title).toBeDefined();
-      expect(first.applyUrl).toMatch(/^https:\/\/internshala\.com/);
-      expect(first.source).toBe('Internshala');
-      expect(first.jobHash).toBeDefined();
-    }, 25000);
+    }, 30000);
   });
 
 });
