@@ -55,15 +55,26 @@ export interface Job {
   jobHash?: string;
 }
 
+export interface ApplicationStatusEvent {
+  status: string;
+  /** ISO-8601, or SQLite `YYYY-MM-DD HH:MM:SS` (UTC) on older rows. */
+  changed_at: string;
+}
+
 export interface Application {
   id?: number;
   company: string;
   title: string;
+  /** Posting URL, or a `manual:` sync key for entries logged without a link. */
   apply_url: string;
   status: string;
   mode: string;
   applied_at: string;
   created_at?: string;
+  updated_at?: string | null;
+  notes?: string;
+  /** Append-only status history, oldest first. */
+  history?: ApplicationStatusEvent[];
 }
 
 export interface OutreachContact {
@@ -254,9 +265,10 @@ export interface ElectronAPI {
   /** Not exposed by the current preload; callers must feature-check before use. */
   onAutoApplyProgress?: (callback: (data: any) => void) => () => void;
   getApplications: () => Promise<Application[]>;
-  saveApplication: (app: { company: string; title: string; apply_url: string; status?: string; mode?: string }) =>
+  saveApplication: (app: { company: string; title: string; apply_url?: string; status?: string; mode?: string; notes?: string }) =>
     Promise<{ success: boolean; id?: number; error?: string }>;
-  updateApplicationStatus: (id: number | string, status: string) => Promise<{ success: boolean; error?: string }>;
+  updateApplicationStatus: (id: number | string, status: string) => Promise<{ success: boolean; error?: string; application?: Application }>;
+  updateApplicationNotes: (id: number | string, notes: string) => Promise<{ success: boolean; error?: string; application?: Application }>;
   deleteApplication: (id: number | string) => Promise<{ success: boolean; error?: string }>;
   getSavedJobs: () => Promise<Job[]>;
   saveJob: (job: Job) => Promise<{ success: boolean; error?: string }>;

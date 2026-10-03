@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { ArgSchemas } from './handle.js';
+import { USER_APPLICATION_STATUSES } from '../../shared/ipc.js';
 
 /**
  * Zod schemas for every IPC channel that accepts renderer input. They check
@@ -103,16 +104,24 @@ export const applyUrlArgs: ArgSchemas<'remove-saved-job'> = [url];
 
 // ── applications & auto-apply ──────────────────────────────────────────────
 const idStatus = z.object({ id, status: str(100) }).passthrough();
-export const idStatusArgs: ArgSchemas<'update-application-status'> = [idStatus];
+export const idStatusArgs: ArgSchemas<'admin-update-user-status'> = [idStatus];
 export const idArgs: ArgSchemas<'delete-application'> = [id];
+
+/** Notes on one application (synced, so bounded like the cloud RPC). */
+export const APPLICATION_NOTES_MAX = 10_000;
+const applicationStatus = z.object({ id, status: z.enum(USER_APPLICATION_STATUSES) }).passthrough();
+export const applicationStatusArgs: ArgSchemas<'update-application-status'> = [applicationStatus];
+const applicationNotes = z.object({ id, notes: str(APPLICATION_NOTES_MAX) }).passthrough();
+export const applicationNotesArgs: ArgSchemas<'update-application-notes'> = [applicationNotes];
 
 const applicationInput = z
   .object({
-    company: str(),
-    title: str(),
-    apply_url: url,
+    company: str().refine((v) => v.trim().length > 0, 'Company is required'),
+    title: str().refine((v) => v.trim().length > 0, 'Title is required'),
+    apply_url: opt(url),
     status: opt(str(100)),
-    mode: opt(str(100)),
+    mode: opt(z.enum(['semi-auto', 'autonomous', 'outreach', 'manual'])),
+    notes: opt(str(APPLICATION_NOTES_MAX)),
   })
   .passthrough();
 export const saveApplicationArgs: ArgSchemas<'save-application'> = [applicationInput];

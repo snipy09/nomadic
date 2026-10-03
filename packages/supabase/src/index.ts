@@ -230,10 +230,21 @@ export async function syncPushApplication(
   userId: string,
   sessionToken: string,
   deviceFingerprint: string,
-  app: { company: string; title: string; apply_url: string; status?: string; mode?: string }
+  app: {
+    company: string;
+    title: string;
+    apply_url: string;
+    status?: string;
+    mode?: string;
+    /** Omit to keep the stored notes. */
+    notes?: string;
+    /** Full append-only history; omit to keep the stored history. */
+    status_history?: Array<{ status: string; changed_at: string }>;
+    applied_at?: string;
+  }
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    const { data, error } = await supabase.rpc('sync_push_application', {
+    const params: Record<string, unknown> = {
       p_user_id: userId,
       p_session_token: sessionToken,
       p_device_fingerprint: deviceFingerprint,
@@ -242,6 +253,37 @@ export async function syncPushApplication(
       p_apply_url: app.apply_url,
       p_status: app.status || 'applied',
       p_mode: app.mode || 'autonomous'
+    };
+    // Optional fields (migration 010) are only sent when set.
+    if (app.notes !== undefined) params.p_notes = app.notes;
+    if (app.status_history !== undefined) params.p_status_history = app.status_history;
+    if (app.applied_at !== undefined) params.p_applied_at = app.applied_at;
+    const { data, error } = await supabase.rpc('sync_push_application', params);
+
+    if (error) return { ok: false, error: error.message };
+    const row = Array.isArray(data) ? data[0] : data;
+    return { ok: Boolean(row?.ok), error: row?.error };
+  } catch (err: any) {
+    return { ok: false, error: String(err?.message ?? err) };
+  }
+}
+
+/**
+ * Delete an application from Supabase cloud (by apply URL, its sync key).
+ */
+export async function syncDeleteApplication(
+  supabase: any,
+  userId: string,
+  sessionToken: string,
+  deviceFingerprint: string,
+  applyUrl: string
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const { data, error } = await supabase.rpc('sync_delete_application', {
+      p_user_id: userId,
+      p_session_token: sessionToken,
+      p_device_fingerprint: deviceFingerprint,
+      p_apply_url: applyUrl
     });
 
     if (error) return { ok: false, error: error.message };

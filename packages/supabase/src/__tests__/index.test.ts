@@ -6,6 +6,7 @@ import {
   syncPullUserData,
   syncPushUserProfile,
   syncPushApplication,
+  syncDeleteApplication,
   syncPushSavedJob,
   syncRemoveSavedJob,
   syncPushResume,
@@ -230,6 +231,31 @@ describe('Supabase Package Unit Tests', () => {
         p_mode: 'autonomous'
       });
       expect(res.ok).toBe(true);
+    });
+
+    it('sends notes, history and applied date only when given', async () => {
+      const mockSupabase = { rpc: vi.fn().mockResolvedValue({ data: [{ ok: true }], error: null }) };
+      const history = [{ status: 'applied', changed_at: '2026-10-01T10:00:00.000Z' }, { status: 'interviewing', changed_at: '2026-10-02T10:00:00.000Z' }];
+      await syncPushApplication(mockSupabase, 'user-1', 'tok-1', 'fp-1', {
+        company: 'Vercel', title: 'Platform Engineer', apply_url: 'https://vercel.com/apply',
+        status: 'interviewing', mode: 'manual', notes: '', status_history: history, applied_at: '2026-10-01T10:00:00.000Z',
+      });
+      const params = mockSupabase.rpc.mock.calls[0][1];
+      expect(params.p_notes).toBe('');
+      expect(params.p_status_history).toEqual(history);
+      expect(params.p_applied_at).toBe('2026-10-01T10:00:00.000Z');
+    });
+  });
+
+  describe('syncDeleteApplication', () => {
+    it('deletes by apply URL and surfaces RPC errors', async () => {
+      const ok = { rpc: vi.fn().mockResolvedValue({ data: [{ ok: true }], error: null }) };
+      expect((await syncDeleteApplication(ok, 'u', 't', 'f', 'https://a.co/1')).ok).toBe(true);
+      expect(ok.rpc).toHaveBeenCalledWith('sync_delete_application', {
+        p_user_id: 'u', p_session_token: 't', p_device_fingerprint: 'f', p_apply_url: 'https://a.co/1',
+      });
+      const bad = { rpc: vi.fn().mockResolvedValue({ data: null, error: { message: 'denied' } }) };
+      expect(await syncDeleteApplication(bad, 'u', 't', 'f', 'x')).toEqual({ ok: false, error: 'denied' });
     });
   });
 

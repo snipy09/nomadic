@@ -21,6 +21,7 @@ const K = {
   calibrated: 'nomadic_last_calibrated_date',
   oppWaitlist: 'nomadic_opp_board_waitlist',
   sidebarCollapsed: 'nomadic_sidebar_collapsed',
+  applicationsView: 'nomadic_applications_view',
 } as const;
 
 export const prefs = {
@@ -63,6 +64,8 @@ export const prefs = {
   setLastCalibrated: (d: string) => write(K.calibrated, d),
   getSidebarCollapsed: () => read(K.sidebarCollapsed) === 'true',
   setSidebarCollapsed: (v: boolean) => write(K.sidebarCollapsed, v ? 'true' : 'false'),
+  getApplicationsView: (): 'board' | 'list' => (read(K.applicationsView) === 'list' ? 'list' : 'board'),
+  setApplicationsView: (v: 'board' | 'list') => write(K.applicationsView, v),
   getOppWaitlist: () => read(K.oppWaitlist) === 'true',
   setOppWaitlist: () => write(K.oppWaitlist, 'true'),
 };

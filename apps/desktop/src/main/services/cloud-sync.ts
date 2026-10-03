@@ -1,6 +1,5 @@
 import {
   syncPullUserData,
-  syncPushApplication,
   syncPushSavedJob,
   syncRemoveSavedJob,
   syncPushResume,
@@ -11,6 +10,7 @@ import { log } from './app-context.js';
 import { getActiveSyncSession } from './session.js';
 import { getAnonSupabase } from './supabase.js';
 import { upsertMasterProfile } from './profile.js';
+import { mergeCloudApplications } from './applications-store.js';
 
 // ── Cloud Sync & Single-Laptop Lock Helpers ─────────────────────────────────
 
@@ -60,23 +60,9 @@ export async function syncPullUserDataToLocalDb(
       });
     }
 
-    // 2. Sync Applications
+    // 2. Sync Applications (merge by apply URL; newer side wins, history unioned)
     if (Array.isArray(applications)) {
-      for (const app of applications) {
-        if (!app.apply_url || !app.company || !app.title) continue;
-        db.run(
-          `INSERT OR REPLACE INTO local_applications (company, title, apply_url, status, mode, applied_at)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          [
-            String(app.company),
-            String(app.title),
-            String(app.apply_url),
-            String(app.status || 'applied'),
-            String(app.mode || 'autonomous'),
-            String(app.applied_at || new Date().toISOString())
-          ] as any
-        );
-      }
+      mergeCloudApplications(db, applications, new Date().toISOString());
     }
 
     // 3. Sync Saved Jobs
@@ -132,35 +118,8 @@ export async function syncPullUserDataToLocalDb(
   }
 }
 
-export function logAndSyncApplication(app: {
-  company: string;
-  title: string;
-  apply_url: string;
-  status?: string;
-  mode?: string;
-}): void {
-  const db = getDb();
-  db.run(
-    `INSERT OR REPLACE INTO local_applications (company, title, apply_url, status, mode, applied_at)
-     VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-    [app.company, app.title, app.apply_url, app.status || 'applied', app.mode || 'autonomous']
-  );
-  persistDb();
-
-  const active = getActiveSyncSession();
-  if (active) {
-    const supabase = getAnonSupabase();
-    if (supabase) {
-      syncPushApplication(
-        supabase,
-        active.userId,
-        active.sessionToken,
-        active.deviceFingerprint,
-        app
-      ).catch(() => {});
-    }
-  }
-}
+/** Kept here for existing importers; the implementation lives in services/applications.ts. */
+export { logAndSyncApplication } from './applications.js';
 
 export function saveAndSyncJob(job: {
   title: string;
