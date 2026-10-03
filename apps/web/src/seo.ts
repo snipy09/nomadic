@@ -2,7 +2,7 @@ export const SITE = 'https://nomadicai.vercel.app';
 export const OG_IMAGE = `${SITE}/og.png`;
 export const OG_ALT = 'Nomadic: your whole job search, in one window.';
 
-export type PageId = 'home' | 'download' | 'terms' | 'privacy' | 'notfound';
+export type PageId = 'home' | 'download' | 'terms' | 'privacy' | 'refunds' | 'notfound';
 
 export interface PageMeta {
   path: string;
@@ -40,17 +40,25 @@ export const PAGES: Record<PageId, PageMeta> = {
     description:
       'The terms for using Nomadic, the desktop app for learning, finding jobs, applying and tracking applications.',
     index: true,
-    updated: '2026-08-01',
+    updated: '2026-10-03',
     priority: '0.4',
   },
   privacy: {
     path: '/privacy',
     title: 'Privacy Policy | Nomadic',
     description:
-      'How Nomadic handles your data. Your profile, resumes and application history stay on your computer. What syncs, and what is never sold.',
+      'How Nomadic handles your data: what is stored on your computer, what syncs to your account in India, who processes it, and your rights.',
     index: true,
-    updated: '2026-08-01',
+    updated: '2026-10-03',
     priority: '0.4',
+  },
+  refunds: {
+    path: '/refunds',
+    title: 'Refund and Cancellation Policy | Nomadic',
+    description: 'How refunds and cancellations work for Nomadic Pro and Max plans: monthly, no auto-renewal, 7-day refund.',
+    index: true,
+    updated: '2026-10-03',
+    priority: '0.3',
   },
   notfound: {
     path: '/404',

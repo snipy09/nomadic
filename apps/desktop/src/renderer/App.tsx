@@ -7,7 +7,6 @@ import { Onboarding } from './features/onboarding/Onboarding';
 import { AppShell, useTheme } from '@nomadic/ui';
 import { TopBar } from './components/TopBar';
 import { Sidebar } from './components/Sidebar';
-import { HomeView } from './components/HomeView';
 import { LearnView } from './features/learn/LearnView';
 import { inferRole } from './features/feed/match';
 import { UpgradeDialog } from './features/billing/UpgradeDialog';
@@ -424,14 +423,6 @@ export default function App() {
               />
             )}
 
-            {activeTab === 'home' && (
-              <HomeView
-                profile={profile}
-                onNavigate={setActiveTab}
-                onLog={addLog}
-              />
-            )}
-
             {activeTab === 'feed' && (
               <FeedView
                 profile={profile}
@@ -507,7 +498,7 @@ export default function App() {
             )}
 
             {/* Safe Fallback: if activeTab does not match any known route, render FeedView */}
-            {!['learner-roadmaps', 'learner-resources', 'learner-interview-prep', 'opportunities', 'home', 'feed', 'outreach', 'applications', 'logs', 'profile', 'settings'].includes(activeTab) && !Boolean(activeTab && activeTab.startsWith('admin')) && (
+            {!['learner-roadmaps', 'learner-resources', 'learner-interview-prep', 'opportunities', 'feed', 'outreach', 'applications', 'logs', 'profile', 'settings'].includes(activeTab) && !Boolean(activeTab && activeTab.startsWith('admin')) && (
               <FeedView
                 profile={profile}
                 onUpdateProfile={setProfile}

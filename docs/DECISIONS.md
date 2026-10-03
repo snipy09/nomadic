@@ -28,3 +28,5 @@
 | 24 | Google sign-in | Fix with a server function that verifies the Google token and issues the same login ticket as password sign-in |
 | 25 | Roadmap | Core feature: every new user gets a roadmap at the end of onboarding (deterministic planner; LLM only explains/adjusts) |
 | 26 | Database | Fresh Supabase project `nomadic` (ap-south-1, free plan); no data carried over |
+| 27 | Legal documents | Terms, Privacy Policy and Refund & Cancellation Policy written for the actual product (India, DPDP Act 2023), single source in `packages/config/src/legal.ts`, shown on the website (/terms, /privacy, /refunds) and in the app; acceptance is versioned (`LEGAL_VERSION`). Refunds: plans are monthly with no auto-renewal; full refund within 7 days of payment, once per account. Needs lawyer review and real support/grievance mailboxes before launch |
+| 28 | Direct submit | Removed the last UI path to direct submission (orphaned HomeView); apply always goes through review |

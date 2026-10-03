@@ -23,6 +23,7 @@ const FILES = {
   download: 'download.html',
   terms: 'terms.html',
   privacy: 'privacy.html',
+  refunds: 'refunds.html',
   notfound: '404.html',
 };
 

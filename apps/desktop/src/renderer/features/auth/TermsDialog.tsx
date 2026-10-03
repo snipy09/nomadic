@@ -1,5 +1,6 @@
-import React from 'react';
-import { Button, Dialog, DialogContent } from '@nomadic/ui';
+import React, { useState } from 'react';
+import { LEGAL_DOCS, LEGAL_UPDATED, type LegalDoc } from '@nomadic/config';
+import { Button, Dialog, DialogContent, Tabs, TabsList, TabsTrigger } from '@nomadic/ui';
 
 interface TermsDialogProps {
   open: boolean;
@@ -9,60 +10,61 @@ interface TermsDialogProps {
   accepted: boolean;
 }
 
-// Plain statements of what the app actually does. Legal wording still needs the owner's review.
-const SECTIONS: Array<{ title: string; body: string }> = [
-  {
-    title: 'Your licence',
-    body:
-      'Nomadic gives you a personal, non-transferable licence to use the desktop app on the plan you hold (Free, Pro or Max). One account can be active on one computer at a time.',
-  },
-  {
-    title: 'Applications',
-    body:
-      'Nomadic fills application forms in your browser using your profile. It always shows you the filled form and waits for your confirmation before anything is submitted. You are responsible for the accuracy of what you submit.',
-  },
-  {
-    title: 'Learning content',
-    body: 'Learning paths, lessons and links are provided to help you prepare for placements and interviews. Links point to third-party sites we do not control.',
-  },
-  {
-    title: 'Your data',
-    body:
-      'Your profile, resumes and applications are stored on this computer and synced to your Nomadic account so they are available after a reinstall. We do not sell your data.',
-  },
+type DocId = keyof typeof LEGAL_DOCS;
+const ORDER: Array<{ id: DocId; label: string }> = [
+  { id: 'terms', label: 'Terms' },
+  { id: 'privacy', label: 'Privacy' },
+  { id: 'refunds', label: 'Refunds' },
 ];
 
-export const TermsDialog: React.FC<TermsDialogProps> = ({ open, onOpenChange, onAccept, accepted }) => (
-  <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent
-      title="Terms of service"
-      description="Please read these before using Nomadic."
-      size="lg"
-      footer={
-        <>
-          <Button variant="secondary" onClick={() => onOpenChange(false)}>Close</Button>
-          {onAccept && !accepted && (
-            <Button
-              variant="primary"
-              onClick={() => {
-                onAccept();
-                onOpenChange(false);
-              }}
-            >
-              Accept terms
-            </Button>
-          )}
-        </>
-      }
-    >
-      <ol className="flex flex-col gap-4">
-        {SECTIONS.map((s, i) => (
-          <li key={s.title} className="flex flex-col gap-1">
-            <h3 className="text-body font-strong text-fg">{i + 1}. {s.title}</h3>
-            <p className="text-body text-fg-muted">{s.body}</p>
-          </li>
-        ))}
-      </ol>
-    </DialogContent>
-  </Dialog>
-);
+function DocBody({ doc }: { doc: LegalDoc }) {
+  return (
+    <ol className="flex flex-col gap-4">
+      {doc.sections.map((s, i) => (
+        <li key={s.title} className="flex flex-col gap-1">
+          <h3 className="text-body font-strong text-fg">{i + 1}. {s.title}</h3>
+          {s.paragraphs.map((p) => (
+            <p key={p.slice(0, 40)} className="text-body text-fg-muted">{p}</p>
+          ))}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** Terms, privacy and refund policy from @nomadic/config (same text as the website). */
+export const TermsDialog: React.FC<TermsDialogProps> = ({ open, onOpenChange, onAccept, accepted }) => {
+  const [tab, setTab] = useState<DocId>('terms');
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        title="Terms and privacy"
+        description={`Please read these before using Nomadic. Last updated ${LEGAL_UPDATED}.`}
+        size="lg"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => onOpenChange(false)}>Close</Button>
+            {onAccept && !accepted && (
+              <Button
+                variant="primary"
+                onClick={() => {
+                  onAccept();
+                  onOpenChange(false);
+                }}
+              >
+                Accept terms and privacy policy
+              </Button>
+            )}
+          </>
+        }
+      >
+        <Tabs value={tab} onValueChange={(v) => setTab(v as DocId)} className="gap-4">
+          <TabsList aria-label="Document">
+            {ORDER.map((d) => <TabsTrigger key={d.id} value={d.id}>{d.label}</TabsTrigger>)}
+          </TabsList>
+          <DocBody doc={LEGAL_DOCS[tab]} />
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  );
+};

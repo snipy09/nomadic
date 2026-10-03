@@ -22,6 +22,9 @@ export default function Footer() {
           <a href="/privacy" className={LINK}>
             Privacy
           </a>
+          <a href="/refunds" className={LINK}>
+            Refunds
+          </a>
           <a href="mailto:support@nomadic.app" className={`${LINK} break-all`}>
             support@nomadic.app
           </a>

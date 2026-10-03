@@ -119,6 +119,7 @@ function App({ initialPath }: AppProps) {
       {page === 'download' && <Download />}
       {page === 'terms' && <Legal type="terms" />}
       {page === 'privacy' && <Legal type="privacy" />}
+      {page === 'refunds' && <Legal type="refunds" />}
       {page === 'notfound' && <NotFound />}
       <Analytics />
     </>

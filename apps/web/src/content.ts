@@ -184,36 +184,34 @@ export interface DataHandlingRow {
 /** Privacy and data-handling facts shown on the home page. Keep in sync with the privacy policy. */
 export const DATA_HANDLING: DataHandlingRow[] = [
   {
-    title: 'Stays on your computer',
+    title: 'Stored on your computer',
     items: [
-      'Profile, resumes and cover letters',
-      'Application history, notes and form answers',
-      'Your AI provider keys, encrypted with the operating system keychain',
+      'Your profile, resumes, saved jobs and application history, in the app\'s local database',
+      'Works from your own browser: Nomadic never asks for your job-portal passwords',
     ],
   },
   {
-    title: 'Goes to our server (Supabase)',
+    title: 'Synced to your account (Supabase, Mumbai)',
     items: [
-      'Account email, name and a salted password hash',
-      'Plan status and expiry',
-      'Session token, device fingerprint and IP address, to enforce one active device',
-      'Learning progress events (lessons, quiz results) so progress survives a reinstall',
+      'Account email, name and a salted password hash; plan status',
+      'Your profile, resumes, saved jobs, applications and learning progress, so they survive a reinstall',
+      'Session token, device identifier and IP address, to keep one active device',
     ],
   },
   {
     title: 'What the AI sees',
     items: [
-      'Only when you use an AI feature, using your own Groq or Gemini key',
-      'The form question plus the profile or resume fields needed to answer it',
-      'Sent from your computer straight to the provider, never through our servers',
+      'Only when you use an AI feature, through our own server: no API key needed from you',
+      'Only what the request needs, such as a form question with the relevant profile fields',
+      'Not used by us to train AI models',
     ],
   },
   {
     title: 'What we never do',
     items: [
       'Sell, rent or share your data with advertisers or data brokers',
-      'Submit an application you have not approved, unless you turn on autonomous mode',
-      'Store your resume text or application answers on our server',
+      'Submit an application you have not reviewed and confirmed',
+      'See your card, UPI or bank details (payments go through Razorpay)',
     ],
   },
 ];

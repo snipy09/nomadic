@@ -1,5 +1,6 @@
 // The ONLY module in the renderer allowed to touch localStorage.
 // Holds UI preferences and the signed-in session pointer; all other app data lives in the DB.
+import { LEGAL_VERSION } from '@nomadic/config';
 import type { AppUser, PersonaTrack, TabType, WorkspaceMode } from '../types';
 
 type OppType = 'job' | 'internship' | 'both';
@@ -58,8 +59,9 @@ export const prefs = {
   setTrack: (t: PersonaTrack) => write(K.track, t),
   getLastTab: (t: PersonaTrack): TabType | null => read(K.tab(t)) as TabType | null,
   setLastTab: (t: PersonaTrack, tab: TabType) => write(K.tab(t), tab),
-  getTermsAccepted: () => read(K.terms) === 'true',
-  setTermsAccepted: (v: boolean) => write(K.terms, v ? 'true' : 'false'),
+  /** True only if the user accepted the current version of the terms (LEGAL_VERSION). */
+  getTermsAccepted: () => read(K.terms) === LEGAL_VERSION,
+  setTermsAccepted: (v: boolean) => write(K.terms, v ? LEGAL_VERSION : null),
   getLastCalibrated: () => read(K.calibrated),
   setLastCalibrated: (d: string) => write(K.calibrated, d),
   getSidebarCollapsed: () => read(K.sidebarCollapsed) === 'true',

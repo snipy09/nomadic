@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { LEGAL_VERSION } from '@nomadic/config';
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
@@ -51,11 +52,11 @@ describe('AuthScreen', () => {
     await userEvent.click(screen.getByRole('button', { name: /^sign in$/i }));
     await waitFor(() => expect(onLoginSuccess).toHaveBeenCalledWith(user));
     expect(api.authLogin).toHaveBeenCalledWith({ email: 'asha@example.com', password: 'secret12', forceTakeover: false });
-    expect(localStorage.getItem('nomadic_terms_accepted')).toBe('true');
+    expect(localStorage.getItem('nomadic_terms_accepted')).toBe(LEGAL_VERSION);
   });
 
   it('shows one generic message for bad credentials, whatever the server said', async () => {
-    localStorage.setItem('nomadic_terms_accepted', 'true');
+    localStorage.setItem('nomadic_terms_accepted', LEGAL_VERSION);
     const { onLoginSuccess } = setup({ authLogin: vi.fn().mockResolvedValue({ success: false, error: 'Incorrect password.' }) });
     await fillSignIn();
     await userEvent.click(screen.getByRole('button', { name: /^sign in$/i }));
@@ -66,7 +67,7 @@ describe('AuthScreen', () => {
   });
 
   it('asks before taking over a session on another computer', async () => {
-    localStorage.setItem('nomadic_terms_accepted', 'true');
+    localStorage.setItem('nomadic_terms_accepted', LEGAL_VERSION);
     const authLogin = vi.fn()
       .mockResolvedValueOnce({ success: false, conflict: true, activeDevice: 'HP Pavilion' })
       .mockResolvedValueOnce({ success: true, user });
@@ -81,7 +82,7 @@ describe('AuthScreen', () => {
   });
 
   it('creates an account with name, email and password', async () => {
-    localStorage.setItem('nomadic_terms_accepted', 'true');
+    localStorage.setItem('nomadic_terms_accepted', LEGAL_VERSION);
     const { api, onLoginSuccess } = setup();
     await userEvent.click(screen.getByRole('tab', { name: /create account/i }));
     await userEvent.type(await screen.findByLabelText(/full name/i), 'Asha Rao');
@@ -97,7 +98,7 @@ describe('AuthScreen', () => {
   });
 
   it('shows the server reason when sign-up is refused', async () => {
-    localStorage.setItem('nomadic_terms_accepted', 'true');
+    localStorage.setItem('nomadic_terms_accepted', LEGAL_VERSION);
     setup({ authSignup: vi.fn().mockResolvedValue({ success: false, error: 'Too many sign-up attempts. Try again in 15 minutes.' }) });
     await userEvent.click(screen.getByRole('tab', { name: /create account/i }));
     await userEvent.type(await screen.findByLabelText(/full name/i), 'Asha');
@@ -138,7 +139,7 @@ describe('AuthScreen', () => {
   });
 
   it('reports a failed Google sign-in and lets the user retry', async () => {
-    localStorage.setItem('nomadic_terms_accepted', 'true');
+    localStorage.setItem('nomadic_terms_accepted', LEGAL_VERSION);
     const { emitOAuth, onLoginSuccess } = setup();
     await userEvent.click(screen.getByRole('button', { name: /continue with google/i }));
     emitOAuth({ success: false, error: 'access_denied' });
