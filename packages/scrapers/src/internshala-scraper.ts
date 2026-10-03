@@ -250,7 +250,8 @@ export function parseInternshalaDetailPage(html: string, url: string): Internsha
  */
 export async function fetchInternshalaDetail(
   url: string,
-  retries: number = 2
+  retries: number = 2,
+  fetchImpl: typeof fetch = fetch,
 ): Promise<ScrapeJobResult> {
   const normalizedUrl = normalizeInternshalaUrl(url);
   if (!normalizedUrl) {
@@ -259,7 +260,7 @@ export async function fetchInternshalaDetail(
 
   for (let attempt = 1; attempt <= retries + 1; attempt++) {
     try {
-      const res = await fetch(normalizedUrl, {
+      const res = await fetchImpl(normalizedUrl, {
         headers: BROWSER_HEADERS,
         signal: AbortSignal.timeout(8000),
       });
@@ -294,30 +295,35 @@ export async function fetchInternshalaDetail(
 }
 
 /**
+ * Extracts unique, normalized detail URLs from an Internshala listing page.
+ */
+export function parseDetailUrlsFromListingHtml(html: string): string[] {
+  const detailUrls: string[] = [];
+  // Match data-href or href attributes containing detail links
+  const regex = /(?:data-href|href)=["'](\/(?:internship|job)\/detail\/[^"']+)["']/gi;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(html)) !== null) {
+    const relPath = match[1];
+    const fullUrl = `https://internshala.com${relPath.split('?')[0]}`;
+    const normalized = normalizeInternshalaUrl(fullUrl);
+    if (normalized && isDirectDetailUrl(normalized) && !detailUrls.includes(normalized)) {
+      detailUrls.push(normalized);
+    }
+  }
+  return detailUrls;
+}
+
+/**
  * 6. Crawls an Internshala listing page and extracts direct detail URLs
  */
-export async function extractDetailUrlsFromListing(listingUrl: string): Promise<string[]> {
+export async function extractDetailUrlsFromListing(listingUrl: string, fetchImpl: typeof fetch = fetch): Promise<string[]> {
   try {
-    const res = await fetch(listingUrl, {
+    const res = await fetchImpl(listingUrl, {
       headers: BROWSER_HEADERS,
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return [];
-    const html = await res.text();
-
-    const detailUrls: string[] = [];
-    // Match data-href or href attributes containing detail links
-    const regex = /(?:data-href|href)=["'](\/(?:internship|job)\/detail\/[^"']+)["']/gi;
-    let match: RegExpExecArray | null;
-    while ((match = regex.exec(html)) !== null) {
-      const relPath = match[1];
-      const fullUrl = `https://internshala.com${relPath.split('?')[0]}`;
-      const normalized = normalizeInternshalaUrl(fullUrl);
-      if (normalized && isDirectDetailUrl(normalized) && !detailUrls.includes(normalized)) {
-        detailUrls.push(normalized);
-      }
-    }
-    return detailUrls;
+    return parseDetailUrlsFromListingHtml(await res.text());
   } catch {
     return [];
   }

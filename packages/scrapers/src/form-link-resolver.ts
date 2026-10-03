@@ -7,6 +7,15 @@ export interface ResolvedJobForm {
   sourceUrl: string;
   platform?: string;
   failureReason?: string;
+  /** Set when the live check could not run (timeout / network). The job is then accepted on the canonical guard alone. */
+  networkError?: string;
+  /** HTTP status of the live check, when one was made. */
+  httpStatus?: number;
+}
+
+export interface ResolveOptions {
+  fetchImpl?: typeof fetch;
+  timeoutMs?: number;
 }
 
 const BROWSER_HEADERS = {
@@ -15,7 +24,8 @@ const BROWSER_HEADERS = {
   'Accept-Language': 'en-US,en;q=0.9',
 };
 
-const ERROR_404_SIGNATURES = [
+/** Phrases on a job page (or in its description) that mean the posting is closed. */
+export const CLOSED_JOB_PHRASES: readonly string[] = [
   'page not found',
   'job posting you were viewing is no longer active',
   'sorry, we couldn\'t find anything here',
@@ -33,6 +43,47 @@ const ERROR_404_SIGNATURES = [
 ];
 
 /**
+ * Pure URL transformation from a canonical posting URL to the ATS's direct
+ * application form (Lever `/apply`, Ashby `/application`, Greenhouse `#app`,
+ * SmartRecruiters `/apply`). No network.
+ */
+export function toDirectFormUrl(cleanUrl: string): string {
+  try {
+    const parsed = new URL(cleanUrl);
+    const host = parsed.hostname.toLowerCase();
+    const pathname = parsed.pathname;
+
+    if (host.includes('jobs.lever.co')) {
+      const parts = pathname.split('/').filter(Boolean);
+      if (parts.length >= 2 && !pathname.endsWith('/apply')) {
+        return `https://jobs.lever.co/${parts[0]}/${parts[1]}/apply`;
+      }
+    } else if (host.includes('jobs.ashbyhq.com')) {
+      const parts = pathname.split('/').filter(Boolean);
+      if (parts.length >= 2 && !pathname.endsWith('/application')) {
+        return `https://jobs.ashbyhq.com/${parts[0]}/${parts[1]}/application`;
+      }
+    } else if (host.includes('greenhouse.io') && pathname.includes('/jobs/')) {
+      const cleanPath = pathname.split('#')[0];
+      const segments = cleanPath.split('/').filter(Boolean);
+      // Canonical format: https://boards.greenhouse.io/<company>/jobs/<id>#app
+      if (segments.length >= 3 && segments[1] === 'jobs') {
+        return `https://boards.greenhouse.io/${segments[0]}/jobs/${segments[2]}#app`;
+      } else if (!parsed.hash.includes('app')) {
+        parsed.hash = '#app';
+        return parsed.toString();
+      }
+    } else if (host.includes('jobs.smartrecruiters.com') && !pathname.endsWith('/apply')) {
+      parsed.pathname = `${pathname.replace(/\/$/, '')}/apply`;
+      return parsed.toString();
+    }
+  } catch {
+    // fall through
+  }
+  return cleanUrl;
+}
+
+/**
  * Resolves a raw job posting URL to its verified direct application form endpoint.
  * Multi-Stage Verification Pipeline:
  * Stage 1: Strict Canonical Link Guard (Rejects root directories & search pages)
@@ -40,7 +91,11 @@ const ERROR_404_SIGNATURES = [
  * Stage 3: Content 404 / Expired Signature Scrutiny
  * Stage 4: DOM Application Form & External Destination Extraction
  */
-export async function resolveDirectFormUrl(rawUrl: string, companyName?: string): Promise<ResolvedJobForm> {
+export async function resolveDirectFormUrl(
+  rawUrl: string,
+  companyName?: string,
+  options: ResolveOptions = {},
+): Promise<ResolvedJobForm> {
   if (!rawUrl || typeof rawUrl !== 'string') {
     return { isValid: false, directApplyUrl: '', sourceUrl: rawUrl, failureReason: 'empty_url' };
   }
@@ -59,42 +114,13 @@ export async function resolveDirectFormUrl(rawUrl: string, companyName?: string)
   }
 
   try {
-    const parsed = new URL(guard.cleanUrl);
-    const host = parsed.hostname.toLowerCase();
-    const pathname = parsed.pathname;
-
-    let candidateFormUrl = guard.cleanUrl;
-
-    // Direct Form Transformations
-    if (host.includes('jobs.lever.co')) {
-      const parts = pathname.split('/').filter(Boolean);
-      if (parts.length >= 2 && !pathname.endsWith('/apply')) {
-        candidateFormUrl = `https://jobs.lever.co/${parts[0]}/${parts[1]}/apply`;
-      }
-    } else if (host.includes('jobs.ashbyhq.com')) {
-      const parts = pathname.split('/').filter(Boolean);
-      if (parts.length >= 2 && !pathname.endsWith('/application')) {
-        candidateFormUrl = `https://jobs.ashbyhq.com/${parts[0]}/${parts[1]}/application`;
-      }
-    } else if (host.includes('greenhouse.io') && pathname.includes('/jobs/')) {
-      const cleanPath = pathname.split('#')[0];
-      const segments = cleanPath.split('/').filter(Boolean);
-      // Canonical format: https://boards.greenhouse.io/<company>/jobs/<id>#app
-      if (segments.length >= 3 && segments[1] === 'jobs') {
-        candidateFormUrl = `https://boards.greenhouse.io/${segments[0]}/jobs/${segments[2]}#app`;
-      } else if (!parsed.hash.includes('app')) {
-        parsed.hash = '#app';
-        candidateFormUrl = parsed.toString();
-      }
-    } else if (host.includes('jobs.smartrecruiters.com') && !pathname.endsWith('/apply')) {
-      parsed.pathname = `${pathname.replace(/\/$/, '')}/apply`;
-      candidateFormUrl = parsed.toString();
-    }
+    const candidateFormUrl = toDirectFormUrl(guard.cleanUrl);
 
     // ── STAGE 2: LIVE HTTP 200 HEALTH & REDIRECTION CHECK ───────────────────
-    const res = await fetch(candidateFormUrl, {
+    const fetchImpl = options.fetchImpl ?? fetch;
+    const res = await fetchImpl(candidateFormUrl, {
       headers: BROWSER_HEADERS,
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(options.timeoutMs ?? 5000),
       redirect: 'follow',
     });
 
@@ -104,6 +130,7 @@ export async function resolveDirectFormUrl(rawUrl: string, companyName?: string)
         directApplyUrl: candidateFormUrl,
         sourceUrl: trimmed,
         failureReason: `http_${res.status}`,
+        httpStatus: res.status,
       };
     }
 
@@ -111,13 +138,14 @@ export async function resolveDirectFormUrl(rawUrl: string, companyName?: string)
     const html = (await res.text()).toLowerCase();
 
     // ── STAGE 3: CONTENT 404 / EXPIRED SIGNATURE SCRUTINY ───────────────────
-    for (const sig of ERROR_404_SIGNATURES) {
+    for (const sig of CLOSED_JOB_PHRASES) {
       if (html.includes(sig)) {
         return {
           isValid: false,
           directApplyUrl: finalUrl,
           sourceUrl: trimmed,
           failureReason: 'content_404_closed',
+          httpStatus: res.status,
         };
       }
     }
@@ -135,6 +163,7 @@ export async function resolveDirectFormUrl(rawUrl: string, companyName?: string)
           directApplyUrl: externalGuard.cleanUrl,
           sourceUrl: trimmed,
           platform: externalGuard.platform,
+          httpStatus: res.status,
         };
       }
     }
@@ -144,6 +173,7 @@ export async function resolveDirectFormUrl(rawUrl: string, companyName?: string)
       directApplyUrl: finalUrl,
       sourceUrl: trimmed,
       platform: guard.platform,
+      httpStatus: res.status,
     };
   } catch (err: any) {
     // If network verification times out, accept only if canonical guard passed
@@ -152,6 +182,7 @@ export async function resolveDirectFormUrl(rawUrl: string, companyName?: string)
       directApplyUrl: guard.cleanUrl,
       sourceUrl: trimmed,
       platform: guard.platform,
+      networkError: err?.message || String(err),
     };
   }
 }
