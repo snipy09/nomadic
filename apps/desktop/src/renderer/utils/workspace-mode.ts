@@ -1,4 +1,5 @@
 import { PersonaTrack, TabType } from '../types';
+import { prefs } from '../store/preferences';
 
 export type WorkspaceMode = 'learner_only' | 'seeker_only' | 'unified';
 
@@ -13,18 +14,11 @@ export function normalizeWorkspaceMode(mode?: string | null): WorkspaceMode {
 }
 
 export function getSavedWorkspaceMode(): WorkspaceMode {
-  try {
-    const saved = localStorage.getItem(WORKSPACE_MODE_KEY);
-    return normalizeWorkspaceMode(saved);
-  } catch {
-    return 'unified';
-  }
+  return prefs.getWorkspaceMode() ?? 'unified';
 }
 
 export function setSavedWorkspaceMode(mode: WorkspaceMode): void {
-  try {
-    localStorage.setItem(WORKSPACE_MODE_KEY, mode);
-  } catch {}
+  prefs.setWorkspaceMode(mode);
 }
 
 export function getAvailableTracks(mode: WorkspaceMode): PersonaTrack[] {

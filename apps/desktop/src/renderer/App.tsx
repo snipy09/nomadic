@@ -21,90 +21,41 @@ import { OpportunityBoardView } from './components/OpportunityBoardView';
 import { CommandPalette } from './components/CommandPalette';
 import { NomadicAssistant } from './components/NomadicAssistant';
 import { isTabEnabled } from './features';
+import { prefs } from './store/preferences';
+import { useAppStore } from './store/appStore';
 export default function App() {
-  // Current user state (persisted in secure localStorage session)
-  const [currentUser, setCurrentUser] = useState<AppUser | null>(() => {
-    try {
-      const stored = localStorage.getItem('nomadic_user') || localStorage.getItem('hirestack_user');
-      if (!stored) return null;
-      const parsed = JSON.parse(stored);
-      // Validate that stored object has valid identity structure
-      if (parsed && typeof parsed.email === 'string' && parsed.email.includes('@')) {
-        return parsed;
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  });
-
-  // Navigation tab state with persistence
-  const [workspaceMode, setWorkspaceModeState] = useState<WorkspaceMode>(() => {
-    try {
-      const saved = localStorage.getItem('nomadic_workspace_mode') as WorkspaceMode;
-      if (saved === 'learner_only' || saved === 'seeker_only' || saved === 'unified') return saved;
-    } catch {}
-    return 'unified';
-  });
-
-  const [activeTrack, setActiveTrack] = useState<PersonaTrack>(() => {
-    try {
-      const mode = (localStorage.getItem('nomadic_workspace_mode') as WorkspaceMode) || 'unified';
-      if (mode === 'learner_only') return 'learner';
-      if (mode === 'seeker_only') return 'seeker';
-      const saved = localStorage.getItem('nomadic_active_track') as PersonaTrack;
-      if (saved === 'learner' || saved === 'seeker') return saved;
-    } catch {}
-    return 'learner';
-  });
-
-  const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
-  const [upgradeFeature, setUpgradeFeature] = useState<string>('');
-  const [showCommandPalette, setShowCommandPalette] = useState<boolean>(false);
-  const [wantsLogin, setWantsLogin] = useState<boolean>(false);
-
-  const [activeTab, setActiveTab] = useState<TabType>(() => {
-    try {
-      const savedTrack = (localStorage.getItem('nomadic_active_track') as PersonaTrack) || 'learner';
-      const savedTab = localStorage.getItem(`nomadic_last_tab_${savedTrack}`) as TabType;
-      if (savedTab) return savedTab;
-    } catch {}
-    return 'learner-roadmaps';
-  });
-
-  const [outreachTargetCompany, setOutreachTargetCompany] = useState<string>('');
-
-  // Master profile state
-  const [profile, setProfile] = useState<MasterProfile>(() => {
-    try {
-      const saved = localStorage.getItem('nomadic_master_profile') || localStorage.getItem('hirestack_master_profile');
-      if (saved) return { ...JSON.parse(saved), onboardingCompleted: false };
-    } catch {}
-    return {
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      linkedin: '',
-      github: '',
-      sponsorship: 'No',
-      desiredSalary: '',
-      noticePeriod: '2 weeks',
-      groqApiKey: '',
-      smtpPassword: '',
-      resumeText: '',
-      desiredTitle: '',
-      techStack: '',
-      customAnswers: {},
-      onboardingCompleted: false,
-    };
-  });
-
-  const [onboardingLoaded, setOnboardingLoaded] = useState<boolean>(false);
-  const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
-  const [savingProfile, setSavingProfile] = useState<boolean>(false);
-  const [heartbeat, setHeartbeat] = useState<HeartbeatStatus | null>(null);
-  const [logs, setLogs] = useState<string[]>([]);
+  // Current user state (session pointer persisted via the preferences module)
+  // Single source of truth: Zustand store (see store/appStore.ts)
+  const currentUser = useAppStore((s) => s.currentUser);
+  const setCurrentUser = useAppStore((s) => s.setCurrentUser);
+  const workspaceMode = useAppStore((s) => s.workspaceMode);
+  const setWorkspaceModeState = useAppStore((s) => s.setWorkspaceMode);
+  const activeTrack = useAppStore((s) => s.activeTrack);
+  const setActiveTrack = useAppStore((s) => s.setActiveTrack);
+  const showUpgradeModal = useAppStore((s) => s.showUpgradeModal);
+  const setShowUpgradeModal = useAppStore((s) => s.setShowUpgradeModal);
+  const upgradeFeature = useAppStore((s) => s.upgradeFeature);
+  const setUpgradeFeature = useAppStore((s) => s.setUpgradeFeature);
+  const showCommandPalette = useAppStore((s) => s.showCommandPalette);
+  const setShowCommandPalette = useAppStore((s) => s.setShowCommandPalette);
+  const wantsLogin = useAppStore((s) => s.wantsLogin);
+  const setWantsLogin = useAppStore((s) => s.setWantsLogin);
+  const activeTab = useAppStore((s) => s.activeTab);
+  const setActiveTab = useAppStore((s) => s.setActiveTab);
+  const outreachTargetCompany = useAppStore((s) => s.outreachTargetCompany);
+  const setOutreachTargetCompany = useAppStore((s) => s.setOutreachTargetCompany);
+  const profile = useAppStore((s) => s.profile);
+  const setProfile = useAppStore((s) => s.setProfile);
+  const onboardingLoaded = useAppStore((s) => s.onboardingLoaded);
+  const setOnboardingLoaded = useAppStore((s) => s.setOnboardingLoaded);
+  const showOnboarding = useAppStore((s) => s.showOnboarding);
+  const setShowOnboarding = useAppStore((s) => s.setShowOnboarding);
+  const savingProfile = useAppStore((s) => s.savingProfile);
+  const setSavingProfile = useAppStore((s) => s.setSavingProfile);
+  const heartbeat = useAppStore((s) => s.heartbeat);
+  const setHeartbeat = useAppStore((s) => s.setHeartbeat);
+  const logs = useAppStore((s) => s.logs);
+  const setLogs = useAppStore((s) => s.setLogs);
 
   const addLog = useCallback((message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -152,9 +103,6 @@ export default function App() {
           onboardingCompleted: isCompleted,
         };
         setProfile(mapped);
-        try {
-          localStorage.setItem('nomadic_master_profile', JSON.stringify(mapped));
-        } catch {}
         if (!isCompleted) {
           setShowOnboarding(true);
         } else {
@@ -173,7 +121,7 @@ export default function App() {
     }
   };
 
-  // A disabled feature's tab (e.g. restored from localStorage) falls back to the default view.
+  // A disabled feature's tab (e.g. a restored preference) falls back to the default view.
   useEffect(() => {
     if (!isTabEnabled(activeTab)) setActiveTab(activeTrack === 'seeker' ? 'feed' : 'learner-roadmaps');
   }, [activeTab, activeTrack]);
@@ -197,21 +145,15 @@ export default function App() {
     setActiveTab(newTab);
     if (['learner-roadmaps', 'learner-resources', 'learner-interview-prep'].includes(newTab)) {
       setActiveTrack('learner');
-      try {
-        localStorage.setItem('nomadic_active_track', 'learner');
-        localStorage.setItem('nomadic_last_tab_learner', newTab);
-      } catch {}
+      prefs.setTrack('learner');
+      prefs.setLastTab('learner', newTab);
     } else if (['feed', 'outreach', 'applications'].includes(newTab)) {
       setActiveTrack('seeker');
-      try {
-        localStorage.setItem('nomadic_active_track', 'seeker');
-        localStorage.setItem('nomadic_last_tab_seeker', newTab);
-      } catch {}
+      prefs.setTrack('seeker');
+      prefs.setLastTab('seeker', newTab);
     } else {
       // Shared tabs: opportunities, settings, logs
-      try {
-        localStorage.setItem(`nomadic_last_tab_${activeTrack}`, newTab);
-      } catch {}
+      prefs.setLastTab(activeTrack, newTab);
     }
   };
 
@@ -219,14 +161,12 @@ export default function App() {
     if (workspaceMode === 'learner_only') newTrack = 'learner';
     if (workspaceMode === 'seeker_only') newTrack = 'seeker';
     setActiveTrack(newTrack);
-    try {
-      localStorage.setItem('nomadic_active_track', newTrack);
-      const savedTab = localStorage.getItem(`nomadic_last_tab_${newTrack}`) as TabType;
-      if (savedTab) {
-        setActiveTab(savedTab);
-        return;
-      }
-    } catch {}
+    prefs.setTrack(newTrack);
+    const savedTab = prefs.getLastTab(newTrack);
+    if (savedTab) {
+      setActiveTab(savedTab);
+      return;
+    }
 
     if (newTrack === 'learner') {
       setActiveTab('learner-roadmaps');
@@ -237,10 +177,7 @@ export default function App() {
 
   const handleLoginSuccess = async (user: AppUser) => {
     setCurrentUser(user);
-    try {
-      localStorage.setItem('nomadic_user', JSON.stringify(user));
-      localStorage.setItem('hirestack_user', JSON.stringify(user));
-    } catch {}
+    prefs.setUser(user);
 
     const loadedProf = await loadProfileFromDb();
 
@@ -267,12 +204,7 @@ export default function App() {
   const handleLogout = () => {
     setCurrentUser(null);
     try {
-      localStorage.removeItem('nomadic_user');
-      localStorage.removeItem('hirestack_user');
-      localStorage.removeItem('jobmaxxer_user');
-      localStorage.removeItem('nomadic_active_track');
-      localStorage.removeItem('nomadic_last_tab_learner');
-      localStorage.removeItem('nomadic_last_tab_seeker');
+      prefs.setUser(null);
       sessionStorage.clear();
       const api = getApi();
       if (api && (api as any).authLogout) {
@@ -291,7 +223,7 @@ export default function App() {
     setProfile(profToSave);
     if (profToSave.workspaceMode) {
       setWorkspaceModeState(profToSave.workspaceMode);
-      localStorage.setItem('nomadic_workspace_mode', profToSave.workspaceMode);
+      prefs.setWorkspaceMode(profToSave.workspaceMode);
       if (profToSave.workspaceMode === 'learner_only') {
         setActiveTrack('learner');
       } else if (profToSave.workspaceMode === 'seeker_only') {
@@ -299,11 +231,8 @@ export default function App() {
       }
     }
     if (profToSave.targetOpportunityType) {
-      localStorage.setItem('nomadic_target_opportunity_type', profToSave.targetOpportunityType);
+      prefs.setOppType(profToSave.targetOpportunityType);
     }
-    try {
-      localStorage.setItem('nomadic_master_profile', JSON.stringify(profToSave));
-    } catch {}
     try {
       if (api && api.saveMasterProfile) {
         await api.saveMasterProfile({
@@ -388,15 +317,15 @@ export default function App() {
           const mode = completedProfile.workspaceMode || 'unified';
           setWorkspaceModeState(mode);
           try {
-            localStorage.setItem('nomadic_workspace_mode', mode);
-            localStorage.setItem('nomadic_last_calibrated_date', new Date().toISOString().split('T')[0]);
+            prefs.setWorkspaceMode(mode);
+            prefs.setLastCalibrated(new Date().toISOString().split('T')[0]);
             if (completedProfile.targetOpportunityType) {
-              localStorage.setItem('nomadic_target_opportunity_type', completedProfile.targetOpportunityType);
+              prefs.setOppType(completedProfile.targetOpportunityType);
             }
             if (currentUser) {
               const updated = { ...currentUser, onboardingCompleted: true };
               setCurrentUser(updated);
-              localStorage.setItem('nomadic_user', JSON.stringify(updated));
+              prefs.setUser(updated);
             }
           } catch {}
           if (mode === 'seeker_only') {

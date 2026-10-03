@@ -78,6 +78,8 @@
     "@job-automator/email-verifier": "file:../../packages/email-verifier",
     "@job-automator/scrapers": "file:../../packages/scrapers",
     "@job-automator/supabase": "file:../../packages/supabase",
+    "@nomadic/config": "*",
+    "@tanstack/react-query": "^5.104.1",
     "animejs": "^4.5.0",
     "lucide-react": "^0.330.0",
     "playwright": "^1.62.1",
@@ -87,7 +89,7 @@
     "sql.js": "^1.10.3",
     "ws": "^8.22.0",
     "zod": "^3.25.76",
-    "@nomadic/config": "*"
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

@@ -1,3 +1,4 @@
+import { prefs } from '../store/preferences';
 import React, { useState } from 'react';
 import { Sparkles, Bell, CheckCircle2 } from 'lucide-react';
 import { MasterProfile } from '../types';
@@ -12,7 +13,7 @@ export const OpportunityBoardView: React.FC<OpportunityBoardViewProps> = ({
 }) => {
   const [isWaitlisted, setIsWaitlisted] = useState<boolean>(() => {
     try {
-      return localStorage.getItem('nomadic_opp_board_waitlist') === 'true';
+      return prefs.getOppWaitlist();
     } catch {
       return false;
     }
@@ -21,7 +22,7 @@ export const OpportunityBoardView: React.FC<OpportunityBoardViewProps> = ({
   const handleJoinWaitlist = () => {
     setIsWaitlisted(true);
     try {
-      localStorage.setItem('nomadic_opp_board_waitlist', 'true');
+      prefs.setOppWaitlist();
     } catch {}
     onLog?.('[Opportunity Board] Subscribed to launch notifications.');
   };

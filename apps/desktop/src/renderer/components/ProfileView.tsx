@@ -1,3 +1,4 @@
+import { prefs } from '../store/preferences';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   User, FileText, CheckCircle2, Shield,
@@ -75,7 +76,7 @@ function normalizeProfileToFormData(profile: MasterProfile | null, currentUser?:
 
   let wsMode: WorkspaceMode = 'unified';
   try {
-    const rawMode = p.workspaceMode || localStorage.getItem('nomadic_workspace_mode');
+    const rawMode = p.workspaceMode || prefs.getWorkspaceMode();
     if (rawMode === 'learner_only' || rawMode === 'seeker_only' || rawMode === 'unified') {
       wsMode = rawMode;
     }
@@ -83,7 +84,7 @@ function normalizeProfileToFormData(profile: MasterProfile | null, currentUser?:
 
   let oppType: OpportunityType = 'both';
   try {
-    const rawOpp = p.targetOpportunityType || localStorage.getItem('nomadic_target_opportunity_type');
+    const rawOpp = p.targetOpportunityType || prefs.getOppType();
     if (rawOpp === 'job' || rawOpp === 'internship' || rawOpp === 'both') {
       oppType = rawOpp;
     }
@@ -145,7 +146,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
   useEffect(() => {
     try {
-      const lastCalibrated = localStorage.getItem('nomadic_last_calibrated_date');
+      const lastCalibrated = prefs.getLastCalibrated();
       if (lastCalibrated) {
         const todayStr = new Date().toISOString().split('T')[0];
         if (lastCalibrated === todayStr) {
@@ -262,7 +263,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
     if (calibrationCooldown) return;
     const todayStr = new Date().toISOString().split('T')[0];
     try {
-      localStorage.setItem('nomadic_last_calibrated_date', todayStr);
+      prefs.setLastCalibrated(todayStr);
     } catch {}
     setCalibrationCooldown(true);
     setCalibrationSuccess(true);
@@ -491,7 +492,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                         key={m.id}
                         onClick={() => {
                           setFormData({ ...formData, workspaceMode: m.id as any });
-                          localStorage.setItem('nomadic_workspace_mode', m.id);
+                          prefs.setWorkspaceMode(m.id as WorkspaceMode);
                         }}
                         className={`p-3 rounded-xl border cursor-pointer transition-all flex flex-col justify-between space-y-1.5 ${
                           isSelected
@@ -528,7 +529,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                         type="button"
                         onClick={() => {
                           setFormData({ ...formData, targetOpportunityType: opp.id as any });
-                          localStorage.setItem('nomadic_target_opportunity_type', opp.id);
+                          prefs.setOppType(opp.id as OpportunityType);
                         }}
                         className={`py-2 px-3 rounded-xl border text-xs font-semibold transition-all ${
                           formData.targetOpportunityType === opp.id

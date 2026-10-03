@@ -1,3 +1,4 @@
+import { prefs } from '../store/preferences';
 import React, { useState, useEffect } from 'react';
 import {
   Loader2, AlertCircle, CheckCircle2, X, RefreshCw, Sparkles, Shield, CheckSquare, Square
@@ -22,7 +23,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
   // Mandatory Terms & Conditions Agreement
   const [hasAcceptedTerms, setHasAcceptedTerms] = useState<boolean>(() => {
     try {
-      return localStorage.getItem('nomadic_terms_accepted') === 'true';
+      return prefs.getTermsAccepted();
     } catch {
       return false;
     }
@@ -70,7 +71,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
     const next = !hasAcceptedTerms;
     setHasAcceptedTerms(next);
     try {
-      localStorage.setItem('nomadic_terms_accepted', next ? 'true' : 'false');
+      prefs.setTermsAccepted(next);
     } catch {}
     if (next) setErrorMsg(null);
   };
@@ -78,7 +79,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
   const handleAcceptTermsInModal = () => {
     setHasAcceptedTerms(true);
     try {
-      localStorage.setItem('nomadic_terms_accepted', 'true');
+      prefs.setTermsAccepted(true);
     } catch {}
     setErrorMsg(null);
   };

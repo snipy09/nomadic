@@ -1,3 +1,4 @@
+import { prefs } from '../store/preferences';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Search, RefreshCw, Briefcase, Zap,
@@ -64,7 +65,7 @@ export const FeedView: React.FC<FeedViewProps> = ({
   // Primary Segmented Filter Tabs: all, jobs, internships, internshala, remote, saved, high_match
   const [filterTab, setFilterTab] = useState<'all' | 'jobs' | 'internships' | 'internshala' | 'remote' | 'saved' | 'high_match'>(() => {
     try {
-      const savedType = localStorage.getItem('nomadic_target_opportunity_type');
+      const savedType = prefs.getOppType();
       if (savedType === 'job') return 'jobs';
       if (savedType === 'internship') return 'internships';
     } catch {}

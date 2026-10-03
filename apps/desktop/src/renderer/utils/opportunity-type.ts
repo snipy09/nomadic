@@ -1,3 +1,5 @@
+import { prefs } from '../store/preferences';
+
 export type OpportunityType = 'job' | 'internship' | 'both';
 
 export const OPPORTUNITY_TYPE_KEY = 'nomadic_target_opportunity_type';
@@ -11,18 +13,11 @@ export function normalizeOpportunityType(type?: string | null): OpportunityType 
 }
 
 export function getSavedOpportunityType(): OpportunityType {
-  try {
-    const saved = localStorage.getItem(OPPORTUNITY_TYPE_KEY);
-    return normalizeOpportunityType(saved);
-  } catch {
-    return 'both';
-  }
+  return prefs.getOppType() ?? 'both';
 }
 
 export function setSavedOpportunityType(type: OpportunityType): void {
-  try {
-    localStorage.setItem(OPPORTUNITY_TYPE_KEY, type);
-  } catch {}
+  prefs.setOppType(type);
 }
 
 export function mapOpportunityTypeToFeedTab(type: OpportunityType): 'all' | 'jobs' | 'internships' {
