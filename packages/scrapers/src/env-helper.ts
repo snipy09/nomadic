@@ -47,10 +47,10 @@ export function getScraperEnv(): ScraperEnv {
 
   // Fallback defaults from repository configuration
   if (!supabaseUrl) {
-    supabaseUrl = 'https://jympejesevicwleptfzq.supabase.co';
+    supabaseUrl = 'https://grqkiddfwoyicktpgdea.supabase.co';
   }
   if (!supabaseKey) {
-    supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5bXBlamVzZXZpY3dsZXB0ZnpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczOTU5NzQsImV4cCI6MjEwMjk3MTk3NH0.1b6XFrIxH1hLVdjp2arHLdJ4fkiKV-0gb6yNZ7eMbPA';
+    supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdycWtpZGRmd295aWNrdHBnZGVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwNTAyNDAsImV4cCI6MjEwNjYyNjI0MH0.ZTuqnzhEbYtmOHgDLTwX8ENFBIkKmrLVo-y6O1Mvsek';
   }
 
   const isServiceRole = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);

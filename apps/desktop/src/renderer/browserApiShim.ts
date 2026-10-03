@@ -16,9 +16,9 @@ export function createBrowserApiShim(): ElectronAPI {
   // client because RLS (migration 002) restricts it to reading the public job
   // feed + calling the auth RPC. Never hardcode keys in source.
   const _env = ((import.meta as unknown as { env?: Record<string, string> }).env) ?? {};
-  const SUPABASE_URL_BASE = String(_env.VITE_SUPABASE_URL ?? 'https://jympejesevicwleptfzq.supabase.co').replace(/\/$/, '');
+  const SUPABASE_URL_BASE = String(_env.VITE_SUPABASE_URL ?? 'https://grqkiddfwoyicktpgdea.supabase.co').replace(/\/$/, '');
   const SUPABASE_REST_URL = `${SUPABASE_URL_BASE}/rest/v1`;
-  const SUPABASE_ANON_KEY = String(_env.VITE_SUPABASE_ANON_KEY ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5bXBlamVzZXZpY3dsZXB0ZnpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODczOTU5NzQsImV4cCI6MjEwMjk3MTk3NH0.1b6XFrIxH1hLVdjp2arHLdJ4fkiKV-0gb6yNZ7eMbPA');
+  const SUPABASE_ANON_KEY = String(_env.VITE_SUPABASE_ANON_KEY ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdycWtpZGRmd295aWNrdHBnZGVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwNTAyNDAsImV4cCI6MjEwNjYyNjI0MH0.ZTuqnzhEbYtmOHgDLTwX8ENFBIkKmrLVo-y6O1Mvsek');
 
   const fetchLiveDatabaseJobs = async (): Promise<Job[]> => {
     if (!SUPABASE_REST_URL || !SUPABASE_ANON_KEY) return [];

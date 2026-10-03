@@ -1,5 +1,11 @@
 # Setting up a new Supabase database
 
+**Live project:** `nomadic` (ref `grqkiddfwoyicktpgdea`, ap-south-1). Set up 2026-10-03 with `baseline/supabase_full_setup.sql`
+(001–011, 014, 015, 016) plus 017; verified: 13 migrations recorded, RLS on all 32 public tables, anon can execute only the
+28 allow-listed RPCs. The app's build defaults point at it (the anon key is public by design). Advisor notes that remain
+are by design: deny-all tables (RLS, no policies) and session-checked SECURITY DEFINER RPCs callable by anon.
+The Resend key is stored in Vault (`resend_api_key`), readable only by service_role via `private.get_vault_secret`.
+
 Rehearsed on PostgreSQL 16 with Supabase's roles and default grants (`packages/supabase/scripts/local-supabase-shim.sql`):
 all migrations 001–011 apply in order, a re-run skips them, and an `anon` smoke test passed
 (sign-up, sign-in, single-use login ticket, device registration, application push/pull/delete with session checks,
