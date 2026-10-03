@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { Check, ShieldCheck, ExternalLink, X, MessageSquare, Sparkles } from 'lucide-react';
 import { AppUser, getApi } from '../types';
+import { formatPrice, getPlan } from '@nomadic/config';
+
+const PRO_PRICE = formatPrice(getPlan('pro').priceInr);
+const MAX_PRICE = formatPrice(getPlan('max').priceInr);
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -63,9 +67,9 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
           </p>
         </div>
 
-        {/* 2-Paid-Tier Grid (Pro ₹249 & Max ₹599) */}
+        {/* 2-Paid-Tier Grid (prices from @nomadic/config) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-          {/* Plan 1: Pro Plan (₹249) */}
+          {/* Plan 1: Pro Plan */}
           <div className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-3xl p-6 space-y-5 flex flex-col justify-between hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-sm">
             <div className="space-y-4">
               <div>
@@ -73,7 +77,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
                 <h3 className="font-extrabold text-slate-950 dark:text-white text-xl">Pro Plan</h3>
                 <p className="text-xs text-slate-500 mt-1">Full skill mastery &amp; active job seeking</p>
                 <div className="mt-4 text-4xl font-black text-slate-950 dark:text-white">
-                  ₹249 <span className="text-xs font-normal text-slate-400 font-mono">/ mo</span>
+                  {PRO_PRICE} <span className="text-xs font-normal text-slate-400 font-mono">/ mo</span>
                 </div>
               </div>
 
@@ -90,16 +94,16 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
             <div className="space-y-2 pt-2">
               <button
                 type="button"
-                onClick={() => handleWhatsAppUpgrade('Pro Plan', '₹249/mo')}
+                onClick={() => handleWhatsAppUpgrade('Pro Plan', `${PRO_PRICE}/mo`)}
                 className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <MessageSquare className="w-4 h-4" />
-                <span>Upgrade to Pro (₹249/mo)</span>
+                <span>Upgrade to Pro ({PRO_PRICE}/mo)</span>
               </button>
             </div>
           </div>
 
-          {/* Plan 2: Max Plan (₹599) - Featured / Full Autopilot */}
+          {/* Plan 2: Max Plan - Featured / Full Autopilot */}
           <div className="border-2 border-slate-950 dark:border-white bg-slate-950 text-white dark:bg-white dark:text-slate-950 rounded-3xl p-6 space-y-5 flex flex-col justify-between relative shadow-xl">
             <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-slate-950 text-[10px] font-mono uppercase tracking-widest px-3 py-0.5 rounded-full font-black shadow-sm">
               Most Popular · Full Autopilot
@@ -111,7 +115,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
                 <h3 className="font-extrabold text-white dark:text-slate-950 text-xl">Max Plan</h3>
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">100% Autopilot Suite (Learning + Unlimited Applications)</p>
                 <div className="mt-4 text-4xl font-black text-white dark:text-slate-950">
-                  ₹599 <span className="text-xs font-normal text-slate-400 dark:text-slate-500 font-mono">/ mo</span>
+                  {MAX_PRICE} <span className="text-xs font-normal text-slate-400 dark:text-slate-500 font-mono">/ mo</span>
                 </div>
               </div>
 
@@ -128,11 +132,11 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
             <div className="space-y-2 pt-2">
               <button
                 type="button"
-                onClick={() => handleWhatsAppUpgrade('Max Plan', '₹599/mo')}
+                onClick={() => handleWhatsAppUpgrade('Max Plan', `${MAX_PRICE}/mo`)}
                 className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-slate-950 rounded-xl text-xs font-black transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <MessageSquare className="w-4 h-4 fill-current" />
-                <span>Upgrade to Max (₹599/mo)</span>
+                <span>Upgrade to Max ({MAX_PRICE}/mo)</span>
               </button>
             </div>
           </div>

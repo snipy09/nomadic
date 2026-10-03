@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { TabType, PersonaTrack } from '../types';
 import { VAULT_QUESTIONS } from '../data/resourceVault';
+import { isTabEnabled } from '../features';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -49,7 +50,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
   // Base list of searchable commands
   const allCommands: CommandItem[] = useMemo(() => {
-    const list: CommandItem[] = [
+    const list: CommandItem[] = ([
       // Navigation
       {
         id: 'nav-home',
@@ -121,7 +122,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           onSelectTab(next === 'learner' ? 'learner-roadmaps' : 'feed');
         },
       },
-    ];
+    ] as CommandItem[]).filter((cmd) => isTabEnabled(cmd.id));
 
     // Append sample questions from Question Bank
     VAULT_QUESTIONS.slice(0, 15).forEach((q) => {

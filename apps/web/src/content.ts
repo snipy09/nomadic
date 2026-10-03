@@ -1,3 +1,4 @@
+import { PLANS as CONFIG_PLANS, formatPrice, pricingSentence } from '@nomadic/config';
 // All sample data on the site is invented. Company names, people and domains are fictional.
 
 export type StageId = 'learn' | 'find' | 'apply' | 'track';
@@ -162,49 +163,57 @@ export interface Plan {
   featured?: boolean;
 }
 
-export const PLANS: Plan[] = [
+// Prices and plan features come from the shared config (packages/config), the single source of truth.
+export const PLANS: Plan[] = CONFIG_PLANS.map((p) => ({
+  id: p.id,
+  name: p.name,
+  price: formatPrice(p.priceInr),
+  per: p.priceInr === 0 ? 'no card needed' : 'per month',
+  summary: p.summary,
+  features: [...p.features],
+  featured: p.featured,
+}));
+
+export const PAID_PRICES = CONFIG_PLANS.filter((p) => p.priceInr > 0).map((p) => formatPrice(p.priceInr));
+
+export interface DataHandlingRow {
+  title: string;
+  items: string[];
+}
+
+/** Privacy and data-handling facts shown on the home page. Keep in sync with the privacy policy. */
+export const DATA_HANDLING: DataHandlingRow[] = [
   {
-    id: 'free',
-    name: 'Free',
-    price: '₹0',
-    per: 'no card needed',
-    summary: 'See how the pieces fit together.',
-    features: [
-      '1 interactive roadmap preview',
-      'Top 10 curated direct jobs',
-      'Top 3 company LeetCode sets',
-      '2 core CS textbooks',
-      'Local-first candidate storage',
+    title: 'Stays on your computer',
+    items: [
+      'Profile, resumes and cover letters',
+      'Application history, notes and form answers',
+      'Your AI provider keys, encrypted with the operating system keychain',
     ],
   },
   {
-    id: 'pro',
-    name: 'Pro',
-    price: '₹249',
-    per: 'per month',
-    summary: 'The full toolkit, with you approving each application.',
-    featured: true,
-    features: [
-      'All 52-week AI roadmaps',
-      '428+ company LeetCode sets (17.3k questions)',
-      'Full library of 12+ CS textbooks',
-      'Direct ATS radar with 18, 36 and 54 page navigation',
-      'Semi-auto apply, 50 applications a week',
-      '25 verified recruiter contacts a week and 5 resumes',
+    title: 'Goes to our server (Supabase)',
+    items: [
+      'Account email, name and a salted password hash',
+      'Plan status and expiry',
+      'Session token, device fingerprint and IP address, to enforce one active device',
+      'Learning progress events (lessons, quiz results) so progress survives a reinstall',
     ],
   },
   {
-    id: 'max',
-    name: 'Max',
-    price: '₹599',
-    per: 'per month',
-    summary: 'Everything in Pro, with Nomadic running the repetitive work.',
-    features: [
-      'Everything in Pro',
-      'Autonomous auto-apply, unlimited',
-      'Unlimited background recruiter outreach',
-      'Priority 15-minute ATS radar streaming',
-      'Highest priority solver and cloud sync',
+    title: 'What the AI sees',
+    items: [
+      'Only when you use an AI feature, using your own Groq or Gemini key',
+      'The form question plus the profile or resume fields needed to answer it',
+      'Sent from your computer straight to the provider, never through our servers',
+    ],
+  },
+  {
+    title: 'What we never do',
+    items: [
+      'Sell, rent or share your data with advertisers or data brokers',
+      'Submit an application you have not approved, unless you turn on autonomous mode',
+      'Store your resume text or application answers on our server',
     ],
   },
 ];
@@ -244,6 +253,6 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'What do the plans cost?',
-    a: 'Free costs ₹0. Pro is ₹249 a month and Max is ₹599 a month. Plans open when the download does.',
+    a: `${pricingSentence()} Plans open when the download does.`,
   },
 ];

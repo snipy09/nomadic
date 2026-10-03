@@ -1,5 +1,5 @@
 import { Check } from 'lucide-react';
-import { PLANS } from '../content';
+import { PAID_PRICES, PLANS } from '../content';
 import ComingSoon from './ComingSoon';
 import Reveal from './Reveal';
 
@@ -8,7 +8,7 @@ export default function Pricing() {
     <section id="pricing" aria-labelledby="pricing-title" className="bg-white">
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20 md:py-28">
         <Reveal kind="line" as="h2" id="pricing-title" className="wide max-w-4xl text-[clamp(1.75rem,4.6vw,3.5rem)]">
-          Free to start. ₹249 or ₹599 a month for more.
+          Free to start. {PAID_PRICES.join(' or ')} a month for more.
         </Reveal>
         <Reveal kind="up" delay={140}>
           <p className="mt-5 max-w-2xl text-lg text-ink-soft">

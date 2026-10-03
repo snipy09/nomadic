@@ -9,6 +9,7 @@ const LINKS: { label: string; id: string }[] = [
   { label: 'Find', id: 'find' },
   { label: 'Apply', id: 'apply' },
   { label: 'Track', id: 'track' },
+  { label: 'Privacy', id: 'privacy' },
   { label: 'Pricing', id: 'pricing' },
   { label: 'Questions', id: 'faq' },
 ];

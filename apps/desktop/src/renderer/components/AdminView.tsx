@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { AppUser, BillingRecord, AdminMetrics, CuratedResource, getApi } from '../types';
 import { normalizeTier, getTierDisplayName } from '../utils/tier-utils';
+import { formatPrice, getPlan } from '@nomadic/config';
 
 interface AdminViewProps {
   onLog: (msg: string) => void;
@@ -851,8 +852,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ onLog, currentUser }) => {
                   >
                     <option value="all">All Plans</option>
                     <option value="free">Free Plan</option>
-                    <option value="pro">Pro Plan (₹249/mo)</option>
-                    <option value="max">Max Plan (₹599/mo)</option>
+                    <option value="pro">Pro Plan ({formatPrice(getPlan('pro').priceInr)}/mo)</option>
+                    <option value="max">Max Plan ({formatPrice(getPlan('max').priceInr)}/mo)</option>
                   </select>
 
                   {/* Status Filter */}
@@ -1647,8 +1648,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ onLog, currentUser }) => {
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 font-bold focus:outline-hidden"
                 >
                   <option value="free">Free Plan (Default preview)</option>
-                  <option value="pro">Pro Plan (₹249/mo · Roadmaps, 428+ LC, 50 Auto-Applies/wk)</option>
-                  <option value="max">Max Plan (₹599/mo · Unlimited Autopilot &amp; Outreach)</option>
+                  <option value="pro">Pro Plan ({formatPrice(getPlan('pro').priceInr)}/mo)</option>
+                  <option value="max">Max Plan ({formatPrice(getPlan('max').priceInr)}/mo)</option>
                 </select>
               </div>
 

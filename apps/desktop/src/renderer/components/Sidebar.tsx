@@ -6,6 +6,7 @@ import {
   Target, Activity, TrendingUp, Layers, LogOut
 } from 'lucide-react';
 import { TabType, HeartbeatStatus, AppUser, PersonaTrack } from '../types';
+import { isTabEnabled } from '../features';
 
 interface SidebarProps {
   activeTab: TabType;
@@ -39,7 +40,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [collapsed, setCollapsed] = useState<boolean>(false);
 
   // Grouped Navigation for Learner Workspace
-  const learnerSections: NavSection[] = [
+  const learnerSectionsAll: NavSection[] = [
     {
       title: 'LEARN',
       items: [
@@ -64,7 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   // Grouped Navigation for Seeker Workspace
-  const seekerSections: NavSection[] = [
+  const seekerSectionsAll: NavSection[] = [
     {
       title: 'SEEK',
       items: [
@@ -82,6 +83,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ],
     },
   ];
+
+  // Hide nav items for features behind a disabled flag (see renderer/features.ts).
+  const visible = (sections: NavSection[]) =>
+    sections
+      .map((section) => ({ ...section, items: section.items.filter((item) => isTabEnabled(item.id)) }))
+      .filter((section) => section.items.length > 0);
+  const learnerSections = visible(learnerSectionsAll);
+  const seekerSections = visible(seekerSectionsAll);
 
   const sections = activeTrack === 'learner' ? learnerSections : seekerSections;
 

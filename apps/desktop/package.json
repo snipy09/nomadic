@@ -86,7 +86,8 @@
     "react-dom": "^18.2.0",
     "sql.js": "^1.10.3",
     "ws": "^8.22.0",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "@nomadic/config": "*"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

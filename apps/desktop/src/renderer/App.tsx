@@ -20,6 +20,7 @@ import { InterviewPrepView } from './components/InterviewPrepView';
 import { OpportunityBoardView } from './components/OpportunityBoardView';
 import { CommandPalette } from './components/CommandPalette';
 import { NomadicAssistant } from './components/NomadicAssistant';
+import { isTabEnabled } from './features';
 export default function App() {
   // Current user state (persisted in secure localStorage session)
   const [currentUser, setCurrentUser] = useState<AppUser | null>(() => {
@@ -174,6 +175,11 @@ export default function App() {
       setOnboardingLoaded(true);
     }
   };
+
+  // A disabled feature's tab (e.g. restored from localStorage) falls back to the default view.
+  useEffect(() => {
+    if (!isTabEnabled(activeTab)) setActiveTab(activeTrack === 'seeker' ? 'feed' : 'learner-roadmaps');
+  }, [activeTab, activeTrack]);
 
   useEffect(() => {
     loadProfileFromDb();
@@ -480,7 +486,7 @@ export default function App() {
               />
             )}
 
-            {activeTab === 'learner-resources' && (
+            {activeTab === 'learner-resources' && isTabEnabled('learner-resources') && (
               <ResourceVaultView
                 currentUser={currentUser}
                 onOpenUpgrade={handleOpenUpgrade}
@@ -495,7 +501,7 @@ export default function App() {
               />
             )}
 
-            {activeTab === 'opportunities' && (
+            {activeTab === 'opportunities' && isTabEnabled('opportunities') && (
               <OpportunityBoardView
                 profile={profile}
                 onLog={addLog}
@@ -523,7 +529,7 @@ export default function App() {
               />
             )}
 
-            {activeTab === 'outreach' && (
+            {activeTab === 'outreach' && isTabEnabled('outreach') && (
               <OutreachView
                 profile={profile}
                 onLog={addLog}

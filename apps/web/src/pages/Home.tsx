@@ -12,6 +12,7 @@ import Pricing from '../components/Pricing';
 import Faq from '../components/Faq';
 import Reveal from '../components/Reveal';
 import { scrollToId } from '../hooks';
+import { DATA_HANDLING } from '../content';
 
 const HEADLINE = ['Your whole', 'job search,', 'in one window.'];
 
@@ -64,38 +65,32 @@ function Hero() {
 }
 
 function DataBand() {
-  const points = [
-    {
-      title: 'Kept on your computer',
-      body: 'Your profile, resumes, notes and application history live in a local SQLite database on your machine.',
-    },
-    {
-      title: 'Synced to check your plan',
-      body: 'Only your account ID, plan status and bookmarked job links go to our server, so your plan works from session to session.',
-    },
-    {
-      title: 'Never sold',
-      body: 'Your application data, resume text and outreach history are not sold, rented or passed to advertisers or data brokers.',
-    },
-  ];
-
   return (
-    <section aria-labelledby="data-title" className="on-dark bg-ink text-white">
+    <section id="privacy" aria-labelledby="data-title" className="on-dark bg-ink text-white">
       <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 md:py-28">
         <Reveal kind="line" as="h2" id="data-title" className="wide max-w-3xl text-[clamp(1.75rem,4.6vw,3.5rem)]">
-          Your data stays on your computer.
+          Privacy and data handling
+        </Reveal>
+        <Reveal kind="up" delay={120}>
+          <p className="mt-5 max-w-2xl text-lg text-ink-pale">
+            An auto-apply tool needs your details. Here is exactly where each piece goes.
+          </p>
         </Reveal>
 
-        <Reveal kind="rule" className="mt-12 grid grid-cols-[minmax(0,1fr)] border-t-2 border-white/40 md:grid-cols-3">
-          {points.map((point, i) => (
+        <Reveal kind="rule" className="mt-12 grid grid-cols-[minmax(0,1fr)] border-t-2 border-white/40 md:grid-cols-2 lg:grid-cols-4">
+          {DATA_HANDLING.map((row, i) => (
             <Reveal
-              key={point.title}
+              key={row.title}
               kind="up"
               delay={200 + i * 120}
-              className={`py-8 md:pr-8 ${i > 0 ? 'border-t border-white/25 md:border-l md:border-t-0 md:pl-8' : ''}`}
+              className={`py-8 md:pr-8 ${i > 0 ? 'border-t border-white/25 lg:border-l lg:border-t-0 lg:pl-8' : ''}`}
             >
-              <h3 className="text-xl font-bold">{point.title}</h3>
-              <p className="mt-3 text-ink-pale">{point.body}</p>
+              <h3 className="text-xl font-bold">{row.title}</h3>
+              <ul className="mt-3 space-y-2 text-ink-pale">
+                {row.items.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
             </Reveal>
           ))}
         </Reveal>
