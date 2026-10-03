@@ -20,7 +20,7 @@ export interface JobRole {
   matchScore?: number;
 }
 
-interface DomainSpec {
+export interface DomainSpec {
   name: string;
   roadmapId: string;
   salaryBaseIndia: number; // in LPA
@@ -59,7 +59,7 @@ const INDUSTRIES = [
   'Cloud Infrastructure',
 ];
 
-const DOMAINS: DomainSpec[] = [
+export const DOMAINS: DomainSpec[] = [
   {
     name: 'Frontend & UI Engineering',
     roadmapId: 'frontend',

@@ -19,6 +19,18 @@ import type { AnswerSource, FieldKind, FillReport, FormEngineEvent } from '@job-
 
 export type { AnswerSource, FieldKind, FillReport, FormEngineEvent };
 
+import type {
+  FillInItem,
+  McqItem,
+  OrderingItem,
+  PracticeAttempt,
+  PracticeDifficulty,
+  PracticeEntryKind,
+  RoleFamilyId,
+} from '@job-automator/learning';
+
+export type { PracticeAttempt };
+
 // ── Shared payload shapes ───────────────────────────────────────────────────
 
 export interface SuccessResult {
@@ -381,18 +393,98 @@ export interface ActivityStats {
   totalActions: number;
 }
 
-export interface InterviewAnswerParams {
-  questionId: string;
-  questionTitle: string;
-  answerText: string;
-  category?: string;
+// ── Practice (F8) ───────────────────────────────────────────────────────────
+
+/** A quiz item the app can grade locally (no code runner at launch). */
+export type PracticeQuizItem = McqItem | FillInItem | OrderingItem;
+
+export interface PracticeCompanyTag {
+  name: string;
+  /** Relative frequency 0-100 from the company sets dataset (null when absent). */
+  frequency: number | null;
 }
 
-export interface InterviewEvaluation {
+/**
+ * One thing to practise. `link` is only ever copied from a dataset (never
+ * generated); `referenceAnswer` only from the question bank.
+ */
+export interface PracticeEntry {
+  /** Learning item id: `lc:<slug>`, `roleq:<slug>`, `vault:<slug>` or a practice item id. */
+  id: string;
+  kind: PracticeEntryKind;
+  title: string;
+  /** Problem statement / question text ('' for external problems: read it on the linked site). */
+  prompt: string;
+  difficulty: PracticeDifficulty | null;
+  topics: string[];
+  /** Role families this is for; empty = general (shown for every role). */
+  roles: RoleFamilyId[];
+  companies: PracticeCompanyTag[];
+  link: string | null;
+  /** Learn skill id the attempt counts toward (null when none). */
+  skillId: string | null;
+  referenceAnswer: string | null;
+  quiz: PracticeQuizItem | null;
+  /** Provenance (dataset file) for curators. */
+  source: string;
+}
+
+export interface PracticeCatalog {
+  version: string;
+  entries: PracticeEntry[];
+  /** Companies in the company sets dataset, by name. */
+  companies: Array<{ name: string; problemCount: number }>;
+}
+
+export type PracticeCatalogResult = { success: true; catalog: PracticeCatalog } | { success: false; error: string };
+
+export interface PracticeState {
+  /** Attempts the server accepted (local cache merged with the server log), newest first. */
+  attempts: PracticeAttempt[];
+  /** Practice attempts the server counted today (UTC), all sources; null when not signed in or unreachable. */
+  usedToday: number | null;
+  signedIn: boolean;
+  /** Set when the server could not be reached; `attempts` is then the local cache only. */
+  syncError?: string;
+}
+
+export type PracticeStateResult = { success: true; state: PracticeState } | { success: false; error: string };
+
+export type PracticeRecordErrorCode = 'not_signed_in' | 'unauthorized' | 'daily_limit' | 'network';
+
+export type PracticeRecordResult =
+  | { success: true; attempt: PracticeAttempt; usedToday: number | null }
+  | { success: false; code: PracticeRecordErrorCode; error: string };
+
+/**
+ * AI rubric feedback on a written answer. No channel yet: the server-side AI
+ * proxy does not exist, so the renderer shows the feature as unavailable.
+ */
+export interface RubricCriterion {
+  id: string;
+  label: string;
+  description: string;
+}
+
+export interface RubricFeedbackRequest {
+  entryId: string;
+  question: string;
+  answer: string;
+  rubric: RubricCriterion[];
+}
+
+export interface RubricFeedbackItem {
+  criterionId: string;
+  /** 0-4 per criterion. */
   score: number;
-  review: string;
-  strengths: string[];
-  improvements: string[];
+  /** Verbatim excerpt of the answer the score is based on ('' when the answer does not address it). */
+  quote: string;
+  comment: string;
+}
+
+export interface RubricFeedback {
+  items: RubricFeedbackItem[];
+  summary: string;
 }
 
 export interface CuratedResource {
@@ -652,8 +744,12 @@ export interface IpcChannels {
   'get-activity-heatmap': Channel<[days?: number], ActivityHeatmapDay[]>;
   'log-user-activity': Channel<[params: { activityType: string; details?: string }], { success: boolean }>;
   'get-activity-stats': Channel<[], ActivityStats>;
-  'evaluate-interview-answer': Channel<[params: InterviewAnswerParams], InterviewEvaluation>;
   'get-recommended-resources-for-job': Channel<[params: RecommendedResourcesParams], CuratedResource[]>;
+
+  // practice (F8)
+  'practice-get-catalog': Channel<[], PracticeCatalogResult>;
+  'practice-get-state': Channel<[], PracticeStateResult>;
+  'practice-record-attempt': Channel<[attempt: PracticeAttempt], PracticeRecordResult>;
 
   // auth & session
   'auth-google': Channel<[], SuccessResult>;
@@ -696,8 +792,9 @@ export const IPC_CHANNELS = [
   'ask-nomadic-assistant',
   'get-learner-progress', 'save-learner-progress', 'generate-ai-onboarding-profile',
   'generate-custom-roadmap', 'get-custom-roadmaps', 'save-custom-roadmap', 'delete-custom-roadmap',
-  'get-activity-heatmap', 'log-user-activity', 'get-activity-stats', 'evaluate-interview-answer',
+  'get-activity-heatmap', 'log-user-activity', 'get-activity-stats',
   'get-recommended-resources-for-job',
+  'practice-get-catalog', 'practice-get-state', 'practice-record-attempt',
   'auth-google', 'auth-login', 'auth-signup', 'start-heartbeat', 'stop-heartbeat', 'sync-cloud-data',
   'get-device-info',
   'admin-get-users', 'admin-create-user', 'admin-update-user-status', 'admin-delete-user',
@@ -782,7 +879,9 @@ export interface NomadicApi {
   updateApplicationNotes: (id: number | string, notes: string) => Promise<ChannelResult<'update-application-notes'>>;
   deleteApplication: Invoke<'delete-application'>;
 
-  evaluateInterviewAnswer: Invoke<'evaluate-interview-answer'>;
+  practiceGetCatalog: Invoke<'practice-get-catalog'>;
+  practiceGetState: Invoke<'practice-get-state'>;
+  practiceRecordAttempt: Invoke<'practice-record-attempt'>;
 
   authLogin: Invoke<'auth-login'>;
   authSignup: Invoke<'auth-signup'>;

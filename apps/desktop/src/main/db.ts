@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { migrateApplicationsSchema } from './services/applications-store.js';
+import { migratePracticeSchema } from './services/practice-store.js';
 
 let db: Database | null = null;
 let dbFilePath = '';
@@ -264,6 +265,13 @@ export async function initLocalDatabase(userDataPath: string): Promise<Database>
     migrateApplicationsSchema(db);
   } catch (err: any) {
     console.warn('[SQLite] Applications migration failed:', err.message);
+  }
+
+  // Practice attempts cache (F8): rows the server accepted.
+  try {
+    migratePracticeSchema(db);
+  } catch (err: any) {
+    console.warn('[SQLite] Practice migration failed:', err.message);
   }
 
   // Ensure default master profile row exists

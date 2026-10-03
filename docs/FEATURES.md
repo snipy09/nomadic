@@ -14,7 +14,7 @@ Status: ✅ done · 🟡 partial · ⬜ not started
 | F5 | Applications tracker | 🟡 | Built: kanban + list, keyboard moves, history, notes, sync of status/notes/delete, migration 010. Left: reminders, apply 010 in production | Survives reinstall; keyboard drag |
 | F6 | Profile and resume | 🟡 | Built: feature folder, no invented data, validation, real resume management. Left: resume parsing and versions | Round-trips through DB only |
 | F7 | Learning: My Path and Today | 🟡 | Skill graph seed, planner, lessons, SM-2, streaks | First lesson < 3 min; failed items resurface |
-| F8 | Practice and interview prep | ⬜ | One Practice area, runner, rubric AI feedback, weak topics | Limits enforced server side |
+| F8 | Practice and interview prep | 🟡 | One Practice area, runner, rubric AI feedback, weak topics | Limits enforced server side |
 | F9 | Billing and plans | 🟡 | Webhook done; in-app checkout, invoices, entitlements service | Plan change reflected < 10 s |
 | F10 | Sync, offline and data safety | 🟡 | Event sync, offline lessons, local migrations + backup, export/delete account | Identical progress after reinstall |
 | F11 | Updates, telemetry, support | 🟡 | Signed auto-update, Sentry, in-app help/feedback | Tagged release updates a real install |

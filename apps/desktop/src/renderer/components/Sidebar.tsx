@@ -41,7 +41,7 @@ export const NAV: Record<PersonaTrack, SectionDef[]> = {
       items: [
         { id: 'learner-roadmaps', label: 'Roadmaps', icon: Compass },
         { id: 'learner-resources', label: 'Resources', icon: BookOpen },
-        { id: 'learner-interview-prep', label: 'Interview Prep', icon: MessageSquare },
+        { id: 'learner-interview-prep', label: 'Practice', icon: MessageSquare },
       ],
     },
     { title: 'Discover', items: [{ id: 'opportunities', label: 'Opportunities', icon: Target }] },

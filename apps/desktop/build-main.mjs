@@ -65,6 +65,15 @@ async function build() {
     console.warn('[Build Warning] sql-wasm.wasm not found in node_modules/sql.js/dist');
   }
 
+  // Practice question sets: read by the main process at runtime (never bundled
+  // into the renderer). See src/main/services/practice-catalog.ts.
+  const practiceDataDir = path.join(__dirname, 'out/main/data');
+  fs.mkdirSync(practiceDataDir, { recursive: true });
+  fs.copyFileSync(
+    path.join(__dirname, 'data/practice/leetcode-companies.json'),
+    path.join(practiceDataDir, 'leetcode-companies.json'),
+  );
+
   // Copy logo assets into out/renderer/assets
   const rendererAssetsDir = path.join(__dirname, 'out/renderer/assets');
   fs.mkdirSync(rendererAssetsDir, { recursive: true });

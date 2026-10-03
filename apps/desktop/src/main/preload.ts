@@ -77,7 +77,6 @@ const apiObj: NomadicApi = {
   deleteApplication: (id) => invoke('delete-application', id),
 
   // Interview Evaluation
-  evaluateInterviewAnswer: (params) => invoke('evaluate-interview-answer', params),
 
   // Admin & Authentication APIs
   authLogin: (credentials) => invoke('auth-login', credentials),
@@ -92,6 +91,9 @@ const apiObj: NomadicApi = {
   adminGetLearningResources: () => invoke('admin-get-learning-resources'),
   adminAddLearningResource: (resource) => invoke('admin-add-learning-resource', resource),
   adminDeleteLearningResource: (id) => invoke('admin-delete-learning-resource', id),
+  practiceGetCatalog: () => invoke('practice-get-catalog'),
+  practiceGetState: () => invoke('practice-get-state'),
+  practiceRecordAttempt: (attempt) => invoke('practice-record-attempt', attempt),
   getRecommendedResourcesForJob: (params) => invoke('get-recommended-resources-for-job', params),
   adminGetBilling: () => invoke('admin-get-billing'),
   adminCreateBillingRecord: (record) => invoke('admin-create-billing-record', record),

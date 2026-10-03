@@ -1,4 +1,4 @@
-import type { AutoApplyProgressEvent, BatchOverrides, BatchSnapshot, BatchStartOptions, BatchSubmitResult, BatchTarget } from '../shared/ipc';
+import type { AutoApplyProgressEvent, BatchOverrides, BatchSnapshot, BatchStartOptions, BatchSubmitResult, BatchTarget, NomadicApi } from '../shared/ipc';
 
 export type WorkspaceMode = 'learner_only' | 'seeker_only' | 'unified';
 export type OpportunityType = 'job' | 'internship' | 'both';
@@ -355,19 +355,6 @@ export interface ElectronAPI {
     streakCount?: number;
   }) => Promise<{ success: boolean }>;
 
-  // Interview Evaluation
-  evaluateInterviewAnswer: (params: {
-    questionId: string;
-    questionTitle: string;
-    answerText: string;
-    category?: string;
-  }) => Promise<{
-    score: number;
-    review: string;
-    strengths?: string[];
-    improvements?: string[];
-  }>;
-
   // Admin & Auth Handlers
   authLogin: (credentials: {
     username?: string;
@@ -426,6 +413,11 @@ export interface ElectronAPI {
     duration?: string;
   }) => Promise<{ success: boolean; id?: number; error?: string }>;
   adminDeleteLearningResource: (id: number | string) => Promise<{ success: boolean; error?: string }>;
+  // Practice (F8)
+  practiceGetCatalog: NomadicApi['practiceGetCatalog'];
+  practiceGetState: NomadicApi['practiceGetState'];
+  practiceRecordAttempt: NomadicApi['practiceRecordAttempt'];
+
   getRecommendedResourcesForJob: (params: {
     title: string;
     description?: string;

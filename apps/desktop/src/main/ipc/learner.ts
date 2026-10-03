@@ -3,7 +3,6 @@ import {
   customRoadmapArgs,
   deleteCustomRoadmapArgs,
   heatmapDaysArgs,
-  interviewAnswerArgs,
   logActivityArgs,
   onboardingArgs,
   recommendedResourcesArgs,
@@ -20,14 +19,13 @@ import {
   saveCustomRoadmapDb,
 } from '../db.js';
 import {
-  evaluateInterviewAnswer,
   getLearnerProgress,
   getRecommendedResourcesForJob,
   saveLearnerProgress,
 } from '../services/learner.js';
 import { generateAiOnboardingProfile, generateCustomRoadmap } from '../services/roadmaps.js';
 
-/** Learner hub: progress, roadmaps, activity heatmap, interview practice. */
+/** Learner hub: progress, roadmaps, activity heatmap. */
 export function registerLearnerIpc(): void {
   handle('get-learner-progress', roadmapIdArgs, (roadmapId) => getLearnerProgress(roadmapId));
   handle('save-learner-progress', saveLearnerProgressArgs, (progress) => saveLearnerProgress(progress));
@@ -47,6 +45,5 @@ export function registerLearnerIpc(): void {
   });
   handle('get-activity-stats', () => getUserActivityStatsDb());
 
-  handle('evaluate-interview-answer', interviewAnswerArgs, (params) => evaluateInterviewAnswer(params));
   handle('get-recommended-resources-for-job', recommendedResourcesArgs, (params) => getRecommendedResourcesForJob(params));
 }
