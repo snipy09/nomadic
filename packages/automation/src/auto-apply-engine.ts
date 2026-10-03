@@ -6,7 +6,7 @@ import { EventEmitter } from 'events';
 import { injectStealthScripts, handleCloudflareTurnstile } from './stealth-evasion.js';
 import { adapterFor, runPortalAdapter, type PortalId } from './bots/portal-adapter.js';
 import { runFormEngineApply, submitReviewedApplication, toStatusEvent } from './apply-flow.js';
-import { FormEngine, type FillReport, type FormEngineEvent } from '../../form-engine/src/index.js';
+import { FormEngine, type FillReport, type FormEngineEvent, type LlmClient } from '../../form-engine/src/index.js';
 import type { MasterProfile } from '../../form-engine/src/profile.js';
 export type { MasterProfile, ResumeItem } from '../../form-engine/src/profile.js';
 
@@ -230,7 +230,10 @@ export class AutoApplyEngine {
           await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
           await page.bringToFront().catch(() => {});
           await handleCloudflareTurnstile(page);
-          const engine = new FormEngine({ onEvent: (ev) => AutoApplyEngine.formEvents.emit('event', { url, event: ev } satisfies AutoApplyFormEvent) });
+          const engine = new FormEngine({
+            llm: AutoApplyEngine.formAnswerLlm,
+            onEvent: (ev) => AutoApplyEngine.formEvents.emit('event', { url, event: ev } satisfies AutoApplyFormEvent),
+          });
           const { report } = await runPortalAdapter(page, profile, adapterFor(page.url()), { engine, ctx: { jobTitle: profile.desiredTitle } });
           const pending = report.unresolvedRequired.length;
           await AutoApplyEngine.injectOverlay(
@@ -284,6 +287,13 @@ export class AutoApplyEngine {
    * an AutoApplyFormEvent `{ url, event }`. See packages/form-engine/README.md.
    */
   public static readonly formEvents = new EventEmitter();
+
+  /**
+   * LLM for open-ended form questions. `undefined` keeps the FormEngine default (Groq with the
+   * profile's own key, used by the CLI tools); the desktop app sets its server-side AI proxy here
+   * so the app never calls an LLM provider directly. `null` disables the LLM.
+   */
+  public static formAnswerLlm: LlmClient | null | undefined = undefined;
 
   /** Engine event -> status-pill event (also attached as `formEvent` on progress callbacks). */
   public static toStatusEvent(ev: FormEngineEvent): AutoApplyStatusEvent {

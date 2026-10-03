@@ -4,6 +4,8 @@ Rehearsed on PostgreSQL 16 with Supabase's roles and default grants (`packages/s
 all migrations 001–010 apply in order, a re-run skips them, and an `anon` smoke test passed
 (sign-up, sign-in, single-use login ticket, device registration, application push/pull/delete with session checks,
 operator-only functions denied to `anon`).
+`017` (AI usage) rehearsed the same way: quota RPCs denied to `anon`, session-checked, per-plan limits never exceeded,
+refunds, Free gets no AI feedback, an expired paid plan counts as Free.
 
 ## 1. Create the project (owner)
 Supabase dashboard → New project (region: Mumbai `ap-south-1` for Indian users). Save the database password.
@@ -39,5 +41,9 @@ SELECT public.set_user_password('you@example.com', '<strong password>');
 `UPDATE public.app_security SET require_login_ticket = true;` (SECURITY_CHECKLIST S3), after a manual sign-in,
 sign-up and device-takeover test against this project.
 
-## 6. Edge function
-Deploy `packages/supabase/functions/razorpay-webhook` with `RAZORPAY_WEBHOOK_SECRET` set (billing, F9).
+## 6. Edge functions
+- `packages/supabase/functions/razorpay-webhook` with `RAZORPAY_WEBHOOK_SECRET` set (billing, F9).
+- `packages/supabase/functions/ai-proxy` (needs migration `017`). Set `GEMINI_API_KEY` and `GEMINI_MODEL` with
+  `supabase secrets set` (no default model: pick a current GA Gemini model; Gemini 2.5 models are announced for
+  shutdown on 2026-10-16), then `supabase functions deploy ai-proxy --no-verify-jwt` (it checks the device session
+  itself). Its `deno.json` maps `zod` to `npm:zod@4.6.5`. Review the starting limits in `public.ai_daily_limits`.

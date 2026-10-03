@@ -1,5 +1,5 @@
-import { generateStructuredAIContent } from '@job-automator/automation';
-import type { AiJson, CustomRoadmapParams, OnboardingProfileParams } from '../../shared/ipc.js';
+import type { AiJson, CustomRoadmapParams, OnboardingProfileParams, RoadmapExplanationInput, RoadmapExplanationResult } from '../../shared/ipc.js';
+import { aiProxy } from './ai-proxy.js';
 import { saveCustomRoadmapDb } from '../db.js';
 import { log } from './app-context.js';
 
@@ -22,162 +22,13 @@ const CURATED_FALLBACK_RESOURCES = {
 export async function generateAiOnboardingProfile(
   params: OnboardingProfileParams
 ): Promise<{ success: boolean; profile?: AiJson; roadmap?: AiJson }> {
-  const { targetRole, experienceLevel, bioOrResumeText, customSkills, targetHorizon, dailyCommitment, geminiKey, groqKey } = params;
+  const { targetRole, customSkills, targetHorizon, dailyCommitment } = params;
   const horizon = targetHorizon || '3 Months';
   const commitment = dailyCommitment || '2 Hours/Day';
-  log(`[AI Onboarding] Synthesizing candidate profile & roadmap for: "${targetRole}" (${horizon}, ${commitment})...`);
+  log(`[Onboarding] Building starter roadmap for: "${targetRole}" (${horizon}, ${commitment})...`);
 
-  const prompt = `Candidate Input:
-- Target Role / Career Goal: ${targetRole || 'Professional Specialist'}
-- Seniority/Level: ${experienceLevel || 'fresher'}
-- Target Timeline: ${horizon}
-- Daily Commitment: ${commitment}
-- Skills / Background: ${(customSkills || []).join(', ')}
-- Bio / Resume Summary: ${bioOrResumeText || 'Passionate professional looking to build modern, production-grade industry capabilities.'}
-
-Note: Nomadic is a universal career accelerator for ANY profession (Engineering, Product, UI/UX Design, Data Analysis, Marketing, Sales, Operations, Finance, HR, etc.).
-
-Analyze the candidate details and generate a JSON response matching this schema:
-{
-  "firstName": "...",
-  "lastName": "...",
-  "desiredTitle": "${targetRole || 'Professional'}",
-  "techStack": "comma-separated list of 6-8 core tools, skills, or frameworks relevant to this profession",
-  "desiredSalary": "estimated market salary range e.g. ₹12 LPA - ₹26 LPA · $90k - $150k",
-  "summaryHeadline": "one crisp executive summary sentence",
-  "recommendedRoadmap": {
-    "id": "roadmap-${Date.now()}",
-    "title": "${targetRole} Acceleration Roadmap",
-    "domain": "Domain Name (e.g. Product Management, UI/UX Design, Software Engineering, Marketing & Growth, Financial Analysis, Sales)",
-    "targetRoles": ["${targetRole}"],
-    "targetHorizon": "${horizon}",
-    "dailyCommitment": "${commitment}",
-    "milestones": [
-      {
-        "id": "phase-1",
-        "title": "Phase 1: Foundations & Core Principles",
-        "level": "Foundations",
-        "difficulty": "Beginner",
-        "estimatedHours": 20,
-        "description": "Establish core principles, essential tooling, and mental models.",
-        "skills": ["Skill 1", "Skill 2"],
-        "subModules": [
-          {
-            "id": "sub-1-1",
-            "title": "Core Fundamentals & Industry Workflows",
-            "description": "Overview of foundational standards and best practices.",
-            "keyConcepts": ["Key Concept 1", "Key Concept 2", "Key Concept 3", "Key Concept 4"],
-            "resources": [
-              { "title": "${targetRole} Core Concepts Masterclass", "url": "https://www.youtube.com/results?search_query=${encodeURIComponent(targetRole + ' fundamentals masterclass')}", "type": "video", "duration": "35 mins" },
-              { "title": "Comprehensive Reference & Docs", "url": "https://google.com/search?q=${encodeURIComponent(targetRole + ' fundamentals documentation guide')}", "type": "doc" }
-            ]
-          },
-          {
-            "id": "sub-1-2",
-            "title": "Essential Tooling & Environment Setup",
-            "description": "Mastering the primary software and toolkits for daily execution.",
-            "keyConcepts": ["Tool configurations", "Workflow automations", "Quality control", "Standard operating procedures"],
-            "resources": [
-              { "title": "Tooling Setup & Workflow Video", "url": "https://www.youtube.com/results?search_query=${encodeURIComponent(targetRole + ' tools workflow tutorial')}", "type": "video", "duration": "25 mins" },
-              { "title": "Tooling Reference Playbook", "url": "https://google.com/search?q=${encodeURIComponent(targetRole + ' essential tools cheat sheet')}", "type": "guide" }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "phase-2",
-        "title": "Phase 2: Intermediate Execution & Practical Deliverables",
-        "level": "Core Practice",
-        "difficulty": "Intermediate",
-        "estimatedHours": 30,
-        "description": "Building real-world artifacts, managing lifecycles, and executing complex workflows.",
-        "skills": ["Skill 3", "Skill 4"],
-        "subModules": [
-          {
-            "id": "sub-2-1",
-            "title": "Practical Execution & Strategy",
-            "description": "Hands-on implementation of core role responsibilities and deliverables.",
-            "keyConcepts": ["Execution frameworks", "Data-informed decision making", "Cross-functional collaboration", "Case study artifact building"],
-            "resources": [
-              { "title": "Practical Project Case Study Breakdown", "url": "https://www.youtube.com/results?search_query=${encodeURIComponent(targetRole + ' real world case study')}", "type": "video", "duration": "45 mins" },
-              { "title": "Industry Implementation Guide", "url": "https://google.com/search?q=${encodeURIComponent(targetRole + ' practical implementation case study')}", "type": "doc" }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "phase-3",
-        "title": "Phase 3: Advanced Optimization & Scaling",
-        "level": "Advanced",
-        "difficulty": "Advanced",
-        "estimatedHours": 25,
-        "description": "Metrics tracking, leadership, efficiency optimization, and enterprise scaling.",
-        "skills": ["Skill 5", "Skill 6"],
-        "subModules": [
-          {
-            "id": "sub-3-1",
-            "title": "Advanced Metrics & Strategic Growth",
-            "description": "Optimizing deliverables for maximum measurable ROI.",
-            "keyConcepts": ["Key Performance Indicators", "Systemic bottlenecks", "Scale methodologies", "Leadership principles"],
-            "resources": [
-              { "title": "Advanced Strategy & Scaling Video", "url": "https://www.youtube.com/results?search_query=${encodeURIComponent(targetRole + ' advanced strategy tutorial')}", "type": "video", "duration": "40 mins" },
-              { "title": "Advanced Strategy Playbook", "url": "https://google.com/search?q=${encodeURIComponent(targetRole + ' advanced strategic frameworks')}", "type": "doc" }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "phase-4",
-        "title": "Phase 4: Capstone Portfolio & Bar-Raiser Interview Readiness",
-        "level": "Interview Ready",
-        "difficulty": "Advanced",
-        "estimatedHours": 20,
-        "description": "Portfolio presentation, behavioral drills, and technical/case interview preparation.",
-        "skills": ["Interview Strategy", "Communication"],
-        "subModules": [
-          {
-            "id": "sub-4-1",
-            "title": "Portfolio Defense & Behavioral Interviews",
-            "description": "Structuring impact with the STAR framework and answering high-stakes interview questions.",
-            "keyConcepts": ["STAR storytelling framework", "Portfolio case defense", "Salary & offer negotiation", "Hiring manager objection handling"],
-            "resources": [
-              { "title": "Top Interview Questions & Mock Interview", "url": "https://www.youtube.com/results?search_query=${encodeURIComponent(targetRole + ' interview questions and answers mock interview')}", "type": "video", "duration": "40 mins" },
-              { "title": "Executive Interview Preparation Guide", "url": "https://google.com/search?q=${encodeURIComponent(targetRole + ' interview preparation guide star method')}", "type": "doc" }
-            ]
-          }
-        ]
-      }
-    ]
-  }
-}`;
-
-  try {
-    const res = await generateStructuredAIContent<any>(
-      prompt,
-      'You are an executive career architect and industry expert across tech, design, product, marketing, finance, and business. Synthesize the candidate information into an authentic, structured profile and learning roadmap. Return ONLY raw JSON matching the schema.',
-      { geminiKey, groqKey }
-    );
-
-    if (res && res.techStack && res.recommendedRoadmap) {
-      log(`[AI Onboarding] Successfully synthesized profile for "${targetRole}" ✓`);
-      const roadmapId = res.recommendedRoadmap.id || `roadmap-${Date.now()}`;
-      res.recommendedRoadmap.id = roadmapId;
-      res.recommendedRoadmap.targetHorizon = horizon;
-      res.recommendedRoadmap.dailyCommitment = commitment;
-      saveCustomRoadmapDb(
-        roadmapId,
-        res.desiredTitle || targetRole,
-        res.recommendedRoadmap.domain || 'Professional Career',
-        JSON.stringify(res.recommendedRoadmap),
-        horizon,
-        commitment
-      );
-      return { success: true, profile: res, roadmap: res.recommendedRoadmap };
-    }
-  } catch (err: any) {
-    log(`[AI Onboarding] AI synthesis note: ${err?.message}`);
-  }
-
+  // Not an ai-proxy task: the profile is never synthesized by a model (decision 25 and
+  // "AI never invents profile data"). The deterministic roadmap below is used.
   // Universal fallback profile & roadmap
   const fallbackSkills = (customSkills && customSkills.length > 0)
     ? customSkills.join(', ')
@@ -274,139 +125,12 @@ Analyze the candidate details and generate a JSON response matching this schema:
 export async function generateCustomRoadmap(
   params: CustomRoadmapParams
 ): Promise<{ success: boolean; roadmap?: AiJson }> {
-  const { roleTitle, customTitle, currentSkills, targetHorizon, dailyCommitment, geminiKey, groqKey } = params;
+  const { roleTitle, customTitle, targetHorizon, dailyCommitment } = params;
   const preferredTitle = (customTitle && customTitle.trim()) || `${roleTitle} Acceleration Roadmap`;
-  log(`[AI Roadmap] Generating custom curriculum for: "${preferredTitle}" (role: ${roleTitle})...`);
+  log(`[Roadmap] Building roadmap "${preferredTitle}" (role: ${roleTitle})...`);
 
-  const prompt = `Role / Profession: ${roleTitle}
-Roadmap Custom Name: ${preferredTitle}
-Candidate Current Skills: ${currentSkills || 'Fundamental industry foundations'}
-Timeline: ${targetHorizon || '2 Months'} (${dailyCommitment || '2 Hours/Day'})
-
-Note: This applies to ANY career path (Engineering, Product Management, UI/UX Design, Data Analytics, Growth Marketing, Sales, Operations, Finance, Human Resources, etc.).
-
-Generate a comprehensive 4-phase career & learning roadmap formatted strictly in JSON:
-{
-  "id": "roadmap-${Date.now()}",
-  "title": "${preferredTitle}",
-  "domain": "Domain Name (e.g. Design, Product, Engineering, Marketing, Finance, Sales)",
-  "targetRoles": ["${roleTitle}"],
-  "targetHorizon": "${targetHorizon || '2 Months'}",
-  "dailyCommitment": "${dailyCommitment || '2 Hours/Day'}",
-  "milestones": [
-    {
-      "id": "m1",
-      "title": "Phase 1: Foundations & Core Principles",
-      "level": "Foundations",
-      "difficulty": "Beginner",
-      "estimatedHours": 20,
-      "description": "Establish core theory, terminology, and foundational workflows.",
-      "skills": ["Skill 1", "Skill 2"],
-      "subModules": [
-        {
-          "id": "sub-1-1",
-          "title": "Core Standards & Mental Models",
-          "description": "Detailed explanation of basic concepts and workflows.",
-          "keyConcepts": ["Concept 1", "Concept 2", "Concept 3"],
-          "resources": [
-            { "title": "Comprehensive Reference Guide", "url": "https://www.youtube.com/results?search_query=${encodeURIComponent(roleTitle + ' basics')}", "type": "video", "duration": "30 mins" },
-            { "title": "Official Standards & Documentation", "url": "https://google.com/search?q=${encodeURIComponent(roleTitle + ' fundamentals guide')}", "type": "doc" }
-          ]
-        },
-        {
-          "id": "sub-1-2",
-          "title": "Primary Toolkits & Productivity Setup",
-          "description": "Configuring essential software and daily toolkits.",
-          "keyConcepts": ["Software configuration", "Automation shortcuts", "Best practices"],
-          "resources": [
-            { "title": "Tooling Walkthrough", "url": "https://www.youtube.com/results?search_query=${encodeURIComponent(roleTitle + ' tools')}", "type": "video", "duration": "25 mins" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "m2",
-      "title": "Phase 2: Intermediate Execution & Deliverables",
-      "level": "Core Practice",
-      "difficulty": "Intermediate",
-      "estimatedHours": 30,
-      "description": "Practical workflows, problem solving, and artifact generation.",
-      "skills": ["Skill 3", "Skill 4"],
-      "subModules": [
-        {
-          "id": "sub-2-1",
-          "title": "Artifact Generation & Project Execution",
-          "description": "Building production-ready deliverables and case studies.",
-          "keyConcepts": ["Execution framework", "Quality metrics", "Cross-functional collaboration"],
-          "resources": [
-            { "title": "Execution Case Study", "url": "https://www.youtube.com/results?search_query=${encodeURIComponent(roleTitle + ' case study')}", "type": "video", "duration": "40 mins" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "m3",
-      "title": "Phase 3: Advanced Optimization & Scaling",
-      "level": "Advanced",
-      "difficulty": "Advanced",
-      "estimatedHours": 25,
-      "description": "Strategic scaling, metric optimization, and advanced patterns.",
-      "skills": ["Skill 5", "Skill 6"],
-      "subModules": [
-        {
-          "id": "sub-3-1",
-          "title": "Optimization & Systemic Strategy",
-          "description": "Measuring performance impact and strategic scaling.",
-          "keyConcepts": ["ROI measurement", "Process optimization", "Leadership insights"],
-          "resources": [
-            { "title": "Advanced Strategy Masterclass", "url": "https://www.youtube.com/results?search_query=${encodeURIComponent(roleTitle + ' advanced strategy')}", "type": "video", "duration": "45 mins" }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "m4",
-      "title": "Phase 4: Capstone Portfolio & Interview Mastery",
-      "level": "Interview Ready",
-      "difficulty": "Advanced",
-      "estimatedHours": 20,
-      "description": "Bar-raiser mock interviews, portfolio defense, and STAR framework drills.",
-      "skills": ["Interview Strategy", "Communication"],
-      "subModules": [
-        {
-          "id": "sub-4-1",
-          "title": "Portfolio Defense & Case Interviews",
-          "description": "Demonstrating business impact and acing behavioral & technical rounds.",
-          "keyConcepts": ["STAR framework stories", "Portfolio presentation", "Salary negotiation"],
-          "resources": [
-            { "title": "Top Interview Questions & Scenarios", "url": "https://www.youtube.com/results?search_query=${encodeURIComponent(roleTitle + ' interview guide')}", "type": "video", "duration": "30 mins" }
-          ]
-        }
-      ]
-    }
-  ]
-}`;
-
-  try {
-    const res = await generateStructuredAIContent<any>(
-      prompt,
-      'You are an executive curriculum architect. Return ONLY valid raw JSON representing the roadmap.',
-      { geminiKey, groqKey }
-    );
-    if (res && Array.isArray(res.milestones) && res.milestones.length > 0) {
-      log(`[AI Roadmap] Generated roadmap for "${roleTitle}" ✓`);
-      const roadmapId = res.id || `custom-${Date.now()}`;
-      res.id = roadmapId;
-      if (customTitle && customTitle.trim()) {
-        res.title = customTitle.trim();
-      }
-      saveCustomRoadmapDb(roadmapId, roleTitle, res.domain || 'Career Path', JSON.stringify(res), targetHorizon, dailyCommitment);
-      return { success: true, roadmap: res };
-    }
-  } catch (err: any) {
-    log(`[AI Roadmap] Note: ${err?.message}`);
-  }
-
+  // Not an ai-proxy task: roadmaps are built deterministically (decision 25); the model only
+  // explains them through explainRoadmap / the `roadmap_explanation` task.
   // Fallback roadmap
   const fallbackId = `custom-${Date.now()}`;
   const fallbackRoadmap = {
@@ -482,4 +206,12 @@ Generate a comprehensive 4-phase career & learning roadmap formatted strictly in
   };
   saveCustomRoadmapDb(fallbackId, roleTitle, 'Professional Track', JSON.stringify(fallbackRoadmap), targetHorizon, dailyCommitment);
   return { success: true, roadmap: fallbackRoadmap };
+}
+
+// ── Roadmap explanation (ai-proxy task `roadmap_explanation`) ───────────────
+/** Explains an existing roadmap's milestones. The model never adds milestones, resources or links. */
+export async function explainRoadmap(input: RoadmapExplanationInput): Promise<RoadmapExplanationResult> {
+  const res = await aiProxy.explainRoadmap(input);
+  if (!res.ok) return { success: false, error: res.error, code: res.code };
+  return { success: true, explanation: res.data };
 }

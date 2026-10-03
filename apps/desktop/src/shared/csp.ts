@@ -11,7 +11,7 @@ export function devOrigin(devServerUrl?: string): string | null {
 
 /**
  * The renderer's CSP. Production allows only bundled scripts; network access
- * is limited to what the app talks to (Supabase REST/realtime, Groq, Gemini,
+ * is limited to what the app talks to (Supabase REST/realtime and Edge Functions,
  * GitHub releases). Images may come from any https host (logos, thumbnails),
  * frames only from YouTube embeds. Dev additionally allows the Vite server,
  * its HMR websocket and the inline React-refresh preamble.
@@ -24,8 +24,7 @@ export function buildContentSecurityPolicy(devServerUrl?: string): string {
     `'self'`,
     'https://*.supabase.co',
     'wss://*.supabase.co',
-    'https://api.groq.com',
-    'https://generativelanguage.googleapis.com',
+    // No LLM provider hosts: AI goes through the ai-proxy Edge Function on *.supabase.co.
     'https://api.github.com',
     ...(dev ? [dev, devWs] : []),
   ].join(' ');

@@ -86,21 +86,12 @@ export async function installDependencies(): Promise<{ success: boolean }> {
   }
 }
 
-export async function testGroqKey(key: string): Promise<{ success: boolean; error?: string }> {
-  log('[Groq AI] Validating Groq API Key...');
-  try {
-    const { answerCustomQuestionWithGroq } = await import('@job-automator/automation');
-    const res = await answerCustomQuestionWithGroq(key, 'Are you operational?', 'Test user summary');
-    if (res && res.length > 0) {
-      log('[Groq AI] Key validated successfully ✓');
-      return { success: true };
-    }
-    return { success: false, error: 'Empty response received from Groq' };
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    log(`[Groq AI] Validation failed: ${msg}`);
-    return { success: false, error: msg };
-  }
+/**
+ * Personal Groq / Gemini keys are no longer used: every AI call goes through the
+ * server-side ai-proxy, so there is no key to test on this machine.
+ */
+export async function testGroqKey(_key: string): Promise<{ success: boolean; error?: string }> {
+  return { success: false, error: 'AI now runs through the Nomadic server. Personal API keys are not used.' };
 }
 
 // ── In-App Version & Update Checker ─────────────────────────────────────────

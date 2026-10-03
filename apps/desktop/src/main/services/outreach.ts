@@ -1,5 +1,4 @@
 import { app, shell } from 'electron';
-import { generateStructuredAIContent } from '@job-automator/automation';
 import { scrapeRecruiterLeads } from '@job-automator/scrapers';
 import { EmailVerificationPipeline, LocalOutreachSender } from '@job-automator/email-verifier';
 import type {
@@ -376,36 +375,10 @@ export async function sendOutreach(contacts: OutreachRecipient[]): Promise<Outre
 
 // ── AI Cold Outreach Email Generator ────────────────────────────────────────
 export async function generateAiOutreachEmail(
-  params: AiOutreachEmailParams
+  _params: AiOutreachEmailParams
 ): Promise<{ success: boolean; subject: string; body: string }> {
-  const { role, company, recipientName, tone, skills, candidateName } = params;
-  const prompt = `Write a high-converting cold outreach email from a candidate to a recruiter or engineering manager.
-Candidate Name: ${candidateName || 'Candidate'}
-Target Role: ${role || 'Software Engineer'}
-Target Company: ${company || 'Target Company'}
-Recipient Name: ${recipientName || 'Hiring Manager'}
-Candidate Skills: ${skills || 'TypeScript, React, Node.js, Python, PostgreSQL'}
-Tone Style: ${tone || 'High-Impact Direct Pitch'} (options: High-Impact Direct Pitch, Referral Request, Portfolio Showcase, Startup Value-Add)
-
-Return strictly a JSON object:
-{
-  "subject": "Compelling subject line (max 60 chars, e.g. 'Referral Request - {{role}} at {{company}}')",
-  "body": "Clean, punchy, professional cold email (max 120 words). Use placeholders {{name}}, {{company}}, {{role}}, {{skills}}, {{senderName}} where appropriate."
-}`;
-
-  try {
-    const res = await generateStructuredAIContent<{ subject: string; body: string }>(
-      'You are an expert tech recruiter and cold email strategist.',
-      prompt
-    );
-    if (res && res.subject && res.body) {
-      return { success: true, subject: res.subject, body: res.body };
-    }
-  } catch (err) {
-    log(`[AI Outreach] Error generating email: ${err}`);
-  }
-
-  // High-converting fallback template
+  // Not an ai-proxy task, so no model is called: the user gets an editable template with
+  // placeholders (Outreach is hidden behind a feature flag, decision 4).
   return {
     success: true,
     subject: `Application & Introduction — {{role}} at {{company}}`,

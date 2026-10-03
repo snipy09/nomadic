@@ -247,6 +247,24 @@ const interviewAnswerParams = z
   .passthrough();
 export const interviewAnswerArgs: ArgSchemas<'evaluate-interview-answer'> = [interviewAnswerParams];
 
+// Same bounds as the ai-proxy `roadmap_explanation` input (packages/supabase/functions/ai-proxy/tasks.ts).
+export const explainRoadmapArgs: ArgSchemas<'ai-explain-roadmap'> = [
+  z.object({
+    role: z.string().trim().min(1).max(200),
+    horizon: opt(z.string().trim().max(100)),
+    milestones: z
+      .array(
+        z.object({
+          title: z.string().trim().min(1).max(300),
+          skills: opt(z.array(z.string().trim().max(100)).max(30)),
+          estimatedHours: opt(z.number().nonnegative().max(2000)),
+        })
+      )
+      .min(1)
+      .max(12),
+  }),
+];
+
 const recommendedParams = z
   .object({ title: str(), description: opt(str(LONG)), techStack: opt(str(MEDIUM)) })
   .passthrough();

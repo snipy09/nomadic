@@ -21,6 +21,10 @@ import { getMainWindow, log } from './app-context.js';
 import { logAndSyncApplication } from './cloud-sync.js';
 import { buildAutomationProfile, getMasterProfileRow } from './profile.js';
 import { getVerifiedServerUserTier } from './auth.js';
+import { proxyFormAnswerLlm } from './form-answer-llm.js';
+
+// Open-ended form questions go through the server-side AI proxy, never a provider directly.
+AutoApplyEngine.formAnswerLlm = proxyFormAnswerLlm;
 
 const NO_PROFILE_ERR = 'No master profile saved. Fill in your profile first.';
 

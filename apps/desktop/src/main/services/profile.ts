@@ -4,7 +4,7 @@ import { getDb, persistDb, saveCachedFormAnswerDb } from '../db.js';
 import { log } from './app-context.js';
 import { getActiveSyncSession } from './session.js';
 import { getAnonSupabase } from './supabase.js';
-import { overlaySecrets, readSecret, writeSecret } from './secrets.js';
+import { overlaySecrets, writeSecret } from './secrets.js';
 
 /**
  * Reads the `master_profile` row as a column -> value map with secrets
@@ -206,18 +206,6 @@ export function saveMasterProfile(p: Record<string, unknown>): { success: boolea
   return { success: true };
 }
 
-/** Groq / Gemini keys for AI calls (decrypted). */
-export function getAiKeys(): { groqKey: string; geminiKey: string } {
-  try {
-    return {
-      groqKey: String(readSecret('groq_api_key') ?? ''),
-      geminiKey: String(readSecret('gemini_api_key') ?? ''),
-    };
-  } catch {
-    return { groqKey: '', geminiKey: '' };
-  }
-}
-
 type AutomationResume = { name: string; targetRole: string; filePath: string; isDefault: boolean };
 
 function readResumesForAutomation(): AutomationResume[] {
@@ -271,7 +259,8 @@ export function buildAutomationProfile(opts: { logCachedAnswers: boolean }): Mas
     sponsorship:  String(profileRaw['sponsorship'] ?? ''),
     salary:       String(profileRaw['desired_salary'] ?? ''),
     noticePeriod: String(profileRaw['notice_period'] ?? ''),
-    groqApiKey:   String(profileRaw['groq_api_key'] ?? ''),
+    // No personal LLM key is handed to automation: form answers go through the ai-proxy.
+    groqApiKey:   '',
     summaryText:  String(profileRaw['resume_text'] ?? ''),
     desiredTitle: String(profileRaw['desired_title'] ?? ''),
     techStack:    String(profileRaw['tech_stack'] ?? ''),

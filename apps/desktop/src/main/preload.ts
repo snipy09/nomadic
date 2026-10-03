@@ -78,6 +78,7 @@ const apiObj: NomadicApi = {
 
   // Interview Evaluation
   evaluateInterviewAnswer: (params) => invoke('evaluate-interview-answer', params),
+  explainRoadmap: (input) => invoke('ai-explain-roadmap', input),
 
   // Admin & Authentication APIs
   authLogin: (credentials) => invoke('auth-login', credentials),

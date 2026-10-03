@@ -21,7 +21,8 @@ async function build() {
   // Secrets are injected from the build environment only (CI secrets / local
   // .env). Missing values compile to '' and the matching feature degrades:
   //   GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET -> Google sign-in
-  //   GEMINI_API_KEY (optional GEMINI_API_KEY_1 / _2 rotation) -> built-in AI fallback
+  // No AI provider key is ever compiled in: AI runs through the ai-proxy Edge Function,
+  // which holds GEMINI_API_KEY as a Supabase secret.
   // Legacy names GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are still honoured.
   const env = (...names) => {
     for (const n of names) {
@@ -36,9 +37,10 @@ async function build() {
     'process.env.SUPABASE_ANON_KEY': JSON.stringify(process.env.SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY),
     'process.env.GOOGLE_CLIENT_ID': JSON.stringify(env('GOOGLE_OAUTH_CLIENT_ID', 'GOOGLE_CLIENT_ID')),
     'process.env.GOOGLE_CLIENT_SECRET': JSON.stringify(env('GOOGLE_OAUTH_CLIENT_SECRET', 'GOOGLE_CLIENT_SECRET')),
-    'process.env.GEMINI_API_KEY': JSON.stringify(env('GEMINI_API_KEY')),
-    'process.env.GEMINI_API_KEY_1': JSON.stringify(env('GEMINI_API_KEY_1')),
-    'process.env.GEMINI_API_KEY_2': JSON.stringify(env('GEMINI_API_KEY_2')),
+    // Blank at build time so a developer's shell key can never reach the bundle.
+    'process.env.GEMINI_API_KEY': '""',
+    'process.env.GEMINI_API_KEY_1': '""',
+    'process.env.GEMINI_API_KEY_2': '""',
   };
 
   // Ensure out/main directory exists

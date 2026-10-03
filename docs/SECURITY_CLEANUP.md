@@ -49,10 +49,9 @@ inside a built installer.
    CI secret, and delete the hard-coded fallback in `apps/desktop/build-main.mjs`.
 3. **Gemini API keys (x2)**: Google AI Studio / Cloud Console -> API keys ->
    delete both keys and create new ones with API and quota restrictions. They
-   are compiled into every shipped desktop build, so for production move the
-   calls behind a server (for example a Supabase Edge Function) instead of
-   embedding any key in the app. Delete the base64 fallbacks in
-   `apps/desktop/build-main.mjs`.
+   were compiled into earlier desktop builds. Since 017 the desktop compiles no
+   Gemini key and calls the `ai-proxy` Edge Function; set the new key only as a
+   Supabase secret (`GEMINI_API_KEY`).
 4. **Supabase anon key**: anon keys are meant to ship in client apps, and
    access is enforced by Row Level Security. Rotating means rotating the
    project's JWT secret, which also invalidates the `service_role` key and

@@ -368,6 +368,18 @@ export interface ElectronAPI {
     improvements?: string[];
   }>;
 
+  /** Explains an existing roadmap through the server AI proxy. Absent in browser preview. */
+  explainRoadmap?: (input: {
+    role: string;
+    horizon?: string;
+    milestones: Array<{ title: string; skills?: string[]; estimatedHours?: number }>;
+  }) => Promise<{
+    success: boolean;
+    error?: string;
+    code?: string;
+    explanation?: { summary: string; milestones: Array<{ index: number; why: string }> };
+  }>;
+
   // Admin & Auth Handlers
   authLogin: (credentials: {
     username?: string;

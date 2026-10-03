@@ -34,6 +34,12 @@ Legend: ✅ fixed and verified · ⚠️ mitigated, follow-up needed · ☐ open
 | S8 | `jobs` readable by anon. | ✅ by design | Only `is_active = TRUE` rows; writes service-role only (`002`). Expired jobs are hidden via the `006` status trigger. |
 | S9 | Google sign-in (`apps/desktop/src/main/services/oauth.ts`) has no server-side session: it never calls `authenticate_user` or `register_device_session`, uses Google's `sub` as the user id (not a `users_profile` UUID), and its direct `users_profile` read/insert with the anon key is denied by RLS since `008`. Result: Google users get a local, free-tier, user-role account whose heartbeat and cloud sync cannot succeed. Nothing is escalated (role/tier are never taken from the client), but the flow cannot obtain a login ticket. | ☐ | Needs a server path: an RPC or Edge Function that verifies the Google ID token (or a Supabase Auth JWT) server-side, finds or creates the `users_profile` row by the verified email, and returns the same row shape as `authenticate_user` including `login_ticket`. The desktop then registers the device exactly like password sign-in. Also move the Google code exchange to PKCE so no client secret ships in the build. |
 
+## AI proxy (017)
+
+| # | Item | Status | Detail |
+|---|---|---|---|
+| S11 | LLM keys shipped in the app; renderer and main called Gemini/Groq directly | ✅ (deploy pending) | All AI goes through the `ai-proxy` Edge Function: zod-validated envelope and input, task allow-list (`form_answers`, `practice_feedback`, `roadmap_explanation`), device-session check and per-plan daily quota in `ai_consume_quota` (017, Asia/Kolkata day, limits in `ai_daily_limits`), server-owned prompts, Gemini JSON output validated with zod, any link rejected (form answers containing one become `null`), quota refunded on model or validation failure. `GEMINI_API_KEY` and `GEMINI_MODEL` exist only as Supabase secrets; the key is sent in a header, never a URL. The desktop build blanks every `GEMINI_API_KEY*`, the CSP no longer allows Groq or Gemini hosts, form answers use the proxy through `AutoApplyEngine.formAnswerLlm`, and a test fails if desktop source references a provider endpoint or direct-call helper. Tasks outside the allow-list (assistant, outreach email, roadmap and profile generation) no longer call a model. |
+
 ## Verified as correct (no change)
 
 - RLS is enabled on every table. `users_profile`, `user_sessions`, `user_preferences`, `user_job_matches`, `billing_records`, `razorpay_payments`, `user_cloud_profiles`, `user_applications`, `user_saved_jobs`, `user_resumes`, `scrape_runs`, `learning_events`, `user_tracks`, `practice_solutions`, `login_attempts`, `login_tickets`, `app_security` have **no** anon/authenticated policy: they are reachable only through session-checked SECURITY DEFINER RPCs or the service role.
@@ -50,6 +56,10 @@ Legend: ✅ fixed and verified · ⚠️ mitigated, follow-up needed · ☐ open
 `sync_push_resume`, `sync_delete_resume`, `sync_delete_application` (010), `learning_start_track`, `learning_archive_track`,
 `learning_record_events`, `learning_pull_events`. Any new client RPC must be added to this list in a
 migration; everything else is denied by default.
+
+Service-role only (called from Edge Functions, never with the anon key): `handle_razorpay_payment_success` (008),
+`ai_consume_quota` and `ai_refund_quota` (017, `ai-proxy`; `ai_consume_quota` checks the device session itself).
+`ai_plan_for` (017) is internal and granted to nobody.
 
 ## Owner actions
 
