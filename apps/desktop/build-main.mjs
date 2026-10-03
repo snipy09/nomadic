@@ -23,7 +23,7 @@ async function build() {
   //   GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET -> Google sign-in (installed-app flow with PKCE;
   //     Google's "Desktop app" client type still requires the secret at the token endpoint and documents it as
   //     not confidential; the ID token is verified server-side by the google-sign-in Edge Function)
-  //   GEMINI_API_KEY (optional GEMINI_API_KEY_1 / _2 rotation) -> built-in AI fallback
+  //   No model keys are ever embedded: AI goes through the server-side ai-proxy (DECISIONS #12, #23).
   // Legacy names GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are still honoured.
   const env = (...names) => {
     for (const n of names) {
@@ -41,9 +41,9 @@ async function build() {
     'process.env.UPDATE_POLICY_URL': JSON.stringify(env('UPDATE_POLICY_URL')),
     'process.env.GOOGLE_CLIENT_ID': JSON.stringify(env('GOOGLE_OAUTH_CLIENT_ID', 'GOOGLE_CLIENT_ID')),
     'process.env.GOOGLE_CLIENT_SECRET': JSON.stringify(env('GOOGLE_OAUTH_CLIENT_SECRET', 'GOOGLE_CLIENT_SECRET')),
-    'process.env.GEMINI_API_KEY': JSON.stringify(env('GEMINI_API_KEY')),
-    'process.env.GEMINI_API_KEY_1': JSON.stringify(env('GEMINI_API_KEY_1')),
-    'process.env.GEMINI_API_KEY_2': JSON.stringify(env('GEMINI_API_KEY_2')),
+    'process.env.GEMINI_API_KEY': JSON.stringify(''),
+    'process.env.GEMINI_API_KEY_1': JSON.stringify(''),
+    'process.env.GEMINI_API_KEY_2': JSON.stringify(''),
     // Razorpay Payment Page URLs per plan (public, not secrets); empty = manual upgrade route only.
     'process.env.RAZORPAY_CHECKOUT_URL_PRO': JSON.stringify(env('RAZORPAY_CHECKOUT_URL_PRO')),
     'process.env.RAZORPAY_CHECKOUT_URL_MAX': JSON.stringify(env('RAZORPAY_CHECKOUT_URL_MAX')),
