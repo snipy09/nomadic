@@ -34,7 +34,7 @@ export async function resolveElement(
     .evaluateHandle(({ sel, hosts }) => {
       let root: Document | ShadowRoot = document;
       for (const h of hosts) {
-        const host = root.querySelector(h);
+        const host: Element | null = root.querySelector(h);
         if (!host || !host.shadowRoot) return null;
         root = host.shadowRoot;
       }

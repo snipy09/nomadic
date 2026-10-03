@@ -105,7 +105,7 @@ export async function matchFound(page: Page, entry: KeyEntry, refs: EngineFieldR
     const resolve = (sel: string, shadow?: string[]): Element[] => {
       let root: Document | ShadowRoot = document;
       for (const h of shadow || []) {
-        const host = root.querySelector(h);
+        const host: Element | null = root.querySelector(h);
         if (!host || !host.shadowRoot) return [];
         root = host.shadowRoot;
       }

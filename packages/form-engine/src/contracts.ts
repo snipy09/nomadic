@@ -108,6 +108,12 @@ export type Answer =
       /** For checkbox: 'true'/'false'. For multi-select: values joined in `values`. For file: path. */
       value: string;
       values?: string[];
+      /** Choice fields: ordered regex sources used to pick an option (see options.ts). */
+      match?: string[];
+      /** Choice fields: pick the numeric range option containing `value`. */
+      numeric?: boolean;
+      /** Typeahead fields: text to type before picking an option (defaults to value). */
+      searchText?: string;
       source: AnswerSource;
       /** Fingerprint used for the answer cache. */
       fingerprint?: string;
