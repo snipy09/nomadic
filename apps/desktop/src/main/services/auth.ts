@@ -296,38 +296,69 @@ export async function signupLocalAccount(credentials: AuthCredentials): Promise<
       return { success: false, error: 'Password must be at least 6 characters.' };
     }
 
+    const supabase = getAnonSupabase();
+    if (!supabase) {
+      return { success: false, error: 'Sign-up needs the licensing server, which is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY.' };
+    }
+
     const { deviceFingerprint, deviceName } = identifyDevice();
 
-    const userId = 'usr_' + Date.now();
-    const sessionToken = crypto.randomUUID();
-    session.userId = userId;
-    session.sessionToken = sessionToken;
+    // Create the account on the server so it works on any machine.
+    let row: Record<string, unknown> | undefined;
+    try {
+      const { data, error } = await supabase.rpc('register_user', {
+        p_email: email,
+        p_password: password,
+        p_full_name: fullName,
+      });
+      if (error) throw error;
+      row = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | undefined;
+    } catch (rpcErr: unknown) {
+      const msg = rpcErr instanceof Error ? rpcErr.message : String(rpcErr);
+      log(`[Auth] Sign-up could not reach server: ${msg}`);
+      return { success: false, error: 'Could not reach the server to create your account. Check your connection and try again.' };
+    }
+    if (!row) return { success: false, error: 'Sign-up failed. Please try again.' };
+    if (!row['ok']) return { success: false, error: String(row['reason'] || 'Sign-up failed.') };
 
     const appUser: ValidatedUser = {
-      id: userId,
-      email,
-      fullName,
+      id: String(row['id']),
+      email: String(row['email']),
+      fullName: String(row['full_name'] ?? fullName),
       role: 'user',
-      tier: 'free',
-      licenseKey: `NOMADIC-${userId.slice(-6).toUpperCase()}`,
+      tier: 'trial',
+      licenseKey: String(row['license_key'] ?? ''),
       status: 'active',
-      appsCount: 0,
+      appsCount: Number(row['apps_count'] ?? 0),
       createdAt: new Date().toISOString(),
+      expiresAt: row['expires_at'] ? String(row['expires_at']) : undefined,
       lastLogin: new Date().toISOString(),
       onboardingCompleted: false,
     };
 
+    // Same device lock + session start as login.
+    const clientIp = await resolvePublicIp().catch(() => '127.0.0.1');
+    const sessionToken = crypto.randomUUID();
+    const devReg = await registerDeviceSession(
+      supabase, appUser.id, sessionToken, deviceFingerprint, deviceName, clientIp, false
+    );
+    if (!devReg.ok && !devReg.conflict) {
+      log(`[Auth] Device registration after sign-up failed: ${devReg.reason ?? 'unknown'}`);
+      return { success: false, error: 'Your account was created. Please sign in to continue.' };
+    }
+
+    session.userId = appUser.id;
+    session.sessionToken = sessionToken;
     cacheValidatedUser(appUser, hashLogin(email, password));
+    startHeartbeatLoop(appUser.id, sessionToken, deviceFingerprint);
 
     // Save initial profile in local DB for onboarding
     try {
       const parts = fullName.split(' ');
-      const givenName = parts[0] || '';
-      const familyName = parts.slice(1).join(' ') || '';
-      seedProfileIdentity(givenName, familyName, email);
+      seedProfileIdentity(parts[0] || '', parts.slice(1).join(' ') || '', email);
     } catch {}
 
-    log(`[Auth] New account created: ${email} (${fullName}) ✓`);
+    log(`[Auth] New account created on server: ${email} ✓`);
     return {
       success: true,
       user: {
