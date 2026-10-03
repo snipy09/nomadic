@@ -32,11 +32,12 @@ Legend: ✅ fixed and verified · ⚠️ mitigated, follow-up needed · ☐ open
 | S4 | `hr_contacts` (recruiter names and emails) readable by anyone with the anon key. | ✅ | `008` drops the policy. Outreach is hidden behind a feature flag; re-enabling it needs a session-checked RPC (`apps/desktop/src/main/services/outreach.ts` reads the table with the anon key today). |
 | S7 | `match_jobs_for_user(p_user_id)` (SECURITY DEFINER, no `search_path`) callable by anon for any user. | ✅ | Removed from anon by the `008` allow-list (no client calls it). |
 | S8 | `jobs` readable by anon. | ✅ by design | Only `is_active = TRUE` rows; writes service-role only (`002`). Expired jobs are hidden via the `006` status trigger. |
+| S10 | Admin panel (`apps/desktop/src/main/services/admin.ts`) read and wrote `users_profile`, `billing_records` and local tables with the **service-role key** when present (anon key otherwise); hiding the Admin tab was the only gate, and audit entries were invented in `sessionStorage`. | ✅ | `014`: every admin read/write is a SECURITY DEFINER RPC that checks `session_token + user_id + device_fingerprint + is_active` **and** `users_profile.role = 'admin'` / `status = 'active'` for that user; an admin cannot change their own account; every change writes one row to the append-only `admin_audit_log` (update/delete/truncate blocked by trigger, no client grants) with the reason. Lesson/resource edits snapshot the old row into append-only `content_versions` and require the edited version (optimistic lock); resources can't be created from the app and only link-checked ones can be made `active`. Refused non-admins are logged (`admin.denied`, at most once per 10 min). The desktop no longer has a service-role client. Rehearsed on PostgreSQL 16 as `anon`: non-admin, suspended-admin, wrong-device and ended sessions refused; admin works; each change audited. Tests: `apps/desktop/src/main/__tests__/admin-service.test.ts`. |
 | S9 | Google sign-in (`apps/desktop/src/main/services/oauth.ts`) has no server-side session: it never calls `authenticate_user` or `register_device_session`, uses Google's `sub` as the user id (not a `users_profile` UUID), and its direct `users_profile` read/insert with the anon key is denied by RLS since `008`. Result: Google users get a local, free-tier, user-role account whose heartbeat and cloud sync cannot succeed. Nothing is escalated (role/tier are never taken from the client), but the flow cannot obtain a login ticket. | ☐ | Needs a server path: an RPC or Edge Function that verifies the Google ID token (or a Supabase Auth JWT) server-side, finds or creates the `users_profile` row by the verified email, and returns the same row shape as `authenticate_user` including `login_ticket`. The desktop then registers the device exactly like password sign-in. Also move the Google code exchange to PKCE so no client secret ships in the build. |
 
 ## Verified as correct (no change)
 
-- RLS is enabled on every table. `users_profile`, `user_sessions`, `user_preferences`, `user_job_matches`, `billing_records`, `razorpay_payments`, `user_cloud_profiles`, `user_applications`, `user_saved_jobs`, `user_resumes`, `scrape_runs`, `learning_events`, `user_tracks`, `practice_solutions`, `login_attempts`, `login_tickets`, `app_security` have **no** anon/authenticated policy: they are reachable only through session-checked SECURITY DEFINER RPCs or the service role.
+- RLS is enabled on every table. `admin_audit_log`, `content_versions` (014), `users_profile`, `user_sessions`, `user_preferences`, `user_job_matches`, `billing_records`, `razorpay_payments`, `user_cloud_profiles`, `user_applications`, `user_saved_jobs`, `user_resumes`, `scrape_runs`, `learning_events`, `user_tracks`, `practice_solutions`, `login_attempts`, `login_tickets`, `app_security` have **no** anon/authenticated policy: they are reachable only through session-checked SECURITY DEFINER RPCs or the service role.
 - All `sync_*` RPCs check `session_token + user_id + device_fingerprint + is_active` before touching data.
 - `learning_*` RPCs (`007`) check the device session and enforce the free tier server-side (1 active track, 10 practice attempts/day); `learning_events` is append-only (update trigger).
 - Learn content tables expose only published lessons/practice and `active` (link-checked) resources.
@@ -48,8 +49,11 @@ Legend: ✅ fixed and verified · ⚠️ mitigated, follow-up needed · ☐ open
 `authenticate_user`, `register_device_session`, `verify_and_update_session`, `sync_pull_user_data`,
 `sync_push_user_profile`, `sync_push_application`, `sync_push_saved_job`, `sync_remove_saved_job`,
 `sync_push_resume`, `sync_delete_resume`, `sync_delete_application` (010), `learning_start_track`, `learning_archive_track`,
-`learning_record_events`, `learning_pull_events`. Any new client RPC must be added to this list in a
-migration; everything else is denied by default.
+`learning_record_events`, `learning_pull_events`, `register_user` (009), and the admin RPCs (014; each re-checks the
+session and the admin role): `admin_list_users`, `admin_set_user_plan`, `admin_set_user_status`, `admin_list_audit`,
+`admin_scrape_health`, `admin_list_content`, `admin_update_lesson`, `admin_set_resource_status`,
+`admin_content_history`. Any new client RPC must be added to this list in a migration; everything else is denied by
+default. (`login_prehash` is also executable by anon; it is a pure hashing helper with no data access.)
 
 ## Owner actions
 
@@ -62,6 +66,9 @@ migration; everything else is denied by default.
   device, see S9); password sign-in and sign-up keep working because both now send a ticket.
 - ☐ S9: build the server-side Google sign-in path (verifies the token, issues a login ticket) before Google sign-in is
   promoted as a primary option.
+- ☐ Apply `014` (admin tools) to production. Until it is applied the desktop Admin screen shows "the server does not
+  have the admin functions yet"; nothing falls back to the service-role key. Admins are whoever has
+  `users_profile.role = 'admin'` (set in SQL by the operator).
 - ☐ Rotate the service-role key if it was ever on a customer machine, and the code-signing cert per
   `docs/SECURITY_CLEANUP.md`.
 - ☐ Electron hardening and secrets-in-keychain were done in the main-process work stream (Step 3.2);

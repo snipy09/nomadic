@@ -4,6 +4,8 @@ import { log } from './app-context.js';
 // ── Supabase / licensing helpers ──────────────────────────────────────────
 // SUPABASE_URL / SUPABASE_ANON_KEY are injected at build time by build-main.mjs
 // (esbuild `define`), or read from the environment when running unbundled.
+// The desktop app never reads the service-role key: admin actions go through
+// session-checked RPCs (migration 014) like every other client call.
 
 export type SupabaseClient = ReturnType<typeof getSupabaseClient>;
 
@@ -16,18 +18,3 @@ export function getAnonSupabase(): SupabaseClient | null {
   }
   return getSupabaseClient(url, anonKey);
 }
-
-export function getServiceSupabase(): SupabaseClient | null {
-  const url = process.env.SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !serviceKey) return null;
-  return getSupabaseClient(url, serviceKey);
-}
-
-/** Admin actions prefer the operator-only service-role client. */
-export function getAdminSupabase(): SupabaseClient | null {
-  return getServiceSupabase() || getAnonSupabase();
-}
-
-export const ADMIN_NO_SERVICE_ERR =
-  'Admin actions require SUPABASE_SERVICE_ROLE_KEY to be set on this machine (operator only).';

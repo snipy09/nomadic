@@ -16,6 +16,11 @@
  */
 
 import type { AnswerSource, FieldKind, FillReport, FormEngineEvent } from '@job-automator/form-engine';
+import type {
+  AdminAuditPage, AdminAuditQuery, AdminChangeResult, AdminContentHistoryQuery, AdminContentList, AdminContentQuery,
+  AdminContentVersion, AdminLessonUpdate, AdminResourceStatusUpdate, AdminResult, AdminSetPlanInput, AdminSetStatusInput,
+  AdminStatusChangeResult, AdminUserQuery, AdminUsersPage, AdminVersionResult, ScrapeHealth,
+} from './admin.js';
 
 export type { AnswerSource, FieldKind, FillReport, FormEngineEvent };
 
@@ -406,15 +411,6 @@ export interface CuratedResource {
   createdAt: string;
 }
 
-export interface CuratedResourceInput {
-  title: string;
-  youtubeUrl: string;
-  topic: string;
-  targetRole: string;
-  summary?: string;
-  duration?: string;
-}
-
 export interface RecommendedResourcesParams {
   title: string;
   description?: string;
@@ -483,70 +479,9 @@ export interface DeviceInfo {
   deviceName: string;
 }
 
-export interface AdminUser {
-  id: string;
-  email: string;
-  fullName: string;
-  role: 'admin' | 'user';
-  tier: string;
-  licenseKey: string;
-  status: 'active' | 'suspended';
-  appsCount: number;
-  createdAt: string;
-  expiresAt?: string;
-  lastLogin?: string;
-}
-
-export interface AdminCreateUserInput {
-  email?: string;
-  fullName?: string;
-  password?: string;
-  tier?: string;
-  role?: string;
-  licenseKey?: string;
-  [key: string]: unknown;
-}
-
 export interface IdStatusInput {
   id: number | string;
   status: string;
-}
-
-export interface BillingRecord {
-  id: string;
-  userEmail: string;
-  amount: string;
-  plan: string;
-  status: 'paid' | 'pending' | 'refunded';
-  paymentMethod: string;
-  createdAt: string;
-}
-
-export interface BillingRecordInput {
-  userEmail?: string;
-  amount?: string;
-  plan?: string;
-  paymentMethod?: string;
-  [key: string]: unknown;
-}
-
-export interface AdminMetrics {
-  totalUsers: number;
-  activeUsers: number;
-  totalApps: number;
-  totalRevenue: string;
-  mrr: string;
-  trialUsers: number;
-  proUsers: number;
-  maxUsers: number;
-  lifetimeUsers: number;
-}
-
-export interface AssignPlanInput {
-  userId: string | number;
-  email?: string;
-  planTier: string;
-  expiresAt?: string;
 }
 
 /** Mirrors automation's `AutoApplyStatusEvent` (status pill + new form-engine detail). */
@@ -664,18 +599,16 @@ export interface IpcChannels {
   'sync-cloud-data': Channel<[], SuccessResult & { pulled?: boolean }>;
   'get-device-info': Channel<[], DeviceInfo>;
 
-  // admin
-  'admin-get-users': Channel<[], AdminUser[]>;
-  'admin-create-user': Channel<[user: AdminCreateUserInput], SuccessResult & { id?: string }>;
-  'admin-update-user-status': Channel<[data: IdStatusInput], SuccessResult>;
-  'admin-delete-user': Channel<[id: number | string], SuccessResult>;
-  'admin-get-billing': Channel<[], BillingRecord[]>;
-  'admin-create-billing-record': Channel<[record: BillingRecordInput], SuccessResult>;
-  'admin-get-metrics': Channel<[], AdminMetrics>;
-  'admin-assign-plan': Channel<[data: AssignPlanInput], { success: boolean }>;
-  'admin-get-learning-resources': Channel<[], CuratedResource[]>;
-  'admin-add-learning-resource': Channel<[resource: CuratedResourceInput], { success: boolean; id?: number }>;
-  'admin-delete-learning-resource': Channel<[id: number | string], { success: boolean }>;
+  // admin (F12): session-checked RPCs, re-authorized server side on every call
+  'admin-list-users': Channel<[query: AdminUserQuery], AdminResult<AdminUsersPage>>;
+  'admin-set-user-plan': Channel<[input: AdminSetPlanInput], AdminResult<AdminChangeResult>>;
+  'admin-set-user-status': Channel<[input: AdminSetStatusInput], AdminResult<AdminStatusChangeResult>>;
+  'admin-list-audit': Channel<[query: AdminAuditQuery], AdminResult<AdminAuditPage>>;
+  'admin-scrape-health': Channel<[days: number], AdminResult<ScrapeHealth>>;
+  'admin-list-content': Channel<[query: AdminContentQuery], AdminResult<AdminContentList>>;
+  'admin-update-lesson': Channel<[input: AdminLessonUpdate], AdminResult<AdminVersionResult>>;
+  'admin-set-resource-status': Channel<[input: AdminResourceStatusUpdate], AdminResult<AdminVersionResult>>;
+  'admin-content-history': Channel<[query: AdminContentHistoryQuery], AdminResult<AdminContentVersion[]>>;
 }
 
 export type ChannelName = keyof IpcChannels;
@@ -700,9 +633,9 @@ export const IPC_CHANNELS = [
   'get-recommended-resources-for-job',
   'auth-google', 'auth-login', 'auth-signup', 'start-heartbeat', 'stop-heartbeat', 'sync-cloud-data',
   'get-device-info',
-  'admin-get-users', 'admin-create-user', 'admin-update-user-status', 'admin-delete-user',
-  'admin-get-billing', 'admin-create-billing-record', 'admin-get-metrics', 'admin-assign-plan',
-  'admin-get-learning-resources', 'admin-add-learning-resource', 'admin-delete-learning-resource',
+  'admin-list-users', 'admin-set-user-plan', 'admin-set-user-status', 'admin-list-audit',
+  'admin-scrape-health', 'admin-list-content', 'admin-update-lesson', 'admin-set-resource-status',
+  'admin-content-history',
 ] as const satisfies readonly ChannelName[];
 
 // Compile-time proof that IPC_CHANNELS lists every channel exactly.
@@ -788,18 +721,16 @@ export interface NomadicApi {
   authSignup: Invoke<'auth-signup'>;
   authGoogle: Invoke<'auth-google'>;
   onOauthCallback: Subscribe<'oauth-callback'>;
-  adminGetUsers: Invoke<'admin-get-users'>;
-  adminCreateUser: Invoke<'admin-create-user'>;
-  adminUpdateUserStatus: (id: number | string, status: string) => Promise<ChannelResult<'admin-update-user-status'>>;
-  adminDeleteUser: Invoke<'admin-delete-user'>;
-  adminAssignPlan: Invoke<'admin-assign-plan'>;
-  adminGetLearningResources: Invoke<'admin-get-learning-resources'>;
-  adminAddLearningResource: Invoke<'admin-add-learning-resource'>;
-  adminDeleteLearningResource: Invoke<'admin-delete-learning-resource'>;
   getRecommendedResourcesForJob: Invoke<'get-recommended-resources-for-job'>;
-  adminGetBilling: Invoke<'admin-get-billing'>;
-  adminCreateBillingRecord: Invoke<'admin-create-billing-record'>;
-  adminGetMetrics: Invoke<'admin-get-metrics'>;
+  adminListUsers: Invoke<'admin-list-users'>;
+  adminSetUserPlan: Invoke<'admin-set-user-plan'>;
+  adminSetUserStatus: Invoke<'admin-set-user-status'>;
+  adminListAudit: Invoke<'admin-list-audit'>;
+  adminScrapeHealth: Invoke<'admin-scrape-health'>;
+  adminListContent: Invoke<'admin-list-content'>;
+  adminUpdateLesson: Invoke<'admin-update-lesson'>;
+  adminSetResourceStatus: Invoke<'admin-set-resource-status'>;
+  adminContentHistory: Invoke<'admin-content-history'>;
 
   checkForUpdates: Invoke<'check-for-updates'>;
   downloadUpdate: Invoke<'download-update'>;

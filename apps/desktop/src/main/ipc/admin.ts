@@ -1,37 +1,39 @@
 import { handle } from './handle.js';
 import {
-  adminCreateUserArgs,
-  assignPlanArgs,
-  billingRecordArgs,
-  curatedResourceArgs,
-  idArgs,
-  idStatusArgs,
+  adminContentHistoryArgs,
+  adminListAuditArgs,
+  adminListContentArgs,
+  adminListUsersArgs,
+  adminScrapeHealthArgs,
+  adminSetResourceStatusArgs,
+  adminSetUserPlanArgs,
+  adminSetUserStatusArgs,
+  adminUpdateLessonArgs,
 } from './schemas.js';
 import {
-  addLearningResource,
-  assignPlan,
-  createBillingRecord,
-  createUser,
-  deleteLearningResource,
-  deleteUser,
-  getBilling,
-  getLearningResources,
-  getMetrics,
-  getUsers,
-  updateUserStatus,
+  contentHistory,
+  listAudit,
+  listContent,
+  listUsers,
+  scrapeHealth,
+  setResourceStatus,
+  setUserPlan,
+  setUserStatus,
+  updateLesson,
 } from '../services/admin.js';
 
-/** Operator-only admin dashboard (requires the service-role key to be useful). */
+/**
+ * Admin tools. Each handler calls a session-checked RPC (migration 014) with the
+ * signed-in device session; the server decides whether the caller is an admin.
+ */
 export function registerAdminIpc(): void {
-  handle('admin-get-users', () => getUsers());
-  handle('admin-create-user', adminCreateUserArgs, (user) => createUser(user));
-  handle('admin-update-user-status', idStatusArgs, (data) => updateUserStatus(data));
-  handle('admin-delete-user', idArgs, (id) => deleteUser(id));
-  handle('admin-get-billing', () => getBilling());
-  handle('admin-create-billing-record', billingRecordArgs, (record) => createBillingRecord(record));
-  handle('admin-get-metrics', () => getMetrics());
-  handle('admin-assign-plan', assignPlanArgs, (data) => assignPlan(data));
-  handle('admin-get-learning-resources', () => getLearningResources());
-  handle('admin-add-learning-resource', curatedResourceArgs, (resource) => addLearningResource(resource));
-  handle('admin-delete-learning-resource', idArgs, (id) => deleteLearningResource(id));
+  handle('admin-list-users', adminListUsersArgs, (query) => listUsers(query));
+  handle('admin-set-user-plan', adminSetUserPlanArgs, (input) => setUserPlan(input));
+  handle('admin-set-user-status', adminSetUserStatusArgs, (input) => setUserStatus(input));
+  handle('admin-list-audit', adminListAuditArgs, (query) => listAudit(query));
+  handle('admin-scrape-health', adminScrapeHealthArgs, (days) => scrapeHealth(days));
+  handle('admin-list-content', adminListContentArgs, (query) => listContent(query));
+  handle('admin-update-lesson', adminUpdateLessonArgs, (input) => updateLesson(input));
+  handle('admin-set-resource-status', adminSetResourceStatusArgs, (input) => setResourceStatus(input));
+  handle('admin-content-history', adminContentHistoryArgs, (query) => contentHistory(query));
 }
