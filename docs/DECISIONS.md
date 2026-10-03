@@ -23,3 +23,8 @@
 | 19 | Backend | Supabase for at least the first year; keep data access behind an adapter so a later move is possible |
 | 20 | AI provider | Server-side proxy behind a provider interface supporting Google Gemini and Groq; choose per task by cost/quality benchmark |
 | 21 | Offline | No offline mode: lessons and feed need a connection; drop offline caching from Step 3B.7 (keep only local DB as a cache/outbox for sync) |
+| 22 | Email provider | Resend (from a Supabase Edge Function) for password reset and email verification; needs a sending domain and API key |
+| 23 | AI provider | Google Gemini first, via the server-side proxy |
+| 24 | Google sign-in | Fix with a server function that verifies the Google token and issues the same login ticket as password sign-in |
+| 25 | Roadmap | Core feature: every new user gets a roadmap at the end of onboarding (deterministic planner; LLM only explains/adjusts) |
+| 26 | Database | Fresh Supabase project `nomadic` (ap-south-1, free plan); no data carried over |
