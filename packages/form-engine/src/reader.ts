@@ -180,6 +180,7 @@ function scanFrame(opts: { includeHidden: boolean }): RawField[] {
       // previous sibling text
       let sib = el.previousElementSibling;
       for (let i = 0; sib && i < 3; i++, sib = sib.previousElementSibling) {
+        if (sib.matches(CONTROL_SEL) || sib.querySelector(CONTROL_SEL)) break;
         const t = textWithoutControls(sib);
         if (t) { parts.push(t); break; }
       }
