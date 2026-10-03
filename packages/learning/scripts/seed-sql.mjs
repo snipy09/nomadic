@@ -11,11 +11,14 @@ const here = dirname(fileURLToPath(import.meta.url));
 const b = JSON.parse(readFileSync(resolve(here, '../seed/bundle.json'), 'utf8'));
 const out = resolve(here, '../../supabase/baseline/content_seed.sql');
 
-// E'' strings with escaped newlines, so every value stays on one line (the editor splits on blank lines).
-const q = (v) =>
-  v === null || v === undefined
-    ? 'NULL'
-    : `E'${String(v).replace(/\\/g, '\\\\').replace(/'/g, "''").replace(/\r/g, '\\r').replace(/\n/g, '\\n')}'`;
+// Dollar-quoted strings (no backslash escapes, which the Supabase editor's statement splitter misreads);
+// newlines become chr(10) so every value stays on one line (the editor also splits on blank lines).
+const TAG = '$s$';
+const dq = (v) => {
+  if (v.includes(TAG)) throw new Error('value contains the dollar-quote tag');
+  return `${TAG}${v}${TAG}`;
+};
+const q = (v) => (v === null || v === undefined ? 'NULL' : String(v).split(/\r?\n/).map(dq).join(' || chr(10) || '));
 const arr = (a) => `ARRAY[${(a ?? []).map(q).join(',')}]::text[]`;
 const num = (v) => (v === null || v === undefined ? 'NULL' : Number(v));
 const bool = (v) => (v ? 'TRUE' : 'FALSE');
