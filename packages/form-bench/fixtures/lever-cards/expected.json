@@ -1,0 +1,74 @@
+{
+  "id": "lever-cards",
+  "ats": "lever",
+  "title": "Lever: custom question cards (radio/select/checkbox)",
+  "sourceUrl": "https://jobs.lever.co/pinecrest/<posting-uuid>/apply",
+  "profile": "sample.json",
+  "walls": [],
+  "notes": "The 12-month interview history is not in the profile; filling it would be inventing a fact.",
+  "fields": {
+    "Resume/CV": {
+      "expected": "@file",
+      "selector": "#resume-upload-input",
+      "read": "file",
+      "category": "file",
+      "required": true
+    },
+    "Full name": {
+      "expected": "Jordan Rivera",
+      "selector": "input[name=\"name\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Email": {
+      "expected": "jordan.rivera@example.com",
+      "selector": "input[name=\"email\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Phone": {
+      "expected": "+1 512 555 0142",
+      "selector": "input[name=\"phone\"]",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    },
+    "Are you currently authorized to work in the United States?": {
+      "expected": "Yes",
+      "selector": "input[name=\"cards[994aa81d-4a4e-410d-a1cd-a1cd0438994a][field0]\"]",
+      "read": "radio",
+      "category": "profile",
+      "required": true
+    },
+    "Will you now or in the future require sponsorship to work in the US?": {
+      "expected": "No",
+      "selector": "input[name=\"cards[994aa81d-4a4e-410d-a1cd-a1cd0438994a][field1]\"]",
+      "read": "radio",
+      "category": "profile",
+      "required": true
+    },
+    "How many years of backend development experience do you have?": {
+      "expected": "5-7 years",
+      "selector": "select[name=\"cards[994aa81d-4a4e-410d-a1cd-a1cd0438994a][field2]\"]",
+      "read": "select",
+      "category": "profile",
+      "required": true
+    },
+    "Have you interviewed with Pinecrest in the last 12 months?": {
+      "expected": "@empty",
+      "selector": "input[name=\"cards[994aa81d-4a4e-410d-a1cd-a1cd0438994a][field3]\"]",
+      "read": "radio",
+      "category": "trap",
+      "required": true
+    },
+    "Expected base salary (USD)": {
+      "expected": "$145,000",
+      "selector": "input[name=\"cards[994aa81d-4a4e-410d-a1cd-a1cd0438994a][field4]\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    }
+  }
+}

@@ -15,9 +15,13 @@ import {
   matchResumeWithJob,
   generateCoverLetter,
   BUILTIN_GEMINI_KEYS,
+  resolveTargetElementWithTextAI,
   type SemanticElement,
   type AIFormActionPlan,
 } from './groq-ai.ts';
+import { ATS_PORTALS, getATSConfig, type ATSPortal } from './ats-portals.ts';
+import { ApplicationNavigator, type NavigationResult } from './navigator.ts';
+import { FormSubmitter, type SubmitResult } from './submitter.ts';
 import {
   capturePageVisionAndDOM,
   executeNomadicFill,
@@ -46,14 +50,10 @@ export {
   ATS_PORTALS,
   getATSConfig,
   type ATSPortal,
-  FormFiller,
-  type CandidateProfile,
-  type FillFormResult,
   ApplicationNavigator,
   type NavigationResult,
   FormSubmitter,
   type SubmitResult,
-  AIFallbackSolver,
   answerCustomQuestion,
   answerCustomQuestionWithGroq,
   callGeminiFlash,
@@ -90,3 +90,32 @@ export type {
   SemanticElement,
   AIFormActionPlan,
 };
+
+// ── Form engine (Phase 1) ──────────────────────────────────────────────────
+export type {
+  AutoApplyStatusEvent,
+  AutoApplyFormEvent,
+  ProgressCallback,
+  SubmitApplicationOptions,
+} from './auto-apply-engine.ts';
+export {
+  adapterFor,
+  adapterById,
+  runPortalAdapter,
+  applyWithAdapter,
+  PORTAL_ADAPTERS,
+  type PortalAdapter,
+  type BotApplyOptions,
+  type SpecializedBotResult,
+} from './bots/portal-adapter.ts';
+export {
+  FormEngine,
+  MasterProfileSchema,
+  validateProfile,
+  parseProfile,
+  DEFAULT_POLICY,
+  type FillReport,
+  type FormEngineEvent,
+  type FormField,
+  type FormPolicy,
+} from '../../form-engine/src/index.ts';

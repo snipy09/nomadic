@@ -1,0 +1,73 @@
+{
+  "id": "ashby-yesno-eeo",
+  "ats": "ashby",
+  "title": "Ashby: yes/no buttons + EEO comboboxes",
+  "sourceUrl": "https://jobs.ashbyhq.com/northwindai/<posting-uuid>/application",
+  "profile": "sample.json",
+  "walls": [],
+  "fields": {
+    "Name": {
+      "expected": "Jordan Rivera",
+      "selector": "[id=\"_systemfield_name\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Email": {
+      "expected": "jordan.rivera@example.com",
+      "selector": "[id=\"_systemfield_email\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Resume": {
+      "expected": "@file",
+      "selector": "#_systemfield_resume",
+      "read": "file",
+      "category": "file",
+      "required": true
+    },
+    "Are you willing to relocate to New York, NY?": {
+      "expected": "Yes",
+      "selector": ".yesno[data-name=\"81abcd63-1621-4c73-a30d-530dc4da81ab\"]",
+      "read": "pressed",
+      "category": "profile",
+      "required": true
+    },
+    "Do you have an existing non-compete agreement that would prevent you from joining?": {
+      "expected": "@empty",
+      "selector": ".yesno[data-name=\"5791d6be-e127-475e-a8ca-48ca1c3d5791\"]",
+      "read": "pressed",
+      "category": "trap",
+      "required": true
+    },
+    "Gender": {
+      "expected": "Decline to self-identify",
+      "selector": "[data-rselect=\"703b2d3b-b2f8-48cb-a4d3-54d3a562703b\"]",
+      "read": "rselect",
+      "category": "eeo",
+      "required": false
+    },
+    "Race": {
+      "expected": "Decline to self-identify",
+      "selector": "[data-rselect=\"e206b780-dfe0-4f80-a956-d9562c83e206\"]",
+      "read": "rselect",
+      "category": "eeo",
+      "required": false
+    },
+    "Veteran Status": {
+      "expected": "I don't wish to answer",
+      "selector": "[data-rselect=\"0b9ee94b-8e40-4fdb-a382-038233b20b9e\"]",
+      "read": "rselect",
+      "category": "eeo",
+      "required": false
+    },
+    "Disability Status": {
+      "expected": "I don't wish to answer",
+      "selector": "[data-rselect=\"7ef5376b-a0b9-43fb-ac8c-bc8cac927ef5\"]",
+      "read": "rselect",
+      "category": "eeo",
+      "required": false
+    }
+  }
+}

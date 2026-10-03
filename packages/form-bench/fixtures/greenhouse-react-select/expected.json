@@ -1,0 +1,80 @@
+{
+  "id": "greenhouse-react-select",
+  "ats": "greenhouse",
+  "title": "Greenhouse job-boards (React): react-select questions",
+  "sourceUrl": "https://job-boards.greenhouse.io/<org>/jobs/<id>",
+  "profile": "sample.json",
+  "walls": [],
+  "fields": {
+    "First Name": {
+      "expected": "Jordan",
+      "selector": "[id=\"first_name\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Last Name": {
+      "expected": "Rivera",
+      "selector": "[id=\"last_name\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Preferred First Name": {
+      "expected": "@empty",
+      "selector": "[id=\"preferred_name\"]",
+      "read": "value",
+      "category": "trap",
+      "required": false
+    },
+    "Email": {
+      "expected": "jordan.rivera@example.com",
+      "selector": "[id=\"email\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Phone": {
+      "expected": "+1 512 555 0142",
+      "selector": "[id=\"phone\"]",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    },
+    "Resume/CV": {
+      "expected": "@file",
+      "selector": "#resume",
+      "read": "file",
+      "category": "file",
+      "required": true
+    },
+    "LinkedIn Profile": {
+      "expected": "https://www.linkedin.com/in/jordan-rivera-dev",
+      "selector": "[id=\"question_30001\"]",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    },
+    "Are you legally authorized to work in the country in which you are applying?": {
+      "expected": "Yes",
+      "selector": "[data-rselect=\"question_30002\"]",
+      "read": "rselect",
+      "category": "profile",
+      "required": true
+    },
+    "Will you now, or in the future, require sponsorship for employment visa status?": {
+      "expected": "No",
+      "selector": "[data-rselect=\"question_30003\"]",
+      "read": "rselect",
+      "category": "profile",
+      "required": true
+    },
+    "Are you open to working in a hybrid environment?": {
+      "expected": "Yes",
+      "selector": "[data-rselect=\"question_30004\"]",
+      "read": "rselect",
+      "category": "profile",
+      "required": true
+    }
+  }
+}

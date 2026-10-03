@@ -1,0 +1,51 @@
+{
+  "id": "internshala-details",
+  "ats": "internshala",
+  "title": "Internshala: phone, links, custom resume",
+  "sourceUrl": "https://internshala.com/internship/detail/<slug>",
+  "profile": "intern.json",
+  "walls": [],
+  "notes": "Form is inside a hidden modal opened by \"Apply now\".",
+  "fields": {
+    "Why should you be hired for this role?": {
+      "expected": "@nonempty",
+      "selector": "#cover_letter",
+      "read": "value",
+      "category": "open",
+      "required": true
+    },
+    "Confirm your availability": {
+      "expected": "Yes, I am available to join immediately",
+      "selector": "input[name=\"confirm_availability\"]",
+      "read": "radio",
+      "category": "profile",
+      "required": true
+    },
+    "Mobile number": {
+      "expected": "+91 98765 43210",
+      "selector": "#phone_number",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Share your GitHub profile or portfolio link": {
+      "expected": "https://github.com/aaravsharma",
+      "selector": "#portfolio_link",
+      "read": "value",
+      "category": "profile"
+    },
+    "Upload your resume (PDF)": {
+      "expected": "@file",
+      "selector": "#custom_resume",
+      "read": "file",
+      "category": "file"
+    },
+    "Are you willing to relocate to Pune for this internship?": {
+      "expected": "Yes",
+      "selector": "input[name=\"radio_51000\"]",
+      "read": "radio",
+      "category": "profile",
+      "required": true
+    }
+  }
+}

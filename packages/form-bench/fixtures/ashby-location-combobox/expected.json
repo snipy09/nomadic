@@ -1,0 +1,70 @@
+{
+  "id": "ashby-location-combobox",
+  "ats": "ashby",
+  "title": "Ashby: location typeahead + multi-select",
+  "sourceUrl": "https://jobs.ashbyhq.com/quantahealth/<posting-uuid>/application",
+  "profile": "sample.json",
+  "walls": [],
+  "notes": "Location only sticks when picked from the list; the technology multi-select must match techStack exactly.",
+  "fields": {
+    "Name": {
+      "expected": "Jordan Rivera",
+      "selector": "[id=\"_systemfield_name\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Email": {
+      "expected": "jordan.rivera@example.com",
+      "selector": "[id=\"_systemfield_email\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Location": {
+      "expected": "Austin, Texas, United States",
+      "selector": "#_systemfield_location",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Resume": {
+      "expected": "@file",
+      "selector": "#_systemfield_resume",
+      "read": "file",
+      "category": "file",
+      "required": true
+    },
+    "How many years of professional software engineering experience do you have?": {
+      "expected": "5",
+      "selector": "[id=\"9d52c20c-fc83-464c-ab16-9b16cbdf9d52\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "What are your salary expectations?": {
+      "expected": "$145,000",
+      "selector": "[id=\"0395936a-44de-464a-aa9f-3a9fcec90395\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Which of the following technologies have you used professionally?": {
+      "expected": [
+        "TypeScript",
+        "PostgreSQL"
+      ],
+      "selector": "input[name=\"64b350b4-cfcb-4074-ac78-8c78241764b3\"]",
+      "read": "checkboxes",
+      "category": "profile",
+      "required": false
+    },
+    "How did you hear about us?": {
+      "expected": "LinkedIn",
+      "selector": "input[name=\"7db868dc-6554-4c1c-ae75-5e75d4af7db8\"]",
+      "read": "radio",
+      "category": "profile",
+      "required": true
+    }
+  }
+}

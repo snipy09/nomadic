@@ -1,0 +1,130 @@
+{
+  "id": "workday-multistep",
+  "ats": "workday",
+  "title": "Workday: multi-step apply flow with portal dropdowns",
+  "sourceUrl": "https://<tenant>.wd5.myworkdayjobs.com/en-US/<site>/job/<location>/<title>_<id>/apply/applyManually",
+  "profile": "sample.json",
+  "walls": [],
+  "notes": "Fields on steps 2-3 are only reachable through \"Save and Continue\".",
+  "fields": {
+    "How Did You Hear About Us?": {
+      "expected": "LinkedIn",
+      "selector": "button[data-wd-select=\"sourceDropdown\"]",
+      "read": "wdselect",
+      "category": "profile",
+      "required": true
+    },
+    "Have you previously worked for Meridian Health as an employee or contractor?": {
+      "expected": "@empty",
+      "selector": "input[name=\"candidateIsPreviousWorker\"]",
+      "read": "radio",
+      "category": "trap",
+      "required": true
+    },
+    "Country": {
+      "expected": "United States of America",
+      "selector": "button[data-wd-select=\"countryDropdown\"]",
+      "read": "wdselect",
+      "category": "profile",
+      "required": true
+    },
+    "First Name": {
+      "expected": "Jordan",
+      "selector": "#input-4",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Last Name": {
+      "expected": "Rivera",
+      "selector": "#input-5",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Address Line 1": {
+      "expected": "500 Congress Ave",
+      "selector": "#input-6",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    },
+    "City": {
+      "expected": "Austin",
+      "selector": "#input-7",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Postal Code": {
+      "expected": "78701",
+      "selector": "#input-8",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Email Address": {
+      "expected": "jordan.rivera@example.com",
+      "selector": "#input-9",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Phone Number": {
+      "expected": "+1 512 555 0142",
+      "selector": "#input-11",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Are you legally authorized to work in the country for which you are applying?": {
+      "expected": "Yes",
+      "selector": "button[data-wd-select=\"q-authorized\"]",
+      "read": "wdselect",
+      "category": "profile",
+      "required": true
+    },
+    "Will you now or in the future require sponsorship for employment visa status?": {
+      "expected": "No",
+      "selector": "button[data-wd-select=\"q-sponsorship\"]",
+      "read": "wdselect",
+      "category": "profile",
+      "required": true
+    },
+    "Earliest Start Date": {
+      "expected": "11/02/2026",
+      "selector": "#input-14",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Gender": {
+      "expected": "I do not wish to self-identify",
+      "selector": "button[data-wd-select=\"gender\"]",
+      "read": "wdselect",
+      "category": "eeo",
+      "required": false
+    },
+    "Ethnicity": {
+      "expected": "I do not wish to self-identify",
+      "selector": "button[data-wd-select=\"ethnicityDropdown\"]",
+      "read": "wdselect",
+      "category": "eeo",
+      "required": false
+    },
+    "Veteran Status": {
+      "expected": "I don't wish to answer",
+      "selector": "button[data-wd-select=\"veteranStatus\"]",
+      "read": "wdselect",
+      "category": "eeo",
+      "required": false
+    },
+    "Yes, I have read and consent to the terms and conditions": {
+      "expected": true,
+      "selector": "#agreementCheckbox",
+      "read": "checkbox",
+      "category": "policy",
+      "required": true
+    }
+  }
+}

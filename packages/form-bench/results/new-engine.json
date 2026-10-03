@@ -1,0 +1,2303 @@
+{
+  "engine": "new",
+  "llm": "mock",
+  "summary": {
+    "forms": 22,
+    "fields": 196,
+    "found": 194,
+    "filled": 181,
+    "correct": 196,
+    "wrong": 0,
+    "skipped": 0,
+    "missing": 0,
+    "accuracy": 1,
+    "wrongRate": 0,
+    "wrongPerFilled": 0,
+    "submitClicked": 0,
+    "wallsDetected": 1,
+    "wallsExpected": 1,
+    "totalTimeMs": 20411,
+    "byCategory": {
+      "profile": {
+        "n": 128,
+        "correct": 128,
+        "wrong": 0,
+        "skipped": 0
+      },
+      "file": {
+        "n": 15,
+        "correct": 15,
+        "wrong": 0,
+        "skipped": 0
+      },
+      "policy": {
+        "n": 13,
+        "correct": 13,
+        "wrong": 0,
+        "skipped": 0
+      },
+      "trap": {
+        "n": 11,
+        "correct": 11,
+        "wrong": 0,
+        "skipped": 0
+      },
+      "open": {
+        "n": 11,
+        "correct": 11,
+        "wrong": 0,
+        "skipped": 0
+      },
+      "eeo": {
+        "n": 18,
+        "correct": 18,
+        "wrong": 0,
+        "skipped": 0
+      }
+    }
+  },
+  "results": [
+    {
+      "id": "ashby-arbitration",
+      "ats": "ashby",
+      "title": "Ashby: arbitration acknowledgement + certification",
+      "fields": 8,
+      "found": 8,
+      "filled": 6,
+      "correct": 8,
+      "wrong": 0,
+      "skipped": 0,
+      "missing": 0,
+      "timeMs": 584,
+      "submitClicked": false,
+      "wallsExpected": [],
+      "wallsReported": [],
+      "needsUser": 0,
+      "llmCalls": 0,
+      "notes": [],
+      "details": [
+        {
+          "label": "Full Legal Name",
+          "category": "profile",
+          "required": true,
+          "expected": "Jordan Rivera",
+          "actual": "Jordan Rivera",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Email",
+          "category": "profile",
+          "required": true,
+          "expected": "jordan.rivera@example.com",
+          "actual": "jordan.rivera@example.com",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Resume",
+          "category": "file",
+          "required": true,
+          "expected": "@file",
+          "actual": "@file",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Are you able to work from our San Francisco office 3 days per week?",
+          "category": "profile",
+          "required": true,
+          "expected": "Yes",
+          "actual": "Yes",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Arbitration Agreement",
+          "category": "policy",
+          "required": true,
+          "expected": "I acknowledge that I have opened, read and agree to the Mutual Arbitration Agreement",
+          "actual": "I acknowledge that I have opened, read and agree to the Mutual Arbitration Agreement",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Certification",
+          "category": "policy",
+          "required": true,
+          "expected": true,
+          "actual": "true",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Talent community",
+          "category": "policy",
+          "required": false,
+          "expected": false,
+          "actual": "false",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Have you previously been employed by Helix Robotics? If so, when?",
+          "category": "trap",
+          "required": false,
+          "expected": "@empty",
+          "actual": "",
+          "verdict": "correct",
+          "found": true
+        }
+      ]
+    },
+    {
+      "id": "ashby-basic",
+      "ats": "ashby",
+      "title": "Ashby: system fields + links + resume",
+      "fields": 10,
+      "found": 10,
+      "filled": 10,
+      "correct": 10,
+      "wrong": 0,
+      "skipped": 0,
+      "missing": 0,
+      "timeMs": 934,
+      "submitClicked": false,
+      "wallsExpected": [],
+      "wallsReported": [],
+      "needsUser": 0,
+      "llmCalls": 0,
+      "notes": [],
+      "details": [
+        {
+          "label": "Name",
+          "category": "profile",
+          "required": true,
+          "expected": "Jordan Rivera",
+          "actual": "Jordan Rivera",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Email",
+          "category": "profile",
+          "required": true,
+          "expected": "jordan.rivera@example.com",
+          "actual": "jordan.rivera@example.com",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Resume",
+          "category": "file",
+          "required": true,
+          "expected": "@file",
+          "actual": "@file",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Phone",
+          "category": "profile",
+          "required": true,
+          "expected": "+1 512 555 0142",
+          "actual": "+1 512 555 0142",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "LinkedIn Profile",
+          "category": "profile",
+          "required": true,
+          "expected": "https://www.linkedin.com/in/jordan-rivera-dev",
+          "actual": "https://www.linkedin.com/in/jordan-rivera-dev",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "GitHub",
+          "category": "profile",
+          "required": false,
+          "expected": "https://github.com/jrivera-dev",
+          "actual": "https://github.com/jrivera-dev",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Website or Portfolio",
+          "category": "profile",
+          "required": false,
+          "expected": "https://jordanrivera.dev",
+          "actual": "https://jordanrivera.dev",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Current Company",
+          "category": "profile",
+          "required": false,
+          "expected": "Nimbus Analytics",
+          "actual": "Nimbus Analytics",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Are you legally authorized to work in the United States?",
+          "category": "profile",
+          "required": true,
+          "expected": "Yes",
+          "actual": "Yes",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Will you now or in the future require visa sponsorship to work in the United States?",
+          "category": "profile",
+          "required": true,
+          "expected": "No",
+          "actual": "No",
+          "verdict": "correct",
+          "found": true
+        }
+      ]
+    },
+    {
+      "id": "ashby-custom-questions",
+      "ats": "ashby",
+      "title": "Ashby: open-ended + consent",
+      "fields": 8,
+      "found": 8,
+      "filled": 7,
+      "correct": 8,
+      "wrong": 0,
+      "skipped": 0,
+      "missing": 0,
+      "timeMs": 569,
+      "submitClicked": false,
+      "wallsExpected": [],
+      "wallsReported": [],
+      "needsUser": 0,
+      "llmCalls": 1,
+      "notes": [],
+      "details": [
+        {
+          "label": "Name",
+          "category": "profile",
+          "required": true,
+          "expected": "Jordan Rivera",
+          "actual": "Jordan Rivera",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Email",
+          "category": "profile",
+          "required": true,
+          "expected": "jordan.rivera@example.com",
+          "actual": "jordan.rivera@example.com",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Resume",
+          "category": "file",
+          "required": true,
+          "expected": "@file",
+          "actual": "@file",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "LinkedIn",
+          "category": "profile",
+          "required": false,
+          "expected": "https://www.linkedin.com/in/jordan-rivera-dev",
+          "actual": "https://www.linkedin.com/in/jordan-rivera-dev",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Why do you want to work at Orbit Payments?",
+          "category": "open",
+          "required": true,
+          "expected": "@nonempty",
+          "actual": "Software engineer with 5 years of experience building data-heavy web products in TypeScript, React and Node.js. Led the migration of Nimbus Analytics' reporting pipeline to AWS, cutting report latency by 60%. (answer to: Why do you want to work at Orbit Payments?)",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Tell us about a technically challenging project you led.",
+          "category": "open",
+          "required": true,
+          "expected": "@nonempty",
+          "actual": "Software engineer with 5 years of experience building data-heavy web products in TypeScript, React and Node.js. Led the migration of Nimbus Analytics' reporting pipeline to AWS, cutting report latency by 60%. (answer to: Tell us about a technically challenging project you led.)",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Who referred you? (name of employee)",
+          "category": "trap",
+          "required": false,
+          "expected": "@empty",
+          "actual": "",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Privacy Notice",
+          "category": "policy",
+          "required": true,
+          "expected": true,
+          "actual": "true",
+          "verdict": "correct",
+          "found": true
+        }
+      ]
+    },
+    {
+      "id": "ashby-location-combobox",
+      "ats": "ashby",
+      "title": "Ashby: location typeahead + multi-select",
+      "fields": 8,
+      "found": 8,
+      "filled": 8,
+      "correct": 8,
+      "wrong": 0,
+      "skipped": 0,
+      "missing": 0,
+      "timeMs": 1277,
+      "submitClicked": false,
+      "wallsExpected": [],
+      "wallsReported": [],
+      "needsUser": 0,
+      "llmCalls": 0,
+      "notes": [],
+      "details": [
+        {
+          "label": "Name",
+          "category": "profile",
+          "required": true,
+          "expected": "Jordan Rivera",
+          "actual": "Jordan Rivera",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Email",
+          "category": "profile",
+          "required": true,
+          "expected": "jordan.rivera@example.com",
+          "actual": "jordan.rivera@example.com",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Location",
+          "category": "profile",
+          "required": true,
+          "expected": "Austin, Texas, United States",
+          "actual": "Austin, Texas, United States",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Resume",
+          "category": "file",
+          "required": true,
+          "expected": "@file",
+          "actual": "@file",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "How many years of professional software engineering experience do you have?",
+          "category": "profile",
+          "required": true,
+          "expected": "5",
+          "actual": "5",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "What are your salary expectations?",
+          "category": "profile",
+          "required": true,
+          "expected": "$145,000",
+          "actual": "$145,000",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Which of the following technologies have you used professionally?",
+          "category": "profile",
+          "required": false,
+          "expected": [
+            "TypeScript",
+            "PostgreSQL"
+          ],
+          "actual": [
+            "TypeScript",
+            "PostgreSQL"
+          ],
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "How did you hear about us?",
+          "category": "profile",
+          "required": true,
+          "expected": "LinkedIn",
+          "actual": "LinkedIn",
+          "verdict": "correct",
+          "found": true
+        }
+      ]
+    },
+    {
+      "id": "ashby-yesno-eeo",
+      "ats": "ashby",
+      "title": "Ashby: yes/no buttons + EEO comboboxes",
+      "fields": 9,
+      "found": 9,
+      "filled": 8,
+      "correct": 9,
+      "wrong": 0,
+      "skipped": 0,
+      "missing": 0,
+      "timeMs": 1042,
+      "submitClicked": false,
+      "wallsExpected": [],
+      "wallsReported": [],
+      "needsUser": 1,
+      "llmCalls": 0,
+      "notes": [],
+      "details": [
+        {
+          "label": "Name",
+          "category": "profile",
+          "required": true,
+          "expected": "Jordan Rivera",
+          "actual": "Jordan Rivera",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Email",
+          "category": "profile",
+          "required": true,
+          "expected": "jordan.rivera@example.com",
+          "actual": "jordan.rivera@example.com",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Resume",
+          "category": "file",
+          "required": true,
+          "expected": "@file",
+          "actual": "@file",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Are you willing to relocate to New York, NY?",
+          "category": "profile",
+          "required": true,
+          "expected": "Yes",
+          "actual": "Yes",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Do you have an existing non-compete agreement that would prevent you from joining?",
+          "category": "trap",
+          "required": true,
+          "expected": "@empty",
+          "actual": "",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Gender",
+          "category": "eeo",
+          "required": false,
+          "expected": "Decline to self-identify",
+          "actual": "Decline to self-identify",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Race",
+          "category": "eeo",
+          "required": false,
+          "expected": "Decline to self-identify",
+          "actual": "Decline to self-identify",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Veteran Status",
+          "category": "eeo",
+          "required": false,
+          "expected": "I don't wish to answer",
+          "actual": "I don't wish to answer",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Disability Status",
+          "category": "eeo",
+          "required": false,
+          "expected": "I don't wish to answer",
+          "actual": "I don't wish to answer",
+          "verdict": "correct",
+          "found": true
+        }
+      ]
+    },
+    {
+      "id": "generic-careers-richtext",
+      "ats": "other",
+      "title": "Custom careers form: aria-labelledby, split phone, date, rich text",
+      "fields": 10,
+      "found": 10,
+      "filled": 10,
+      "correct": 10,
+      "wrong": 0,
+      "skipped": 0,
+      "missing": 0,
+      "timeMs": 777,
+      "submitClicked": false,
+      "wallsExpected": [],
+      "wallsReported": [],
+      "needsUser": 0,
+      "llmCalls": 0,
+      "notes": [],
+      "details": [
+        {
+          "label": "Given name",
+          "category": "profile",
+          "required": true,
+          "expected": "Jordan",
+          "actual": "Jordan",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Family name",
+          "category": "profile",
+          "required": true,
+          "expected": "Rivera",
+          "actual": "Rivera",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Email address",
+          "category": "profile",
+          "required": true,
+          "expected": "jordan.rivera@example.com",
+          "actual": "jordan.rivera@example.com",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Country code",
+          "category": "profile",
+          "required": false,
+          "expected": "+1 (United States)",
+          "actual": "+1 (United States)",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Phone number",
+          "category": "profile",
+          "required": false,
+          "expected": "512 555 0142",
+          "actual": "512 555 0142",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Personal website",
+          "category": "profile",
+          "required": false,
+          "expected": "https://jordanrivera.dev",
+          "actual": "https://jordanrivera.dev",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Years of experience",
+          "category": "profile",
+          "required": true,
+          "expected": "3-5",
+          "actual": "3-5",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Available from",
+          "category": "profile",
+          "required": false,
+          "expected": "2026-11-02",
+          "actual": "2026-11-02",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Cover letter",
+          "category": "open",
+          "required": false,
+          "expected": "@nonempty",
+          "actual": "I have spent five years building analytics products at Nimbus Analytics, most recently leading our reporting pipeline migration to AWS. I enjoy owning features end to end, from PostgreSQL schema design to React interfaces, and I would bring that ownership to your team.",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "I confirm that the information in this application is accurate and complete.",
+          "category": "policy",
+          "required": true,
+          "expected": true,
+          "actual": "true",
+          "verdict": "correct",
+          "found": true
+        }
+      ]
+    },
+    {
+      "id": "greenhouse-classic",
+      "ats": "greenhouse",
+      "title": "Greenhouse classic: select2 + wrapped labels",
+      "fields": 10,
+      "found": 10,
+      "filled": 10,
+      "correct": 10,
+      "wrong": 0,
+      "skipped": 0,
+      "missing": 0,
+      "timeMs": 765,
+      "submitClicked": false,
+      "wallsExpected": [],
+      "wallsReported": [],
+      "needsUser": 0,
+      "llmCalls": 0,
+      "notes": [],
+      "details": [
+        {
+          "label": "First Name",
+          "category": "profile",
+          "required": true,
+          "expected": "Jordan",
+          "actual": "Jordan",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Last Name",
+          "category": "profile",
+          "required": true,
+          "expected": "Rivera",
+          "actual": "Rivera",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Email",
+          "category": "profile",
+          "required": true,
+          "expected": "jordan.rivera@example.com",
+          "actual": "jordan.rivera@example.com",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Phone",
+          "category": "profile",
+          "required": true,
+          "expected": "+1 512 555 0142",
+          "actual": "+1 512 555 0142",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Resume/CV",
+          "category": "file",
+          "required": true,
+          "expected": "@file",
+          "actual": "@file",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "LinkedIn Profile",
+          "category": "profile",
+          "required": false,
+          "expected": "https://www.linkedin.com/in/jordan-rivera-dev",
+          "actual": "https://www.linkedin.com/in/jordan-rivera-dev",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Website",
+          "category": "profile",
+          "required": false,
+          "expected": "https://jordanrivera.dev",
+          "actual": "https://jordanrivera.dev",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Are you legally authorized to work in the United States?",
+          "category": "profile",
+          "required": true,
+          "expected": "Yes",
+          "actual": "Yes",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Will you now or in the future require sponsorship for employment visa status (e.g. H-1B visa status)?",
+          "category": "profile",
+          "required": true,
+          "expected": "No",
+          "actual": "No",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "What is your desired annual compensation?",
+          "category": "profile",
+          "required": true,
+          "expected": "$145,000",
+          "actual": "$145,000",
+          "verdict": "correct",
+          "found": true
+        }
+      ]
+    },
+    {
+      "id": "greenhouse-eeo",
+      "ats": "greenhouse",
+      "title": "Greenhouse classic: EEOC section",
+      "fields": 11,
+      "found": 11,
+      "filled": 11,
+      "correct": 11,
+      "wrong": 0,
+      "skipped": 0,
+      "missing": 0,
+      "timeMs": 741,
+      "submitClicked": false,
+      "wallsExpected": [],
+      "wallsReported": [],
+      "needsUser": 0,
+      "llmCalls": 0,
+      "notes": [],
+      "details": [
+        {
+          "label": "First Name",
+          "category": "profile",
+          "required": true,
+          "expected": "Jordan",
+          "actual": "Jordan",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Last Name",
+          "category": "profile",
+          "required": true,
+          "expected": "Rivera",
+          "actual": "Rivera",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Email",
+          "category": "profile",
+          "required": true,
+          "expected": "jordan.rivera@example.com",
+          "actual": "jordan.rivera@example.com",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Phone",
+          "category": "profile",
+          "required": false,
+          "expected": "+1 512 555 0142",
+          "actual": "+1 512 555 0142",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Resume/CV",
+          "category": "file",
+          "required": true,
+          "expected": "@file",
+          "actual": "@file",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "LinkedIn Profile",
+          "category": "profile",
+          "required": false,
+          "expected": "https://www.linkedin.com/in/jordan-rivera-dev",
+          "actual": "https://www.linkedin.com/in/jordan-rivera-dev",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "How did you hear about this job?",
+          "category": "profile",
+          "required": true,
+          "expected": "LinkedIn",
+          "actual": "LinkedIn",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Gender",
+          "category": "eeo",
+          "required": false,
+          "expected": "Decline To Self Identify",
+          "actual": "Decline To Self Identify",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Are you Hispanic/Latino?",
+          "category": "eeo",
+          "required": false,
+          "expected": "Decline To Self Identify",
+          "actual": "Decline To Self Identify",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Veteran Status",
+          "category": "eeo",
+          "required": false,
+          "expected": "I don't wish to answer",
+          "actual": "I don't wish to answer",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Disability Status",
+          "category": "eeo",
+          "required": false,
+          "expected": "I don't wish to answer",
+          "actual": "I don't wish to answer",
+          "verdict": "correct",
+          "found": true
+        }
+      ]
+    },
+    {
+      "id": "greenhouse-iframe-embed",
+      "ats": "greenhouse",
+      "title": "Greenhouse embed: form inside a cross-origin iframe",
+      "fields": 10,
+      "found": 10,
+      "filled": 9,
+      "correct": 10,
+      "wrong": 0,
+      "skipped": 0,
+      "missing": 0,
+      "timeMs": 815,
+      "submitClicked": false,
+      "wallsExpected": [],
+      "wallsReported": [],
+      "needsUser": 0,
+      "llmCalls": 0,
+      "notes": [],
+      "details": [
+        {
+          "label": "First Name",
+          "category": "profile",
+          "required": true,
+          "expected": "Jordan",
+          "actual": "Jordan",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Last Name",
+          "category": "profile",
+          "required": true,
+          "expected": "Rivera",
+          "actual": "Rivera",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Email",
+          "category": "profile",
+          "required": true,
+          "expected": "jordan.rivera@example.com",
+          "actual": "jordan.rivera@example.com",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Phone",
+          "category": "profile",
+          "required": true,
+          "expected": "+1 512 555 0142",
+          "actual": "+1 512 555 0142",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Resume/CV",
+          "category": "file",
+          "required": true,
+          "expected": "@file",
+          "actual": "@file",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "LinkedIn Profile",
+          "category": "profile",
+          "required": false,
+          "expected": "https://www.linkedin.com/in/jordan-rivera-dev",
+          "actual": "https://www.linkedin.com/in/jordan-rivera-dev",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Current Company",
+          "category": "profile",
+          "required": false,
+          "expected": "Nimbus Analytics",
+          "actual": "Nimbus Analytics",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Will you now or in the future require visa sponsorship?",
+          "category": "profile",
+          "required": true,
+          "expected": "No",
+          "actual": "No",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Data Privacy",
+          "category": "policy",
+          "required": true,
+          "expected": true,
+          "actual": "true",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Future opportunities",
+          "category": "policy",
+          "required": false,
+          "expected": false,
+          "actual": "false",
+          "verdict": "correct",
+          "found": true
+        }
+      ]
+    },
+    {
+      "id": "greenhouse-react-eeo",
+      "ats": "greenhouse",
+      "title": "Greenhouse job-boards (React): EEO comboboxes + open questions",
+      "fields": 12,
+      "found": 12,
+      "filled": 12,
+      "correct": 12,
+      "wrong": 0,
+      "skipped": 0,
+      "missing": 0,
+      "timeMs": 1317,
+      "submitClicked": false,
+      "wallsExpected": [],
+      "wallsReported": [],
+      "needsUser": 0,
+      "llmCalls": 1,
+      "notes": [],
+      "details": [
+        {
+          "label": "First Name",
+          "category": "profile",
+          "required": true,
+          "expected": "Jordan",
+          "actual": "Jordan",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Last Name",
+          "category": "profile",
+          "required": true,
+          "expected": "Rivera",
+          "actual": "Rivera",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Email",
+          "category": "profile",
+          "required": true,
+          "expected": "jordan.rivera@example.com",
+          "actual": "jordan.rivera@example.com",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Resume/CV",
+          "category": "file",
+          "required": true,
+          "expected": "@file",
+          "actual": "@file",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Location (City)",
+          "category": "profile",
+          "required": true,
+          "expected": "Austin",
+          "actual": "Austin",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Why are you interested in this role?",
+          "category": "open",
+          "required": true,
+          "expected": "@nonempty",
+          "actual": "Software engineer with 5 years of experience building data-heavy web products in TypeScript, React and Node.js. Led the migration of Nimbus Analytics' reporting pipeline to AWS, cutting report latency by 60%. (answer to: Why are you interested in this role?)",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "What is your notice period?",
+          "category": "profile",
+          "required": true,
+          "expected": "2 weeks",
+          "actual": "2 weeks",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Acknowledgement",
+          "category": "policy",
+          "required": true,
+          "expected": true,
+          "actual": "true",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Gender",
+          "category": "eeo",
+          "required": false,
+          "expected": "Decline to self-identify",
+          "actual": "Decline to self-identify",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Are you Hispanic/Latino?",
+          "category": "eeo",
+          "required": false,
+          "expected": "Decline to self-identify",
+          "actual": "Decline to self-identify",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Veteran Status",
+          "category": "eeo",
+          "required": false,
+          "expected": "I don't wish to answer",
+          "actual": "I don't wish to answer",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Disability Status",
+          "category": "eeo",
+          "required": false,
+          "expected": "I don't wish to answer",
+          "actual": "I don't wish to answer",
+          "verdict": "correct",
+          "found": true
+        }
+      ]
+    },
+    {
+      "id": "greenhouse-react-select",
+      "ats": "greenhouse",
+      "title": "Greenhouse job-boards (React): react-select questions",
+      "fields": 10,
+      "found": 10,
+      "filled": 9,
+      "correct": 10,
+      "wrong": 0,
+      "skipped": 0,
+      "missing": 0,
+      "timeMs": 970,
+      "submitClicked": false,
+      "wallsExpected": [],
+      "wallsReported": [],
+      "needsUser": 0,
+      "llmCalls": 0,
+      "notes": [],
+      "details": [
+        {
+          "label": "First Name",
+          "category": "profile",
+          "required": true,
+          "expected": "Jordan",
+          "actual": "Jordan",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Last Name",
+          "category": "profile",
+          "required": true,
+          "expected": "Rivera",
+          "actual": "Rivera",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Preferred First Name",
+          "category": "trap",
+          "required": false,
+          "expected": "@empty",
+          "actual": "",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Email",
+          "category": "profile",
+          "required": true,
+          "expected": "jordan.rivera@example.com",
+          "actual": "jordan.rivera@example.com",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Phone",
+          "category": "profile",
+          "required": false,
+          "expected": "+1 512 555 0142",
+          "actual": "+1 512 555 0142",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Resume/CV",
+          "category": "file",
+          "required": true,
+          "expected": "@file",
+          "actual": "@file",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "LinkedIn Profile",
+          "category": "profile",
+          "required": false,
+          "expected": "https://www.linkedin.com/in/jordan-rivera-dev",
+          "actual": "https://www.linkedin.com/in/jordan-rivera-dev",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Are you legally authorized to work in the country in which you are applying?",
+          "category": "profile",
+          "required": true,
+          "expected": "Yes",
+          "actual": "Yes",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Will you now, or in the future, require sponsorship for employment visa status?",
+          "category": "profile",
+          "required": true,
+          "expected": "No",
+          "actual": "No",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Are you open to working in a hybrid environment?",
+          "category": "profile",
+          "required": true,
+          "expected": "Yes",
+          "actual": "Yes",
+          "verdict": "correct",
+          "found": true
+        }
+      ]
+    },
+    {
+      "id": "internshala-assessment",
+      "ats": "internshala",
+      "title": "Internshala: assessment questions",
+      "fields": 5,
+      "found": 5,
+      "filled": 4,
+      "correct": 5,
+      "wrong": 0,
+      "skipped": 0,
+      "missing": 0,
+      "timeMs": 996,
+      "submitClicked": false,
+      "wallsExpected": [],
+      "wallsReported": [],
+      "needsUser": 1,
+      "llmCalls": 1,
+      "notes": [],
+      "details": [
+        {
+          "label": "Why should you be hired for this role?",
+          "category": "open",
+          "required": true,
+          "expected": "@nonempty",
+          "actual": "I am a final-year Computer Science student who has shipped a React and Node.js campus marketplace used by 1,200 students. I am comfortable owning features end to end and I am available to start immediately and work full time for the internship duration.",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Confirm your availability",
+          "category": "profile",
+          "required": true,
+          "expected": "Yes, I am available to join immediately",
+          "actual": "Yes, I am available to join immediately",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Describe a project where you used React. What was your role?",
+          "category": "open",
+          "required": true,
+          "expected": "@nonempty",
+          "actual": "Final-year B.Tech Computer Science student at VIT Vellore. Built a campus marketplace app in React and Node.js used by 1,200 students. (answer to: Describe a project where you used React. What was your role?)",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Please share the link to your GitHub profile.",
+          "category": "profile",
+          "required": true,
+          "expected": "https://github.com/aaravsharma",
+          "actual": "https://github.com/aaravsharma",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Do you have your own laptop with a working internet connection?",
+          "category": "trap",
+          "required": true,
+          "expected": "@empty",
+          "actual": "",
+          "verdict": "correct",
+          "found": true
+        }
+      ]
+    },
+    {
+      "id": "internshala-details",
+      "ats": "internshala",
+      "title": "Internshala: phone, links, custom resume",
+      "fields": 6,
+      "found": 6,
+      "filled": 6,
+      "correct": 6,
+      "wrong": 0,
+      "skipped": 0,
+      "missing": 0,
+      "timeMs": 1154,
+      "submitClicked": false,
+      "wallsExpected": [],
+      "wallsReported": [],
+      "needsUser": 0,
+      "llmCalls": 0,
+      "notes": [],
+      "details": [
+        {
+          "label": "Why should you be hired for this role?",
+          "category": "open",
+          "required": true,
+          "expected": "@nonempty",
+          "actual": "I am a final-year Computer Science student who has shipped a React and Node.js campus marketplace used by 1,200 students. I am comfortable owning features end to end and I am available to start immediately and work full time for the internship duration.",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Confirm your availability",
+          "category": "profile",
+          "required": true,
+          "expected": "Yes, I am available to join immediately",
+          "actual": "Yes, I am available to join immediately",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Mobile number",
+          "category": "profile",
+          "required": true,
+          "expected": "+91 98765 43210",
+          "actual": "+91 98765 43210",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Share your GitHub profile or portfolio link",
+          "category": "profile",
+          "required": false,
+          "expected": "https://github.com/aaravsharma",
+          "actual": "https://github.com/aaravsharma",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Upload your resume (PDF)",
+          "category": "file",
+          "required": false,
+          "expected": "@file",
+          "actual": "@file",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Are you willing to relocate to Pune for this internship?",
+          "category": "profile",
+          "required": true,
+          "expected": "Yes",
+          "actual": "Yes",
+          "verdict": "correct",
+          "found": true
+        }
+      ]
+    },
+    {
+      "id": "internshala-modal",
+      "ats": "internshala",
+      "title": "Internshala: modal cover letter + availability",
+      "fields": 2,
+      "found": 2,
+      "filled": 2,
+      "correct": 2,
+      "wrong": 0,
+      "skipped": 0,
+      "missing": 0,
+      "timeMs": 837,
+      "submitClicked": false,
+      "wallsExpected": [],
+      "wallsReported": [],
+      "needsUser": 0,
+      "llmCalls": 0,
+      "notes": [],
+      "details": [
+        {
+          "label": "Why should you be hired for this role?",
+          "category": "open",
+          "required": true,
+          "expected": "@nonempty",
+          "actual": "I am a final-year Computer Science student who has shipped a React and Node.js campus marketplace used by 1,200 students. I am comfortable owning features end to end and I am available to start immediately and work full time for the internship duration.",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Confirm your availability",
+          "category": "profile",
+          "required": true,
+          "expected": "Yes, I am available to join immediately",
+          "actual": "Yes, I am available to join immediately",
+          "verdict": "correct",
+          "found": true
+        }
+      ]
+    },
+    {
+      "id": "lever-additional",
+      "ats": "lever",
+      "title": "Lever: additional info, education, open questions",
+      "fields": 11,
+      "found": 11,
+      "filled": 11,
+      "correct": 11,
+      "wrong": 0,
+      "skipped": 0,
+      "missing": 0,
+      "timeMs": 889,
+      "submitClicked": false,
+      "wallsExpected": [],
+      "wallsReported": [],
+      "needsUser": 0,
+      "llmCalls": 1,
+      "notes": [],
+      "details": [
+        {
+          "label": "Resume/CV",
+          "category": "file",
+          "required": true,
+          "expected": "@file",
+          "actual": "@file",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Full name",
+          "category": "profile",
+          "required": true,
+          "expected": "Jordan Rivera",
+          "actual": "Jordan Rivera",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Email",
+          "category": "profile",
+          "required": true,
+          "expected": "jordan.rivera@example.com",
+          "actual": "jordan.rivera@example.com",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Phone",
+          "category": "profile",
+          "required": false,
+          "expected": "+1 512 555 0142",
+          "actual": "+1 512 555 0142",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Current company",
+          "category": "profile",
+          "required": false,
+          "expected": "Nimbus Analytics",
+          "actual": "Nimbus Analytics",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "University",
+          "category": "profile",
+          "required": false,
+          "expected": "University of Texas at Austin",
+          "actual": "University of Texas at Austin",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Highest level of education completed",
+          "category": "profile",
+          "required": true,
+          "expected": "Bachelor's Degree",
+          "actual": "Bachelor's Degree",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Graduation year",
+          "category": "profile",
+          "required": false,
+          "expected": "2020",
+          "actual": "2020",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Which languages can you work in professionally?",
+          "category": "profile",
+          "required": false,
+          "expected": [
+            "English",
+            "Spanish"
+          ],
+          "actual": [
+            "English",
+            "Spanish"
+          ],
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "What excites you about Waypoint?",
+          "category": "open",
+          "required": true,
+          "expected": "@nonempty",
+          "actual": "Software engineer with 5 years of experience building data-heavy web products in TypeScript, React and Node.js. Led the migration of Nimbus Analytics' reporting pipeline to AWS, cutting report latency by 60%. (answer to: What excites you about Waypoint?)",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Additional information",
+          "category": "open",
+          "required": false,
+          "expected": "@nonempty",
+          "actual": "I have spent five years building analytics products at Nimbus Analytics, most recently leading our reporting pipeline migration to AWS. I enjoy owning features end to end, from PostgreSQL schema design to React interfaces, and I would bring that ownership to your team.",
+          "verdict": "correct",
+          "found": true
+        }
+      ]
+    },
+    {
+      "id": "lever-basic",
+      "ats": "lever",
+      "title": "Lever: standard fields + urls[...]",
+      "fields": 10,
+      "found": 10,
+      "filled": 9,
+      "correct": 10,
+      "wrong": 0,
+      "skipped": 0,
+      "missing": 0,
+      "timeMs": 772,
+      "submitClicked": false,
+      "wallsExpected": [],
+      "wallsReported": [],
+      "needsUser": 0,
+      "llmCalls": 0,
+      "notes": [],
+      "details": [
+        {
+          "label": "Resume/CV",
+          "category": "file",
+          "required": true,
+          "expected": "@file",
+          "actual": "@file",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Full name",
+          "category": "profile",
+          "required": true,
+          "expected": "Jordan Rivera",
+          "actual": "Jordan Rivera",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Email",
+          "category": "profile",
+          "required": true,
+          "expected": "jordan.rivera@example.com",
+          "actual": "jordan.rivera@example.com",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Phone",
+          "category": "profile",
+          "required": false,
+          "expected": "+1 512 555 0142",
+          "actual": "+1 512 555 0142",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Current location",
+          "category": "profile",
+          "required": false,
+          "expected": "Austin, TX, USA",
+          "actual": "Austin, TX, USA",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Current company",
+          "category": "profile",
+          "required": false,
+          "expected": "Nimbus Analytics",
+          "actual": "Nimbus Analytics",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "LinkedIn URL",
+          "category": "profile",
+          "required": false,
+          "expected": "https://www.linkedin.com/in/jordan-rivera-dev",
+          "actual": "https://www.linkedin.com/in/jordan-rivera-dev",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Twitter URL",
+          "category": "trap",
+          "required": false,
+          "expected": "@empty",
+          "actual": "",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "GitHub URL",
+          "category": "profile",
+          "required": false,
+          "expected": "https://github.com/jrivera-dev",
+          "actual": "https://github.com/jrivera-dev",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Portfolio URL",
+          "category": "profile",
+          "required": false,
+          "expected": "https://jordanrivera.dev",
+          "actual": "https://jordanrivera.dev",
+          "verdict": "correct",
+          "found": true
+        }
+      ]
+    },
+    {
+      "id": "lever-cards",
+      "ats": "lever",
+      "title": "Lever: custom question cards (radio/select/checkbox)",
+      "fields": 9,
+      "found": 9,
+      "filled": 8,
+      "correct": 9,
+      "wrong": 0,
+      "skipped": 0,
+      "missing": 0,
+      "timeMs": 610,
+      "submitClicked": false,
+      "wallsExpected": [],
+      "wallsReported": [],
+      "needsUser": 1,
+      "llmCalls": 0,
+      "notes": [],
+      "details": [
+        {
+          "label": "Resume/CV",
+          "category": "file",
+          "required": true,
+          "expected": "@file",
+          "actual": "@file",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Full name",
+          "category": "profile",
+          "required": true,
+          "expected": "Jordan Rivera",
+          "actual": "Jordan Rivera",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Email",
+          "category": "profile",
+          "required": true,
+          "expected": "jordan.rivera@example.com",
+          "actual": "jordan.rivera@example.com",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Phone",
+          "category": "profile",
+          "required": false,
+          "expected": "+1 512 555 0142",
+          "actual": "+1 512 555 0142",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Are you currently authorized to work in the United States?",
+          "category": "profile",
+          "required": true,
+          "expected": "Yes",
+          "actual": "Yes",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Will you now or in the future require sponsorship to work in the US?",
+          "category": "profile",
+          "required": true,
+          "expected": "No",
+          "actual": "No",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "How many years of backend development experience do you have?",
+          "category": "profile",
+          "required": true,
+          "expected": "5-7 years",
+          "actual": "5-7 years",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Have you interviewed with Pinecrest in the last 12 months?",
+          "category": "trap",
+          "required": true,
+          "expected": "@empty",
+          "actual": "",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Expected base salary (USD)",
+          "category": "profile",
+          "required": true,
+          "expected": "$145,000",
+          "actual": "$145,000",
+          "verdict": "correct",
+          "found": true
+        }
+      ]
+    },
+    {
+      "id": "lever-eeo",
+      "ats": "lever",
+      "title": "Lever: EEO selects + consent",
+      "fields": 10,
+      "found": 10,
+      "filled": 9,
+      "correct": 10,
+      "wrong": 0,
+      "skipped": 0,
+      "missing": 0,
+      "timeMs": 678,
+      "submitClicked": false,
+      "wallsExpected": [],
+      "wallsReported": [],
+      "needsUser": 0,
+      "llmCalls": 0,
+      "notes": [],
+      "details": [
+        {
+          "label": "Resume/CV",
+          "category": "file",
+          "required": true,
+          "expected": "@file",
+          "actual": "@file",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Full name",
+          "category": "profile",
+          "required": true,
+          "expected": "Jordan Rivera",
+          "actual": "Jordan Rivera",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Email",
+          "category": "profile",
+          "required": true,
+          "expected": "jordan.rivera@example.com",
+          "actual": "jordan.rivera@example.com",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Phone",
+          "category": "profile",
+          "required": false,
+          "expected": "+1 512 555 0142",
+          "actual": "+1 512 555 0142",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "LinkedIn URL",
+          "category": "profile",
+          "required": false,
+          "expected": "https://www.linkedin.com/in/jordan-rivera-dev",
+          "actual": "https://www.linkedin.com/in/jordan-rivera-dev",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Gender",
+          "category": "eeo",
+          "required": false,
+          "expected": "Decline to self-identify",
+          "actual": "Decline to self-identify",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Race",
+          "category": "eeo",
+          "required": false,
+          "expected": "Decline to self-identify",
+          "actual": "Decline to self-identify",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Veteran status",
+          "category": "eeo",
+          "required": false,
+          "expected": "Decline to self-identify",
+          "actual": "Decline to self-identify",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "I agree to Arcadia Bio processing my data in accordance with its Candidate Privacy Notice.",
+          "category": "policy",
+          "required": true,
+          "expected": true,
+          "actual": "true",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Send me occasional emails about new roles and company news.",
+          "category": "policy",
+          "required": false,
+          "expected": false,
+          "actual": "false",
+          "verdict": "correct",
+          "found": true
+        }
+      ]
+    },
+    {
+      "id": "ui5-shadow-form",
+      "ats": "other",
+      "title": "SuccessFactors-style form in open shadow DOM",
+      "fields": 10,
+      "found": 10,
+      "filled": 9,
+      "correct": 10,
+      "wrong": 0,
+      "skipped": 0,
+      "missing": 0,
+      "timeMs": 780,
+      "submitClicked": false,
+      "wallsExpected": [],
+      "wallsReported": [],
+      "needsUser": 0,
+      "llmCalls": 0,
+      "notes": [],
+      "details": [
+        {
+          "label": "First Name",
+          "category": "profile",
+          "required": true,
+          "expected": "Jordan",
+          "actual": "Jordan",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Last Name",
+          "category": "profile",
+          "required": true,
+          "expected": "Rivera",
+          "actual": "Rivera",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "E-mail",
+          "category": "profile",
+          "required": true,
+          "expected": "jordan.rivera@example.com",
+          "actual": "jordan.rivera@example.com",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Cell Phone",
+          "category": "profile",
+          "required": false,
+          "expected": "+1 512 555 0142",
+          "actual": "+1 512 555 0142",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "City",
+          "category": "profile",
+          "required": false,
+          "expected": "Austin",
+          "actual": "Austin",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Country of Residence",
+          "category": "profile",
+          "required": true,
+          "expected": "United States",
+          "actual": "United States",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Are you legally authorized to work in this country?",
+          "category": "profile",
+          "required": true,
+          "expected": "Yes",
+          "actual": "Yes",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "LinkedIn Profile URL",
+          "category": "profile",
+          "required": false,
+          "expected": "https://www.linkedin.com/in/jordan-rivera-dev",
+          "actual": "https://www.linkedin.com/in/jordan-rivera-dev",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "I have read and accept the Data Privacy Statement",
+          "category": "policy",
+          "required": true,
+          "expected": true,
+          "actual": "true",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Subscribe me to job alerts",
+          "category": "policy",
+          "required": false,
+          "expected": false,
+          "actual": "false",
+          "verdict": "correct",
+          "found": true
+        }
+      ]
+    },
+    {
+      "id": "workday-login-wall",
+      "ats": "workday",
+      "title": "Workday: sign-in / create-account wall",
+      "fields": 2,
+      "found": 0,
+      "filled": 0,
+      "correct": 2,
+      "wrong": 0,
+      "skipped": 0,
+      "missing": 0,
+      "timeMs": 107,
+      "submitClicked": false,
+      "wallsExpected": [
+        "login"
+      ],
+      "wallsReported": [
+        "login"
+      ],
+      "needsUser": 0,
+      "llmCalls": 0,
+      "notes": [],
+      "details": [
+        {
+          "label": "Password",
+          "category": "trap",
+          "required": true,
+          "expected": "@empty",
+          "actual": "",
+          "verdict": "correct",
+          "found": false
+        },
+        {
+          "label": "Verify New Password",
+          "category": "trap",
+          "required": true,
+          "expected": "@empty",
+          "actual": "",
+          "verdict": "correct",
+          "found": false
+        }
+      ]
+    },
+    {
+      "id": "workday-multistep",
+      "ats": "workday",
+      "title": "Workday: multi-step apply flow with portal dropdowns",
+      "fields": 17,
+      "found": 17,
+      "filled": 16,
+      "correct": 17,
+      "wrong": 0,
+      "skipped": 0,
+      "missing": 0,
+      "timeMs": 2873,
+      "submitClicked": false,
+      "wallsExpected": [],
+      "wallsReported": [],
+      "needsUser": 2,
+      "llmCalls": 0,
+      "notes": [],
+      "details": [
+        {
+          "label": "How Did You Hear About Us?",
+          "category": "profile",
+          "required": true,
+          "expected": "LinkedIn",
+          "actual": "LinkedIn",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Have you previously worked for Meridian Health as an employee or contractor?",
+          "category": "trap",
+          "required": true,
+          "expected": "@empty",
+          "actual": "",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Country",
+          "category": "profile",
+          "required": true,
+          "expected": "United States of America",
+          "actual": "United States of America",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "First Name",
+          "category": "profile",
+          "required": true,
+          "expected": "Jordan",
+          "actual": "Jordan",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Last Name",
+          "category": "profile",
+          "required": true,
+          "expected": "Rivera",
+          "actual": "Rivera",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Address Line 1",
+          "category": "profile",
+          "required": false,
+          "expected": "500 Congress Ave",
+          "actual": "500 Congress Ave",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "City",
+          "category": "profile",
+          "required": true,
+          "expected": "Austin",
+          "actual": "Austin",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Postal Code",
+          "category": "profile",
+          "required": true,
+          "expected": "78701",
+          "actual": "78701",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Email Address",
+          "category": "profile",
+          "required": true,
+          "expected": "jordan.rivera@example.com",
+          "actual": "jordan.rivera@example.com",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Phone Number",
+          "category": "profile",
+          "required": true,
+          "expected": "+1 512 555 0142",
+          "actual": "+1 512 555 0142",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Are you legally authorized to work in the country for which you are applying?",
+          "category": "profile",
+          "required": true,
+          "expected": "Yes",
+          "actual": "Yes",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Will you now or in the future require sponsorship for employment visa status?",
+          "category": "profile",
+          "required": true,
+          "expected": "No",
+          "actual": "No",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Earliest Start Date",
+          "category": "profile",
+          "required": true,
+          "expected": "11/02/2026",
+          "actual": "11/02/2026",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Gender",
+          "category": "eeo",
+          "required": false,
+          "expected": "I do not wish to self-identify",
+          "actual": "I do not wish to self-identify",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Ethnicity",
+          "category": "eeo",
+          "required": false,
+          "expected": "I do not wish to self-identify",
+          "actual": "I do not wish to self-identify",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Veteran Status",
+          "category": "eeo",
+          "required": false,
+          "expected": "I don't wish to answer",
+          "actual": "I don't wish to answer",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Yes, I have read and consent to the terms and conditions",
+          "category": "policy",
+          "required": true,
+          "expected": true,
+          "actual": "true",
+          "verdict": "correct",
+          "found": true
+        }
+      ]
+    },
+    {
+      "id": "workday-questions",
+      "ats": "workday",
+      "title": "Workday: application questions (dropdown portals, date text)",
+      "fields": 8,
+      "found": 8,
+      "filled": 7,
+      "correct": 8,
+      "wrong": 0,
+      "skipped": 0,
+      "missing": 0,
+      "timeMs": 924,
+      "submitClicked": false,
+      "wallsExpected": [],
+      "wallsReported": [],
+      "needsUser": 1,
+      "llmCalls": 1,
+      "notes": [],
+      "details": [
+        {
+          "label": "Are you legally authorized to work in the country for which you are applying?",
+          "category": "profile",
+          "required": true,
+          "expected": "Yes",
+          "actual": "Yes",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Will you now or in the future require sponsorship for employment visa status (e.g., H-1B)?",
+          "category": "profile",
+          "required": true,
+          "expected": "No",
+          "actual": "No",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Are you willing to relocate for this position?",
+          "category": "profile",
+          "required": true,
+          "expected": "Yes",
+          "actual": "Yes",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Earliest Start Date",
+          "category": "profile",
+          "required": true,
+          "expected": "11/02/2026",
+          "actual": "11/02/2026",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Desired Salary",
+          "category": "profile",
+          "required": true,
+          "expected": "$145,000",
+          "actual": "$145,000",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Do you have any relatives currently employed by Orion Logistics?",
+          "category": "trap",
+          "required": true,
+          "expected": "@empty",
+          "actual": "",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Highest Level of Education",
+          "category": "profile",
+          "required": true,
+          "expected": "Bachelor's Degree",
+          "actual": "Bachelor's Degree",
+          "verdict": "correct",
+          "found": true
+        },
+        {
+          "label": "Please describe your experience building distributed systems.",
+          "category": "open",
+          "required": true,
+          "expected": "@nonempty",
+          "actual": "Software engineer with 5 years of experience building data-heavy web products in TypeScript, React and Node.js. Led the migration of Nimbus Analytics' reporting pipeline to AWS, cutting report latency by 60%. (answer to: Please describe your experience building distributed systems.)",
+          "verdict": "correct",
+          "found": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,7 +1,6 @@
 import { chromium, type BrowserContext } from 'playwright';
-import { OmniFormSolver } from './omni-form-solver.js';
+import { runPortalAdapter, adapterFor } from './bots/portal-adapter.js';
 import type { MasterProfile } from './auto-apply-engine.js';
-import { dispatchSpecializedPortalBot } from './bots/bot-dispatcher.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -59,28 +58,23 @@ async function runStandaloneTest(jobUrl: string) {
   await page.goto(jobUrl, { waitUntil: 'domcontentloaded', timeout: 35000 });
   await page.waitForTimeout(2000);
 
-  console.log(`\n⚡ [Phase 1: Top-to-Bottom Multi-Pass Form Solving...]`);
+  console.log(`\n⚡ [FormEngine] Filling (never submits)...`);
   try {
-    const result = await OmniFormSolver.solveEntireForm(
-      page,
-      TEST_PROFILE,
-      TEST_PROFILE.desiredTitle,
-      'Target Company',
-      false // Keep false in test runner so user can visually inspect before submit!
-    );
+    const { report } = await runPortalAdapter(page, TEST_PROFILE, adapterFor(page.url()), {
+      onEvent: (e) => console.log(`   [${e.type}] ${'label' in e && e.label ? e.label + ': ' : ''}${'message' in e ? e.message : 'reason' in e ? e.reason : 'value' in e ? e.value : ''}`),
+    });
 
     console.log(`\n======================================================`);
-    console.log(`✅ [OMNI-SOLVER COMPLETED] Interactions logged:`);
-    console.log(`   - Text Fields Filled: ${result.fieldsFilled}`);
-    console.log(`   - Radios / Yes-No Buttons Selected: ${result.radiosSelected}`);
-    console.log(`   - Checkboxes (Terms/Certifications) Toggled: ${result.checkboxesChecked}`);
-    console.log(`   - Selects / Dropdown Options Solved: ${result.selectsSolved}`);
-    console.log(`   - Resume Uploaded: ${result.resumeUploaded}`);
-    console.log(`   - Total Successful Field Interactions: ${result.totalInteractions}`);
+    console.log(`✅ [FORM ENGINE COMPLETED]`);
+    console.log(`   - Filled: ${report.filled}`);
+    console.log(`   - Needs you: ${report.needsUser}`);
+    console.log(`   - Failed: ${report.failed}`);
+    console.log(`   - Required unresolved: ${report.unresolvedRequired.map((o) => o.field.label).join('; ') || 'none'}`);
+    console.log(`   - Walls: ${report.walls.join(', ') || 'none'}`);
+    console.log(`   - Ready to submit: ${report.readyToSubmit}`);
     console.log(`======================================================`);
-    
-    console.log(`\n👀 Please look at the open Chrome browser window to verify all fields are 100% complete!`);
-    console.log(`Close the browser window when finished.`);
+
+    console.log(`\n👀 Review the open Chrome window. Close it when finished.`);
 
     await new Promise(() => {});
   } catch (err: any) {

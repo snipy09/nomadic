@@ -1,0 +1,75 @@
+{
+  "id": "generic-careers-richtext",
+  "ats": "other",
+  "title": "Custom careers form: aria-labelledby, split phone, date, rich text",
+  "sourceUrl": "https://careers.<company>.com/apply/<id>",
+  "profile": "sample.json",
+  "walls": [],
+  "fields": {
+    "Given name": {
+      "expected": "Jordan",
+      "selector": "#gn",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Family name": {
+      "expected": "Rivera",
+      "selector": "input[name=\"familyName\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Email address": {
+      "expected": "jordan.rivera@example.com",
+      "selector": "input[name=\"contactEmail\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Country code": {
+      "expected": "+1 (United States)",
+      "selector": "#phoneCountry",
+      "read": "select",
+      "category": "profile"
+    },
+    "Phone number": {
+      "expected": "512 555 0142",
+      "selector": "#phoneNational",
+      "read": "value",
+      "category": "profile"
+    },
+    "Personal website": {
+      "expected": "https://jordanrivera.dev",
+      "selector": "input[name=\"website\"]",
+      "read": "value",
+      "category": "profile"
+    },
+    "Years of experience": {
+      "expected": "3-5",
+      "selector": "select[name=\"experience\"]",
+      "read": "select",
+      "category": "profile",
+      "required": true
+    },
+    "Available from": {
+      "expected": "2026-11-02",
+      "selector": "#availableFrom",
+      "read": "value",
+      "category": "profile"
+    },
+    "Cover letter": {
+      "expected": "@nonempty",
+      "selector": "#coverLetterEditor",
+      "read": "text",
+      "category": "open"
+    },
+    "I confirm that the information in this application is accurate and complete.": {
+      "expected": true,
+      "selector": "#accuracy",
+      "read": "checkbox",
+      "category": "policy",
+      "required": true
+    }
+  }
+}

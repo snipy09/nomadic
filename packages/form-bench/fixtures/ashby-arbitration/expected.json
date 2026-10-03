@@ -1,0 +1,67 @@
+{
+  "id": "ashby-arbitration",
+  "ats": "ashby",
+  "title": "Ashby: arbitration acknowledgement + certification",
+  "sourceUrl": "https://jobs.ashbyhq.com/helixrobotics/<posting-uuid>/application",
+  "profile": "sample.json",
+  "walls": [],
+  "notes": "Old engines tick every checkbox; the marketing opt-in must stay unchecked.",
+  "fields": {
+    "Full Legal Name": {
+      "expected": "Jordan Rivera",
+      "selector": "[id=\"_systemfield_name\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Email": {
+      "expected": "jordan.rivera@example.com",
+      "selector": "[id=\"_systemfield_email\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Resume": {
+      "expected": "@file",
+      "selector": "#_systemfield_resume",
+      "read": "file",
+      "category": "file",
+      "required": true
+    },
+    "Are you able to work from our San Francisco office 3 days per week?": {
+      "expected": "Yes",
+      "selector": ".yesno[data-name=\"e98bf933-a685-4743-a7a0-e7a007aae98b\"]",
+      "read": "pressed",
+      "category": "profile",
+      "required": true
+    },
+    "Arbitration Agreement": {
+      "expected": "I acknowledge that I have opened, read and agree to the Mutual Arbitration Agreement",
+      "selector": "input[name=\"4f67f5ec-87d1-442c-a8b2-d8b2cbff4f67\"]",
+      "read": "radio",
+      "category": "policy",
+      "required": true
+    },
+    "Certification": {
+      "expected": true,
+      "selector": "input[name=\"d61acaf4-e4df-46b4-a67a-d67a77d7d61a\"]",
+      "read": "checkbox",
+      "category": "policy",
+      "required": true
+    },
+    "Talent community": {
+      "expected": false,
+      "selector": "input[name=\"7d5e3761-fa28-4311-a483-14837e6c7d5e\"]",
+      "read": "checkbox",
+      "category": "policy",
+      "required": false
+    },
+    "Have you previously been employed by Helix Robotics? If so, when?": {
+      "expected": "@empty",
+      "selector": "[id=\"622b83aa-a6d7-428a-a25f-025fb589622b\"]",
+      "read": "value",
+      "category": "trap",
+      "required": false
+    }
+  }
+}
