@@ -176,47 +176,8 @@ export const PLANS: Plan[] = CONFIG_PLANS.map((p) => ({
 
 export const PAID_PRICES = CONFIG_PLANS.filter((p) => p.priceInr > 0).map((p) => formatPrice(p.priceInr));
 
-export interface DataHandlingRow {
-  title: string;
-  items: string[];
-}
-
-/** Privacy and data-handling facts shown on the home page. Keep in sync with the privacy policy. */
-export const DATA_HANDLING: DataHandlingRow[] = [
-  {
-    title: 'Stays on your computer',
-    items: [
-      'Profile, resumes and cover letters',
-      'Application history, notes and form answers',
-      'Your AI provider keys, encrypted with the operating system keychain',
-    ],
-  },
-  {
-    title: 'Goes to our server (Supabase)',
-    items: [
-      'Account email, name and a salted password hash',
-      'Plan status and expiry',
-      'Session token, device fingerprint and IP address, to enforce one active device',
-      'Learning progress events (lessons, quiz results) so progress survives a reinstall',
-    ],
-  },
-  {
-    title: 'What the AI sees',
-    items: [
-      'Only when you use an AI feature, using your own Groq or Gemini key',
-      'The form question plus the profile or resume fields needed to answer it',
-      'Sent from your computer straight to the provider, never through our servers',
-    ],
-  },
-  {
-    title: 'What we never do',
-    items: [
-      'Sell, rent or share your data with advertisers or data brokers',
-      'Submit an application you have not approved, unless you turn on autonomous mode',
-      'Store your resume text or application answers on our server',
-    ],
-  },
-];
+// Privacy and data-handling facts live in ./privacy.ts (one source for the home band and /privacy).
+export { DATA_HANDLING, type DataHandlingRow } from './privacy';
 
 export const FAQS: { q: string; a: string }[] = [
   {
@@ -233,7 +194,7 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Which operating systems does it run on?',
-    a: 'Nomadic is a native desktop app for Windows, macOS and Linux.',
+    a: 'Nomadic launches on Windows. A macOS version follows after the beta.',
   },
   {
     q: 'Can Nomadic apply to jobs for me?',
@@ -245,7 +206,7 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Where is my data stored?',
-    a: 'On your computer. Your profile, resumes, notes and application history live in a local SQLite database. Only your account ID, plan status and bookmarked job links sync to our server so your plan keeps working.',
+    a: 'In a local database on your computer. Your account, profile, resume text, saved answers and tracked applications are also backed up to your Nomadic account so a reinstall or a new computer restores them. Resume files stay on your computer. The privacy policy lists every field.',
   },
   {
     q: 'Can I use it only for learning, or only for job hunting?',

@@ -20,7 +20,7 @@ Status: ✅ done · 🟡 partial · ⬜ not started
 | F11 | Updates, telemetry, support | 🟡 | Signed auto-update, Sentry, in-app help/feedback | Tagged release updates a real install |
 | F12 | Admin and content tools | ⬜ | Split AdminView, content editing with versions, scraper health, audit log | Every edit versioned |
 | F13 | Hidden/optional: Outreach, Opportunity Board, Resource Vault, Assistant | ⬜ | Behind flags until each meets the bar, or cut | Decision per feature |
-| F14 | Landing and docs site | 🟡 | Rebuild per decision, single pricing config, Lighthouse >= 95 | Pricing defined once |
+| F14 | Landing and docs site | 🟡 | Built: pricing, JSON-LD offers and the home share card from `packages/config` (test-guarded), sitemap + JSON-LD + per-page OG images at build time, privacy band and policy rewritten from the real data flows (`apps/web/src/privacy.ts`), fonts self-hosted, website analytics removed (decision 9), OS claims match decision 2. Lighthouse mobile (local, simulated throttling, 2026-10-03): home 97/100/100/100, download, privacy, terms 99/100/100/100. Left: docs site, re-run Lighthouse on the deployed URL | Pricing defined once |
 
 ## Recommended order
 F1 → F6 → F3 → F4 → F5 → F2 → F7 → F8 → F10 → F9 → F11 → F12 → F14 (F13 last or cut).

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { Analytics } from '@vercel/analytics/react';
 import Home from './pages/Home';
 import Download from './pages/Download';
 import Legal from './pages/Legal';
@@ -120,7 +119,6 @@ function App({ initialPath }: AppProps) {
       {page === 'terms' && <Legal type="terms" />}
       {page === 'privacy' && <Legal type="privacy" />}
       {page === 'notfound' && <NotFound />}
-      <Analytics />
     </>
   );
 }

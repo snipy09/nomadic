@@ -1,7 +1,14 @@
 import Nav from '../components/Nav';
 import Footer from '../components/Footer';
+import { PRIVACY_POLICY, PRIVACY_UPDATED, SUPPORT_EMAIL } from '../privacy';
 
-const DOCS = {
+interface Clause {
+  term: string;
+  text: string;
+  items?: string[];
+}
+
+const DOCS: Record<'terms' | 'privacy', { title: string; subtitle: string; updated: string; clauses: Clause[] }> = {
   terms: {
     title: 'Terms and Conditions',
     subtitle: 'Software licensing, fair usage and subscription terms.',
@@ -35,26 +42,9 @@ const DOCS = {
   },
   privacy: {
     title: 'Privacy Policy',
-    subtitle: 'Local-first data storage and no data harvesting.',
-    updated: 'August 2026',
-    clauses: [
-      {
-        term: 'Local-First Architecture',
-        text: 'Your master candidate profile, resume files, and private credentials remain strictly stored in an isolated SQLite database on your local computer.',
-      },
-      {
-        term: 'Cloud Synchronization',
-        text: 'Minimal metadata (user identifier, active subscription tier validity, and bookmarked job URLs) is synchronized securely with Supabase for license validation and cross-session persistence.',
-      },
-      {
-        term: 'No Data Harvesting',
-        text: 'We do not sell, rent, monetize, or transmit your personal application data, resume text, or email outreach history to third-party advertisers or data brokers.',
-      },
-      {
-        term: 'Security',
-        text: 'All network communications with our licensing infrastructure use industry-standard 256-bit SSL encryption.',
-      },
-    ],
+    subtitle: 'Exactly what stays on your computer, what is stored on our server, and who else sees it.',
+    updated: PRIVACY_UPDATED,
+    clauses: PRIVACY_POLICY.map((section) => ({ term: section.heading, text: section.intro ?? '', items: section.items })),
   },
 };
 
@@ -76,7 +66,14 @@ export default function Legal({ type }: { type: 'terms' | 'privacy' }) {
               <span className="nums font-bold text-ultra">{i + 1}.</span>
               <div>
                 <h2 className="text-xl font-bold">{clause.term}</h2>
-                <p className="mt-2 text-ink-soft">{clause.text}</p>
+                {clause.text && <p className="mt-2 text-ink-soft">{clause.text}</p>}
+                {clause.items && (
+                  <ul className="mt-3 list-disc space-y-2 pl-5 text-ink-soft marker:text-ultra">
+                    {clause.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </li>
           ))}
@@ -85,10 +82,10 @@ export default function Legal({ type }: { type: 'terms' | 'privacy' }) {
         <p className="mt-10 text-ink-soft">
           Questions about this document? Write to{' '}
           <a
-            href="mailto:support@nomadic.app"
+            href={`mailto:${SUPPORT_EMAIL}`}
             className="font-bold text-ink underline decoration-2 underline-offset-4 hover:text-ultra"
           >
-            support@nomadic.app
+            {SUPPORT_EMAIL}
           </a>
           .
         </p>

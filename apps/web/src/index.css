@@ -1,3 +1,6 @@
+/* Self-hosted variable Archivo (weight 100-900, width 62-125%): no request to a font provider. */
+@import '@fontsource-variable/archivo/wdth.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -36,7 +39,7 @@
     overflow-x: hidden;
     background: var(--fog);
     color: var(--ink);
-    font-family: 'Archivo', system-ui, 'Segoe UI', Helvetica, Arial, sans-serif;
+    font-family: 'Archivo Variable', system-ui, 'Segoe UI', Helvetica, Arial, sans-serif;
     font-size: 1.0625rem;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;

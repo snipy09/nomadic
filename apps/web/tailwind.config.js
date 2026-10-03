@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Archivo', 'system-ui', '"Segoe UI"', 'Helvetica', 'Arial', 'sans-serif'],
+        sans: ['"Archivo Variable"', 'system-ui', '"Segoe UI"', 'Helvetica', 'Arial', 'sans-serif'],
       },
       colors: {
         ultra: { DEFAULT: '#2338E0', light: '#A3AEF8', deep: '#1A2AB0' },

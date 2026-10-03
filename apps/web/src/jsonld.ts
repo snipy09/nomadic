@@ -72,7 +72,8 @@ export function jsonLd(id: PageId): object | null {
           '@id': `${SITE}/#software`,
           name: 'Nomadic',
           applicationCategory: 'BusinessApplication',
-          operatingSystem: 'Windows, macOS, Linux',
+          // Decision 2: Windows at launch; macOS after the beta.
+          operatingSystem: 'Windows',
           description: PAGES.home.description,
           url: `${SITE}/`,
           image: OG_IMAGE,

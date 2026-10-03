@@ -59,7 +59,7 @@ export default function Download() {
             </dl>
 
             <p className="mt-10 max-w-xl text-ink-soft">
-              Nomadic runs on Windows, macOS and Linux. Questions before then? Write to{' '}
+              Nomadic launches on Windows, with macOS after the beta. Questions before then? Write to{' '}
               <a
                 href="mailto:support@nomadic.app"
                 className="font-bold text-ink underline decoration-2 underline-offset-4 hover:text-ultra"
