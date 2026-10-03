@@ -45,3 +45,35 @@ export function getTierDisplayName(tier?: string | null): string {
   const plan = getPlan(normalizeTier(tier));
   return plan.priceInr === 0 ? `${plan.name} Plan` : `${plan.name} Plan (${formatPrice(plan.priceInr)}/mo)`;
 }
+
+export function getTierBadgeProps(tier?: string | null): {
+  label: string;
+  bgClass: string;
+  textClass: string;
+  borderClass: string;
+} {
+  const norm = normalizeTier(tier);
+  switch (norm) {
+    case 'max':
+      return {
+        label: 'MAX',
+        bgClass: 'bg-ink-950 dark:bg-white',
+        textClass: 'text-white dark:text-ink-950',
+        borderClass: 'border-ink-800 dark:border-white',
+      };
+    case 'pro':
+      return {
+        label: 'PRO',
+        bgClass: 'bg-powder-600',
+        textClass: 'text-white',
+        borderClass: 'border-powder-500',
+      };
+    default:
+      return {
+        label: 'FREE',
+        bgClass: 'bg-ink-100 dark:bg-ink-800',
+        textClass: 'text-ink-600 dark:text-ink-400',
+        borderClass: 'border-ink-200 dark:border-ink-700',
+      };
+  }
+}
