@@ -234,7 +234,7 @@ Hyper-personalized cold outreach engine (`OutreachView.tsx`):
 ├────────────────────────────────────────────────────────────────────────────────────────┤
 │ 4. CLOUD INFRASTRUCTURE & SCRAPERS (Supabase + Vercel)                                 │
 │    • PostgreSQL users_profile & Auth      • get-cloud-feed-page (18/36/54 range)       │
-│    • Scrape_All_Jobs.bat (Master Pipeline)• Web Portal (nomadic.runs-on.dev)           │
+│    • npm run scrape:all (Master Pipeline) • Web Portal (nomadic.runs-on.dev)           │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -269,14 +269,17 @@ nomadic/
 │   │   │           ├── ApplicationsView.tsx # SQLite application status tracker
 │   │   │           ├── AdminView.tsx    # Master admin dashboard
 │   │   │           └── UpgradeModal.tsx # Plan selection & WhatsApp upgrade flow
-│   └── web/                             # Next.js / React Web Landing Portal
-│       └── src/                         # Closed Alpha Pre-Registration page
+│   └── web/                             # React + Vite Web Landing Portal (prerendered)
+│       └── src/                         # Landing, download, terms & privacy pages
 ├── packages/
 │   ├── automation/                      # Playwright Stealth auto-apply & OmniForm
 │   ├── email-verifier/                  # 4-stage MX/SMTP email verification
 │   ├── scrapers/                        # ATS Scrapers (Ashby, Greenhouse, Lever, Internshala)
 │   └── supabase/                        # Supabase client, migrations & sync scripts
-├── Scrape_All_Jobs.bat                  # Master multi-ATS scraper execution script
+├── scripts/sign-windows.js              # Optional Authenticode signing (cert from env vars)
+├── build-nomadic.ps1                    # Windows build + package helper ("Build Nomadic.bat")
+├── Run-Job-Scraper.bat, Run-HR-Scraper.bat # Windows shortcuts for the scraper publishers
+├── docs/SECURITY_CLEANUP.md             # History purge + credential rotation runbook
 ├── nomadic_architecture.excalidraw      # System architecture diagram
 └── package.json                         # Monorepo root scripts & dependencies
 ```
@@ -301,7 +304,7 @@ Located permanently at `%APPDATA%\Nomadic\job_automator_local.db` on Windows and
 * `get-cloud-feed-page`: High-speed SQL stored procedure for range pagination (18/36/54 items).
 
 ### C. Master ATS Scraper Pipeline
-Run via `Scrape_All_Jobs.bat`:
+Run via `npm run scrape:all` (or double-click `Run-Job-Scraper.bat` on Windows for jobs only):
 * Hits public JSON APIs and sitemaps for Ashby, Greenhouse, Lever, Internshala, and Remotive.
 * Deduplicates and syncs active jobs directly into Supabase.
 
@@ -328,9 +331,9 @@ Run via `Scrape_All_Jobs.bat`:
 ## 9. Developer Setup & Workflow Guide
 
 ### Prerequisites
-* **Node.js:** v18+ or v20+
-* **Package Manager:** `npm`
-* **OS:** Windows 10/11 or macOS (Apple Silicon / Intel)
+* **Node.js:** v22 or newer (CI runs on Node 22)
+* **Package Manager:** `npm` (npm workspaces: `apps/*`, `packages/*`)
+* **OS:** Windows 10/11 for packaging the desktop app. Development, tests and the web portal also run on macOS and Linux.
 * **macOS Specifics:** You may need Xcode Command Line Tools installed (`xcode-select --install`).
 
 ### 1. Installation
@@ -338,40 +341,53 @@ Run via `Scrape_All_Jobs.bat`:
 git clone https://github.com/snipy09/nomadic.git
 cd nomadic
 npm install
+npm run setup:browsers   # one-time: downloads Playwright Chromium for scraping / auto-apply
+cp .env.example .env     # then fill in SUPABASE_URL / SUPABASE_ANON_KEY
 ```
+Installing no longer downloads Chromium automatically; run `npm run setup:browsers` once (and again after a Playwright upgrade). Unit tests do not need it.
 
-### 2. Running Desktop in Development (Hot Reloading <200ms)
+### 2. Running Desktop in Development (Hot Reloading)
 ```bash
-npm run dev:desktop
+npm run dev:desktop      # Vite renderer + esbuild main (watch) + Electron
+npm run ui:dev           # renderer only, in the browser at http://localhost:5173
 ```
 * **Windows:** Press `F12` or `Ctrl+Shift+I` for DevTools. `Ctrl+Shift+R` to force reload.
 * **macOS:** Press `Cmd+Option+I` for DevTools. `Cmd+Shift+R` to force reload.
 
 ### 3. Running Web Landing Portal
 ```bash
-npm run dev:web
+npm run dev:web          # Vite dev server for apps/web
+npm run build:web        # production build + prerendered pages in apps/web/dist
+npm run preview:web      # serve the production build locally
 ```
 
-### 4. Running the Master Job Scraper
+### 4. Running the Job Scrapers
 ```bash
-# Windows
-.\Scrape_All_Jobs.bat
-
-# macOS / Linux (if batch scripts aren't supported, run the underlying JS/TS pipeline)
-# Assuming a node fallback script exists in package.json:
-npm run scrape:all
+npm run scrape           # run every scraper once and print a summary (no upload)
+npm run scrape:all       # scrape jobs + recruiter leads and publish them to Supabase
+npm run scrapers:jobs    # publish jobs only
+npm run scrapers:hrs     # publish HR / recruiter contacts only
 ```
+Publishing needs `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (operator only) in `.env` at the repo root. On Windows, `Run-Job-Scraper.bat` and `Run-HR-Scraper.bat` run the same publishers as `scrapers:jobs` and `scrapers:hrs`.
 
-### 5. Packaging Production Binaries
+### 5. Quality Checks
 ```bash
-# Windows (NSIS Installer & Portable .exe)
-npm run package:desktop
-# Outputs to apps/desktop/dist/ and automatically copies to your Downloads folder.
-
-# macOS (DMG & .app bundle)
-npm run package:mac
-# Outputs to apps/desktop/dist/
+npm test                 # vitest: packages, desktop main and desktop renderer (jsdom) projects
+npm run typecheck        # tsc for the root project, apps/desktop and apps/web
+npm run lint             # ESLint (lenient baseline: warnings allowed, errors fail)
+npm run format           # Prettier (format:check to verify without writing)
 ```
+The same typecheck, lint and test steps run in GitHub Actions on every push and pull request (`.github/workflows/ci.yml`).
+
+### 6. Packaging Production Binaries (Windows)
+```bash
+npm run package:desktop  # NSIS installer + portable .exe in apps/desktop/dist-electron/
+```
+Or double-click `Build Nomadic.bat` (runs `build-nomadic.ps1`), which reads Supabase credentials from the environment or `.env`, packages the app and copies the `.exe` files to your Downloads folder.
+
+**Code signing is optional.** Set `WIN_CSC_LINK` (path to a `.pfx` kept outside the repo, or the `.pfx` as base64) and `WIN_CSC_KEY_PASSWORD` before building. Without them the build is unsigned. `npm run sign:win -- <file.exe>` signs a single file with the same variables. Never commit certificates; `*.pfx` is gitignored.
+
+Installers are distributed through GitHub Releases, not committed to the repo.
 
 ---
 

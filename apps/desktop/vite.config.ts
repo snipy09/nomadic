@@ -7,12 +7,8 @@ import autoprefixer from 'autoprefixer';
 export default defineConfig({
   base: './',
   root: path.join(__dirname, 'src/renderer'),
-  plugins: [
-    react({
-      // React Fast Refresh enabled for instant component replacement (<200ms)
-      fastRefresh: true,
-    }),
-  ],
+  // React Fast Refresh is on by default in @vitejs/plugin-react v4 (the old `fastRefresh` option was removed).
+  plugins: [react()],
   css: {
     devSourcemap: true,
     postcss: {

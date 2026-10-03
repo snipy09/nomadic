@@ -30,6 +30,8 @@ export interface VaultTextbook {
   chapters: string[];
   readUrl: string;
   notesDocUrl?: string;
+  description?: string;
+  pages?: number;
 }
 
 export interface VaultCheatsheet {
