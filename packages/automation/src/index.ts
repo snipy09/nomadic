@@ -97,7 +97,9 @@ export type {
   AutoApplyFormEvent,
   ProgressCallback,
   SubmitApplicationOptions,
+  ReviewHandle,
 } from './auto-apply-engine.ts';
+export { outcomeKey, writeReviewedValues } from './apply-flow.ts';
 export {
   adapterFor,
   adapterById,
@@ -115,6 +117,7 @@ export {
   parseProfile,
   DEFAULT_POLICY,
   type FillReport,
+  type FieldOutcome,
   type FormEngineEvent,
   type FormField,
   type FormPolicy,

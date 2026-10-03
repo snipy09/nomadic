@@ -15,9 +15,9 @@
  * only) so it can be bundled into the sandboxed preload and the renderer.
  */
 
-import type { FillReport, FormEngineEvent } from '@job-automator/form-engine';
+import type { AnswerSource, FieldKind, FillReport, FormEngineEvent } from '@job-automator/form-engine';
 
-export type { FillReport, FormEngineEvent };
+export type { AnswerSource, FieldKind, FillReport, FormEngineEvent };
 
 // ── Shared payload shapes ───────────────────────────────────────────────────
 
@@ -187,23 +187,66 @@ export interface BatchTarget {
   title?: string;
 }
 
+/** One question of a pre-filled form, as the candidate reviews it. */
 export interface BatchSnapshotField {
+  /** Question fingerprint; the key used in `BatchOverrides`. */
   fieldKey: string;
   label: string;
+  /** Value written into the form ('' when nothing was written). Checkboxes: 'true' / 'false'. */
   value: string;
-  fieldType: 'text' | 'radio' | 'textarea';
+  fieldType: FieldKind;
+  required: boolean;
+  status: 'filled' | 'needs_user' | 'skipped' | 'failed';
+  /** Where the value came from (profile, saved answer, policy, AI...). */
+  source?: AnswerSource;
+  /** Classifier confidence (0-1) that the question was understood. */
+  confidence?: number;
+  /** Why the field needs the candidate, was skipped, or failed. */
+  reason?: string;
+  /** Visible option labels for choice fields. */
+  options?: string[];
+  multiple?: boolean;
 }
 
+/** A form pre-filled for review. Nothing in it has been submitted. */
 export interface BatchSnapshot {
   id: string;
   company: string;
   jobTitle: string;
   applyUrl: string;
-  resumeFileName: string;
   fields: BatchSnapshotField[];
-  status: 'ready';
+  /** ready: can be submitted after review; needs_attention: the candidate must act first; failed: could not be filled. */
+  status: 'ready' | 'needs_attention' | 'failed';
+  /** True while the filled form is held open and can be submitted. */
+  submittable: boolean;
+  /** Walls the candidate must clear in the browser (sign-in, CAPTCHA, email verification). */
+  walls: Array<'login' | 'captcha' | 'email_verification'>;
+  /** Validation messages the portal showed after filling. */
+  pageErrors: string[];
+  errorMessage?: string;
 }
 
+export interface BatchStartOptions {
+  /** Keep previously held forms (used to retry one application without discarding the others). */
+  keep?: boolean;
+}
+
+export interface BatchSubmitItemResult {
+  id: string;
+  submitted: boolean;
+  /** The portal showed a confirmation page. */
+  confirmed: boolean;
+  error?: string;
+}
+
+export interface BatchSubmitResult extends SuccessResult {
+  applied?: number;
+  failed?: number;
+  total?: number;
+  results?: BatchSubmitItemResult[];
+}
+
+/** Reviewed values per snapshot id, keyed by `BatchSnapshotField.fieldKey`. */
 export type BatchOverrides = Record<string, Record<string, string>>;
 
 export interface EmailVerification {
@@ -523,6 +566,10 @@ export interface AutoApplyProgressEvent {
   log: string;
   progress?: number;
   statusEvent: AutoApplyStatusEvent;
+  /** Application the event belongs to (batch pre-fill and submit). */
+  url?: string;
+  /** Batch pre-fill: the finished snapshot for `url`, sent as soon as that form is filled. */
+  snapshot?: BatchSnapshot;
 }
 
 /** A field the candidate must answer themselves (from `ApplyResult.needsUser`). */
@@ -581,11 +628,9 @@ export interface IpcChannels {
   'launch-semi-auto': Channel<[jobUrls: string[]], SuccessResult>;
   'launch-autonomous': Channel<[jobUrls: string[]], AutonomousApplyResult>;
   'cancel-autonomous-apply': Channel<[], { success: boolean }>;
-  'start-batch-copilot': Channel<[targets: BatchTarget[]], SuccessResult & { snapshots?: BatchSnapshot[] }>;
-  'submit-all-batch-copilot': Channel<
-    [overrides?: BatchOverrides],
-    SuccessResult & { applied?: number; failed?: number; total?: number }
-  >;
+  'start-batch-copilot': Channel<[targets: BatchTarget[], options?: BatchStartOptions], SuccessResult & { snapshots?: BatchSnapshot[]; cancelled?: boolean }>;
+  /** Submits only the reviewed snapshot ids (all held forms when `ids` is omitted). */
+  'submit-all-batch-copilot': Channel<[overrides?: BatchOverrides, ids?: string[]], BatchSubmitResult>;
 
   // outreach
   'verify-email': Channel<[email: string], EmailVerification>;

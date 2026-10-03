@@ -33,6 +33,6 @@ export function registerApplyIpc(): void {
   handle('launch-semi-auto', jobUrlsArgs, (jobUrls) => launchSemiAuto(jobUrls));
   handle('launch-autonomous', jobUrlsArgs, (jobUrls) => launchAutonomous(jobUrls));
   handle('cancel-autonomous-apply', () => cancelAutonomousApply());
-  handle('start-batch-copilot', batchTargetsArgs, (targets) => startBatchCopilot(targets));
-  handle('submit-all-batch-copilot', batchOverridesArgs, (overrides) => submitAllBatchCopilot(overrides));
+  handle('start-batch-copilot', batchTargetsArgs, (targets, options) => startBatchCopilot(targets, options));
+  handle('submit-all-batch-copilot', batchOverridesArgs, (overrides, ids) => submitAllBatchCopilot(overrides, ids));
 }

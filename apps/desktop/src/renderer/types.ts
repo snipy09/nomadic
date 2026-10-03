@@ -1,3 +1,5 @@
+import type { AutoApplyProgressEvent, BatchOverrides, BatchSnapshot, BatchStartOptions, BatchSubmitResult, BatchTarget } from '../shared/ipc';
+
 export type WorkspaceMode = 'learner_only' | 'seeker_only' | 'unified';
 export type OpportunityType = 'job' | 'internship' | 'both';
 
@@ -246,8 +248,10 @@ export interface ElectronAPI {
     error?: string;
   }>;
   cancelAutonomousApply?: () => Promise<{ success: boolean }>;
-  startBatchCoPilot?: (targets: Array<{ url: string; company?: string; title?: string }>) => Promise<{ success: boolean; snapshots?: any[]; error?: string }>;
-  submitAllBatchCoPilot?: (overrides?: Record<string, Record<string, string>>) => Promise<{ success: boolean; applied?: number; failed?: number; error?: string }>;
+  /** Fills each form for review and holds it open; never submits. */
+  startBatchCoPilot?: (targets: BatchTarget[], options?: BatchStartOptions) => Promise<{ success: boolean; snapshots?: BatchSnapshot[]; cancelled?: boolean; error?: string }>;
+  /** Submits only the reviewed snapshot ids, writing the reviewed values first. */
+  submitAllBatchCoPilot?: (overrides?: BatchOverrides, ids?: string[]) => Promise<BatchSubmitResult>;
   verifyEmail: (email: string) => Promise<{ isValid: boolean; stageFailed?: number; reason?: string }>;
   getHrContacts: (targetRole?: string) => Promise<{ success: boolean; contacts: OutreachContact[]; error?: string }>;
   sendOutreach: (contacts: Array<{ email: string; name?: string; company?: string; role?: string; subject?: string; body?: string }>) =>
@@ -262,8 +266,7 @@ export interface ElectronAPI {
   installDependencies: () => Promise<{ success: boolean; error?: string }>;
   testGroqKey: (key: string) => Promise<{ success: boolean; error?: string }>;
   onLog: (callback: (msg: string) => void) => () => void;
-  /** Not exposed by the current preload; callers must feature-check before use. */
-  onAutoApplyProgress?: (callback: (data: any) => void) => () => void;
+  onAutoApplyProgress?: (callback: (data: AutoApplyProgressEvent) => void) => () => void;
   getApplications: () => Promise<Application[]>;
   saveApplication: (app: { company: string; title: string; apply_url?: string; status?: string; mode?: string; notes?: string }) =>
     Promise<{ success: boolean; id?: number; error?: string }>;

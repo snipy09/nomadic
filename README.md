@@ -115,14 +115,11 @@ The crown jewel of Nomadic: a >95% success-rate automated form solver engineered
 
 ### D. Pillar 4: Parallel Batch Co-Pilot
 
-A headful, RAM-safe application assistant that gives candidates full transparency and control:
+An apply flow that never submits without the candidate's review:
 
-* **3–5 Parallel Tab Workers:** Opens a controlled queue of headful Chromium tabs (preventing memory exhaustion on 8GB laptops).
-* **Live Visual Inspection:** Candidates can watch the bot fill fields in real time using their active Google Chrome profile (preserving existing logins and session cookies).
-* **Unified Review Drawer (`BatchCoPilotReviewModal.tsx`):**
-  - Displays all open applications side-by-side.
-  - Allows natural-language prompt editing globally or per-job (e.g., *"Highlight my TypeScript experience for this role"*).
-* **1-Click "Submit All":** Submits all validated applications in parallel once reviewed.
+* **Pre-fill, held open:** Each form is filled in the external Chrome window (your profile, so existing logins work) with submission switched off, and left open.
+* **Apply run view (`features/apply/ApplyRunView.tsx`):** Live per-application progress from the form engine's events, then every filled field with its value, source and confidence. Fields the engine could not answer are highlighted for inline editing; failed forms offer Retry or Skip.
+* **Submit the reviewed subset:** Only applications the candidate ticked as reviewed are submitted, with their edits written into the same open tab first.
 
 ---
 
@@ -222,7 +219,7 @@ Hyper-personalized cold outreach engine (`OutreachView.tsx`):
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
 │ 1. PRESENTATION LAYER (Electron 31 + React 18 + Vite 5 + Tailwind CSS)                 │
 │    • LearnerView.tsx    • FeedView.tsx    • NomadicAssistant.tsx (Max AI)             │
-│    • BatchCoPilotReviewModal.tsx          • OutreachView.tsx                          │
+│    • features/apply/ApplyRunView.tsx      • OutreachView.tsx                          │
 ├────────────────────────────────────────────────────────────────────────────────────────┤
 │ 2. SECURE IPC & BUSINESS LOGIC (Main Process - TypeScript)                             │
 │    • contextBridge IPC Isolation          • Server-Side Tier Gate (Supabase)           │
@@ -262,7 +259,6 @@ nomadic/
 │   │   │           ├── LearnerView.tsx  # Dynamic roadmaps & milestone checklist
 │   │   │           ├── FeedView.tsx     # Range-paginated ATS job feed (18/36/54)
 │   │   │           ├── NomadicAssistant.tsx # Floating Max AI Assistant
-│   │   │           ├── BatchCoPilotReviewModal.tsx # Parallel review drawer
 │   │   │           ├── OutreachView.tsx # Recruiter email finder & drip
 │   │   │           ├── ProfileView.tsx  # Multi-resume library & user info
 │   │   │           ├── ResourceVaultView.tsx # 428+ LeetCode banks & textbooks
@@ -319,7 +315,7 @@ One entry point, `packages/scrapers/src/cli.ts` (`npm run scrape -- <command>`),
 2. **OmniForm Multi-Pass Solver:** >95% fill accuracy on Ashby, Greenhouse, Lever, and Internshala.
 3. **Sub-30ms Job Board:** Range-paginated feed with 18/36/54 item selection.
 4. **Max AI Assistant:** App-wide command dispatch and interview coaching.
-5. **Batch Co-Pilot:** Live headful Chrome profile automation with 1-click Submit All.
+5. **Apply with review:** Live headful Chrome profile pre-fill; only reviewed applications are submitted.
 6. **Zero Data Loss Storage:** Triple-layer persistence (localStorage + SQLite WAL + Supabase).
 7. **Web Portal & Domains:** Live at [nomadic.runs-on.dev](https://nomadic.runs-on.dev) and [nomadicai.vercel.app](https://nomadicai.vercel.app).
 

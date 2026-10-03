@@ -7,12 +7,12 @@ Status: ✅ done · 🟡 partial · ⬜ not started
 
 | # | Feature | Status | Scope to finish | Done when |
 |---|---|---|---|---|
-| F1 | App shell and navigation | ⬜ | Sidebar, TopBar, CommandPalette on `@nomadic/ui`; flags hide unfinished tabs | Keyboard-only nav works; old shell deleted |
+| F1 | App shell and navigation | 🟡 | Built on `@nomadic/ui` (AppShell, Sidebar, TopBar, CommandPalette, theme, flags). Left: visual pass at 1024 px, keyboard-only manual pass | Keyboard-only nav works; old shell deleted |
 | F2 | Accounts and onboarding | 🟡 | Done: server sign-up, login ticket sent on sign-in and sign-up, auth screen and 4-step onboarding on `@nomadic/ui`. Open: owner enables `require_login_ticket`; password reset and email verification (no backend yet); server-side Google sign-in (SECURITY_CHECKLIST S9) | New user to first value < 3 min |
-| F3 | Job feed and matching | 🟡 | Pipeline done; Feed rebuild (virtualised), skill-based match %, missing skills, save/hide | 5k jobs at 60 fps; match tested |
-| F4 | Auto-apply | 🟡 | Engine done; apply run view (live progress, needs-you prompts, mandatory review) | Never submits unreviewed; benchmark floor held |
-| F5 | Applications tracker | ⬜ | Kanban rebuild, status history, reminders, sync | Survives reinstall; keyboard drag |
-| F6 | Profile and resume | 🟡 | Profile/Settings rebuild, resume parse and versions, no invented data | Round-trips through DB only |
+| F3 | Job feed and matching | 🟡 | Built: feature folder, skill-id match % and missing skills, save, filters, states. Left: hide job (needs backend), server-side free limit (F9), skill tagging in the scraper pipeline | 5k jobs at 60 fps; match tested |
+| F4 | Auto-apply | 🟡 | Built: real fill-then-review flow (onReadyForReview + submitReviewed), apply run view with per-field review and per-application tick. Left: server-side plan limits on batch IPC, multi-step form edits, live portal testing | Never submits unreviewed; benchmark floor held |
+| F5 | Applications tracker | 🟡 | Built: kanban + list, keyboard moves, history, notes, sync of status/notes/delete, migration 010. Left: reminders, apply 010 in production | Survives reinstall; keyboard drag |
+| F6 | Profile and resume | 🟡 | Built: feature folder, no invented data, validation, real resume management. Left: resume parsing and versions | Round-trips through DB only |
 | F7 | Learning: My Path and Today | 🟡 | Skill graph seed, planner, lessons, SM-2, streaks | First lesson < 3 min; failed items resurface |
 | F8 | Practice and interview prep | ⬜ | One Practice area, runner, rubric AI feedback, weak topics | Limits enforced server side |
 | F9 | Billing and plans | 🟡 | Webhook done; in-app checkout, invoices, entitlements service | Plan change reflected < 10 s |

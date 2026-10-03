@@ -5,13 +5,13 @@
  * (login, CAPTCHA, email verification) is present.
  */
 import type { Page } from 'playwright';
-import { FormEngine, type FormEngineEvent } from '../../form-engine/src/index.js';
+import { FormEngine, detectWalls, questionFingerprint, type FieldOutcome, type FillReport, type FormEngineEvent } from '../../form-engine/src/index.js';
 import type { MasterProfile } from '../../form-engine/src/profile.js';
 import { adapterById, adapterFor, genericAdapter, runPortalAdapter } from './bots/portal-adapter.js';
 import { injectStealthScripts, handleCloudflareTurnstile } from './stealth-evasion.js';
 import { enableFastRouteInterception } from './fast-route-interceptor.js';
 import { runFastLocalNavMatcher } from './fast-nav-matcher.js';
-import type { ApplyResult, AutoApplyEngine as AutoApplyEngineType, AutoApplyFormEvent, AutoApplyStatusEvent, ProgressCallback, SubmitApplicationOptions } from './auto-apply-engine.js';
+import type { ApplyResult, AutoApplyEngine as AutoApplyEngineType, AutoApplyFormEvent, AutoApplyStatusEvent, ProgressCallback, ReviewHandle, SubmitApplicationOptions } from './auto-apply-engine.js';
 import type { BrowserContext } from 'playwright';
 
 /** Translate an engine event into the status-pill event the desktop already renders. */
@@ -57,7 +57,8 @@ export async function runFormEngineApply(
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 35000 });
     await page.bringToFront().catch(() => {});
 
-    if (url.includes('httpbin.org') || url.includes('nomadic-demo') || url.includes('test-job')) {
+    // The demo shortcut always clicks submit, so it is never used when the caller holds the form for review.
+    if (options.autoSubmit !== false && (url.includes('httpbin.org') || url.includes('nomadic-demo') || url.includes('test-job'))) {
       return await Engine.handleDemoTestApplication(page, profile, url, onProgress);
     }
     if ((await Engine.detect404OrExpiredPage(page)).is404) {
@@ -133,6 +134,8 @@ export async function runFormEngineApply(
       }
     }
 
+    if (options.autoSubmit === false) options.onReadyForReview?.({ url, page, engine, report });
+
     const pending = report.unresolvedRequired.length;
     await status({
       phase: 'user_input_required',
@@ -144,6 +147,111 @@ export async function runFormEngineApply(
     return { ...base, success: report.filled > 0, submitted: false, prefilled: report.filled > 0 };
   } catch (err: any) {
     onProgress?.({ phase: 'cancelled', message: `Notice: ${err?.message}`, colorState: 'grey' });
+    return fail(err?.message || String(err));
+  }
+}
+
+/** Stable key of a filled question: the answer fingerprint, or one computed from label, kind and options. */
+export function outcomeKey(o: FieldOutcome): string {
+  return o.answer && 'fingerprint' in o.answer && o.answer.fingerprint ? o.answer.fingerprint : questionFingerprint(o.field);
+}
+
+function recomputeReport(report: FillReport): void {
+  report.filled = report.fields.filter((o) => o.status === 'filled').length;
+  report.needsUser = report.fields.filter((o) => o.status === 'needs_user').length;
+  report.failed = report.fields.filter((o) => o.status === 'failed').length;
+  report.skipped = report.fields.filter((o) => o.status === 'skipped').length;
+  report.unresolvedRequired = report.fields.filter((o) => o.field.required && (o.status === 'needs_user' || o.status === 'failed'));
+  report.readyToSubmit = !report.walls.length && !report.unresolvedRequired.length && report.fields.length > 0;
+}
+
+/**
+ * Write the values the candidate set during review into the held form (keyed by `outcomeKey`).
+ * Unchanged values are left alone; file fields are never rewritten. Mutates and returns `report`.
+ */
+export async function writeReviewedValues(
+  page: Page,
+  engine: Pick<FormEngine, 'writers' | 'emit'>,
+  report: FillReport,
+  overrides: Record<string, string>
+): Promise<{ report: FillReport; written: number; errors: string[] }> {
+  let written = 0;
+  const errors: string[] = [];
+  for (const o of report.fields) {
+    const value = overrides[outcomeKey(o)];
+    if (value === undefined || o.field.kind === 'file') continue;
+    const current = o.answer?.status === 'answered' ? o.answer.value : undefined;
+    if (o.status === 'filled' && current === value) continue;
+    const writer = engine.writers.get(o.field.kind);
+    if (!writer) {
+      o.status = 'failed';
+      o.reason = `no writer for ${o.field.kind}`;
+      errors.push(`${o.field.label}: ${o.reason}`);
+      continue;
+    }
+    const answer = {
+      fieldId: o.field.id,
+      status: 'answered' as const,
+      value,
+      values: o.field.multiple ? value.split('|').filter(Boolean) : undefined,
+      source: 'custom' as const,
+      fingerprint: outcomeKey(o),
+    };
+    let write;
+    try {
+      write = await writer.write(page, o.field, answer);
+    } catch (err) {
+      write = { fieldId: o.field.id, ok: false, error: (err as Error).message };
+    }
+    o.answer = answer;
+    o.write = write;
+    o.attempts += 1;
+    if (write.ok) {
+      o.status = 'filled';
+      o.reason = undefined;
+      written++;
+      engine.emit('event', { type: 'field_filled', fieldId: o.field.id, label: o.field.label, kind: o.field.kind, value, source: 'custom', attempt: o.attempts } satisfies FormEngineEvent);
+    } else {
+      o.status = o.field.required ? 'failed' : 'needs_user';
+      o.reason = write.error || 'write failed';
+      errors.push(`${o.field.label}: ${o.reason}`);
+    }
+  }
+  recomputeReport(report);
+  return { report, written, errors };
+}
+
+/**
+ * Submit a form that was filled with `autoSubmit: false` and reviewed by the candidate:
+ * write the reviewed values into the same tab, re-check walls, then submit through the engine
+ * (which still refuses while required fields are unresolved).
+ */
+export async function submitReviewedApplication(
+  Engine: typeof AutoApplyEngineType,
+  handle: ReviewHandle,
+  overrides: Record<string, string>,
+  onProgress?: ProgressCallback
+): Promise<ApplyResult> {
+  const { url, page, engine, report } = handle;
+  const fail = (error: string): ApplyResult => ({ url, success: false, submitted: false, prefilled: true, captchaDetected: false, fieldsFilledCount: report.filled, error, report });
+  try {
+    if (page.isClosed()) return fail('The application tab was closed before submitting. Retry to fill it again.');
+    const { errors } = await writeReviewedValues(page, engine, report, overrides);
+    report.walls = await detectWalls(page).catch(() => report.walls);
+    recomputeReport(report);
+    if (report.walls.length) return fail(`Blocked by ${report.walls.join(', ')}; resolve it in the browser and retry.`);
+    if (!report.readyToSubmit) {
+      const missing = report.unresolvedRequired.map((o) => o.field.label).slice(0, 3).join('; ');
+      return fail(`Required fields still need you: ${missing || 'unknown'}${errors.length ? ` (${errors.join(' | ')})` : ''}`);
+    }
+    const outcome = await engine.submit(page, report);
+    if (!outcome.submitted) return fail(outcome.reasons.join(' | ') || 'The portal did not accept the submission.');
+    const confirmed = outcome.confirmed || (await Engine.isPageConfirmedSubmission(page, report.filled));
+    await Engine.emitStatus(page, confirmed
+      ? { phase: 'success', message: 'Application submitted', colorState: 'green' }
+      : { phase: 'user_input_required', message: 'Submitted, but no confirmation was detected. Check the page.', colorState: 'red', actionRequired: 'Check submission' }, onProgress);
+    return { url, success: true, submitted: true, prefilled: true, captchaDetected: false, fieldsFilledCount: report.filled, report, error: confirmed ? undefined : outcome.reasons.join(' | ') || 'no confirmation detected' };
+  } catch (err: any) {
     return fail(err?.message || String(err));
   }
 }

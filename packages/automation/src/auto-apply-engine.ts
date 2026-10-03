@@ -5,7 +5,7 @@ import os from 'os';
 import { EventEmitter } from 'events';
 import { injectStealthScripts, handleCloudflareTurnstile } from './stealth-evasion.js';
 import { adapterFor, runPortalAdapter, type PortalId } from './bots/portal-adapter.js';
-import { runFormEngineApply, toStatusEvent } from './apply-flow.js';
+import { runFormEngineApply, submitReviewedApplication, toStatusEvent } from './apply-flow.js';
 import { FormEngine, type FillReport, type FormEngineEvent } from '../../form-engine/src/index.js';
 import type { MasterProfile } from '../../form-engine/src/profile.js';
 export type { MasterProfile, ResumeItem } from '../../form-engine/src/profile.js';
@@ -35,6 +35,19 @@ export interface SubmitApplicationOptions {
   company?: string;
   /** Force a portal adapter instead of detecting it from the URL. */
   portal?: PortalId;
+  /**
+   * With `autoSubmit: false`: called once the form is filled and left open, with a handle
+   * that `AutoApplyEngine.submitReviewed` can submit after the candidate reviews it.
+   */
+  onReadyForReview?: (handle: ReviewHandle) => void;
+}
+
+/** A filled form held open in the browser, waiting for the candidate's review. */
+export interface ReviewHandle {
+  url: string;
+  page: Page;
+  engine: FormEngine;
+  report: FillReport;
 }
 
 export interface AutoApplyStatusEvent {
@@ -256,6 +269,14 @@ export class AutoApplyEngine {
       onProgress?.({ phase: 'cancelled', message: `Notice: ${err?.message}`, colorState: 'grey' });
       return { url, success: false, submitted: false, prefilled: false, captchaDetected: false, fieldsFilledCount: 0, error: err?.message || String(err) };
     }
+  }
+
+  /**
+   * Submit a form held by `onReadyForReview`, after writing the candidate's reviewed values
+   * (keyed by question fingerprint) into the same tab. Never submits with unresolved required fields.
+   */
+  public static async submitReviewed(handle: ReviewHandle, overrides: Record<string, string> = {}, onProgress?: ProgressCallback): Promise<ApplyResult> {
+    return submitReviewedApplication(AutoApplyEngine, handle, overrides, onProgress);
   }
 
   /**
