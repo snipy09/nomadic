@@ -80,6 +80,7 @@
     "@job-automator/supabase": "file:../../packages/supabase",
     "@nomadic/config": "*",
     "@nomadic/ui": "*",
+    "@job-automator/learning": "*",
     "@tanstack/react-query": "^5.104.1",
     "animejs": "^4.5.0",
     "lucide-react": "^0.330.0",

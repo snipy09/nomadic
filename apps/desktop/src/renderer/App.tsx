@@ -10,7 +10,7 @@ import { Sidebar } from './components/Sidebar';
 import { HomeView } from './components/HomeView';
 import { LearnerView } from './components/LearnerView';
 import { UpgradeModal } from './components/UpgradeModal';
-import { FeedView } from './components/FeedView';
+import { FeedView } from './features/feed/FeedView';
 import { OutreachView } from './components/OutreachView';
 import { ApplicationsView } from './components/ApplicationsView';
 import { ProfileView } from './features/profile/ProfileView';
@@ -434,6 +434,7 @@ export default function App() {
             {activeTab === 'feed' && (
               <FeedView
                 profile={profile}
+                onUpdateProfile={setProfile}
                 onLog={addLog}
                 onNavigateToOutreach={(company) => {
                   setOutreachTargetCompany(company);
@@ -510,11 +511,14 @@ export default function App() {
             {!['learner-roadmaps', 'learner-resources', 'learner-interview-prep', 'opportunities', 'home', 'feed', 'outreach', 'applications', 'logs', 'profile', 'settings'].includes(activeTab) && !Boolean(activeTab && activeTab.startsWith('admin')) && (
               <FeedView
                 profile={profile}
+                onUpdateProfile={setProfile}
                 onLog={addLog}
                 onNavigateToOutreach={(company) => {
                   setOutreachTargetCompany(company);
                   setActiveTab('outreach');
                 }}
+                currentUser={currentUser}
+                onOpenUpgrade={handleOpenUpgrade}
               />
             )}
           </div>
