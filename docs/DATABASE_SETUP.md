@@ -1,7 +1,7 @@
 # Setting up a new Supabase database
 
 **Live project:** `nomadic` (ref `grqkiddfwoyicktpgdea`, ap-south-1). Set up 2026-10-03 with `baseline/supabase_full_setup.sql`
-(001–011, 014, 015, 016) plus 012 and 017; verified: all 15 migrations recorded, RLS on all 32 public tables, anon can execute only the
+(001–011, 014, 015, 016) plus 012, 017, 018 and 021; verified: all migrations recorded, RLS on all 32 public tables, anon can execute only the
 28 allow-listed RPCs. The app's build defaults point at it (the anon key is public by design). Advisor notes that remain
 are by design: deny-all tables (RLS, no policies) and session-checked SECURITY DEFINER RPCs callable by anon.
 The Resend key is stored in Vault (`resend_api_key`), readable only by service_role via `private.get_vault_secret`.
@@ -108,3 +108,8 @@ Owner steps, in order:
    `GOOGLE_OAUTH_CLIENT_SECRET` from step 2. Without the client id the app shows "Google sign-in is not configured".
 7. Test with a new Google account and with a Google account whose email already has a password account (it is linked,
    keeps its plan and role). Then `require_login_ticket` (step 5) can be turned on without breaking Google sign-in.
+
+
+## Live status (2026-10-03)
+- Migrations 001–012, 014–018, 021 applied. Edge Function `google-sign-in` deployed (v1, JWT verification on).
+- Vault: `resend_api_key`, `gemini_api_key` set. Still needed: `google_oauth_client_id` (owner), `email_from` once a sending domain is verified.

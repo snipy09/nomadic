@@ -99,7 +99,7 @@ BEGIN
   v_ticket := encode(gen_random_bytes(32), 'hex');
   INSERT INTO public.login_tickets (ticket_hash, user_id, expires_at)
   VALUES (encode(digest(v_ticket, 'sha256'), 'hex'), u.id, NOW() + INTERVAL '10 minutes');
-  DELETE FROM public.login_tickets lt WHERE lt.expires_at < NOW() - INTERVAL '1 day';
+  -- Expired tickets are purged by authenticate_user on each password sign-in.
 
   RETURN QUERY SELECT TRUE, 'ok', u.id, u.email, u.full_name, u.subscription_tier, u.role, u.status,
     u.license_key, u.expires_at, u.apps_count, v_ticket;
