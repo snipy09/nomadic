@@ -6,6 +6,13 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const RAZORPAY_WEBHOOK_SECRET = Deno.env.get('RAZORPAY_WEBHOOK_SECRET') || '';
 
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 serve(async (req) => {
   if (req.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 });
@@ -20,7 +27,7 @@ serve(async (req) => {
     const rawBody = await req.text();
     const generatedSignature = hmac('sha256', RAZORPAY_WEBHOOK_SECRET, rawBody, 'utf8', 'hex');
 
-    if (generatedSignature !== signature) {
+    if (!timingSafeEqual(generatedSignature, signature)) {
       console.error('[Razorpay Webhook] Invalid signature match!');
       return new Response('Invalid Signature', { status: 401 });
     }
@@ -33,7 +40,9 @@ serve(async (req) => {
       const notes = payment?.notes || {};
       const userId = notes.user_id || notes.userId || null;
       const email = payment.email || notes.email || '';
-      const plan = notes.plan || (payment.amount >= 50000 ? 'turbo' : 'pro');
+      // The plan is derived from the captured amount server-side (handle_razorpay_payment_success);
+      // checkout notes are client-controlled and never decide the plan.
+      const plan = payment.amount >= 59900 ? 'turbo' : 'pro';
       const amountInRupees = (payment.amount / 100).toFixed(2);
       const paymentId = payment.id;
       const orderId = payment.order_id || null;
