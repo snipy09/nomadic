@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apply - Lattice Freight</title>
+<link rel="stylesheet" href="../_shared/fixture.css">
+<script src="../_shared/runtime.js"></script>
+
+</head>
+<body class="">
+
+<main class="careers-apply"><h1>Apply: Software Engineer</h1>
+<form id="apply" class="apply-form">
+  <div class="row" data-field><span id="lbl-gn" class="lbl">Given name *</span><input id="gn" aria-labelledby="lbl-gn" required autocomplete="off"></div>
+  <div class="row" data-field><input name="familyName" placeholder="Family name *" required></div>
+  <div class="row" data-field><input name="contactEmail" type="email" aria-label="Email address" required></div>
+  <div class="row phone-row" data-field role="group" aria-labelledby="lbl-phone"><span id="lbl-phone" class="lbl">Phone</span>
+    <select id="phoneCountry" aria-label="Country code"><option value="">Code</option><option value="+44">+44 (United Kingdom)</option><option value="+1">+1 (United States)</option><option value="+91">+91 (India)</option></select>
+    <input id="phoneNational" type="tel" aria-label="Phone number" placeholder="Phone number">
+  </div>
+  <div class="row" data-field><input name="website" type="url" aria-label="Personal website" placeholder="https://"></div>
+  <div class="row" data-field><label for="exp">Years of experience *</label><select id="exp" name="experience" required><option value="">Choose...</option><option>0-2</option><option>3-5</option><option>6-10</option><option>10+</option></select></div>
+  <div class="row" data-field><label for="availableFrom">Available from</label><input id="availableFrom" type="date"></div>
+  <div class="row" data-field><div id="cl-label" class="lbl">Cover letter</div><div id="coverLetterEditor" class="ql-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="cl-label"></div></div>
+  <div class="row" data-field><input type="checkbox" id="accuracy" required><label for="accuracy">I confirm that the information in this application is accurate and complete.</label></div>
+  <button type="submit">Send application</button>
+</form></main>
+</body>
+</html>

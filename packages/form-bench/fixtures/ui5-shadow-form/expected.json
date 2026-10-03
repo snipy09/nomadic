@@ -1,0 +1,106 @@
+{
+  "id": "ui5-shadow-form",
+  "ats": "other",
+  "title": "SuccessFactors-style form in open shadow DOM",
+  "sourceUrl": "https://career<N>.successfactors.com/careers?company=<id>",
+  "profile": "sample.json",
+  "walls": [],
+  "fields": {
+    "First Name": {
+      "expected": "Jordan",
+      "selector": "input",
+      "shadow": [
+        "x-field-input[name=\"firstName\"]"
+      ],
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Last Name": {
+      "expected": "Rivera",
+      "selector": "input",
+      "shadow": [
+        "x-field-input[name=\"lastName\"]"
+      ],
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "E-mail": {
+      "expected": "jordan.rivera@example.com",
+      "selector": "input",
+      "shadow": [
+        "x-field-input[name=\"email\"]"
+      ],
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Cell Phone": {
+      "expected": "+1 512 555 0142",
+      "selector": "input",
+      "shadow": [
+        "x-field-input[name=\"cellPhone\"]"
+      ],
+      "read": "value",
+      "category": "profile"
+    },
+    "City": {
+      "expected": "Austin",
+      "selector": "input",
+      "shadow": [
+        "x-field-input[name=\"city\"]"
+      ],
+      "read": "value",
+      "category": "profile"
+    },
+    "Country of Residence": {
+      "expected": "United States",
+      "selector": "select",
+      "shadow": [
+        "x-field-select[name=\"country\"]"
+      ],
+      "read": "select",
+      "category": "profile",
+      "required": true
+    },
+    "Are you legally authorized to work in this country?": {
+      "expected": "Yes",
+      "selector": "select",
+      "shadow": [
+        "x-field-select[name=\"authorized\"]"
+      ],
+      "read": "select",
+      "category": "profile",
+      "required": true
+    },
+    "LinkedIn Profile URL": {
+      "expected": "https://www.linkedin.com/in/jordan-rivera-dev",
+      "selector": "input",
+      "shadow": [
+        "x-field-input[name=\"linkedin\"]"
+      ],
+      "read": "value",
+      "category": "profile"
+    },
+    "I have read and accept the Data Privacy Statement": {
+      "expected": true,
+      "selector": "input",
+      "shadow": [
+        "x-field-checkbox[name=\"privacyConsent\"]"
+      ],
+      "read": "checkbox",
+      "category": "policy",
+      "required": true
+    },
+    "Subscribe me to job alerts": {
+      "expected": false,
+      "selector": "input",
+      "shadow": [
+        "x-field-checkbox[name=\"jobAlerts\"]"
+      ],
+      "read": "checkbox",
+      "category": "policy"
+    }
+  }
+}

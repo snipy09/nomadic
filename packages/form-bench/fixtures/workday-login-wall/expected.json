@@ -1,0 +1,27 @@
+{
+  "id": "workday-login-wall",
+  "ats": "workday",
+  "title": "Workday: sign-in / create-account wall",
+  "sourceUrl": "https://<tenant>.wd1.myworkdayjobs.com/<site>/login",
+  "profile": "sample.json",
+  "walls": [
+    "login"
+  ],
+  "notes": "The engine must stop, never invent a password, and report a login wall.",
+  "fields": {
+    "Password": {
+      "expected": "@empty",
+      "selector": "#password",
+      "read": "value",
+      "category": "trap",
+      "required": true
+    },
+    "Verify New Password": {
+      "expected": "@empty",
+      "selector": "#verifyPassword",
+      "read": "value",
+      "category": "trap",
+      "required": true
+    }
+  }
+}

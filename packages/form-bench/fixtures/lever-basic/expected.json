@@ -1,0 +1,80 @@
+{
+  "id": "lever-basic",
+  "ats": "lever",
+  "title": "Lever: standard fields + urls[...]",
+  "sourceUrl": "https://jobs.lever.co/fathom/<posting-uuid>/apply",
+  "profile": "sample.json",
+  "walls": [],
+  "fields": {
+    "Resume/CV": {
+      "expected": "@file",
+      "selector": "#resume-upload-input",
+      "read": "file",
+      "category": "file",
+      "required": true
+    },
+    "Full name": {
+      "expected": "Jordan Rivera",
+      "selector": "input[name=\"name\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Email": {
+      "expected": "jordan.rivera@example.com",
+      "selector": "input[name=\"email\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Phone": {
+      "expected": "+1 512 555 0142",
+      "selector": "input[name=\"phone\"]",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    },
+    "Current location": {
+      "expected": "Austin, TX, USA",
+      "selector": "input[name=\"location\"]",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    },
+    "Current company": {
+      "expected": "Nimbus Analytics",
+      "selector": "input[name=\"org\"]",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    },
+    "LinkedIn URL": {
+      "expected": "https://www.linkedin.com/in/jordan-rivera-dev",
+      "selector": "input[name=\"urls[LinkedIn]\"]",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    },
+    "Twitter URL": {
+      "expected": "@empty",
+      "selector": "input[name=\"urls[Twitter]\"]",
+      "read": "value",
+      "category": "trap",
+      "required": false
+    },
+    "GitHub URL": {
+      "expected": "https://github.com/jrivera-dev",
+      "selector": "input[name=\"urls[GitHub]\"]",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    },
+    "Portfolio URL": {
+      "expected": "https://jordanrivera.dev",
+      "selector": "input[name=\"urls[Portfolio]\"]",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    }
+  }
+}

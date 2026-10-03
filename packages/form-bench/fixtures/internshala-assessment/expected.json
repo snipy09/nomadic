@@ -1,0 +1,46 @@
+{
+  "id": "internshala-assessment",
+  "ats": "internshala",
+  "title": "Internshala: assessment questions",
+  "sourceUrl": "https://internshala.com/internship/detail/<slug>",
+  "profile": "intern.json",
+  "walls": [],
+  "notes": "Form is inside a hidden modal opened by \"Apply now\".",
+  "fields": {
+    "Why should you be hired for this role?": {
+      "expected": "@nonempty",
+      "selector": "#cover_letter",
+      "read": "value",
+      "category": "open",
+      "required": true
+    },
+    "Confirm your availability": {
+      "expected": "Yes, I am available to join immediately",
+      "selector": "input[name=\"confirm_availability\"]",
+      "read": "radio",
+      "category": "profile",
+      "required": true
+    },
+    "Describe a project where you used React. What was your role?": {
+      "expected": "@nonempty",
+      "selector": "#text_51000",
+      "read": "value",
+      "category": "open",
+      "required": true
+    },
+    "Please share the link to your GitHub profile.": {
+      "expected": "https://github.com/aaravsharma",
+      "selector": "#text_51001",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Do you have your own laptop with a working internet connection?": {
+      "expected": "@empty",
+      "selector": "input[name=\"radio_51002\"]",
+      "read": "radio",
+      "category": "trap",
+      "required": true
+    }
+  }
+}
