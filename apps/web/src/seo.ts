@@ -55,7 +55,7 @@ export const PAGES: Record<PageId, PageMeta> = {
   refunds: {
     path: '/refunds',
     title: 'Refund and Cancellation Policy | Nomadic',
-    description: 'How refunds and cancellations work for Nomadic Pro and Max plans: monthly, no auto-renewal, 7-day refund.',
+    description: 'How refunds and cancellations work for Nomadic Pro and Max plans: monthly, no auto-renewal, all payments final.',
     index: true,
     updated: '2026-10-03',
     priority: '0.3',

@@ -209,7 +209,7 @@ export const PRIVACY: LegalDoc = {
 export const REFUNDS: LegalDoc = {
   id: 'refunds',
   title: 'Refund and Cancellation Policy',
-  summary: 'How cancellations and refunds work for paid plans.',
+  summary: 'Paid plans are monthly, do not renew automatically, and are non-refundable.',
   sections: [
     {
       title: 'Plans are monthly and do not renew automatically',
@@ -218,11 +218,10 @@ export const REFUNDS: LegalDoc = {
       ],
     },
     {
-      title: 'Refunds',
+      title: 'No refunds',
       paragraphs: [
-        'If you are not happy with a paid plan, write to ' + SUPPORT_EMAIL + ' within 7 days of payment and we will refund it in full, once per account.',
-        'We also refund in full if you were charged twice, charged the wrong amount, or could not use the paid features because of a fault on our side that we could not fix.',
-        'Approved refunds are returned to the original payment method through Razorpay, usually within 5 to 7 working days.',
+        'All payments are final. We do not offer refunds for a plan once it is paid for, including for unused days or if you stop using the Service during the month. You can try the Free plan before you pay.',
+        'The only exception is a payment error: if you were charged twice or charged the wrong amount, write to ' + SUPPORT_EMAIL + ' and we will return the extra amount to the original payment method through Razorpay, usually within 5 to 7 working days.',
       ],
     },
     {
