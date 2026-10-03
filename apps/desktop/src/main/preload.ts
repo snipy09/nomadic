@@ -73,6 +73,7 @@ const apiObj: NomadicApi = {
 
   // Applications Management
   updateApplicationStatus: (id, status) => invoke('update-application-status', { id, status }),
+  updateApplicationNotes: (id, notes) => invoke('update-application-notes', { id, notes }),
   deleteApplication: (id) => invoke('delete-application', id),
 
   // Interview Evaluation

@@ -1,21 +1,15 @@
 import { AutoApplyEngine } from '@job-automator/automation';
 import type {
-  ApplicationInput,
-  ApplicationRow,
   AutonomousApplyResult,
   BatchOverrides,
   BatchSnapshot,
   BatchTarget,
-  IdStatusInput,
 } from '../../shared/ipc.js';
 import {
   getDb,
   persistDb,
   saveCachedFormAnswerDb,
-  updateApplicationStatusDb,
-  deleteApplicationDb,
   checkUserPlanLimitDb,
-  logUserActivityDb,
 } from '../db.js';
 import { getMainWindow, log } from './app-context.js';
 import { logAndSyncApplication } from './cloud-sync.js';
@@ -23,48 +17,6 @@ import { buildAutomationProfile, getMasterProfileRow } from './profile.js';
 import { getVerifiedServerUserTier } from './auth.js';
 
 const NO_PROFILE_ERR = 'No master profile saved. Fill in your profile first.';
-
-// ── Local applications log ──────────────────────────────────────────────────
-export function getApplications(): ApplicationRow[] {
-  const db = getDb();
-  const results = db.exec(
-    'SELECT * FROM local_applications ORDER BY applied_at DESC LIMIT 200'
-  );
-  if (!results.length) return [];
-  const cols = results[0].columns;
-  return results[0].values.map(row =>
-    Object.fromEntries(cols.map((c, i) => [c, row[i]]))
-  );
-}
-
-export function updateApplicationStatus(data: IdStatusInput): { success: boolean } {
-  const ok = updateApplicationStatusDb(data.id, data.status);
-  log(`[Applications] Status for #${data.id} -> ${data.status}`);
-  return { success: ok };
-}
-
-export function deleteApplication(id: number | string): { success: boolean } {
-  const ok = deleteApplicationDb(id);
-  log(`[Applications] Removed record #${id}`);
-  return { success: ok };
-}
-
-export function saveApplication(app: ApplicationInput): { success: boolean; id?: number; error?: string } {
-  try {
-    logAndSyncApplication({
-      company: app.company,
-      title: app.title,
-      apply_url: app.apply_url,
-      status: app.status || 'applied',
-      mode: app.mode || 'manual',
-    });
-    logUserActivityDb('application', `Applied to ${app.title} at ${app.company}`);
-    // logAndSyncApplication does not return a row id (kept for API compatibility).
-    return { success: true, id: undefined };
-  } catch (err: any) {
-    return { success: false, error: err?.message || String(err) };
-  }
-}
 
 function lookupSavedJob(url: string): { company: string; title: string } {
   let jobCompany = 'Tech Company';

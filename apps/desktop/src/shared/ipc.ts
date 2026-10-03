@@ -123,15 +123,51 @@ export interface SaveJobInput {
   [key: string]: unknown;
 }
 
-/** Raw `local_applications` row. */
-export type ApplicationRow = Record<string, unknown>;
+/** Statuses a person can move an application to (the apply engine also writes others, e.g. `failed`). */
+export const USER_APPLICATION_STATUSES = ['applied', 'interviewing', 'offered', 'rejected', 'withdrawn'] as const;
+export type UserApplicationStatus = (typeof USER_APPLICATION_STATUSES)[number];
+
+/** Prefix of the sync key stored in `apply_url` for applications logged without a link. */
+export const MANUAL_APPLICATION_KEY_PREFIX = 'manual:';
+
+/** One entry of an application's append-only status history. */
+export interface ApplicationStatusEvent {
+  status: string;
+  /** ISO-8601 (older rows may use SQLite `YYYY-MM-DD HH:MM:SS`, UTC). */
+  changed_at: string;
+}
+
+/** A `local_applications` row with its notes and status history. */
+export interface ApplicationRecord {
+  id: number;
+  company: string;
+  title: string;
+  /** Posting URL, or a `manual:` sync key when none was given. */
+  apply_url: string;
+  status: string;
+  mode: string | null;
+  applied_at: string;
+  updated_at: string | null;
+  notes: string;
+  history: ApplicationStatusEvent[];
+}
+
+/** @deprecated use ApplicationRecord */
+export type ApplicationRow = ApplicationRecord;
 
 export interface ApplicationInput {
   company: string;
   title: string;
-  apply_url: string;
+  /** Optional for manual entries; a `manual:` key is generated when missing. */
+  apply_url?: string;
   status?: string;
   mode?: string;
+  notes?: string;
+}
+
+export interface ApplicationNotesInput {
+  id: number | string;
+  notes: string;
 }
 
 export interface AutonomousApplyResult {
@@ -537,9 +573,10 @@ export interface IpcChannels {
   'remove-saved-job': Channel<[applyUrl: string], SuccessResult>;
 
   // applications & auto-apply
-  'get-applications': Channel<[], ApplicationRow[]>;
-  'update-application-status': Channel<[data: IdStatusInput], { success: boolean }>;
-  'delete-application': Channel<[id: number | string], { success: boolean }>;
+  'get-applications': Channel<[], ApplicationRecord[]>;
+  'update-application-status': Channel<[data: IdStatusInput], SuccessResult & { application?: ApplicationRecord }>;
+  'update-application-notes': Channel<[data: ApplicationNotesInput], SuccessResult & { application?: ApplicationRecord }>;
+  'delete-application': Channel<[id: number | string], SuccessResult>;
   'save-application': Channel<[app: ApplicationInput], SuccessResult & { id?: number }>;
   'launch-semi-auto': Channel<[jobUrls: string[]], SuccessResult>;
   'launch-autonomous': Channel<[jobUrls: string[]], AutonomousApplyResult>;
@@ -607,7 +644,7 @@ export const IPC_CHANNELS = [
   'get-master-profile', 'save-master-profile', 'get-resumes', 'save-resume', 'delete-resume',
   'set-default-resume', 'pick-resume-file',
   'run-scrapers', 'get-cloud-feed-page', 'get-cloud-feed', 'get-saved-jobs', 'save-job', 'remove-saved-job',
-  'get-applications', 'update-application-status', 'delete-application', 'save-application',
+  'get-applications', 'update-application-status', 'update-application-notes', 'delete-application', 'save-application',
   'launch-semi-auto', 'launch-autonomous', 'cancel-autonomous-apply', 'start-batch-copilot',
   'submit-all-batch-copilot',
   'verify-email', 'get-hr-contacts', 'send-outreach', 'generate-ai-outreach-email',
@@ -697,6 +734,7 @@ export interface NomadicApi {
   saveLearnerProgress: Invoke<'save-learner-progress'>;
 
   updateApplicationStatus: (id: number | string, status: string) => Promise<ChannelResult<'update-application-status'>>;
+  updateApplicationNotes: (id: number | string, notes: string) => Promise<ChannelResult<'update-application-notes'>>;
   deleteApplication: Invoke<'delete-application'>;
 
   evaluateInterviewAnswer: Invoke<'evaluate-interview-answer'>;

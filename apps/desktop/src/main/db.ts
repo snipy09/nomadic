@@ -2,6 +2,7 @@ import initSqlJs, { Database } from 'sql.js';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { migrateApplicationsSchema } from './services/applications-store.js';
 
 let db: Database | null = null;
 let dbFilePath = '';
@@ -94,7 +95,9 @@ export async function initLocalDatabase(userDataPath: string): Promise<Database>
       apply_url TEXT NOT NULL,
       status TEXT DEFAULT 'applied',
       mode TEXT CHECK (mode IN ('semi-auto', 'autonomous', 'outreach', 'manual')),
-      applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      applied_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      notes TEXT,
+      updated_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS outreach_contacts (
@@ -255,6 +258,13 @@ export async function initLocalDatabase(userDataPath: string): Promise<Database>
       `);
     }
   } catch {}
+
+  // Applications tracker: notes, unique apply_url, append-only status history.
+  try {
+    migrateApplicationsSchema(db);
+  } catch (err: any) {
+    console.warn('[SQLite] Applications migration failed:', err.message);
+  }
 
   // Ensure default master profile row exists
   try {
@@ -526,28 +536,6 @@ export function saveCachedFormAnswerDb(questionText: string, answerText: string)
     `, [cleanKey, answerText]);
     persistDb();
   } catch {}
-}
-
-export function updateApplicationStatusDb(id: number | string, status: string): boolean {
-  try {
-    const database = getDb();
-    database.run('UPDATE local_applications SET status = ? WHERE id = ?', [status, id]);
-    persistDb();
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export function deleteApplicationDb(id: number | string): boolean {
-  try {
-    const database = getDb();
-    database.run('DELETE FROM local_applications WHERE id = ?', [id]);
-    persistDb();
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 export function getCuratedLearningResourcesDb(): Array<{

@@ -12,7 +12,7 @@ import { LearnerView } from './components/LearnerView';
 import { UpgradeModal } from './components/UpgradeModal';
 import { FeedView } from './features/feed/FeedView';
 import { OutreachView } from './components/OutreachView';
-import { ApplicationsView } from './components/ApplicationsView';
+import { ApplicationsView } from './features/applications/ApplicationsView';
 import { ProfileView } from './features/profile/ProfileView';
 import { AdminView } from './components/AdminView';
 import { LoginView } from './components/LoginView';
@@ -456,7 +456,7 @@ export default function App() {
             )}
 
             {activeTab === 'applications' && (
-              <ApplicationsView />
+              <ApplicationsView onBrowseJobs={() => setActiveTab('feed')} />
             )}
 
             {activeTab === 'logs' && (

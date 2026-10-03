@@ -570,6 +570,8 @@ export function createBrowserApiShim(): ElectronAPI {
       }
     },
 
+    updateApplicationNotes: async () => ({ success: false, error: 'Notes are saved by the desktop app only.' }),
+
     deleteApplication: async (id: number | string) => {
       try {
         const stored = localStorage.getItem('nomadic_applications');
