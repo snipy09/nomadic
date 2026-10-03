@@ -10,6 +10,15 @@ import { log } from './app-context.js';
  */
 
 // ── AI Onboarding Profile Generator ─────────────────────────────────────────
+// Curated, stable resource links used when AI synthesis fails. Deliberately role-agnostic:
+// never point at search result pages (YouTube/Google), which are not real resources.
+const CURATED_FALLBACK_RESOURCES = {
+  VIDEO: { url: 'https://www.youtube.com/@freecodecamp', type: 'video', duration: '30 mins' },
+  PRACTICE: { url: 'https://www.freecodecamp.org/learn', type: 'video', duration: '40 mins' },
+  DOCS: { url: 'https://roadmap.sh', type: 'doc' },
+  INTERVIEW: { url: 'https://www.themuse.com/advice/star-interview-method', type: 'guide' },
+};
+
 export async function generateAiOnboardingProfile(
   params: OnboardingProfileParams
 ): Promise<{ success: boolean; profile?: AiJson; roadmap?: AiJson }> {
@@ -198,8 +207,8 @@ Analyze the candidate details and generate a JSON response matching this schema:
             description: 'Industry mental models, standard operating procedures, and basic workflows.',
             keyConcepts: ['Foundational theory', 'Workflow standards', 'Core tool setup'],
             resources: [
-              { title: 'Foundational Overview & Standards', url: `https://www.youtube.com/results?search_query=${encodeURIComponent((targetRole || 'career') + ' fundamentals')}`, type: 'video', duration: '30 mins' },
-              { title: 'Industry Best Practices Reference', url: `https://google.com/search?q=${encodeURIComponent((targetRole || 'career') + ' best practices guide')}`, type: 'doc' }
+              { ...CURATED_FALLBACK_RESOURCES.VIDEO, title: 'Foundational Overview & Standards' },
+              { ...CURATED_FALLBACK_RESOURCES.DOCS, title: 'Industry Best Practices Reference' }
             ]
           }
         ]
@@ -219,7 +228,7 @@ Analyze the candidate details and generate a JSON response matching this schema:
             description: 'Creating high-impact deliverables and tracking performance.',
             keyConcepts: ['Deliverable structuring', 'Feedback loops', 'Quality assurance'],
             resources: [
-              { title: 'Practical Implementation Guide', url: `https://www.youtube.com/results?search_query=${encodeURIComponent((targetRole || 'career') + ' practical skills')}`, type: 'video', duration: '40 mins' }
+              { ...CURATED_FALLBACK_RESOURCES.PRACTICE, title: 'Practical Implementation Guide' }
             ]
           }
         ]
@@ -239,7 +248,7 @@ Analyze the candidate details and generate a JSON response matching this schema:
             description: 'Structuring your achievements with metrics and acing competency rounds.',
             keyConcepts: ['STAR methodology', 'Portfolio review', 'Negotiation strategy'],
             resources: [
-              { title: 'Top Interview Questions & STAR Framework', url: `https://www.youtube.com/results?search_query=${encodeURIComponent((targetRole || 'career') + ' interview preparation')}`, type: 'video', duration: '35 mins' }
+              { ...CURATED_FALLBACK_RESOURCES.INTERVIEW, title: 'Top Interview Questions & STAR Framework' }
             ]
           }
         ]
@@ -423,8 +432,8 @@ Generate a comprehensive 4-phase career & learning roadmap formatted strictly in
             description: 'Essential terminology and operating workflows.',
             keyConcepts: ['Foundational concepts', 'Daily tools', 'Quality control'],
             resources: [
-              { title: 'Foundational Video Guide', url: `https://www.youtube.com/results?search_query=${encodeURIComponent(roleTitle + ' basics')}`, type: 'video', duration: '30 mins' },
-              { title: 'Industry Best Practices', url: `https://google.com/search?q=${encodeURIComponent(roleTitle + ' best practices')}`, type: 'doc' }
+              { ...CURATED_FALLBACK_RESOURCES.VIDEO, title: 'Foundational Video Guide' },
+              { ...CURATED_FALLBACK_RESOURCES.DOCS, title: 'Industry Best Practices' }
             ]
           }
         ]
@@ -444,7 +453,7 @@ Generate a comprehensive 4-phase career & learning roadmap formatted strictly in
             description: 'Hands-on workflow execution and deliverables.',
             keyConcepts: ['Deliverable production', 'Workflow management', 'Feedback integration'],
             resources: [
-              { title: 'Practical Tutorial', url: `https://www.youtube.com/results?search_query=${encodeURIComponent(roleTitle + ' practical tutorial')}`, type: 'video', duration: '35 mins' }
+              { ...CURATED_FALLBACK_RESOURCES.PRACTICE, title: 'Practical Tutorial' }
             ]
           }
         ]
@@ -464,7 +473,7 @@ Generate a comprehensive 4-phase career & learning roadmap formatted strictly in
             description: 'Structuring your work to ace competency and case interviews.',
             keyConcepts: ['STAR storytelling', 'Impact defense', 'Negotiation'],
             resources: [
-              { title: 'Interview Masterclass', url: `https://www.youtube.com/results?search_query=${encodeURIComponent(roleTitle + ' interview questions')}`, type: 'video', duration: '30 mins' }
+              { ...CURATED_FALLBACK_RESOURCES.INTERVIEW, title: 'Interview Masterclass' }
             ]
           }
         ]
