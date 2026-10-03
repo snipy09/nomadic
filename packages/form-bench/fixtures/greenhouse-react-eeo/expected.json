@@ -1,0 +1,94 @@
+{
+  "id": "greenhouse-react-eeo",
+  "ats": "greenhouse",
+  "title": "Greenhouse job-boards (React): EEO comboboxes + open questions",
+  "sourceUrl": "https://job-boards.greenhouse.io/<org>/jobs/<id>",
+  "profile": "sample.json",
+  "walls": [],
+  "fields": {
+    "First Name": {
+      "expected": "Jordan",
+      "selector": "[id=\"first_name\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Last Name": {
+      "expected": "Rivera",
+      "selector": "[id=\"last_name\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Email": {
+      "expected": "jordan.rivera@example.com",
+      "selector": "[id=\"email\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Resume/CV": {
+      "expected": "@file",
+      "selector": "#resume",
+      "read": "file",
+      "category": "file",
+      "required": true
+    },
+    "Location (City)": {
+      "expected": "Austin",
+      "selector": "[id=\"candidate-location\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Why are you interested in this role?": {
+      "expected": "@nonempty",
+      "selector": "[id=\"question_40001\"]",
+      "read": "value",
+      "category": "open",
+      "required": true
+    },
+    "What is your notice period?": {
+      "expected": "2 weeks",
+      "selector": "[id=\"question_40002\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Acknowledgement": {
+      "expected": true,
+      "selector": "input[name=\"question_40003[]\"]",
+      "read": "checkbox",
+      "category": "policy",
+      "required": true
+    },
+    "Gender": {
+      "expected": "Decline to self-identify",
+      "selector": "[data-rselect=\"gender\"]",
+      "read": "rselect",
+      "category": "eeo",
+      "required": false
+    },
+    "Are you Hispanic/Latino?": {
+      "expected": "Decline to self-identify",
+      "selector": "[data-rselect=\"hispanic_ethnicity\"]",
+      "read": "rselect",
+      "category": "eeo",
+      "required": false
+    },
+    "Veteran Status": {
+      "expected": "I don't wish to answer",
+      "selector": "[data-rselect=\"veteran_status\"]",
+      "read": "rselect",
+      "category": "eeo",
+      "required": false
+    },
+    "Disability Status": {
+      "expected": "I don't wish to answer",
+      "selector": "[data-rselect=\"disability_status\"]",
+      "read": "rselect",
+      "category": "eeo",
+      "required": false
+    }
+  }
+}

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backend Development Internship at GreenLeaf Foods</title>
+<link rel="stylesheet" href="../_shared/fixture.css">
+<script src="../_shared/runtime.js"></script>
+
+</head>
+<body class="">
+
+<div id="content"><div class="container-fluid individual_internship_page">
+  <div class="detail_view"><div class="individual_internship">
+    <div class="heading_4_5 profile">Backend Development</div>
+    <div class="heading_6 company_name"><a class="link_display_like_text" href="#">GreenLeaf Foods</a></div>
+    <div class="internship_other_details_container"><div class="other_detail_item"><div class="item_heading">Start date</div><div class="item_body">Immediately</div></div><div class="other_detail_item"><div class="item_heading">Duration</div><div class="item_body">6 Months</div></div><div class="other_detail_item"><div class="item_heading">Stipend</div><div class="item_body">&#8377; 15,000 /month</div></div></div>
+    <div class="internship_details"><h3>About the internship</h3><p>Selected intern's day-to-day responsibilities include building features for our web app.</p></div>
+  </div></div>
+  <div class="buttons_container"><button type="button" class="btn btn-large btn-primary easy_apply" id="easy_apply_button" data-open-modal="#easy_apply_modal">Apply now</button></div>
+</div></div>
+<div id="easy_apply_modal" class="modal fade" style="display:none" role="dialog" aria-modal="true">
+  <div class="modal-dialog modal-lg"><div class="modal-content">
+    <div class="modal-header"><h4 class="modal-title">Applying for Backend Development</h4><button type="button" class="close" aria-label="Close">&times;</button></div>
+    <div class="modal-body" id="application-form-container">
+      <form id="application-form" method="post">
+        <div class="form-group" id="cover_letter_container">
+  <div class="cover_letter_heading"><h4 class="assessment_question_heading">Cover letter</h4><div class="assessment_question">Why should you be hired for this role?</div></div>
+  <textarea id="cover_letter" name="cover_letter" class="form-control textarea" placeholder="Mention in detail what relevant skill or past experience you have for this internship. What excites you about this internship? Why would you be a good fit?" required></textarea>
+  <div class="character_count">0/2000</div>
+</div>
+        <div class="form-group availability_container">
+  <h4 class="assessment_question_heading">Your availability</h4>
+  <div class="assessment_question">Confirm your availability</div>
+  <div class="radio"><label for="radio1"><input type="radio" name="confirm_availability" value="yes_available" id="radio1" required> Yes, I am available to join immediately</label></div>
+  <div class="radio"><label for="radio2"><input type="radio" name="confirm_availability" value="no_available" id="radio2"> No (Please specify your availability)</label></div>
+  <textarea name="availability_text" id="availability_text" class="form-control" style="display:none" placeholder="Eg. I am available full time in Delhi for 3 months starting immediately"></textarea>
+</div>
+        <div class="form-group"><label for="phone_number" class="assessment_question">Mobile number</label><input type="tel" class="form-control" id="phone_number" name="phone_number" required></div>
+        <div class="form-group"><label for="portfolio_link" class="assessment_question">Share your GitHub profile or portfolio link</label><input type="url" class="form-control" id="portfolio_link" name="portfolio_link"></div>
+        <div class="form-group custom_resume"><label for="custom_resume" class="assessment_question">Upload your resume (PDF)</label><input type="file" id="custom_resume" name="custom_resume" accept=".pdf"></div>
+        <div class="form-group assessment_question_container">
+  <div class="assessment_question">Are you willing to relocate to Pune for this internship?</div>
+  <div class="radio"><label for="radio_51000_0"><input type="radio" name="radio_51000" id="radio_51000_0" value="Yes" required> Yes</label></div>
+  <div class="radio"><label for="radio_51000_1"><input type="radio" name="radio_51000" id="radio_51000_1" value="No" required> No</label></div>
+</div>
+        <div class="submit_button_container"><input type="submit" class="btn btn-primary" id="submit" value="Submit"></div>
+      </form>
+    </div>
+  </div></div>
+</div>
+</body>
+</html>

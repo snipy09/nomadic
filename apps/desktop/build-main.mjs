@@ -15,21 +15,30 @@ const isWatch = process.argv.includes('--watch');
 async function build() {
   console.log(`[Build] Bundling main process and preload script with esbuild (${isWatch ? 'watch mode' : 'single build'})...`);
 
-  const googleIdParts = ['762160653751', 'u9gnn1sm9frqpjke4ajuhqcni569nplf', 'apps.googleusercontent.com'];
-  const googleSecParts = ['GOCSPX', '9FxM3VXFYGeE2kd', 'F-FnQ2WlTAzQ'];
-  const decodeB64 = (s) => Buffer.from(s, 'base64').toString('utf8');
-
   const pkgJson = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf-8'));
   const appVersion = pkgJson.version || '1.0.1';
+
+  // Secrets are injected from the build environment only (CI secrets / local
+  // .env). Missing values compile to '' and the matching feature degrades:
+  //   GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET -> Google sign-in
+  //   GEMINI_API_KEY (optional GEMINI_API_KEY_1 / _2 rotation) -> built-in AI fallback
+  // Legacy names GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are still honoured.
+  const env = (...names) => {
+    for (const n of names) {
+      if (process.env[n]) return process.env[n];
+    }
+    return '';
+  };
 
   const define = {
     '__APP_VERSION__': JSON.stringify(appVersion),
     'process.env.SUPABASE_URL': JSON.stringify(process.env.SUPABASE_URL || DEFAULT_SUPABASE_URL),
     'process.env.SUPABASE_ANON_KEY': JSON.stringify(process.env.SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY),
-    'process.env.GOOGLE_CLIENT_ID': JSON.stringify(process.env.GOOGLE_CLIENT_ID || (googleIdParts[0] + '-' + googleIdParts[1] + '.' + googleIdParts[2])),
-    'process.env.GOOGLE_CLIENT_SECRET': JSON.stringify(process.env.GOOGLE_CLIENT_SECRET || (googleSecParts[0] + '-' + googleSecParts[1] + '_' + googleSecParts[2])),
-    'process.env.GEMINI_API_KEY_1': JSON.stringify(process.env.GEMINI_API_KEY_1 || decodeB64('QVEuQWI4Uk42Sjl6YlVQMzRMcDdUMWVsb2pxZk56bkROT045TWFwTzRCVXVDOTFwTklvLUE=')),
-    'process.env.GEMINI_API_KEY_2': JSON.stringify(process.env.GEMINI_API_KEY_2 || decodeB64('QVEuQWI4Uk42SlRzSS1xazlSWHA4YWd6UjdLMFFKUUxZRDJzaFU5VTFnR2YzbGNuOGhSS2c=')),
+    'process.env.GOOGLE_CLIENT_ID': JSON.stringify(env('GOOGLE_OAUTH_CLIENT_ID', 'GOOGLE_CLIENT_ID')),
+    'process.env.GOOGLE_CLIENT_SECRET': JSON.stringify(env('GOOGLE_OAUTH_CLIENT_SECRET', 'GOOGLE_CLIENT_SECRET')),
+    'process.env.GEMINI_API_KEY': JSON.stringify(env('GEMINI_API_KEY')),
+    'process.env.GEMINI_API_KEY_1': JSON.stringify(env('GEMINI_API_KEY_1')),
+    'process.env.GEMINI_API_KEY_2': JSON.stringify(env('GEMINI_API_KEY_2')),
   };
 
   // Ensure out/main directory exists

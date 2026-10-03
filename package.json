@@ -23,6 +23,7 @@
     "scrape": "tsx packages/scrapers/src/cli.ts",
     "scrape:publish": "tsx packages/scrapers/src/cli.ts run --publish",
     "scrapers:bench": "tsx packages/scrapers/src/cli.ts bench",
+    "bench:forms": "tsx packages/form-bench/src/run.ts",
     "scrapers:hrs": "tsx packages/scrapers/src/publish-hrs.ts",
     "email:verify": "tsx packages/email-verifier/src/index.ts",
     "build:desktop": "npm run build --prefix apps/desktop",

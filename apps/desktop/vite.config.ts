@@ -3,12 +3,22 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import tailwindcss from 'tailwindcss';
 import autoprefixer from 'autoprefixer';
+import { buildContentSecurityPolicy } from './src/shared/csp';
+
+// Packaged builds load from file://, where the main-process CSP header may not apply, so embed it too.
+const cspMeta = {
+  name: 'nomadic-csp-meta',
+  apply: 'build' as const,
+  transformIndexHtml: () => [
+    { tag: 'meta', attrs: { 'http-equiv': 'Content-Security-Policy', content: buildContentSecurityPolicy() }, injectTo: 'head-prepend' as const },
+  ],
+};
 
 export default defineConfig({
   base: './',
   root: path.join(__dirname, 'src/renderer'),
   // React Fast Refresh is on by default in @vitejs/plugin-react v4 (the old `fastRefresh` option was removed).
-  plugins: [react()],
+  plugins: [react(), cspMeta],
   css: {
     devSourcemap: true,
     postcss: {

@@ -1,0 +1,89 @@
+{
+  "id": "lever-additional",
+  "ats": "lever",
+  "title": "Lever: additional info, education, open questions",
+  "sourceUrl": "https://jobs.lever.co/waypoint/<posting-uuid>/apply",
+  "profile": "sample.json",
+  "walls": [],
+  "fields": {
+    "Resume/CV": {
+      "expected": "@file",
+      "selector": "#resume-upload-input",
+      "read": "file",
+      "category": "file",
+      "required": true
+    },
+    "Full name": {
+      "expected": "Jordan Rivera",
+      "selector": "input[name=\"name\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Email": {
+      "expected": "jordan.rivera@example.com",
+      "selector": "input[name=\"email\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Phone": {
+      "expected": "+1 512 555 0142",
+      "selector": "input[name=\"phone\"]",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    },
+    "Current company": {
+      "expected": "Nimbus Analytics",
+      "selector": "input[name=\"org\"]",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    },
+    "University": {
+      "expected": "University of Texas at Austin",
+      "selector": "input[name=\"cards[8b48537c-f41b-44bc-a262-b262f60f8b48][field0]\"]",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    },
+    "Highest level of education completed": {
+      "expected": "Bachelor's Degree",
+      "selector": "select[name=\"cards[8b48537c-f41b-44bc-a262-b262f60f8b48][field1]\"]",
+      "read": "select",
+      "category": "profile",
+      "required": true
+    },
+    "Graduation year": {
+      "expected": "2020",
+      "selector": "input[name=\"cards[8b48537c-f41b-44bc-a262-b262f60f8b48][field2]\"]",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    },
+    "Which languages can you work in professionally?": {
+      "expected": [
+        "English",
+        "Spanish"
+      ],
+      "selector": "input[name=\"cards[8b48537c-f41b-44bc-a262-b262f60f8b48][field3]\"]",
+      "read": "checkboxes",
+      "category": "profile",
+      "required": false
+    },
+    "What excites you about Waypoint?": {
+      "expected": "@nonempty",
+      "selector": "textarea[name=\"cards[8b48537c-f41b-44bc-a262-b262f60f8b48][field4]\"]",
+      "read": "value",
+      "category": "open",
+      "required": true
+    },
+    "Additional information": {
+      "expected": "@nonempty",
+      "selector": "textarea[name=\"comments\"]",
+      "read": "value",
+      "category": "open"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "@job-automator/form-bench",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bench": "tsx src/run.ts",
+    "fixtures:build": "tsx src/fixtures/build.ts",
+    "capture": "tsx src/capture.ts"
+  },
+  "dependencies": {
+    "playwright": "^1.62.1"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "_comment": "Real application URLs to snapshot with `npm run capture -w packages/form-bench`. Replace the placeholders; entries containing '<' are skipped.",
+  "targets": [
+    { "id": "live-ashby-1", "ats": "ashby", "url": "https://jobs.ashbyhq.com/<org>/<posting-uuid>/application" },
+    { "id": "live-ashby-2", "ats": "ashby", "url": "https://jobs.ashbyhq.com/<org>/<posting-uuid>/application" },
+    { "id": "live-greenhouse-1", "ats": "greenhouse", "url": "https://boards.greenhouse.io/<org>/jobs/<id>" },
+    { "id": "live-greenhouse-2", "ats": "greenhouse", "url": "https://job-boards.greenhouse.io/<org>/jobs/<id>" },
+    { "id": "live-lever-1", "ats": "lever", "url": "https://jobs.lever.co/<org>/<posting-uuid>/apply" },
+    { "id": "live-internshala-1", "ats": "internshala", "url": "https://internshala.com/internship/detail/<slug>", "clickBeforeCapture": "#easy_apply_button" },
+    { "id": "live-workday-1", "ats": "workday", "url": "https://<tenant>.wd5.myworkdayjobs.com/<site>/job/<location>/<title>_<id>/apply/applyManually" }
+  ]
+}

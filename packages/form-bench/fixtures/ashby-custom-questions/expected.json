@@ -1,0 +1,66 @@
+{
+  "id": "ashby-custom-questions",
+  "ats": "ashby",
+  "title": "Ashby: open-ended + consent",
+  "sourceUrl": "https://jobs.ashbyhq.com/orbitpayments/<posting-uuid>/application",
+  "profile": "sample.json",
+  "walls": [],
+  "fields": {
+    "Name": {
+      "expected": "Jordan Rivera",
+      "selector": "[id=\"_systemfield_name\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Email": {
+      "expected": "jordan.rivera@example.com",
+      "selector": "[id=\"_systemfield_email\"]",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Resume": {
+      "expected": "@file",
+      "selector": "#_systemfield_resume",
+      "read": "file",
+      "category": "file",
+      "required": true
+    },
+    "LinkedIn": {
+      "expected": "https://www.linkedin.com/in/jordan-rivera-dev",
+      "selector": "[id=\"8c9b9ebf-c2aa-490f-a68b-368b86068c9b\"]",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    },
+    "Why do you want to work at Orbit Payments?": {
+      "expected": "@nonempty",
+      "selector": "[id=\"7c980b3d-128a-4a2d-aac3-0ac362187c98\"]",
+      "read": "value",
+      "category": "open",
+      "required": true
+    },
+    "Tell us about a technically challenging project you led.": {
+      "expected": "@nonempty",
+      "selector": "[id=\"da6a524f-b563-4f9f-ad45-bd45e7d6da6a\"]",
+      "read": "value",
+      "category": "open",
+      "required": true
+    },
+    "Who referred you? (name of employee)": {
+      "expected": "@empty",
+      "selector": "[id=\"99a64b46-3598-4166-ae32-9e32355599a6\"]",
+      "read": "value",
+      "category": "trap",
+      "required": false
+    },
+    "Privacy Notice": {
+      "expected": true,
+      "selector": "input[name=\"bf473e5d-b8b7-434d-a595-3595cbf8bf47\"]",
+      "read": "checkbox",
+      "category": "policy",
+      "required": true
+    }
+  }
+}

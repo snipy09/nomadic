@@ -1,0 +1,91 @@
+{
+  "id": "greenhouse-iframe-embed",
+  "ats": "greenhouse",
+  "title": "Greenhouse embed: form inside a cross-origin iframe",
+  "sourceUrl": "https://www.<company>.com/careers/job?gh_jid=<id>",
+  "profile": "sample.json",
+  "walls": [],
+  "notes": "The form lives in #grnhse_iframe served from a different origin.",
+  "fields": {
+    "First Name": {
+      "expected": "Jordan",
+      "selector": "#first_name",
+      "read": "value",
+      "category": "profile",
+      "required": true,
+      "frame": "gh-frame.html"
+    },
+    "Last Name": {
+      "expected": "Rivera",
+      "selector": "#last_name",
+      "read": "value",
+      "category": "profile",
+      "required": true,
+      "frame": "gh-frame.html"
+    },
+    "Email": {
+      "expected": "jordan.rivera@example.com",
+      "selector": "#email",
+      "read": "value",
+      "category": "profile",
+      "required": true,
+      "frame": "gh-frame.html"
+    },
+    "Phone": {
+      "expected": "+1 512 555 0142",
+      "selector": "#phone",
+      "read": "value",
+      "category": "profile",
+      "required": true,
+      "frame": "gh-frame.html"
+    },
+    "Resume/CV": {
+      "expected": "@file",
+      "selector": "#resume_file",
+      "read": "file",
+      "category": "file",
+      "required": true,
+      "frame": "gh-frame.html"
+    },
+    "LinkedIn Profile": {
+      "expected": "https://www.linkedin.com/in/jordan-rivera-dev",
+      "selector": "#job_application_answers_attributes_0_text_value",
+      "read": "value",
+      "category": "profile",
+      "required": false,
+      "frame": "gh-frame.html"
+    },
+    "Current Company": {
+      "expected": "Nimbus Analytics",
+      "selector": "#job_application_answers_attributes_1_text_value",
+      "read": "value",
+      "category": "profile",
+      "required": false,
+      "frame": "gh-frame.html"
+    },
+    "Will you now or in the future require visa sponsorship?": {
+      "expected": "No",
+      "selector": "#job_application_answers_attributes_2_boolean_value",
+      "read": "select",
+      "category": "profile",
+      "required": true,
+      "frame": "gh-frame.html"
+    },
+    "Data Privacy": {
+      "expected": true,
+      "selector": "#job_application_answers_attributes_3_boolean_value",
+      "read": "checkbox",
+      "category": "policy",
+      "required": true,
+      "frame": "gh-frame.html"
+    },
+    "Future opportunities": {
+      "expected": false,
+      "selector": "#job_application_answers_attributes_4_boolean_value",
+      "read": "checkbox",
+      "category": "policy",
+      "required": false,
+      "frame": "gh-frame.html"
+    }
+  }
+}

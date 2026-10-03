@@ -1,0 +1,80 @@
+{
+  "id": "greenhouse-classic",
+  "ats": "greenhouse",
+  "title": "Greenhouse classic: select2 + wrapped labels",
+  "sourceUrl": "https://boards.greenhouse.io/<org>/jobs/<id>",
+  "profile": "sample.json",
+  "walls": [],
+  "fields": {
+    "First Name": {
+      "expected": "Jordan",
+      "selector": "#first_name",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Last Name": {
+      "expected": "Rivera",
+      "selector": "#last_name",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Email": {
+      "expected": "jordan.rivera@example.com",
+      "selector": "#email",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Phone": {
+      "expected": "+1 512 555 0142",
+      "selector": "#phone",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    },
+    "Resume/CV": {
+      "expected": "@file",
+      "selector": "#resume_file",
+      "read": "file",
+      "category": "file",
+      "required": true
+    },
+    "LinkedIn Profile": {
+      "expected": "https://www.linkedin.com/in/jordan-rivera-dev",
+      "selector": "#job_application_answers_attributes_0_text_value",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    },
+    "Website": {
+      "expected": "https://jordanrivera.dev",
+      "selector": "#job_application_answers_attributes_1_text_value",
+      "read": "value",
+      "category": "profile",
+      "required": false
+    },
+    "Are you legally authorized to work in the United States?": {
+      "expected": "Yes",
+      "selector": "#job_application_answers_attributes_2_boolean_value",
+      "read": "select",
+      "category": "profile",
+      "required": true
+    },
+    "Will you now or in the future require sponsorship for employment visa status (e.g. H-1B visa status)?": {
+      "expected": "No",
+      "selector": "#job_application_answers_attributes_3_boolean_value",
+      "read": "select",
+      "category": "profile",
+      "required": true
+    },
+    "What is your desired annual compensation?": {
+      "expected": "$145,000",
+      "selector": "#job_application_answers_attributes_4_text_value",
+      "read": "value",
+      "category": "profile",
+      "required": true
+    }
+  }
+}
