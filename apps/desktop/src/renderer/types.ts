@@ -333,19 +333,6 @@ export interface ElectronAPI {
     streakCount?: number;
   }) => Promise<{ success: boolean }>;
 
-  // Interview Evaluation
-  evaluateInterviewAnswer: (params: {
-    questionId: string;
-    questionTitle: string;
-    answerText: string;
-    category?: string;
-  }) => Promise<{
-    score: number;
-    review: string;
-    strengths?: string[];
-    improvements?: string[];
-  }>;
-
   // Auth Handlers
   authLogin: (credentials: {
     username?: string;
@@ -385,6 +372,11 @@ export interface ElectronAPI {
   adminUpdateLesson: NomadicApi['adminUpdateLesson'];
   adminSetResourceStatus: NomadicApi['adminSetResourceStatus'];
   adminContentHistory: NomadicApi['adminContentHistory'];
+  // Practice (F8)
+  practiceGetCatalog: NomadicApi['practiceGetCatalog'];
+  practiceGetState: NomadicApi['practiceGetState'];
+  practiceRecordAttempt: NomadicApi['practiceRecordAttempt'];
+
   getRecommendedResourcesForJob: (params: {
     title: string;
     description?: string;

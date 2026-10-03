@@ -19,7 +19,7 @@ import { ProfileView } from './features/profile/ProfileView';
 import { AdminView } from './features/admin/AdminView';
 import { AuthScreen } from './features/auth/AuthScreen';
 import { ResourceVaultView } from './components/ResourceVaultView';
-import { InterviewPrepView } from './components/InterviewPrepView';
+import { PracticeView } from './features/practice/PracticeView';
 import { OpportunityBoardView } from './components/OpportunityBoardView';
 import { CommandPalette } from './components/CommandPalette';
 import { NomadicAssistant } from './components/NomadicAssistant';
@@ -414,8 +414,9 @@ export default function App() {
             )}
 
             {activeTab === 'learner-interview-prep' && (
-              <InterviewPrepView
-                profile={profile}
+              <PracticeView
+                currentUser={currentUser}
+                onOpenUpgrade={handleOpenUpgrade}
                 onLog={addLog}
               />
             )}

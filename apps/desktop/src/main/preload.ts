@@ -79,13 +79,15 @@ const apiObj: NomadicApi = {
   deleteApplication: (id) => invoke('delete-application', id),
 
   // Interview Evaluation
-  evaluateInterviewAnswer: (params) => invoke('evaluate-interview-answer', params),
 
   // Authentication APIs
   authLogin: (credentials) => invoke('auth-login', credentials),
   authSignup: (credentials) => invoke('auth-signup', credentials),
   authGoogle: () => invoke('auth-google'),
   onOauthCallback: (cb) => subscribe('oauth-callback', cb),
+  practiceGetCatalog: () => invoke('practice-get-catalog'),
+  practiceGetState: () => invoke('practice-get-state'),
+  practiceRecordAttempt: (attempt) => invoke('practice-record-attempt', attempt),
   getRecommendedResourcesForJob: (params) => invoke('get-recommended-resources-for-job', params),
 
   // Admin (F12): every call is re-authorized server side (session + admin role)

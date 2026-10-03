@@ -8,7 +8,7 @@ import {
   VAULT_TEXTBOOKS, VAULT_CHEATSHEETS,
   VaultTextbook, VaultCheatsheet
 } from '../data/resourceVault';
-import leetcodeCompaniesDataRaw from '../data/leetcodeCompaniesDataset.json';
+import { useCompanySets, type CompanyProblem } from '../features/practice/useCompanySets';
 import { AppUser, getApi } from '../types';
 import { hasFeatureAccess } from '../utils/tier-utils';
 
@@ -17,22 +17,6 @@ interface ResourceVaultViewProps {
   onOpenUpgrade?: (feature?: string) => void;
   onLog?: (msg: string) => void;
 }
-
-interface CompanyProblem {
-  title: string;
-  difficulty: 'EASY' | 'MEDIUM' | 'HARD' | string;
-  link: string;
-  frequency?: string;
-  topics?: string[];
-}
-
-interface CompanyEntry {
-  company: string;
-  questionCount: number;
-  problems: CompanyProblem[];
-}
-
-const leetcodeCompaniesData = leetcodeCompaniesDataRaw as Record<string, CompanyEntry>;
 
 const POPULAR_COMPANIES = [
   'Google', 'Meta', 'Amazon', 'Microsoft', 'Apple', 'Uber', 'Netflix',
@@ -45,6 +29,7 @@ export const ResourceVaultView: React.FC<ResourceVaultViewProps> = ({
   onOpenUpgrade,
   onLog
 }) => {
+  const leetcodeCompaniesData = useCompanySets();
   const [activeVaultSection, setActiveVaultSection] = useState<'questions' | 'textbooks' | 'cheatsheets'>('questions');
   const [selectedTextbook, setSelectedTextbook] = useState<VaultTextbook | null>(null);
   const [selectedProblem, setSelectedProblem] = useState<CompanyProblem | null>(null);
@@ -76,7 +61,7 @@ export const ResourceVaultView: React.FC<ResourceVaultViewProps> = ({
 
   const allCompanyNames = useMemo(() => {
     return Object.keys(leetcodeCompaniesData).sort();
-  }, []);
+  }, [leetcodeCompaniesData]);
 
   const filteredCompanyNames = useMemo(() => {
     if (!companySearch.trim()) return allCompanyNames;
@@ -86,7 +71,7 @@ export const ResourceVaultView: React.FC<ResourceVaultViewProps> = ({
 
   const activeCompanyData = useMemo(() => {
     return leetcodeCompaniesData[selectedCompany] || leetcodeCompaniesData['Google'] || null;
-  }, [selectedCompany]);
+  }, [selectedCompany, leetcodeCompaniesData]);
 
   const displayedProblems = useMemo(() => {
     if (!activeCompanyData) return [];

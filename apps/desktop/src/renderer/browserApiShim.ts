@@ -634,31 +634,6 @@ export function createBrowserApiShim(): ElectronAPI {
       }
     },
 
-    evaluateInterviewAnswer: async (params) => {
-      const words = params.answerText.trim().split(/\s+/).length;
-      const lower = params.answerText.toLowerCase();
-
-      const hasSituation = lower.includes('when') || lower.includes('project') || lower.includes('during') || lower.includes('team');
-      const hasTask = lower.includes('needed') || lower.includes('goal') || lower.includes('responsible');
-      const hasAction = lower.includes('built') || lower.includes('implemented') || lower.includes('designed') || lower.includes('refactored');
-      const hasResult = lower.includes('result') || lower.includes('%') || lower.includes('reduced') || lower.includes('improved');
-
-      let score = 70;
-      if (words >= 70) score += 10;
-      if (hasAction) score += 8;
-      if (hasResult) score += 9;
-
-      const finalScore = Math.min(96, Math.max(62, score));
-      emitLog(`[Interview AI] Evaluated answer: ${finalScore}/100.`);
-
-      return {
-        score: finalScore,
-        review: `Strong response structure. You demonstrated ${hasAction ? 'clear technical ownership' : 'good conceptual awareness'}. ${hasResult ? 'Highlighting quantified impact was compelling.' : 'For maximum impact, add concrete metrics (e.g., % improvement or latency saved).' }`,
-        strengths: ['Well-structured response', 'Professional technical vocabulary'],
-        improvements: hasResult ? ['Maintain this cadence in technical rounds'] : ['Anchor the outcome with concrete metrics'],
-      };
-    },
-
     // Auth & Admin Handlers
     // Server-authoritative: preview mode calls the SAME authenticate_user RPC
     // the desktop app uses. No hardcoded admin, no auto-provisioning.
@@ -734,6 +709,11 @@ export function createBrowserApiShim(): ElectronAPI {
     adminUpdateLesson: adminUnavailable,
     adminSetResourceStatus: adminUnavailable,
     adminContentHistory: adminUnavailable,
+
+    // Practice (F8): the question sets and the attempt log live in the desktop main process.
+    practiceGetCatalog: async () => ({ success: false as const, error: 'Practice question sets load in the desktop app.' }),
+    practiceGetState: async () => ({ success: true as const, state: { attempts: [], usedToday: null, signedIn: false } }),
+    practiceRecordAttempt: async () => ({ success: false as const, code: 'not_signed_in' as const, error: 'Sign in in the desktop app to save practice attempts.' }),
 
     getRecommendedResourcesForJob: async (params) => {
       let list = [];

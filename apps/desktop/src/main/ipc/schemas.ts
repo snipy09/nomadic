@@ -10,6 +10,7 @@ import {
   CONTENT_STATUSES,
   RESOURCE_STATUSES,
 } from '../../shared/admin.js';
+import { PracticeAttemptSchema, type PracticeAttempt } from '@job-automator/learning';
 
 /**
  * Zod schemas for every IPC channel that accepts renderer input. They check
@@ -250,20 +251,21 @@ export const logActivityArgs: ArgSchemas<'log-user-activity'> = [
   z.object({ activityType: str(100), details: opt(str(MEDIUM)) }).passthrough(),
 ];
 
-const interviewAnswerParams = z
-  .object({
-    questionId: str(500),
-    questionTitle: str(MEDIUM),
-    answerText: str(LONG),
-    category: opt(str(200)),
-  })
-  .passthrough();
-export const interviewAnswerArgs: ArgSchemas<'evaluate-interview-answer'> = [interviewAnswerParams];
-
 const recommendedParams = z
   .object({ title: str(), description: opt(str(LONG)), techStack: opt(str(MEDIUM)) })
   .passthrough();
 export const recommendedResourcesArgs: ArgSchemas<'get-recommended-resources-for-job'> = [recommendedParams];
+
+// ── practice (F8) ──────────────────────────────────────────────────────────
+// Validated with the shared schema from @job-automator/learning (one source of
+// truth for the attempt shape); strict: unknown keys are dropped.
+const practiceAttempt = z.unknown().transform((value, ctx): PracticeAttempt => {
+  const parsed = PracticeAttemptSchema.safeParse(value);
+  if (parsed.success) return parsed.data;
+  for (const issue of parsed.error.issues) ctx.addIssue({ code: z.ZodIssueCode.custom, path: issue.path, message: issue.message });
+  return z.NEVER;
+});
+export const practiceRecordAttemptArgs: ArgSchemas<'practice-record-attempt'> = [practiceAttempt];
 
 // ── auth & session ─────────────────────────────────────────────────────────
 const credentials = z
