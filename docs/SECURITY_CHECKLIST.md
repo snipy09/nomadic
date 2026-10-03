@@ -47,7 +47,7 @@ Legend: ✅ fixed and verified · ⚠️ mitigated, follow-up needed · ☐ open
 
 `authenticate_user`, `register_device_session`, `verify_and_update_session`, `sync_pull_user_data`,
 `sync_push_user_profile`, `sync_push_application`, `sync_push_saved_job`, `sync_remove_saved_job`,
-`sync_push_resume`, `sync_delete_resume`, `learning_start_track`, `learning_archive_track`,
+`sync_push_resume`, `sync_delete_resume`, `sync_delete_application` (010), `learning_start_track`, `learning_archive_track`,
 `learning_record_events`, `learning_pull_events`. Any new client RPC must be added to this list in a
 migration; everything else is denied by default.
 
