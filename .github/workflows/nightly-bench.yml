@@ -1,0 +1,65 @@
+name: Nightly benchmarks
+
+# Re-runs the form benchmark (offline fixtures, deterministic mock LLM) and the
+# scraper benchmark (live sources) every night and posts the scores to the run
+# summary. Stub: live-page form runs need approved URLs (REVAMP_PLAN 5) and are
+# not enabled yet.
+
+on:
+  schedule:
+    - cron: '43 21 * * *' # 03:13 IST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  forms:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Form benchmark (new engine, mock LLM)
+        run: npm run bench:forms -- --engine=new --llm=mock --out=nightly
+      - name: Post score
+        if: always()
+        run: |
+          f=packages/form-bench/results/nightly.md
+          if [ -f "$f" ]; then cat "$f" >> "$GITHUB_STEP_SUMMARY"; else echo "form benchmark produced no report" >> "$GITHUB_STEP_SUMMARY"; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: form-bench-${{ github.run_id }}
+          path: packages/form-bench/results/nightly.*
+          if-no-files-found: ignore
+
+  scrapers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Scraper benchmark (no writes)
+        run: npx tsx packages/scrapers/src/cli.ts bench --out scrape-output/baseline.md --json scrape-output/report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: scraper-bench-${{ github.run_id }}
+          path: scrape-output/
+          if-no-files-found: ignore

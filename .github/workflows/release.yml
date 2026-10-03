@@ -1,0 +1,117 @@
+name: Release
+
+# Builds, signs and publishes the Windows desktop app when a tag v*.*.* is pushed
+# (or manually, as a draft). Signing uses electron-builder's standard variables:
+#   secrets.WIN_CSC_LINK          base64 of the .pfx (or an https URL to it)
+#   secrets.WIN_CSC_KEY_PASSWORD  its password
+# The certificate never lives in the repo. Releases fail if signing secrets are missing.
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      draft:
+        description: 'Create the GitHub release as a draft'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+
+  build-windows:
+    needs: checks
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      NODE_ENV: production
+      WIN_SIGN_REQUIRED: '1'
+      WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+      WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+      VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Require signing secrets
+        shell: bash
+        run: |
+          if [ -z "$WIN_CSC_LINK" ] || [ -z "$WIN_CSC_KEY_PASSWORD" ]; then
+            echo "::error::WIN_CSC_LINK and WIN_CSC_KEY_PASSWORD secrets are required for a signed release."
+            exit 1
+          fi
+
+      - name: Check tag matches app version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          v=$(node -p "require('./apps/desktop/package.json').version")
+          if [ "v$v" != "${GITHUB_REF_NAME}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match apps/desktop version v$v"; exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Build and sign
+        working-directory: apps/desktop
+        run: npm run package:win -- --publish never
+
+      - name: Verify Authenticode signatures
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem apps/desktop/dist-electron -Filter *.exe
+          if (-not $files) { throw 'no installers produced' }
+          foreach ($f in $files) {
+            $sig = Get-AuthenticodeSignature $f.FullName
+            if ($sig.Status -ne 'Valid') { throw "$($f.Name): signature $($sig.Status)" }
+            Write-Host "$($f.Name): $($sig.SignerCertificate.Subject)"
+          }
+
+      - name: Checksums
+        shell: pwsh
+        run: |
+          Get-ChildItem apps/desktop/dist-electron -Filter *.exe |
+            Get-FileHash -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } |
+            Set-Content apps/desktop/dist-electron/SHA256SUMS.txt
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: ${{ github.event_name == 'workflow_dispatch' && inputs.draft || false }}
+          generate_release_notes: true
+          files: |
+            apps/desktop/dist-electron/*.exe
+            apps/desktop/dist-electron/*.blockmap
+            apps/desktop/dist-electron/latest.yml
+            apps/desktop/dist-electron/SHA256SUMS.txt
+          fail_on_unmatched_files: false
