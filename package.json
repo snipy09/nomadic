@@ -2,6 +2,7 @@
   "name": "nomadic-monorepo",
   "version": "1.0.6",
   "private": true,
+  "type": "module",
   "description": "Nomadic — Commercial Grade Job Automator: High-Throughput Scrapers, Auto-Apply Engine, 4-Stage Email Verifier, Single-IP Security Desktop App",
   "workspaces": [
     "apps/*",
@@ -34,7 +35,8 @@
     "start:desktop": "npm run start --prefix apps/desktop",
     "dev:web": "npm run dev --workspace @nomadic/web",
     "build:web": "npm run build --workspace @nomadic/web",
-    "preview:web": "npm run preview --workspace @nomadic/web"
+    "preview:web": "npm run preview --workspace @nomadic/web",
+    "sign:win": "node scripts/sign-windows.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

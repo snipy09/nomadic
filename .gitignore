@@ -9,23 +9,32 @@ pnpm-debug.log*
 
 # Build outputs
 dist/
+dist-ssr/
 out/
 build/
 dist-electron/
 .vite/
 *.tsbuildinfo
 
+# Release binaries (publish to GitHub Releases, never commit)
+*.exe
+*.msi
+*.dmg
+*.AppImage
+*.blockmap
+
 # Environment variables & secrets
 .env
-.env.local
-.env.production
-.env.development
+.env.*
+!.env.example
 *.pfx
 *.p12
 *.cer
+*.crt
 *.key
 *.pem
-nomadic-dev.pfx
+*.spc
+*.pvk
 
 # OS files
 .DS_Store
