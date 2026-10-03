@@ -2,5 +2,9 @@
   "name": "@job-automator/scrapers",
   "version": "2.0.1",
   "type": "module",
-  "main": "src/index.ts"
+  "main": "src/index.ts",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.7",
+    "zod": "^4.6.5"
+  }
 }

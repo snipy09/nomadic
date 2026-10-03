@@ -15,7 +15,7 @@ const BROWSER_HEADERS = {
   'Accept-Language': 'en-US,en;q=0.9',
 };
 
-const ERROR_404_SIGNATURES = [
+export const ERROR_404_SIGNATURES = [
   'page not found',
   'job posting you were viewing is no longer active',
   'sorry, we couldn\'t find anything here',

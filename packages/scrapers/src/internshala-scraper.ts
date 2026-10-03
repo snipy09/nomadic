@@ -12,6 +12,8 @@ export interface InternshalaJob extends RawJob {
   salaryPeriod?: 'month' | 'year' | 'lump-sum';
   canonicalUrl?: string;
   createdAt: string;
+  /** Real posting date from the source, when it provides one (createdAt may be a scrape timestamp). */
+  postedAt?: string;
 }
 
 export type ScrapeResultStatus = 'ok' | 'expired' | 'unparsable' | 'failed';
@@ -424,6 +426,7 @@ export async function scrapeJobicy(count: number = 25): Promise<InternshalaJob[]
       workplaceType: 'remote',
       experienceLevel: isIntern ? 'entry' : isSenior ? 'senior' : 'mid',
       createdAt: item.pubDate || new Date(now - (i + 20) * 180000).toISOString(),
+      postedAt: item.pubDate || undefined,
     });
   }
   return jobs;
