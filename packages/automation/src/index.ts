@@ -15,9 +15,15 @@ import {
   matchResumeWithJob,
   generateCoverLetter,
   BUILTIN_GEMINI_KEYS,
+  resolveTargetElementWithTextAI,
   type SemanticElement,
   type AIFormActionPlan,
 } from './groq-ai.ts';
+import { ATS_PORTALS, getATSConfig, type ATSPortal } from './ats-portals.ts';
+import { FormFiller, type CandidateProfile, type FillFormResult } from './form-filler.ts';
+import { ApplicationNavigator, type NavigationResult } from './navigator.ts';
+import { FormSubmitter, type SubmitResult } from './submitter.ts';
+import { AIFallbackSolver } from './ai-fallback.ts';
 import {
   capturePageVisionAndDOM,
   executeNomadicFill,

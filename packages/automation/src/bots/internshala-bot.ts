@@ -131,7 +131,7 @@ export class InternshalaBot {
       for (const at of assessmentTextareas) {
         const val = await at.inputValue().catch(() => '');
         if (!val || val.trim().length === 0) {
-          const questionLabel = await at.evaluate(el => {
+          const questionLabel = await at.evaluate((el: HTMLTextAreaElement) => {
             return (
               el.closest('.form-group, .assessment_question, .question')?.textContent ||
               document.querySelector(`label[for="${el.id}"]`)?.textContent ||

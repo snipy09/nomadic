@@ -22,7 +22,8 @@ import {
   injectStealthScripts,
   humanType,
   humanClick,
-  handleCloudflareTurnstile
+  handleCloudflareTurnstile,
+  randomPause
 } from './stealth-evasion.js';
 import { enableFastRouteInterception } from './fast-route-interceptor.js';
 import { runFastLocalNavMatcher } from './fast-nav-matcher.js';
@@ -30,7 +31,7 @@ import { executeInstantBatchFormFill } from './fast-batch-filler.js';
 import { executeDeterministicFormSolve } from './deterministic-form-solver.js';
 import { getATSConfig, ATSPortal } from './ats-portals.js';
 import { FormFiller, CandidateProfile } from './form-filler.js';
-import { ApplicationNavigator } from './navigator.js';
+import { ApplicationNavigator, type NavigationResult } from './navigator.js';
 import { FormSubmitter } from './submitter.js';
 import { AIFallbackSolver } from './ai-fallback.js';
 import { extractSemanticDOM, type SemanticDOMSnapshot } from './semantic-dom-extractor.js';
@@ -38,30 +39,8 @@ import { generateAIPilotPlan, type AIPilotPlan } from './ai-pilot-engine.js';
 import { dispatchSpecializedPortalBot } from './bots/bot-dispatcher.js';
 import { OmniFormSolver, getOrCreateValidResumePdf } from './omni-form-solver.js';
 
-export interface MasterProfile {
-  firstName: string;
-  lastName: string;
-  fullName?: string;
-  email: string;
-  phone: string;
-  linkedin?: string;
-  github?: string;
-  portfolio?: string;
-  projectsUrl?: string;
-  sponsorship?: string;
-  salary?: string;
-  noticePeriod?: string;
-  groqApiKey?: string;
-  geminiApiKey?: string;
-  summaryText?: string;
-  desiredTitle?: string;
-  techStack?: string;
-  resumeFilePath?: string;
-  resumes?: Array<{ name: string; targetRole: string; filePath: string; isDefault: boolean }>;
-  customAnswers?: Record<string, string>;
-  cachedAnswers?: Record<string, string>;
-  onAnswerResolved?: (question: string, answer: string) => void;
-}
+import type { MasterProfile } from '../../form-engine/src/profile.js';
+export type { MasterProfile, ResumeItem } from '../../form-engine/src/profile.js';
 
 export interface ApplyResult {
   url: string;
@@ -305,10 +284,9 @@ export class AutoApplyEngine {
       return { url: '', success: false, submitted: false, prefilled: false, captchaDetected: false, fieldsFilledCount: 0, error: 'Invalid URL' };
     }
 
-    let page: Page | null = null;
     try {
       const session = await getOrLaunchExternalSession();
-      page = await session.context.newPage();
+      let page: Page = await session.context.newPage();
       await injectStealthScripts(page);
       await enableFastRouteInterception(page);
 
@@ -319,7 +297,7 @@ export class AutoApplyEngine {
           await enableFastRouteInterception(popup);
           await popup.waitForLoadState('domcontentloaded').catch(() => {});
           page = popup;
-          await page?.bringToFront().catch(() => {});
+          await page.bringToFront().catch(() => {});
         } catch {}
       });
 
@@ -652,8 +630,8 @@ export class AutoApplyEngine {
 
         // 9. Navigation Engine Fallback (ApplicationNavigator) — Click Apply / Open Modal / Bind to Tab
         if (totalFieldsFilled === 0) {
-          const nav = new ApplicationNavigator(page, atsConfig);
-          const navResult = await nav.navigateToApplicationForm();
+          const nav: ApplicationNavigator = new ApplicationNavigator(page, atsConfig);
+          const navResult: NavigationResult = await nav.navigateToApplicationForm();
           if (navResult.formPage && navResult.formPage !== page && !navResult.formPage.isClosed()) {
             page = navResult.formPage;
           }
@@ -680,7 +658,7 @@ export class AutoApplyEngine {
           true, // Auto-submit when complete
           (ev) => {
             AutoApplyEngine.emitStatus(page, {
-              phase: ev.phase,
+              phase: AutoApplyEngine.normalizePhase(ev.phase),
               message: ev.message,
               colorState: ev.colorState === 'green' ? 'green' : (ev.colorState === 'red' ? 'red' : 'grey')
             }, onProgress).catch(() => {});
@@ -777,6 +755,63 @@ export class AutoApplyEngine {
   }
 
   // ── Helper Methods ────────────────────────────────────────────────────────
+
+  /** Maps free-form solver phases onto the typed status-event phases. */
+  public static normalizePhase(phase: string): AutoApplyStatusEvent['phase'] {
+    const known: AutoApplyStatusEvent['phase'][] = ['navigating', 'filling', 'answering', 'uploading', 'submitting', 'advancing', 'success', 'user_input_required', 'cancelled'];
+    if ((known as string[]).includes(phase)) return phase as AutoApplyStatusEvent['phase'];
+    if (phase === 'resume') return 'uploading';
+    if (phase === 'confirmed') return 'success';
+    if (phase === 'textareas') return 'answering';
+    return 'filling';
+  }
+
+  /**
+   * Clicks a visible "Next" / "Continue" button on multi-step forms.
+   * Returns true when the stepper advanced.
+   */
+  public static async advanceApplicationStepper(page: Page): Promise<boolean> {
+    try {
+      const btn = await AutoApplyEngine.findNextStepButton(page);
+      if (!btn) return false;
+      await humanClick(page, btn);
+      await page.waitForTimeout(300);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Selects a sensible option for still-unselected native <select> elements.
+   */
+  private static async fillSelectDropdowns(target: Page | Frame, profile: MasterProfile): Promise<number> {
+    try {
+      return await target.evaluate((sponsorship: string) => {
+        let count = 0;
+        const selects = Array.from(document.querySelectorAll<HTMLSelectElement>('select'));
+        for (const sel of selects) {
+          if (sel.disabled || (sel.value && sel.selectedIndex > 0)) continue;
+          const label = (sel.closest('label, .form-group, .field')?.textContent || sel.name || '').toLowerCase();
+          const options = Array.from(sel.options);
+          let idx = -1;
+          if (/sponsor|visa/.test(label)) {
+            idx = options.findIndex(o => (sponsorship.toLowerCase().startsWith('y') ? /^yes/i : /^no/i).test(o.text.trim()));
+          } else if (/gender|race|veteran|disability|ethnic/.test(label)) {
+            idx = options.findIndex(o => /prefer not|decline|not to/i.test(o.text));
+          }
+          if (idx > 0) {
+            sel.selectedIndex = idx;
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
+            count++;
+          }
+        }
+        return count;
+      }, profile.sponsorship || '');
+    } catch {
+      return 0;
+    }
+  }
 
   /**
    * AI Vision & Semantic DOM-Powered Form Filling Engine
@@ -1298,7 +1333,7 @@ export class AutoApplyEngine {
           if (!projVal && profile.github) projVal = profile.github;
           
           if (!projVal && meta.required && 'page' in target) {
-            projVal = await AutoApplyEngine.promptUserForMissingField(target as Page, 'Project Link / Portfolio URL', 'project_url', profile) || '';
+            projVal = await AutoApplyEngine.promptUserForMissingField((target as Frame).page(), 'Project Link / Portfolio URL', 'project_url', profile) || '';
           }
           if (projVal) {
             await humanType(target, input, projVal);
@@ -1313,7 +1348,7 @@ export class AutoApplyEngine {
           if (!portVal && profile.github) portVal = profile.github;
           
           if (!portVal && meta.required && 'page' in target) {
-            portVal = await AutoApplyEngine.promptUserForMissingField(target as Page, 'Portfolio / Website URL', 'portfolio', profile) || '';
+            portVal = await AutoApplyEngine.promptUserForMissingField((target as Frame).page(), 'Portfolio / Website URL', 'portfolio', profile) || '';
           }
           if (portVal) {
             await humanType(target, input, portVal);
