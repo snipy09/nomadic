@@ -9,7 +9,8 @@ if (typeof globalThis.WebSocket === 'undefined') {
   } catch {}
 }
 import { initLocalDatabase } from './db.js';
-import { findChromeExecutable } from '@job-automator/automation';
+import { AutoApplyEngine, findChromeExecutable } from '@job-automator/automation';
+import { createProxyFormAnswerClient } from './services/ai-proxy.js';
 import { registerAllIpc, setIpcSenderGuard } from './ipc/index.js';
 import { getMainWindow, log } from './services/app-context.js';
 import { clearHeartbeat } from './services/session.js';
@@ -75,7 +76,11 @@ if (!gotTheLock) {
       const url = commandLine.find(arg => arg.startsWith('nomadic://'));
       if (url) handleProtocolUrl(url);
     } else {
-      createWindow();
+      // Open-ended form answers go through the Nomadic AI proxy (one batched call per form);
+  // no user API key is read or needed.
+  AutoApplyEngine.llm = createProxyFormAnswerClient();
+
+  createWindow();
     }
   });
 }

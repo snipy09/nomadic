@@ -1,11 +1,13 @@
 /**
  * AI rubric feedback on written answers: the typed client the Practice area
- * talks to. Decision 12/20: the model runs behind a server-side proxy that
- * holds the key and enforces per-user limits. That proxy does not exist yet,
- * so the only client is `unavailableFeedbackClient`; no model is called and
- * no feedback is ever produced locally.
+ * talks to. Decisions 12/20/23: the model runs behind the server-side Nomadic AI
+ * proxy, which holds the key and enforces the plan (`aiFeedback`) and the daily
+ * quota. The renderer asks main over IPC ('ai-rubric-feedback'); main calls the
+ * proxy. No model is ever called from the renderer and no feedback is produced
+ * locally. Every reply is checked again here before it is shown.
  */
-import type { RubricCriterion, RubricFeedback, RubricFeedbackRequest } from '../../../shared/ipc';
+import type { AiErrorCode, AiQuota, RubricCriterion, RubricFeedback, RubricFeedbackRequest } from '../../../shared/ipc';
+import { getApi, type ElectronAPI } from '../../types';
 
 /** The rubric sent with every written answer. Scores are 0-4 per criterion. */
 export const ANSWER_RUBRIC: RubricCriterion[] = [
@@ -34,16 +36,50 @@ export class FeedbackUnavailableError extends Error {
   }
 }
 
-const UNAVAILABLE_REASON = 'AI feedback is not available yet. It needs the Nomadic feedback service, which is still being built.';
+/** A refusal or failure from the AI proxy, with the server's reason code. */
+export class FeedbackRequestError extends Error {
+  constructor(
+    readonly code: AiErrorCode,
+    message: string,
+    readonly quota: AiQuota | null = null
+  ) {
+    super(message);
+    this.name = 'FeedbackRequestError';
+  }
+}
+
+/** Refusals the user can fix by upgrading. */
+export function isUpgradeError(err: unknown): boolean {
+  return err instanceof FeedbackRequestError && (err.code === 'plan_required' || err.code === 'quota_exceeded');
+}
+
+const UNAVAILABLE_REASON = 'AI feedback is not available here. It works in the Nomadic desktop app.';
 
 export const unavailableFeedbackClient: RubricFeedbackClient = {
   availability: () => ({ available: false, reason: UNAVAILABLE_REASON }),
   request: () => Promise.reject(new FeedbackUnavailableError(UNAVAILABLE_REASON)),
 };
 
-/** The client the Practice area uses. Swap in an IPC-backed client once the server proxy exists. */
+const MISQUOTE_MESSAGE = 'The feedback did not match your answer, so it is not shown. Try again.';
+
+/** Client backed by main's 'ai-rubric-feedback' channel. */
+export function ipcFeedbackClient(api: Pick<ElectronAPI, 'aiRubricFeedback'>): RubricFeedbackClient {
+  return {
+    availability: () => ({ available: true }),
+    async request(req) {
+      if (!api.aiRubricFeedback) throw new FeedbackUnavailableError(UNAVAILABLE_REASON);
+      const res = await api.aiRubricFeedback(req);
+      if (!res.success) throw new FeedbackRequestError(res.code, res.error, res.quota ?? null);
+      if (validateRubricFeedback(req.answer, req.rubric, res.feedback).length) throw new FeedbackRequestError('failed', MISQUOTE_MESSAGE);
+      return res.feedback;
+    },
+  };
+}
+
+/** The client the Practice area uses: IPC in the desktop app, unavailable elsewhere. */
 export function getFeedbackClient(): RubricFeedbackClient {
-  return unavailableFeedbackClient;
+  const api = getApi();
+  return typeof api.aiRubricFeedback === 'function' ? ipcFeedbackClient(api) : unavailableFeedbackClient;
 }
 
 /**

@@ -19,6 +19,16 @@ export interface PlanLimits {
   autonomousApply: boolean;
   companyQuestionSets: boolean;
   aiFeedback: boolean;
+  /**
+   * AI rubric feedback requests per day (Asia/Kolkata day); 0 when the plan has no
+   * AI feedback. Enforced by the AI proxy through migration 020 consume_ai_quota.
+   */
+  aiFeedbackPerDay: number;
+  /**
+   * Batched AI form-answer calls per day (one call per form page with open-ended
+   * questions). Enforced by the AI proxy through migration 020 consume_ai_quota.
+   */
+  aiFormCallsPerDay: number;
   resumes: number;
 }
 
@@ -58,6 +68,8 @@ export const PLANS: readonly Plan[] = [
       autonomousApply: false,
       companyQuestionSets: false,
       aiFeedback: false,
+      aiFeedbackPerDay: 0,
+      aiFormCallsPerDay: 10,
       resumes: 1,
     },
   },
@@ -82,6 +94,8 @@ export const PLANS: readonly Plan[] = [
       autonomousApply: false,
       companyQuestionSets: true,
       aiFeedback: true,
+      aiFeedbackPerDay: 30,
+      aiFormCallsPerDay: 40,
       resumes: 5,
     },
   },
@@ -105,6 +119,8 @@ export const PLANS: readonly Plan[] = [
       autonomousApply: true,
       companyQuestionSets: true,
       aiFeedback: true,
+      aiFeedbackPerDay: 100,
+      aiFormCallsPerDay: 300,
       resumes: Infinity,
     },
   },
@@ -148,6 +164,22 @@ export function planLimitsSqlRows(): string[] {
   return PLANS.map((p, i) => {
     const l = p.limits;
     const row = `('${p.id}', ${n(l.appliesPerDay)}, ${n(l.feedJobs)}, ${n(l.learnTracks)}, ${n(l.practicePerDay)}, ${l.autonomousApply ? 'TRUE' : 'FALSE'}, ${n(l.resumes)})`;
+    return i < PLANS.length - 1 ? `${row},` : row;
+  });
+}
+
+/**
+ * The rows of `public.ai_limits()` in migration 020, rendered from PLANS.
+ * Column order: (plan, ai_feedback, ai_feedback_per_day, ai_form_calls_per_day).
+ * AI limits are always finite (every call costs the operator money).
+ */
+export function aiLimitsSqlRows(): string[] {
+  return PLANS.map((p, i) => {
+    const l = p.limits;
+    if (!Number.isFinite(l.aiFeedbackPerDay) || !Number.isFinite(l.aiFormCallsPerDay)) {
+      throw new Error(`AI limits must be finite (plan ${p.id})`);
+    }
+    const row = `('${p.id}', ${l.aiFeedback ? 'TRUE' : 'FALSE'}, ${l.aiFeedbackPerDay}, ${l.aiFormCallsPerDay})`;
     return i < PLANS.length - 1 ? `${row},` : row;
   });
 }

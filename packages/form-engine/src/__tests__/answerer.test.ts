@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { MemoryAnswerCache, ProfileAnswerer, questionFingerprint, splitPhone } from '../answerer.js';
 import { RuleClassifier } from '../classifier.js';
 import type { Answer, FormField } from '../contracts.js';
-import type { LlmClient } from '../llm.js';
+import type { FormAnswerClient, FormAnswerRequest, LlmClient } from '../llm.js';
 import { pickOption } from '../options.js';
 import { DEFAULT_POLICY } from '../policy.js';
 import { sampleProfile } from './helpers.js';
@@ -111,6 +111,36 @@ describe('ProfileAnswerer', () => {
     const [system, user] = (llm.completeJson as any).mock.calls[0];
     expect(system).toMatch(/Never invent/);
     expect(user).not.toMatch(/groq|gemini/i);
+  });
+
+  it('sends one structured request (facts + questions, no prompt) to a FormAnswerClient and never fills unasked or missing answers', async () => {
+    const answerForm = vi.fn(async (req: FormAnswerRequest) => ({ [req.questions[0].id]: 'Because of the team.', [req.questions[1].id]: null, extra: 'not asked' }));
+    const llm: FormAnswerClient = { answerForm };
+    const fields = [
+      mk('Why do you want to work here?', { kind: 'textarea', required: true }),
+      mk('Anything about your hobbies?', { kind: 'textarea', required: true }),
+      mk('Describe a hard bug you fixed.', { kind: 'textarea' }),
+    ];
+    const profile = { ...sampleProfile(), groqApiKey: 'gsk_should_not_be_sent' };
+    const { answers, llmCalls } = await answerAll(fields, profile, { llm });
+    expect(llmCalls).toBe(1);
+    expect(answerForm).toHaveBeenCalledTimes(1);
+    const req = answerForm.mock.calls[0][0];
+    expect(req.questions.map((q) => q.id)).toEqual(fields.map((f) => f.id));
+    expect(req.questions[0]).toMatchObject({ type: 'open_ended', max_chars: 700 });
+    expect(JSON.stringify(req)).not.toMatch(/gsk_|groq|gemini|email|phone/i);
+    expect(byId(answers, 'Why do you want to work here?')).toMatchObject({ status: 'answered', source: 'llm', value: 'Because of the team.' });
+    expect(byId(answers, 'Anything about your hobbies?').status).toBe('needs_user');
+    expect(byId(answers, 'Describe a hard bug you fixed.').status).toBe('skip');
+    expect(answers.some((a) => a.fieldId === 'extra')).toBe(false);
+  });
+
+  it('treats a failed FormAnswerClient call as unknown (needs_user), never a made-up answer', async () => {
+    const llm: FormAnswerClient = { answerForm: vi.fn(async () => null) };
+    const { answers } = await answerAll([mk('Why us?', { kind: 'textarea', required: true })], sampleProfile(), { llm });
+    expect(answers[0].status).toBe('needs_user');
+    const throwing: FormAnswerClient = { answerForm: vi.fn(async () => { throw new Error('offline'); }) };
+    expect((await answerAll([mk('Why us?', { kind: 'textarea', required: true })], sampleProfile(), { llm: throwing })).answers[0].status).toBe('needs_user');
   });
 
   it('uses the profile cover letter without calling the model, and needs_user without an LLM', async () => {

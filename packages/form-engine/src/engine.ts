@@ -19,7 +19,7 @@ import { defaultWriters } from './writers/index.js';
 import { DomVerifier, pageErrors } from './verifier.js';
 import { detectWalls } from './walls.js';
 import { DEFAULT_POLICY, type FormPolicy } from './policy.js';
-import type { LlmClient } from './llm.js';
+import type { AnswerLlm } from './llm.js';
 import { prepareFrame, sleep } from './dom.js';
 
 export interface FormEngineOptions {
@@ -29,8 +29,8 @@ export interface FormEngineOptions {
   writers?: Map<FieldKind, FieldWriter>;
   verifier?: Verifier;
   policy?: FormPolicy;
-  /** LLM for open-ended questions; undefined = Groq when profile.groqApiKey is set; null = disabled. */
-  llm?: LlmClient | null;
+  /** LLM for open-ended questions (LlmClient or FormAnswerClient); undefined = Groq when profile.groqApiKey is set; null = disabled. */
+  llm?: AnswerLlm | null;
   cache?: AnswerCache;
   onEvent?: FormEngineListener;
   /** Retries for fields that fail verification (default 2). */

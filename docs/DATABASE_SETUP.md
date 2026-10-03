@@ -137,6 +137,37 @@ offers it after sign-up and shows a reminder in Settings > Account. A completed 
 verified.
 
 
+## 9. AI proxy (DECISIONS #12, #20, #23)
+Apply `020_ai_usage.sql` (`migrate.sh`), then deploy the Edge Function **with JWT verification on** (the default; do not
+pass `--no-verify-jwt`):
+```
+supabase functions deploy ai-proxy --project-ref grqkiddfwoyicktpgdea
+```
+The key is read from Vault (`gemini_api_key`, already stored) through `server_secret` with the function's service-role
+client; `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are provided by Supabase. Optional function secrets:
+
+| Secret | Default | Meaning |
+|---|---|---|
+| `AI_PROVIDER` | `gemini` | `groq` is a stub until it is implemented and benchmarked |
+| `AI_MODEL` | `gemini-2.5-flash` | any Gemini model id the key can use (e.g. `gemini-2.5-flash-lite`) |
+| `AI_TIMEOUT_MS` | `25000` | per model attempt; one retry on timeouts, 429/5xx and invalid output |
+
+The desktop calls `{SUPABASE_URL}/functions/v1/ai-proxy` with the anon key as bearer. If the project switches to the new
+non-JWT publishable keys, the gateway's JWT check would reject them: keep a legacy anon JWT for this call or move the
+check into the function. A rejected Google key shows in the function logs as `"code":"auth"` with Google's reason
+(e.g. `API_KEY_INVALID`) and `key_kind` (`AQ`/`AIza`), never the key; users see "Nomadic AI is not available right now".
+
+Daily limits (Asia/Kolkata day) live in `packages/config/src/plans.ts` (`aiFeedbackPerDay`, `aiFormCallsPerDay`);
+`ai_limits()` rows are parity-tested by `packages/supabase/src/__tests__/ai-limits-parity.test.ts`.
+
+`020` was rehearsed on PostgreSQL 16.4 (PGlite, Supabase roles from the shim, Vault and pgcrypto stubbed) on top of the
+baseline + 012, 017, 018: it applies and re-applies cleanly; as `anon`/`authenticated` the AI functions, `server_secret`
+and `usage_counters` are denied; as `service_role` a real device session (sign-up, sign-in, ticket, device) gets: bad
+token / wrong device / inactive session refused, unknown kind refused, Free refused AI feedback (`plan_required`), Free
+form calls counted to 10 then `quota_exceeded` with nothing counted, refund gives one back and never goes below zero,
+Pro feedback limit 30 then refused, expired Pro falls back to Free, Max limits, suspended refused, apply counts in
+`get_entitlements` unaffected, and unknown metrics rejected by the check constraint.
+
 ## Live status (2026-10-03)
 - Migrations 001–012, 014–018, 021 applied. Edge Functions `google-sign-in` and `send-email-code` deployed (v1, JWT verification on). **019 must be pasted by the owner** (`baseline/apply_019.sql`; contains DELETEs that the MCP connector cannot confirm).
 - Vault: `resend_api_key`, `gemini_api_key` set. Still needed: `google_oauth_client_id` (owner), `email_from` once a sending domain is verified.

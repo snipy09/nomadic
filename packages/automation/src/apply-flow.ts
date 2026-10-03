@@ -99,6 +99,7 @@ export async function runFormEngineApply(
 
     await status({ phase: 'filling', message: `Filling application (${adapter.id})...`, colorState: 'grey' });
     const engine = new FormEngine({
+      llm: Engine.llm,
       onEvent: (ev) => {
         Engine.formEvents.emit('event', { url, event: ev } satisfies AutoApplyFormEvent);
         if (ev.type !== 'status' || ev.phase === 'done') onProgress?.(toStatusEvent(ev));

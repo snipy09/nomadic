@@ -12,7 +12,8 @@ describe('Electron hardening', () => {
     expect(csp).toContain("script-src 'self';");
     expect(csp).not.toContain('unsafe-eval');
     expect(csp).toContain('https://*.supabase.co');
-    expect(csp).toContain('https://api.groq.com');
+    expect(csp).not.toContain('api.groq.com');
+    expect(csp).not.toContain('generativelanguage.googleapis.com');
     expect(csp).toContain('frame-src https://www.youtube.com');
     expect(csp).toContain("object-src 'none'");
   });

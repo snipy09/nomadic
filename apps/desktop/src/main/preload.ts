@@ -44,7 +44,6 @@ const apiObj: NomadicApi = {
   removeSavedJob: (applyUrl) => invoke('remove-saved-job', applyUrl),
   checkDependencies: () => invoke('check-dependencies'),
   installDependencies: () => invoke('install-dependencies'),
-  testGroqKey: (key) => invoke('test-groq-key', key),
   startHeartbeat: (userId, sessionToken, deviceFingerprint) =>
     invoke('start-heartbeat', { userId, sessionToken, deviceFingerprint }),
   stopHeartbeat: () => invoke('stop-heartbeat'),
@@ -85,6 +84,7 @@ const apiObj: NomadicApi = {
   practiceGetCatalog: () => invoke('practice-get-catalog'),
   practiceGetState: () => invoke('practice-get-state'),
   practiceRecordAttempt: (attempt) => invoke('practice-record-attempt', attempt),
+  aiRubricFeedback: (req) => invoke('ai-rubric-feedback', req),
 
   // Admin (F12): every call is re-authorized server side (session + admin role)
   adminListUsers: (query) => invoke('admin-list-users', query),

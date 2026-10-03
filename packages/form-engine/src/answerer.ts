@@ -15,8 +15,8 @@ import type { MasterProfile } from './profile.js';
 import { profileFullName, profileRequiresSponsorship } from './profile.js';
 import { DEFAULT_POLICY, POLICY_OPTION_PATTERNS, type FormPolicy } from './policy.js';
 import { yesNo, type OptionQuery } from './options.js';
-import type { LlmClient } from './llm.js';
-import { GroqClient } from './llm.js';
+import type { AnswerLlm, FormAnswerRequest } from './llm.js';
+import { GroqClient, isFormAnswerClient } from './llm.js';
 import { ensureResumeFile } from './resume-pdf.js';
 import { norm } from './dom.js';
 
@@ -33,8 +33,11 @@ export class MemoryAnswerCache implements AnswerCache {
 
 export interface AnswererOptions {
   policy?: FormPolicy;
-  /** LLM client; defaults to Groq with profile.groqApiKey when present. `null` disables the LLM. */
-  llm?: LlmClient | null;
+  /**
+   * LLM client (prompt-level LlmClient, or a FormAnswerClient such as the Nomadic AI proxy);
+   * defaults to Groq with profile.groqApiKey when present. `null` disables the LLM.
+   */
+  llm?: AnswerLlm | null;
   cache?: AnswerCache;
   /** Directory for generated resume PDFs (tests). */
   resumeDir?: string;
@@ -270,15 +273,49 @@ export class ProfileAnswerer implements Answerer {
     }
   }
 
-  private async batch(llm: LlmClient, queue: Array<{ field: FormField; kind: string }>, p: MasterProfile, ctx: AnswerContext): Promise<Record<string, string | null>> {
+  /** The facts and questions for one batched call. Only these profile facts leave the device. */
+  static formAnswerRequest(queue: Array<{ field: FormField; kind: string }>, p: MasterProfile, ctx: AnswerContext): FormAnswerRequest {
+    const s = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : undefined);
+    const candidate = {
+      name: s(profileFullName(p)),
+      current_title: s(p.currentTitle), current_company: s(p.currentCompany), desired_title: s(p.desiredTitle),
+      years_of_experience: typeof p.yearsOfExperience === 'number' ? p.yearsOfExperience : undefined,
+      skills: s(p.techStack), summary: s(p.summaryText)?.slice(0, 4000),
+      education: s([p.degree, p.fieldOfStudy, p.university, p.graduationYear].filter(Boolean).join(', ')),
+      location: s(p.location),
+    };
+    for (const k of Object.keys(candidate) as Array<keyof typeof candidate>) if (candidate[k] === undefined) delete candidate[k];
+    return {
+      candidate,
+      job: { title: s(ctx.jobTitle)?.slice(0, 300), company: s(ctx.company)?.slice(0, 300), description: s(ctx.jobDescription)?.slice(0, 2000) },
+      questions: queue.map((q) => ({
+        id: q.field.id,
+        question: q.field.label.slice(0, 1000),
+        type: q.kind === 'cover_letter' ? 'cover_letter' as const : 'open_ended' as const,
+        max_chars: q.kind === 'cover_letter' ? 1200 : 700,
+      })),
+    };
+  }
+
+  private async batch(llm: AnswerLlm, queue: Array<{ field: FormField; kind: string }>, p: MasterProfile, ctx: AnswerContext): Promise<Record<string, string | null>> {
+    const req = ProfileAnswerer.formAnswerRequest(queue, p, ctx);
+    const out: Record<string, string | null> = {};
+    if (isFormAnswerClient(llm)) {
+      const res = await llm.answerForm(req).catch(() => null);
+      for (const q of queue) {
+        const v = res?.[q.field.id];
+        out[q.field.id] = typeof v === 'string' ? v : null;
+      }
+      return out;
+    }
     const facts = {
-      name: profileFullName(p),
+      name: req.candidate.name,
       currentTitle: p.currentTitle, currentCompany: p.currentCompany, desiredTitle: p.desiredTitle,
       yearsOfExperience: p.yearsOfExperience, skills: p.techStack, summary: p.summaryText,
-      education: [p.degree, p.fieldOfStudy, p.university, p.graduationYear].filter(Boolean).join(', ') || undefined,
+      education: req.candidate.education,
       location: p.location,
     };
-    const questions = queue.map((q) => ({ id: q.field.id, question: q.field.label, type: q.kind, maxChars: q.kind === 'cover_letter' ? 1200 : 700 }));
+    const questions = req.questions.map((q) => ({ id: q.id, question: q.question, type: q.type, maxChars: q.max_chars }));
     const system = [
       'You write job-application answers on behalf of a candidate, in first person.',
       'Use ONLY the facts in CANDIDATE. Never invent employers, dates, numbers, degrees, projects or skills.',
@@ -287,7 +324,6 @@ export class ProfileAnswerer implements Answerer {
     ].join(' ');
     const user = JSON.stringify({ CANDIDATE: facts, JOB: { title: ctx.jobTitle, company: ctx.company, description: ctx.jobDescription?.slice(0, 2000) }, QUESTIONS: questions });
     const res = (await llm.completeJson(system, user)) as { answers?: Record<string, unknown> } | null;
-    const out: Record<string, string | null> = {};
     const answers = res && typeof res === 'object' && res.answers && typeof res.answers === 'object' ? res.answers : {};
     for (const q of queue) {
       const v = (answers as Record<string, unknown>)[q.field.id];

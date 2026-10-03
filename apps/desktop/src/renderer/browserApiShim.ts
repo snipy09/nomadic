@@ -358,11 +358,6 @@ export function createBrowserApiShim(): ElectronAPI {
       return { success: true };
     },
 
-    testGroqKey: async (key: string) => {
-      emitLog('[AI Engine] Groq API connectivity verified (142ms).');
-      return { success: true };
-    },
-
     onLog: (callback: (msg: string) => void) => {
       logCallbacks.push(callback);
       return () => {
@@ -609,6 +604,7 @@ export function createBrowserApiShim(): ElectronAPI {
     practiceGetCatalog: async () => ({ success: false as const, error: 'Practice question sets load in the desktop app.' }),
     practiceGetState: async () => ({ success: true as const, state: { attempts: [], usedToday: null, signedIn: false } }),
     practiceRecordAttempt: async () => ({ success: false as const, code: 'not_signed_in' as const, error: 'Sign in in the desktop app to save practice attempts.' }),
+    aiRubricFeedback: async () => ({ success: false as const, code: 'unavailable' as const, error: 'AI feedback works in the desktop app.' }),
 
     authSignup: async (cred: any) => {
       const email = String(cred.email || 'user@nomadic.app').trim().toLowerCase();

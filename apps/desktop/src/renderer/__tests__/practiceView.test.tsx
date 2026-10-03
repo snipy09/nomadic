@@ -100,15 +100,76 @@ describe('PracticeView', () => {
     expect(api.practiceRecordAttempt.mock.calls[0][0]).toMatchObject({ entry_id: 'sql-q1', grading: 'quiz', outcome: 'unsolved', score: 0 });
   });
 
-  it('shows AI feedback as unavailable and never fakes it', async () => {
+  it('shows AI feedback as unavailable outside the desktop app and never fakes it', async () => {
     const api = mockApi();
     renderView({ tier: 'pro' });
     await userEvent.click(await screen.findByRole('button', { name: /explain the virtual dom/i }));
     const dialog = await screen.findByRole('dialog');
     await userEvent.type(within(dialog).getByLabelText(/your answer/i), 'It diffs a tree.');
-    expect(within(dialog).getByText('Not available yet')).toBeTruthy();
+    expect(within(dialog).getByText('Not available')).toBeTruthy();
     expect((within(dialog).getByRole('button', { name: 'Get AI feedback' }) as HTMLButtonElement).disabled).toBe(true);
     expect(Object.keys(api).some((k) => /feedback|evaluate/i.test(k))).toBe(false);
+  });
+
+  const feedbackFor = (quote: string) => ({
+    success: true,
+    quota: { plan: 'pro', limit: 30, used: 1, remaining: 29, resetsAt: null },
+    feedback: {
+      summary: 'A good start; add trade-offs.',
+      items: ['correctness', 'structure', 'depth', 'communication'].map((id, i) => ({ criterionId: id, score: i, quote: id === 'correctness' ? quote : '', comment: `Comment ${id}` })),
+    },
+  });
+
+  async function askFeedback(api: ReturnType<typeof mockApi>, onOpenUpgrade = vi.fn()) {
+    renderView({ tier: 'pro' }, onOpenUpgrade);
+    await userEvent.click(await screen.findByRole('button', { name: /explain the virtual dom/i }));
+    const dialog = await screen.findByRole('dialog');
+    const button = within(dialog).getByRole('button', { name: 'Get AI feedback' }) as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    await userEvent.type(within(dialog).getByLabelText(/your answer/i), 'It diffs a  virtual tree and patches the real DOM.');
+    await userEvent.click(button);
+    return { dialog, api };
+  }
+
+  it('requests rubric feedback through the main process and shows scores with verbatim quotes', async () => {
+    const aiRubricFeedback = vi.fn().mockResolvedValue(feedbackFor('diffs a virtual tree'));
+    const { dialog } = await askFeedback(mockApi({ aiRubricFeedback }));
+    expect(await within(dialog).findByText('“diffs a virtual tree”')).toBeTruthy();
+    expect(within(dialog).getByText('A good start; add trade-offs.')).toBeTruthy();
+    expect(within(dialog).getByText('3/4')).toBeTruthy();
+    expect(aiRubricFeedback).toHaveBeenCalledWith(expect.objectContaining({
+      entryId: 'roleq:virtual-dom',
+      question: 'Explain the virtual DOM',
+      answer: 'It diffs a  virtual tree and patches the real DOM.',
+      rubric: expect.arrayContaining([expect.objectContaining({ id: 'correctness' })]),
+    }));
+  });
+
+  it('does not show feedback whose quote is not in the answer', async () => {
+    const api = mockApi({ aiRubricFeedback: vi.fn().mockResolvedValue(feedbackFor('uses a shadow DOM')) });
+    const { dialog } = await askFeedback(api);
+    expect(await within(dialog).findByText(/did not match your answer/i)).toBeTruthy();
+    expect(within(dialog).queryByText('A good start; add trade-offs.')).toBeNull();
+  });
+
+  it.each([
+    ['plan_required', 'AI feedback is part of the Pro and Max plans.'],
+    ['quota_exceeded', "You have used today's 30 AI feedback requests."],
+  ])('shows the %s refusal with an upgrade action', async (code, error) => {
+    const onOpenUpgrade = vi.fn();
+    const api = mockApi({ aiRubricFeedback: vi.fn().mockResolvedValue({ success: false, code, error }) });
+    const { dialog } = await askFeedback(api, onOpenUpgrade);
+    expect(await within(dialog).findByText(error)).toBeTruthy();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Upgrade' }));
+    expect(onOpenUpgrade).toHaveBeenCalled();
+  });
+
+  it('offers no upgrade for a network failure', async () => {
+    const api = mockApi({ aiRubricFeedback: vi.fn().mockResolvedValue({ success: false, code: 'network', error: 'Could not reach Nomadic AI.' }) });
+    const { dialog } = await askFeedback(api);
+    expect(await within(dialog).findByText('Could not reach Nomadic AI.')).toBeTruthy();
+    expect(within(dialog).queryByRole('button', { name: 'Upgrade' })).toBeNull();
+    expect((within(dialog).getByRole('button', { name: 'Get AI feedback' }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it('stops grading once the server reports the daily limit', async () => {

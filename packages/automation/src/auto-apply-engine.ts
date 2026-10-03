@@ -6,7 +6,7 @@ import { EventEmitter } from 'events';
 import { injectStealthScripts, handleCloudflareTurnstile } from './stealth-evasion.js';
 import { adapterFor, runPortalAdapter, type PortalId } from './bots/portal-adapter.js';
 import { runFormEngineApply, submitReviewedApplication, toStatusEvent } from './apply-flow.js';
-import { FormEngine, type FillReport, type FormEngineEvent } from '../../form-engine/src/index.js';
+import { FormEngine, type AnswerLlm, type FillReport, type FormEngineEvent } from '../../form-engine/src/index.js';
 import type { MasterProfile } from '../../form-engine/src/profile.js';
 export type { MasterProfile, ResumeItem } from '../../form-engine/src/profile.js';
 
@@ -194,6 +194,13 @@ async function getOrLaunchExternalSession(): Promise<ExternalBrowserSession> {
 
 export class AutoApplyEngine {
   /**
+   * LLM for open-ended form questions, used by every FormEngine this class creates.
+   * The desktop sets it to the Nomadic AI proxy client; `undefined` keeps the form-engine
+   * default (Groq with profile.groqApiKey), `null` disables the model.
+   */
+  public static llm: AnswerLlm | null | undefined = undefined;
+
+  /**
    * Alias for backward compatibility.
    */
   public static async prefillParallelTabs(
@@ -230,7 +237,7 @@ export class AutoApplyEngine {
           await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
           await page.bringToFront().catch(() => {});
           await handleCloudflareTurnstile(page);
-          const engine = new FormEngine({ onEvent: (ev) => AutoApplyEngine.formEvents.emit('event', { url, event: ev } satisfies AutoApplyFormEvent) });
+          const engine = new FormEngine({ llm: AutoApplyEngine.llm, onEvent: (ev) => AutoApplyEngine.formEvents.emit('event', { url, event: ev } satisfies AutoApplyFormEvent) });
           const { report } = await runPortalAdapter(page, profile, adapterFor(page.url()), { engine, ctx: { jobTitle: profile.desiredTitle } });
           const pending = report.unresolvedRequired.length;
           await AutoApplyEngine.injectOverlay(
