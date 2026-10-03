@@ -96,3 +96,33 @@ export type {
   SemanticElement,
   AIFormActionPlan,
 };
+
+// ── Form engine (Phase 1) ──────────────────────────────────────────────────
+export type {
+  AutoApplyStatusEvent,
+  AutoApplyFormEvent,
+  ProgressCallback,
+  SubmitApplicationOptions,
+} from './auto-apply-engine.ts';
+export {
+  adapterFor,
+  adapterById,
+  runPortalAdapter,
+  applyWithAdapter,
+  formEngineMode,
+  PORTAL_ADAPTERS,
+  type PortalAdapter,
+  type BotApplyOptions,
+  type SpecializedBotResult,
+} from './bots/portal-adapter.ts';
+export {
+  FormEngine,
+  MasterProfileSchema,
+  validateProfile,
+  parseProfile,
+  DEFAULT_POLICY,
+  type FillReport,
+  type FormEngineEvent,
+  type FormField,
+  type FormPolicy,
+} from '../../form-engine/src/index.ts';

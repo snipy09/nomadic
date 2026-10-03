@@ -296,9 +296,12 @@ function scanFrame(opts: { includeHidden: boolean }): RawField[] {
         const group = options.map((o) => root.querySelector(o.selector!) as HTMLInputElement | null);
         currentValue = multiple ? group.map((g, i) => (g?.checked ? options![i].label : '')).filter(Boolean).join('|') : String(!!group[0]?.checked);
       } else if (kind === 'combobox' && tag === 'INPUT') {
-        const shell = el.closest('.select-shell, [class*="select__container"], [class*="-container"]');
-        const sv = shell?.querySelector('[class*="single-value"], [class*="singleValue"]');
-        if (sv && clean(sv.textContent)) currentValue = clean(sv.textContent);
+        let shell: Element | null = el;
+        for (let i = 0; i < 5 && shell; i++) {
+          shell = shell.parentElement;
+          const sv = shell?.querySelector('[class*="single-value"], [class*="singleValue"]');
+          if (sv) { if (clean(sv.textContent)) currentValue = clean(sv.textContent); break; }
+        }
       }
       out.push({
         kind,

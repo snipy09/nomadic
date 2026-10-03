@@ -6,6 +6,17 @@ import { GreenhouseBot } from './greenhouse-bot.js';
 import { AshbyBot } from './ashby-bot.js';
 
 export {
+  adapterFor,
+  adapterById,
+  runPortalAdapter,
+  applyWithAdapter,
+  formEngineMode,
+  PORTAL_ADAPTERS,
+  type PortalAdapter,
+  type BotApplyOptions,
+} from './portal-adapter.js';
+
+export {
   InternshalaBot,
   LeverBot,
   GreenhouseBot,

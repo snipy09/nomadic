@@ -1,8 +1,14 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import { dispatchSpecializedPortalBot } from '../bots/bot-dispatcher.js';
 import type { MasterProfile } from '../auto-apply-engine.js';
 
-describe('Specialized Portal Bot Dispatcher', () => {
+// These tests exercise the legacy bots (NOMADIC_FORM_ENGINE=old) against mocked pages.
+// The FormEngine adapters are covered by portal-adapters.test.ts against real DOM.
+describe('Specialized Portal Bot Dispatcher (legacy engine)', () => {
+  const prev = process.env.NOMADIC_FORM_ENGINE;
+  beforeAll(() => { process.env.NOMADIC_FORM_ENGINE = 'old'; });
+  afterAll(() => { if (prev === undefined) delete process.env.NOMADIC_FORM_ENGINE; else process.env.NOMADIC_FORM_ENGINE = prev; });
+
   const profile: MasterProfile = {
     firstName: 'Sajal',
     lastName: 'Mishra',

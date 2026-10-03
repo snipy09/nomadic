@@ -172,7 +172,7 @@
       single.style.display = state[key] ? '' : 'none';
       placeholder.style.display = state[key] ? 'none' : '';
       if (hidden) hidden.value = state[key];
-      if (state[key]) clearError(container);
+      clearError(container);
     }
     control.addEventListener('mousedown', function (e) {
       if (e.target !== input) e.preventDefault();
@@ -346,6 +346,8 @@
     if (inv) inv.removeAttribute('aria-invalid');
   }
   function isEmpty(el) {
+    var rs = el.closest && el.closest('[data-rselect]');
+    if (rs) return !state[rs.getAttribute('data-rselect')];
     if (el.type === 'checkbox' || el.type === 'radio') {
       var group = el.name ? el.form ? el.form.querySelectorAll('input[name="' + el.name + '"]') : document.querySelectorAll('input[name="' + el.name + '"]') : [el];
       return !Array.prototype.some.call(group, function (g) { return g.checked; });

@@ -260,9 +260,20 @@ async function clickButtonMatching(page: Page, rx: RegExp, preferSubmitType: boo
       const vis = (el: Element) => { const r = (el as HTMLElement).getBoundingClientRect(); return r.width > 0 && r.height > 0 && !(el as HTMLButtonElement).disabled; };
       const cands = Array.from(document.querySelectorAll('button, input[type="submit"], input[type="button"], a[role="button"]')).filter(vis);
       const text = (el: Element) => ((el as HTMLInputElement).value && el.tagName === 'INPUT' ? (el as HTMLInputElement).value : el.textContent || '').replace(/\s+/g, ' ').trim();
-      let el = cands.find((c) => re.test(text(c)));
-      if (!el && preferSubmit) el = cands.find((c) => (c as HTMLButtonElement).type === 'submit' && !/next|continue/i.test(text(c)));
-      return el || null;
+      // Score candidates: a matching button inside a form that holds inputs beats an
+      // "Apply now" call-to-action elsewhere on the page.
+      const score = (c: Element): number => {
+        const t = text(c);
+        if (/next|continue|back|cancel|save draft/i.test(t) && preferSubmit) return -1;
+        let s = 0;
+        if (re.test(t)) s += /submit|send|complete/i.test(t) || !preferSubmit ? 4 : 2;
+        const form = c.closest('form');
+        if (form && form.querySelector('input:not([type="hidden"]), textarea, select')) s += 2;
+        if ((c as HTMLButtonElement).type === 'submit' && preferSubmit) s += 1;
+        return s;
+      };
+      const ranked = cands.map((c) => ({ c, s: score(c) })).filter((x) => x.s >= (preferSubmit ? 3 : 4)).sort((a, b) => b.s - a.s);
+      return ranked[0]?.c || null;
     }, { src: rx.source, preferSubmit: preferSubmitType }).catch(() => null);
     const el = handle?.asElement();
     if (el) {

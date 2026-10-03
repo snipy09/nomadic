@@ -37,6 +37,10 @@ import { AIFallbackSolver } from './ai-fallback.js';
 import { extractSemanticDOM, type SemanticDOMSnapshot } from './semantic-dom-extractor.js';
 import { generateAIPilotPlan, type AIPilotPlan } from './ai-pilot-engine.js';
 import { dispatchSpecializedPortalBot } from './bots/bot-dispatcher.js';
+import { adapterFor, formEngineMode, runPortalAdapter, type PortalId } from './bots/portal-adapter.js';
+import { runFormEngineApply, toStatusEvent } from './apply-flow.js';
+import { EventEmitter } from 'events';
+import { FormEngine, type FillReport, type FormEngineEvent } from '../../form-engine/src/index.js';
 import { OmniFormSolver, getOrCreateValidResumePdf } from './omni-form-solver.js';
 
 import type { MasterProfile } from '../../form-engine/src/profile.js';
@@ -51,6 +55,22 @@ export interface ApplyResult {
   requiresLogin?: boolean;
   fieldsFilledCount?: number;
   error?: string;
+  /** New engine: fields that need the candidate (label + reason). */
+  needsUser?: Array<{ label: string; reason: string; required: boolean }>;
+  /** New engine: full fill report. */
+  report?: FillReport;
+}
+
+export interface SubmitApplicationOptions {
+  /**
+   * Submit automatically when the engine reports every required field resolved
+   * (default true, the previous behaviour). When false the form is left filled for review.
+   */
+  autoSubmit?: boolean;
+  jobTitle?: string;
+  company?: string;
+  /** Force a portal adapter instead of detecting it from the URL. */
+  portal?: PortalId;
 }
 
 export interface AutoApplyStatusEvent {
@@ -59,6 +79,16 @@ export interface AutoApplyStatusEvent {
   colorState: 'grey' | 'green' | 'red';
   progress?: number;
   actionRequired?: string;
+  /** Structured FormEngine event behind this status (new engine only). See packages/form-engine/README.md. */
+  formEvent?: FormEngineEvent;
+  /** Final fill report, attached to the closing event of a run (new engine only). */
+  report?: FillReport;
+}
+
+/** Payload of `AutoApplyEngine.formEvents` ('event'). */
+export interface AutoApplyFormEvent {
+  url: string;
+  event: FormEngineEvent;
 }
 
 export type ProgressCallback = (event: AutoApplyStatusEvent | string) => void;
@@ -232,6 +262,45 @@ export class AutoApplyEngine {
     onProgress?: (msg: string) => void,
     limit: number = 3
   ): Promise<void> {
+    if (formEngineMode() === 'old') return AutoApplyEngine.runAutonomousApplyLegacy(jobUrls, profile, onProgress, limit);
+    const progressCallback = typeof onProgress === 'function' ? onProgress : () => {};
+    const session = await getOrLaunchExternalSession();
+    const worker = async (workerId: number) => {
+      while (jobUrls.length > 0) {
+        const url = jobUrls.shift();
+        if (!url) break;
+        try {
+          const page = await session.context.newPage();
+          await injectStealthScripts(page);
+          progressCallback(`[Worker ${workerId}] Opening: ${url}`);
+          await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+          await page.bringToFront().catch(() => {});
+          await handleCloudflareTurnstile(page);
+          const engine = new FormEngine({ onEvent: (ev) => AutoApplyEngine.formEvents.emit('event', { url, event: ev } satisfies AutoApplyFormEvent) });
+          const { report } = await runPortalAdapter(page, profile, adapterFor(page.url()), { engine, ctx: { jobTitle: profile.desiredTitle } });
+          const pending = report.unresolvedRequired.length;
+          await AutoApplyEngine.injectOverlay(
+            page,
+            pending ? `Nomadic: ${report.filled} filled, ${pending} need you` : `Auto-filled ${report.filled} fields. Ready for review and submit`,
+            pending || report.walls.length ? '#f59e0b' : '#22c55e'
+          );
+          progressCallback(`[Ready for Review] ${url} (${report.filled} fields filled, ${pending} need input)`);
+        } catch (err: any) {
+          progressCallback(`[Notice] ${url}: ${err?.message}`);
+        }
+      }
+    };
+    const workerCount = Math.min(limit, jobUrls.length);
+    await Promise.all(Array.from({ length: workerCount }, (_, i) => worker(i + 1)));
+  }
+
+  /** @deprecated legacy review-mode prefill (NOMADIC_FORM_ENGINE=old). */
+  public static async runAutonomousApplyLegacy(
+    jobUrls: string[],
+    profile: MasterProfile,
+    onProgress?: (msg: string) => void,
+    limit: number = 3
+  ): Promise<void> {
     const progressCallback = typeof onProgress === 'function' ? onProgress : () => {};
     const session = await getOrLaunchExternalSession();
 
@@ -276,6 +345,37 @@ export class AutoApplyEngine {
    * fills all form fields, handles steppers, uploads resume, and completes application.
    */
   public static async submitApplication(
+    url: string,
+    profile: MasterProfile,
+    onProgress?: ProgressCallback,
+    options: SubmitApplicationOptions = {}
+  ): Promise<ApplyResult> {
+    if (formEngineMode() === 'old') return AutoApplyEngine.submitApplicationLegacy(url, profile, onProgress);
+    if (!url || !url.trim()) {
+      return { url: '', success: false, submitted: false, prefilled: false, captchaDetected: false, fieldsFilledCount: 0, error: 'Invalid URL' };
+    }
+    try {
+      const session = await getOrLaunchExternalSession();
+      return await runFormEngineApply(AutoApplyEngine, session.context, url, profile, onProgress, options);
+    } catch (err: any) {
+      onProgress?.({ phase: 'cancelled', message: `Notice: ${err?.message}`, colorState: 'grey' });
+      return { url, success: false, submitted: false, prefilled: false, captchaDetected: false, fieldsFilledCount: 0, error: err?.message || String(err) };
+    }
+  }
+
+  /**
+   * Structured FormEngine events for every run (new engine): emits 'event' with
+   * an AutoApplyFormEvent `{ url, event }`. See packages/form-engine/README.md.
+   */
+  public static readonly formEvents = new EventEmitter();
+
+  /** Engine event -> status-pill event (also attached as `formEvent` on progress callbacks). */
+  public static toStatusEvent(ev: FormEngineEvent): AutoApplyStatusEvent {
+    return toStatusEvent(ev);
+  }
+
+  /** @deprecated legacy multi-layer solver chain (NOMADIC_FORM_ENGINE=old). Removed in Step 1.7. */
+  public static async submitApplicationLegacy(
     url: string,
     profile: MasterProfile,
     onProgress?: ProgressCallback
@@ -1684,6 +1784,7 @@ export class AutoApplyEngine {
           el.style.bottom = '24px';
           el.style.right = '24px';
           el.style.zIndex = '2147483647';
+          el.style.pointerEvents = 'none';
           el.style.padding = '10px 18px';
           el.style.borderRadius = '9999px';
           el.style.background = '#09090b';
@@ -1703,7 +1804,7 @@ export class AutoApplyEngine {
     } catch {}
   }
 
-  private static async handleDemoTestApplication(
+  public static async handleDemoTestApplication(
     page: Page,
     profile: MasterProfile,
     url: string,

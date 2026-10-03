@@ -44,10 +44,10 @@ export const oldEngine: BenchEngine = {
       if (login.requiresLogin) { walls.push('login'); notes.push(`pass ${pass}: login wall`); break; }
 
       let bot: { fieldsFilled: number; submitted: boolean; confirmed: boolean } | null = null;
-      if (key.ats === 'ashby') bot = await AshbyBot.apply(page, profile);
-      else if (key.ats === 'greenhouse') bot = await GreenhouseBot.apply(page, profile);
-      else if (key.ats === 'lever') bot = await LeverBot.apply(page, profile);
-      else if (key.ats === 'internshala') bot = await InternshalaBot.apply(page, profile);
+      if (key.ats === 'ashby') bot = await AshbyBot.applyLegacy(page, profile);
+      else if (key.ats === 'greenhouse') bot = await GreenhouseBot.applyLegacy(page, profile);
+      else if (key.ats === 'lever') bot = await LeverBot.applyLegacy(page, profile);
+      else if (key.ats === 'internshala') bot = await InternshalaBot.applyLegacy(page, profile);
       if (bot) {
         total += bot.fieldsFilled;
         if (bot.submitted && bot.confirmed) break;

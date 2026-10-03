@@ -3,17 +3,29 @@ import type { MasterProfile } from '../auto-apply-engine.js';
 import { humanClick, randomPause } from '../stealth-evasion.js';
 import { OmniFormSolver } from '../omni-form-solver.js';
 import { AIFallbackSolver } from '../ai-fallback.js';
+import { applyWithAdapter, formEngineMode, internshalaAdapter, type BotApplyOptions, type SpecializedBotResult } from './portal-adapter.js';
 
-export interface SpecializedBotResult {
-  success: boolean;
-  fieldsFilled: number;
-  submitted: boolean;
-  confirmed: boolean;
-  error?: string;
-}
+export type { SpecializedBotResult };
 
 export class InternshalaBot {
+  /**
+   * Thin adapter: open the Internshala modal, then let FormEngine fill it.
+   * Does not submit unless `opts.submit` is true (and the engine reports the form complete).
+   * NOMADIC_FORM_ENGINE=old runs the legacy solver chain instead.
+   */
   static async apply(
+    page: Page,
+    profile: MasterProfile,
+    logger?: { info: (m: string) => void; warn: (m: string) => void },
+    opts: BotApplyOptions = {}
+  ): Promise<SpecializedBotResult> {
+    if (formEngineMode() === 'old') return InternshalaBot.applyLegacy(page, profile, logger);
+    logger?.info('[InternshalaBot] FormEngine adapter');
+    return applyWithAdapter(page, profile, internshalaAdapter, opts);
+  }
+
+  /** @deprecated legacy solver chain, kept behind NOMADIC_FORM_ENGINE=old until Step 1.7. */
+  static async applyLegacy(
     page: Page,
     profile: MasterProfile,
     logger?: { info: (m: string) => void; warn: (m: string) => void }

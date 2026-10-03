@@ -56,11 +56,19 @@ export async function readFieldValue(page: Page, field: FormField): Promise<stri
       if (el.tagName === 'BUTTON') return clean(el.getAttribute('value') || '') || clean(el.textContent);
       if ((el as HTMLElement).isContentEditable) return clean((el as HTMLElement).innerText);
       if (f.kind === 'combobox' && el instanceof HTMLInputElement) {
-        const shell = el.closest('.select-shell, [class*="select__container"], [class*="-container"], [data-field]');
-        const sv = shell?.querySelector('[class*="single-value"], [class*="singleValue"], [class*="multi-value"]');
-        if (sv && clean(sv.textContent)) return clean(sv.textContent);
-        const hidden = shell?.querySelector('input[type="hidden"]') as HTMLInputElement | null;
-        if (hidden && hidden.value) return clean(hidden.value);
+        // react-select & co: the chosen value renders in a sibling "single-value" node, not in the input.
+        let shell: Element | null = el;
+        for (let i = 0; i < 5 && shell; i++) {
+          shell = shell.parentElement;
+          const sv = shell?.querySelector('[class*="single-value"], [class*="singleValue"], [class*="multi-value"]');
+          if (sv) {
+            if (clean(sv.textContent)) return clean(sv.textContent);
+            const hidden = shell?.querySelector('input[type="hidden"]') as HTMLInputElement | null;
+            if (hidden && hidden.value) return clean(hidden.value);
+            break;
+          }
+          if (shell?.matches('[data-field], .field, form')) break;
+        }
       }
       return (el as HTMLInputElement).value ?? '';
     }, { kind: field.kind, multiple: field.multiple, optionSelectors: (field.options || []).map((o) => o.selector || '').filter(Boolean) });
