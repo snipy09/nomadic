@@ -135,14 +135,14 @@ CREATE POLICY "anon can read hr_contacts"
 -- client may send either the plaintext or a pre-hash — both are accepted.
 CREATE OR REPLACE FUNCTION public.jobmaxxer_hash_login(p_email TEXT, p_password TEXT)
 RETURNS TEXT
-LANGUAGE sql IMMUTABLE AS $$
+LANGUAGE sql IMMUTABLE SET search_path = public, extensions AS $$
   SELECT encode(digest(LOWER(TRIM(p_email)) || ':' || p_password, 'sha256'), 'hex');
 $$;
 
 -- Set / reset a user's password (service role or SQL editor only).
 CREATE OR REPLACE FUNCTION public.set_user_password(p_email TEXT, p_password TEXT)
 RETURNS VOID
-LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+LANGUAGE sql SECURITY DEFINER SET search_path = public, extensions AS $$
   UPDATE public.users_profile
      SET password_hash = public.jobmaxxer_hash_login(p_email, p_password),
          updated_at = NOW()
@@ -253,13 +253,13 @@ ALTER TABLE public.billing_records ENABLE ROW LEVEL SECURITY;
 --    your own login. This is the ONLY account that sees the Admin panel.
 --    Delete or comment out this block after your first run if you prefer.
 -- ============================================================================
-INSERT INTO public.users_profile (email, full_name, subscription_tier, role, status, license_key, expires_at)
-VALUES ('admin@jobmaxxer.app', 'JobMaxxer Admin', 'lifetime', 'admin', 'active', 'JMX-ADMIN-0001', NULL)
-ON CONFLICT (email) DO UPDATE
-  SET role = 'admin', status = 'active', subscription_tier = 'lifetime';
-
--- Set the admin password (CHANGE THIS VALUE):
-SELECT public.set_user_password('admin@jobmaxxer.app', 'CHANGE-ME-strong-pass');
+-- The seeded admin with a placeholder password was removed: on a fresh database it
+-- created an admin anyone could sign in as. Create your admin after migrating
+-- (SQL editor, service role) with your own email and a strong password:
+--
+--   INSERT INTO public.users_profile (email, full_name, subscription_tier, role, status)
+--   VALUES ('you@example.com', 'Your Name', 'max', 'admin', 'active');
+--   SELECT public.set_user_password('you@example.com', '<strong password>');
 
 -- ----------------------------------------------------------------------------
 -- HOW TO ADD A PAYING CUSTOMER LATER (run in SQL Editor, service role):
