@@ -292,6 +292,12 @@ export interface ElectronAPI {
     error?: string;
   }>;
   authGoogle: (options?: { forceTakeover?: boolean }) => Promise<{ success: boolean; error?: string }>;
+  // Password reset and email verification (019). Optional so older test doubles and builds keep working.
+  authRequestPasswordReset?: NomadicApi['authRequestPasswordReset'];
+  authConfirmPasswordReset?: NomadicApi['authConfirmPasswordReset'];
+  authSendVerification?: NomadicApi['authSendVerification'];
+  authConfirmVerification?: NomadicApi['authConfirmVerification'];
+  authVerificationStatus?: NomadicApi['authVerificationStatus'];
   onOauthCallback: (callback: (url: string) => void) => () => void;
   // Admin tools (F12): session-checked RPCs; the server re-checks the admin role on every call.
   adminListUsers: NomadicApi['adminListUsers'];

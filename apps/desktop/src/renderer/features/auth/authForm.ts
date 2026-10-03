@@ -45,3 +45,38 @@ export function friendlyAuthError(mode: AuthMode, raw: string | undefined | null
   if (mode === 'signin' && aboutCredentials.test(msg)) return BAD_CREDENTIALS;
   return msg;
 }
+
+// ── Password reset and email verification ─────────────────────────────────
+
+export const CODE_LENGTH = 6;
+
+/** Keeps only digits, at most six (people paste "123 456" or "123-456"). */
+export function normalizeCode(raw: string): string {
+  return raw.replace(/\D/g, '').slice(0, CODE_LENGTH);
+}
+
+export function validateEmailOnly(email: string): string | undefined {
+  const e = email.trim();
+  if (!e) return 'Enter your email.';
+  if (!EMAIL.test(e)) return 'Enter a valid email address.';
+  return undefined;
+}
+
+export function validateCode(code: string): string | undefined {
+  return normalizeCode(code).length === CODE_LENGTH ? undefined : `Enter the ${CODE_LENGTH}-digit code from the email.`;
+}
+
+export type ResetFieldErrors = Partial<Record<'code' | 'password', string>>;
+
+/** Same password rule as sign-up (trimmed, at least 6 characters). */
+export function validateResetConfirm(code: string, password: string): ResetFieldErrors {
+  const e: ResetFieldErrors = {};
+  const codeError = validateCode(code);
+  if (codeError) e.code = codeError;
+  if (!password.trim()) e.password = 'Enter a new password.';
+  else if (password.trim().length < MIN_PASSWORD_LENGTH) e.password = `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
+  return e;
+}
+
+/** Fallback when the main process gives no message (never says whether an account exists). */
+export const RESET_FALLBACK_ERROR = 'Something went wrong. Please try again.';

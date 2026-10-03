@@ -5,6 +5,7 @@ import {
 } from '@nomadic/ui';
 import { getApi, type AppUser } from '../../types';
 import { PlanStatus } from '../billing/PlanStatus';
+import { EmailVerificationNotice } from '../auth/EmailVerificationNotice';
 import type { FieldErrors, ProfileForm } from './profileForm';
 import type { ResumesState } from './useResumes';
 
@@ -248,7 +249,13 @@ export const AccountSection: React.FC<{ user?: AppUser | null; onLogout?: () => 
     <CardContent>
       <VStack gap={4}>
         <dl className="grid gap-3">
-          <div><dt className="text-caption text-fg-subtle">Email</dt><dd className="text-body text-fg">{user?.email ?? '—'}</dd></div>
+          <div>
+            <dt className="text-caption text-fg-subtle">Email</dt>
+            <dd className="flex flex-col items-start gap-2 text-body text-fg">
+              <span>{user?.email ?? '—'}</span>
+              {user && <EmailVerificationNotice email={user.email} />}
+            </dd>
+          </div>
           <div><dt className="mb-1 text-caption text-fg-subtle">Plan</dt><dd><PlanStatus onUpgrade={onOpenUpgrade} /></dd></div>
         </dl>
         <p className="text-caption text-fg-subtle">
