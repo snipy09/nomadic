@@ -31,18 +31,18 @@ export function getCandidateEmail(): string {
   return '';
 }
 
-/** Same "existing user" heuristic every login flow used. */
+/** The persisted `onboarding_completed` flag (0 when there is no row yet). */
+function readStoredOnboardingFlag(db: ReturnType<typeof getDb>): number {
+  const res = db.exec('SELECT onboarding_completed FROM master_profile WHERE id = 1');
+  return res.length && res[0].values.length ? Number(res[0].values[0][0]) === 1 ? 1 : 0 : 0;
+}
+
+/** Onboarding counts as done only once a save persisted the flag. */
 export function isOnboardingCompleted(): boolean {
   let hasCompleted = false;
   try {
     const db = getDb();
-    const currentProf = db.exec('SELECT first_name, onboarding_completed, desired_title FROM master_profile WHERE id = 1');
-    if (currentProf.length && currentProf[0].values.length) {
-      const row = currentProf[0].values[0];
-      const isDone = Number(row[1]) === 1;
-      const hasTitle = Boolean(row[2]);
-      hasCompleted = isDone || (Boolean(row[0]) && hasTitle);
-    }
+    hasCompleted = readStoredOnboardingFlag(db) === 1;
   } catch {}
   return hasCompleted;
 }
@@ -141,7 +141,7 @@ export function upsertMasterProfile(p: ProfileColumns): void {
 export function saveMasterProfile(p: Record<string, unknown>): { success: boolean } {
   const onboardingVal = p.onboarding_completed !== undefined
     ? (p.onboarding_completed ? 1 : 0)
-    : (p.onboardingCompleted !== undefined ? (p.onboardingCompleted ? 1 : 0) : 1);
+    : (p.onboardingCompleted !== undefined ? (p.onboardingCompleted ? 1 : 0) : readStoredOnboardingFlag(getDb()));
 
   upsertMasterProfile({
     first_name: (p.firstName as string) ?? (p.first_name as string) ?? null,

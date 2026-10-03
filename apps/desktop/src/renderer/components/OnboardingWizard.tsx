@@ -299,6 +299,9 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     }
   };
 
+  const [isLaunching, setIsLaunching] = useState(false);
+  const [launchError, setLaunchError] = useState<string | null>(null);
+
   const handleFinalizeAndLaunch = async () => {
     const api = getApi();
     const finalProfile: MasterProfile = {
@@ -325,13 +328,22 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
       }
     }
 
-    if (api && api.updateMasterProfile) {
-      try {
-        await api.updateMasterProfile(finalProfile);
-      } catch (err: any) {
-        console.warn('[Onboarding Save Profile] Error:', err?.message);
-      }
+    setLaunchError(null);
+    setIsLaunching(true);
+    try {
+      if (!api || !api.saveMasterProfile) throw new Error('Profile storage is unavailable.');
+      const res = await api.saveMasterProfile({
+        ...finalProfile,
+        customAnswersJson: JSON.stringify(finalProfile.customAnswers || {}),
+        onboarding_completed: 1,
+      });
+      if (!res || res.success === false) throw new Error(res?.error || 'Saving your profile failed.');
+    } catch (err: any) {
+      setLaunchError(err?.message || 'Saving your profile failed.');
+      setIsLaunching(false);
+      return;
     }
+    setIsLaunching(false);
 
     onComplete(finalProfile);
   };
@@ -961,6 +973,12 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               )}
             </div>
 
+            {launchError && (
+              <p role="alert" className="text-xs text-red-500 font-medium">
+                We couldn't save your profile: {launchError} Nothing was marked complete — please retry.
+              </p>
+            )}
+
             <div className="pt-2 flex items-center justify-between">
               <button
                 type="button"
@@ -974,9 +992,10 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               <button
                 type="button"
                 onClick={handleFinalizeAndLaunch}
+                disabled={isLaunching}
                 className="px-6 py-3 bg-black hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-black rounded-xl text-xs font-bold flex items-center gap-2 transition shadow-md active:scale-95"
               >
-                <span>Launch My Workspace</span>
+                <span>{isLaunching ? 'Saving…' : launchError ? 'Retry Save' : 'Launch My Workspace'}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>

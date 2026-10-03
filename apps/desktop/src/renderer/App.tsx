@@ -78,7 +78,7 @@ export default function App() {
   const [profile, setProfile] = useState<MasterProfile>(() => {
     try {
       const saved = localStorage.getItem('nomadic_master_profile') || localStorage.getItem('hirestack_master_profile');
-      if (saved) return JSON.parse(saved);
+      if (saved) return { ...JSON.parse(saved), onboardingCompleted: false };
     } catch {}
     return {
       firstName: '',
@@ -131,7 +131,7 @@ export default function App() {
 
         const isCompleted = data.onboarding_completed !== undefined
           ? Boolean(data.onboarding_completed)
-          : (data.onboardingCompleted !== undefined ? Boolean(data.onboardingCompleted) : Boolean((data.first_name || data.firstName) && (data.desired_title || data.desiredTitle)));
+          : Boolean(data.onboardingCompleted);
 
         const mapped: MasterProfile = {
           firstName: data.firstName || data.first_name || '',
@@ -159,9 +159,6 @@ export default function App() {
           setShowOnboarding(true);
         } else {
           setShowOnboarding(false);
-          try {
-            localStorage.setItem('nomadic_onboarding_done', 'true');
-          } catch {}
         }
         return mapped;
       } else {
@@ -249,18 +246,11 @@ export default function App() {
 
     const isExistingUser = Boolean(
       user.onboardingCompleted ||
-      loadedProf?.onboardingCompleted ||
-      (typeof window !== 'undefined' && (
-        localStorage.getItem('nomadic_onboarding_done') === 'true' ||
-        localStorage.getItem('hirestack_onboarding_done') === 'true'
-      ))
+      loadedProf?.onboardingCompleted
     );
 
     if (isExistingUser) {
       setShowOnboarding(false);
-      try {
-        localStorage.setItem('nomadic_onboarding_done', 'true');
-      } catch {}
       if (user.role === 'admin') {
         setActiveTab('admin-overview');
       } else {
@@ -312,10 +302,7 @@ export default function App() {
       localStorage.setItem('nomadic_target_opportunity_type', profToSave.targetOpportunityType);
     }
     try {
-      localStorage.setItem('nomadic_master_profile', JSON.stringify({
-        ...profToSave,
-        onboardingCompleted: true,
-      }));
+      localStorage.setItem('nomadic_master_profile', JSON.stringify(profToSave));
     } catch {}
     try {
       if (api && api.saveMasterProfile) {
@@ -386,11 +373,7 @@ export default function App() {
   // 3. Check if user already completed onboarding
   const userHasCompletedOnboarding = Boolean(
     currentUser?.onboardingCompleted ||
-    profile.onboardingCompleted ||
-    (typeof window !== 'undefined' && (
-      localStorage.getItem('nomadic_onboarding_done') === 'true' ||
-      localStorage.getItem('hirestack_onboarding_done') === 'true'
-    ))
+    profile.onboardingCompleted
   );
 
   // If new user (has NOT completed onboarding) or user requested setup, show OnboardingWizard
@@ -400,14 +383,12 @@ export default function App() {
         initialProfile={profile}
         currentUser={currentUser}
         onComplete={(completedProfile) => {
-          setProfile(completedProfile);
+          setProfile({ ...completedProfile, onboardingCompleted: true });
           setShowOnboarding(false);
           const mode = completedProfile.workspaceMode || 'unified';
           setWorkspaceModeState(mode);
           try {
             localStorage.setItem('nomadic_workspace_mode', mode);
-            localStorage.setItem('nomadic_onboarding_done', 'true');
-            localStorage.setItem('hirestack_onboarding_done', 'true');
             localStorage.setItem('nomadic_last_calibrated_date', new Date().toISOString().split('T')[0]);
             if (completedProfile.targetOpportunityType) {
               localStorage.setItem('nomadic_target_opportunity_type', completedProfile.targetOpportunityType);
