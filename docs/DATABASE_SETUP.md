@@ -169,5 +169,5 @@ Pro feedback limit 30 then refused, expired Pro falls back to Free, Max limits, 
 `get_entitlements` unaffected, and unknown metrics rejected by the check constraint.
 
 ## Live status (2026-10-03)
-- Migrations 001–012, 014–018, 021 applied. Edge Functions `google-sign-in` and `send-email-code` deployed (v1, JWT verification on). **019 must be pasted by the owner** (`baseline/apply_019.sql`; contains DELETEs that the MCP connector cannot confirm).
+- Migrations 001–012, 014–018, 021 applied. Edge Functions `google-sign-in`, `send-email-code` and `ai-proxy` deployed (v1, JWT verification on); 019 applied by the owner. **020 must be pasted by the owner** (`baseline/apply_020.sql`). **019 must be pasted by the owner** (`baseline/apply_019.sql`; contains DELETEs that the MCP connector cannot confirm).
 - Vault: `resend_api_key`, `gemini_api_key` set. Still needed: `google_oauth_client_id` (owner), `email_from` once a sending domain is verified.
