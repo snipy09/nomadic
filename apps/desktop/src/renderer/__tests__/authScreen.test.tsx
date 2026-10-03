@@ -113,6 +113,8 @@ describe('AuthScreen', () => {
     await userEvent.tab();
     await userEvent.keyboard('secret12');
     await userEvent.tab(); // show-password toggle
+    await userEvent.tab(); // forgot password link
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: /forgot password/i }));
     await userEvent.tab(); // terms checkbox
     expect(document.activeElement).toBe(screen.getByRole('checkbox', { name: /terms of service/i }));
     await userEvent.keyboard(' ');

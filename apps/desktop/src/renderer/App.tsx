@@ -16,6 +16,7 @@ import { ApplicationsView } from './features/applications/ApplicationsView';
 import { ProfileView } from './features/profile/ProfileView';
 import { AdminView } from './components/AdminView';
 import { AuthScreen } from './features/auth/AuthScreen';
+import { EmailVerificationBanner } from './features/auth/EmailVerificationBanner';
 import { ResourceVaultView } from './components/ResourceVaultView';
 import { InterviewPrepView } from './components/InterviewPrepView';
 import { OpportunityBoardView } from './components/OpportunityBoardView';
@@ -381,6 +382,7 @@ export default function App() {
       }
     >
       <>
+        <EmailVerificationBanner userId={currentUser?.id} />
         {/* Dynamic Sub-view Container */}
         <div key={activeTab} className={`w-full ${
             activeTab === 'profile' || activeTab === 'settings' || Boolean(activeTab && activeTab.startsWith('admin'))

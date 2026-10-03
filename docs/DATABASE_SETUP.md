@@ -4,6 +4,8 @@ Rehearsed on PostgreSQL 16 with Supabase's roles and default grants (`packages/s
 all migrations 001–010 apply in order, a re-run skips them, and an `anon` smoke test passed
 (sign-up, sign-in, single-use login ticket, device registration, application push/pull/delete with session checks,
 operator-only functions denied to `anon`).
+`016` (password reset, email verification) rehearsed the same way: code requests denied to `anon`, codes stored as
+bcrypt, wrong/expired/used codes refused with one message, 5-guess cap, request limits, reset revokes sessions.
 
 ## 1. Create the project (owner)
 Supabase dashboard → New project (region: Mumbai `ap-south-1` for Indian users). Save the database password.
@@ -39,5 +41,9 @@ SELECT public.set_user_password('you@example.com', '<strong password>');
 `UPDATE public.app_security SET require_login_ticket = true;` (SECURITY_CHECKLIST S3), after a manual sign-in,
 sign-up and device-takeover test against this project.
 
-## 6. Edge function
-Deploy `packages/supabase/functions/razorpay-webhook` with `RAZORPAY_WEBHOOK_SECRET` set (billing, F9).
+## 6. Edge functions
+- `packages/supabase/functions/razorpay-webhook` with `RAZORPAY_WEBHOOK_SECRET` set (billing, F9).
+- `packages/supabase/functions/auth-email` (needs migration `016`): password reset and email verification codes via
+  Resend. Set `RESEND_API_KEY` and `RESEND_FROM` (for example `Nomadic <no-reply@your-domain>`, on a domain verified in
+  Resend) with `supabase secrets set`, then `supabase functions deploy auth-email --no-verify-jwt` (it checks the
+  device session itself, and new projects' publishable keys are not JWTs).

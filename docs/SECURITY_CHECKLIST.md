@@ -34,6 +34,12 @@ Legend: ✅ fixed and verified · ⚠️ mitigated, follow-up needed · ☐ open
 | S8 | `jobs` readable by anon. | ✅ by design | Only `is_active = TRUE` rows; writes service-role only (`002`). Expired jobs are hidden via the `006` status trigger. |
 | S9 | Google sign-in (`apps/desktop/src/main/services/oauth.ts`) has no server-side session: it never calls `authenticate_user` or `register_device_session`, uses Google's `sub` as the user id (not a `users_profile` UUID), and its direct `users_profile` read/insert with the anon key is denied by RLS since `008`. Result: Google users get a local, free-tier, user-role account whose heartbeat and cloud sync cannot succeed. Nothing is escalated (role/tier are never taken from the client), but the flow cannot obtain a login ticket. | ☐ | Needs a server path: an RPC or Edge Function that verifies the Google ID token (or a Supabase Auth JWT) server-side, finds or creates the `users_profile` row by the verified email, and returns the same row shape as `authenticate_user` including `login_ticket`. The desktop then registers the device exactly like password sign-in. Also move the Google code exchange to PKCE so no client secret ships in the build. |
 
+## Account emails (016)
+
+| # | Item | Status | Detail |
+|---|---|---|---|
+| S10 | Password reset and email verification | ✅ (deploy pending) | 8-digit codes stored as bcrypt, never in plaintext; reset expires in 30 min, verification in 24 h; single use; burned after 5 wrong guesses; a new code replaces older ones; requests limited per email and purpose to 3/hour and 10/day (unknown emails count too, so the limit does not reveal accounts). `request_password_reset` answers the same for unknown and known emails, and `auth-email` sends in the background so timing does not reveal it either. A reset signs out every device, drops outstanding login tickets and clears the lockout. Verification and status RPCs are session-checked. Emails carry the code only, no links. Secrets `RESEND_API_KEY` and `RESEND_FROM` live only in Supabase secrets. Rehearsed on PostgreSQL 16; tests in `packages/supabase/src/__tests__/auth-email.test.ts`, `apps/desktop/src/main/__tests__/account-email.test.ts` and the renderer tests `forgotPassword`, `emailVerificationBanner`, `accountEmail`. |
+
 ## Verified as correct (no change)
 
 - RLS is enabled on every table. `users_profile`, `user_sessions`, `user_preferences`, `user_job_matches`, `billing_records`, `razorpay_payments`, `user_cloud_profiles`, `user_applications`, `user_saved_jobs`, `user_resumes`, `scrape_runs`, `learning_events`, `user_tracks`, `practice_solutions`, `login_attempts`, `login_tickets`, `app_security` have **no** anon/authenticated policy: they are reachable only through session-checked SECURITY DEFINER RPCs or the service role.
@@ -48,8 +54,14 @@ Legend: ✅ fixed and verified · ⚠️ mitigated, follow-up needed · ☐ open
 `authenticate_user`, `register_device_session`, `verify_and_update_session`, `sync_pull_user_data`,
 `sync_push_user_profile`, `sync_push_application`, `sync_push_saved_job`, `sync_remove_saved_job`,
 `sync_push_resume`, `sync_delete_resume`, `sync_delete_application` (010), `learning_start_track`, `learning_archive_track`,
-`learning_record_events`, `learning_pull_events`. Any new client RPC must be added to this list in a
+`learning_record_events`, `learning_pull_events`, `confirm_password_reset`, `confirm_email_verification`,
+`account_email_status` (016). Any new client RPC must be added to this list in a
 migration; everything else is denied by default.
+
+Service-role only (called from Edge Functions, never with the anon key): `handle_razorpay_payment_success` (008),
+`request_password_reset` and `request_email_verification` (016, `auth-email`; they return the plaintext code to be
+emailed). Internal helpers `account_email_issue_code`, `account_email_check_code`, `account_session_user` (016) are
+granted to nobody.
 
 ## Owner actions
 

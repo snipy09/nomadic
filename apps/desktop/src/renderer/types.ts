@@ -396,6 +396,12 @@ export interface ElectronAPI {
     error?: string;
   }>;
   authGoogle: () => Promise<{ success: boolean; error?: string }>;
+  /** Password reset and email verification (migration 016). Absent in browser preview. */
+  requestPasswordReset?: (email: string) => Promise<{ success: boolean; error?: string }>;
+  confirmPasswordReset?: (input: { email: string; code: string; newPassword: string }) => Promise<{ success: boolean; error?: string }>;
+  sendVerificationEmail?: () => Promise<{ success: boolean; error?: string }>;
+  confirmEmailVerification?: (code: string) => Promise<{ success: boolean; error?: string; verifiedAt?: string }>;
+  getEmailStatus?: () => Promise<{ success: boolean; error?: string; email?: string; verified?: boolean; verifiedAt?: string }>;
   onOauthCallback: (callback: (url: string) => void) => () => void;
   adminGetUsers: () => Promise<AppUser[]>;
   adminCreateUser: (user: {

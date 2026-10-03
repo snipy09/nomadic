@@ -7,6 +7,7 @@ import { getApi, type AppUser } from '../../types';
 import { prefs } from '../../store/preferences';
 import { friendlyAuthError, validateAuth, type AuthFieldErrors, type AuthFormValues, type AuthMode } from './authForm';
 import { TermsDialog } from './TermsDialog';
+import { ForgotPasswordPanel } from './ForgotPasswordPanel';
 
 interface AuthScreenProps {
   onLoginSuccess: (user: AppUser) => void;
@@ -43,6 +44,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog })
   const [conflictDevice, setConflictDevice] = useState<string | null>(null);
   const [googleWaiting, setGoogleWaiting] = useState(false);
   const [termsPrompt, setTermsPrompt] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
   const formErrorRef = useRef<HTMLDivElement>(null);
 
   // Google sign-in finishes in the browser; the main process reports back here.
@@ -77,6 +79,14 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog })
     setTermsAccepted(v);
     if (v) setTermsPrompt(false);
     try { prefs.setTermsAccepted(v); } catch { /* preference only */ }
+  };
+
+  const closeForgot = (email: string) => {
+    setForgotOpen(false);
+    setMode('signin');
+    setValues((v) => ({ ...v, email, password: '' }));
+    setShowErrors(false);
+    setFormError(null);
   };
 
   const switchMode = (next: string) => {
@@ -173,14 +183,18 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog })
         </header>
 
         <Card variant="raised" padding="lg" className="gap-5">
-          <Tabs variant="segmented" value={mode} onValueChange={switchMode} className="items-center">
-            <TabsList aria-label="Account">
-              <TabsTrigger value="signin" disabled={busy}>Sign in</TabsTrigger>
-              <TabsTrigger value="signup" disabled={busy}>Create account</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          {!forgotOpen && (
+            <Tabs variant="segmented" value={mode} onValueChange={switchMode} className="items-center">
+              <TabsList aria-label="Account">
+                <TabsTrigger value="signin" disabled={busy}>Sign in</TabsTrigger>
+                <TabsTrigger value="signup" disabled={busy}>Create account</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
 
-          {conflictDevice ? (
+          {forgotOpen ? (
+            <ForgotPasswordPanel initialEmail={values.email.trim()} onDone={closeForgot} />
+          ) : conflictDevice ? (
             <div role="alertdialog" aria-labelledby="auth-conflict-title" aria-describedby="auth-conflict-desc" className="flex flex-col gap-3">
               <div className="flex items-start gap-3">
                 <MonitorSmartphone className="mt-0.5 size-5 shrink-0 text-warning" aria-hidden="true" />
@@ -237,6 +251,16 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog })
                   }
                 />
               </Field>
+              {!isSignup && (
+                <button
+                  type="button"
+                  className="-mt-2 self-end text-label text-accent-subtle-fg underline underline-offset-2 hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-50"
+                  onClick={() => { setForgotOpen(true); setFormError(null); setShowErrors(false); }}
+                  disabled={busy}
+                >
+                  Forgot password?
+                </button>
+              )}
 
               <div className="flex flex-col gap-1">
                 <Checkbox
@@ -287,11 +311,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog })
             </form>
           )}
 
-          <div className="flex items-center gap-3 text-caption text-fg-subtle" aria-hidden="true">
-            <span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" />
-          </div>
+          {!forgotOpen && (
+            <div className="flex items-center gap-3 text-caption text-fg-subtle" aria-hidden="true">
+              <span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" />
+            </div>
+          )}
 
-          {googleWaiting ? (
+          {forgotOpen ? null : googleWaiting ? (
             <div className="flex flex-col gap-3 rounded-md border border-line bg-surface-sunken p-3" role="status" aria-live="polite">
               <div className="flex items-center gap-2 text-body text-fg">
                 <Spinner size="sm" label={null} />

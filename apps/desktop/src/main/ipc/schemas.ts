@@ -265,6 +265,15 @@ const credentials = z
   .passthrough();
 export const credentialsArgs: ArgSchemas<'auth-login'> = [credentials];
 
+// Password reset / email verification (migration 016). Codes are 8 digits; the server re-checks everything.
+const accountEmail = z.string().trim().toLowerCase().email().max(254);
+const emailCode = z.string().trim().regex(/^[0-9]{8}$/, 'Enter the 8-digit code from the email.');
+export const requestPasswordResetArgs: ArgSchemas<'auth-request-password-reset'> = [accountEmail];
+export const confirmPasswordResetArgs: ArgSchemas<'auth-confirm-password-reset'> = [
+  z.object({ email: accountEmail, code: emailCode, newPassword: z.string().min(6).max(SHORT) }),
+];
+export const confirmEmailVerificationArgs: ArgSchemas<'auth-confirm-email-verification'> = [emailCode];
+
 const heartbeatOptions = z
   .object({
     userId: z.union([str(200), z.number().finite()]).transform(String),

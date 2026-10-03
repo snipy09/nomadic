@@ -472,6 +472,19 @@ export interface AuthResult {
   error?: string;
 }
 
+export interface PasswordResetConfirmInput {
+  email: string;
+  code: string;
+  newPassword: string;
+}
+
+/** Email verification state from the server (account_email_status, migration 016). */
+export interface EmailStatusResult extends SuccessResult {
+  email?: string;
+  verified?: boolean;
+  verifiedAt?: string;
+}
+
 export interface HeartbeatOptions {
   userId: string;
   sessionToken: string;
@@ -659,6 +672,11 @@ export interface IpcChannels {
   'auth-google': Channel<[], SuccessResult>;
   'auth-login': Channel<[credentials: AuthCredentials], AuthResult>;
   'auth-signup': Channel<[credentials: AuthCredentials], AuthResult>;
+  'auth-request-password-reset': Channel<[email: string], SuccessResult>;
+  'auth-confirm-password-reset': Channel<[input: PasswordResetConfirmInput], SuccessResult>;
+  'auth-send-verification-email': Channel<[], SuccessResult>;
+  'auth-confirm-email-verification': Channel<[code: string], SuccessResult & { verifiedAt?: string }>;
+  'auth-email-status': Channel<[], EmailStatusResult>;
   'start-heartbeat': Channel<[opts: HeartbeatOptions], { success: boolean }>;
   'stop-heartbeat': Channel<[], { success: boolean }>;
   'sync-cloud-data': Channel<[], SuccessResult & { pulled?: boolean }>;
@@ -698,7 +716,10 @@ export const IPC_CHANNELS = [
   'generate-custom-roadmap', 'get-custom-roadmaps', 'save-custom-roadmap', 'delete-custom-roadmap',
   'get-activity-heatmap', 'log-user-activity', 'get-activity-stats', 'evaluate-interview-answer',
   'get-recommended-resources-for-job',
-  'auth-google', 'auth-login', 'auth-signup', 'start-heartbeat', 'stop-heartbeat', 'sync-cloud-data',
+  'auth-google', 'auth-login', 'auth-signup',
+  'auth-request-password-reset', 'auth-confirm-password-reset', 'auth-send-verification-email',
+  'auth-confirm-email-verification', 'auth-email-status',
+  'start-heartbeat', 'stop-heartbeat', 'sync-cloud-data',
   'get-device-info',
   'admin-get-users', 'admin-create-user', 'admin-update-user-status', 'admin-delete-user',
   'admin-get-billing', 'admin-create-billing-record', 'admin-get-metrics', 'admin-assign-plan',
@@ -787,6 +808,11 @@ export interface NomadicApi {
   authLogin: Invoke<'auth-login'>;
   authSignup: Invoke<'auth-signup'>;
   authGoogle: Invoke<'auth-google'>;
+  requestPasswordReset: Invoke<'auth-request-password-reset'>;
+  confirmPasswordReset: Invoke<'auth-confirm-password-reset'>;
+  sendVerificationEmail: Invoke<'auth-send-verification-email'>;
+  confirmEmailVerification: Invoke<'auth-confirm-email-verification'>;
+  getEmailStatus: Invoke<'auth-email-status'>;
   onOauthCallback: Subscribe<'oauth-callback'>;
   adminGetUsers: Invoke<'admin-get-users'>;
   adminCreateUser: Invoke<'admin-create-user'>;
