@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { JobCandidate, SourceId } from '../job-schema.js';
 import { formatBenchMarkdown, formatRunTable } from '../pipeline/report.js';
-import { computeAlert, runPipeline } from '../pipeline/run.js';
+import { computeAlert, expirySkipReason, runPipeline } from '../pipeline/run.js';
 import { MemoryJobStore } from '../pipeline/store.js';
 import type { SourceDefinition } from '../sources/registry.js';
 
@@ -198,6 +198,48 @@ describe('runPipeline', () => {
     expect(store.activeJobs()).toHaveLength(10);
   });
 
+  it('does not expire unseen jobs after a partial fetch or a truncated run', async () => {
+    const store = new MemoryJobStore();
+    const now = clock();
+    const all = Array.from({ length: 4 }, (_, i) => candidate('lever', String(i)));
+    let items = all;
+    let warn: string | null = null;
+    const source: SourceDefinition = {
+      id: 'lever',
+      label: 'Lever API',
+      tier: 1,
+      officialApi: true,
+      fetchCandidates: async (ctx) => {
+        if (warn) ctx.warn(warn);
+        return items;
+      },
+    };
+
+    await runPipeline({ sources: [source], publish: true, store, fetch: noNetwork, now });
+
+    // One board failed: the remaining 3 jobs are a <50% drop, but job 3 must survive.
+    items = all.slice(0, 3);
+    warn = 'lever/acme: HTTP 403';
+    const partial = await runPipeline({ sources: [source], publish: true, store, fetch: noNetwork, now });
+    expect(partial.sources[0].expired).toBe(0);
+    expect(partial.sources[0].warnings).toContain('skipped expiry of unseen jobs: partial fetch (see warnings)');
+    expect(store.activeJobs()).toHaveLength(4);
+
+    // --limit-per-source keeps only 2 jobs: the other 2 are not "gone".
+    items = all;
+    warn = null;
+    const limited = await runPipeline({
+      sources: [source],
+      publish: true,
+      store,
+      fetch: noNetwork,
+      now,
+      limitPerSource: 2,
+    });
+    expect(limited.sources[0].expired).toBe(0);
+    expect(store.activeJobs()).toHaveLength(4);
+  });
+
   it('records source errors without failing the run', async () => {
     const store = new MemoryJobStore();
     const report = await runPipeline({
@@ -269,6 +311,17 @@ describe('runPipeline', () => {
     const md = formatBenchMarkdown(report);
     expect(md.split('\n').filter((l) => /^\| (lever|jobicy) \|/.test(l))).toHaveLength(2);
     expect(md).toContain('jobicy: zero_results');
+  });
+});
+
+describe('expirySkipReason', () => {
+  const ok = { status: 'ok', alert: null, warnings: [] } as any;
+  it('only allows expiry after a complete, healthy fetch', () => {
+    expect(expirySkipReason(ok, false)).toBeNull();
+    expect(expirySkipReason({ ...ok, status: 'error' }, false)).toBe('source error');
+    expect(expirySkipReason({ ...ok, alert: 'zero_results' }, false)).toBe('zero_results');
+    expect(expirySkipReason({ ...ok, warnings: ['x'] }, false)).toMatch(/partial/);
+    expect(expirySkipReason(ok, true)).toMatch(/limit-per-source/);
   });
 });
 

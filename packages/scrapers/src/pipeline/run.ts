@@ -88,6 +88,14 @@ export function computeAlert(fetched: number, previous: number | null, status: '
   return null;
 }
 
+export function expirySkipReason(stats: SourceStats, truncated: boolean): string | null {
+  if (stats.status !== 'ok') return 'source error';
+  if (stats.alert) return stats.alert;
+  if (stats.warnings.length > 0) return 'partial fetch (see warnings)';
+  if (truncated) return 'results truncated by --limit-per-source';
+  return null;
+}
+
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
@@ -135,6 +143,7 @@ export async function runPipeline(options: PipelineOptions = {}): Promise<Pipeli
   const startedAt = now().toISOString();
   const statsBySource = new Map<string, SourceStats>();
   const officialSources = new Set(sources.filter((s) => s.officialApi).map((s) => s.id));
+  const truncated = new Set<string>();
 
   // ── 1. Fetch + normalize (all sources in parallel) ─────────────────────────
   const fetched = await Promise.all(
@@ -175,7 +184,10 @@ export async function runPipeline(options: PipelineOptions = {}): Promise<Pipeli
             score: 0,
           });
         }
-        if (options.limitPerSource && valid.length > options.limitPerSource) valid.length = options.limitPerSource;
+        if (options.limitPerSource && valid.length > options.limitPerSource) {
+          valid.length = options.limitPerSource;
+          truncated.add(source.id);
+        }
         stats.valid = valid.length;
       } catch (err) {
         stats.status = 'error';
@@ -250,12 +262,14 @@ export async function runPipeline(options: PipelineOptions = {}): Promise<Pipeli
       try {
         stats.upserted = await store.upsertJobs(rows);
         stats.expired += await store.expireByIds(source.id, failedBySource.get(source.id) ?? [], 'link_check_failed');
-        // Expire jobs that disappeared from the source, but never on a bad run:
-        // an outage or a >50% drop would otherwise wipe the feed.
-        if (stats.status === 'ok' && !stats.alert) {
-          stats.expired += await store.expireUnseen(source.id, seenAt, 'not_seen_in_source');
+        // Expire jobs that disappeared from the source, but only after a complete,
+        // healthy fetch: an outage, a >50% drop, one failed board, or a
+        // --limit-per-source cut would otherwise expire jobs that are still open.
+        const skipReason = expirySkipReason(stats, truncated.has(source.id));
+        if (skipReason) {
+          stats.warnings.push(`skipped expiry of unseen jobs: ${skipReason}`);
         } else {
-          stats.warnings.push('skipped expiry of unseen jobs because of the alert');
+          stats.expired += await store.expireUnseen(source.id, seenAt, 'not_seen_in_source');
         }
       } catch (err) {
         stats.status = 'error';
