@@ -23,6 +23,10 @@ import {
   type SecurityOptions,
 } from './security.js';
 import { createWindow } from './window.js';
+import { initAppSettings } from './services/app-settings.js';
+import { initCrashReporting } from './services/telemetry-runtime.js';
+import { currentAppVersion, initUpdates } from './services/updates-runtime.js';
+import { initWhatsNew } from './services/whats-new.js';
 
 const securityOptions: SecurityOptions = { devServerUrl: process.env.VITE_DEV_SERVER_URL };
 
@@ -100,6 +104,10 @@ app.on('web-contents-created', (_event, contents) => {
 });
 
 // ── App lifecycle ───────────────────────────────────────────────────────
+// Settings first: crash-report consent must be known before Sentry may start.
+initAppSettings(app.getPath('userData'));
+void initCrashReporting();
+
 app.whenReady().then(async () => {
   installContentSecurityPolicy(electronSession.defaultSession, securityOptions);
   installPermissionPolicy(electronSession.defaultSession);
@@ -126,6 +134,8 @@ app.whenReady().then(async () => {
   }
 
   createWindow();
+  initWhatsNew(currentAppVersion());
+  void initUpdates().catch((err: unknown) => log(`[Updates] Init note: ${err instanceof Error ? err.message : String(err)}`));
 
   // Background verification: check if local Chrome / Edge is present
   setTimeout(() => {

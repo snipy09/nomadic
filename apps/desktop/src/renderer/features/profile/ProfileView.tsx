@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, BookOpen, CheckCircle2, Database, FileText, Globe, Save, Settings2, ShieldCheck, User } from 'lucide-react';
+import { AlertCircle, ArrowDownToLine, BookOpen, CheckCircle2, Database, FileText, Globe, Save, Settings2, ShieldCheck, User } from 'lucide-react';
 import { Badge, Button, NavItem, NavSection, ProgressRing, useToast } from '@nomadic/ui';
 import { prefs } from '../../store/preferences';
 import type { AppUser, MasterProfile, TabType } from '../../types';
@@ -7,8 +7,10 @@ import { completeness, toForm, toMasterProfile, validate, type ProfileForm } fro
 import { useResumes } from './useResumes';
 import { AccountSection, AnswersSection, PersonalSection, PortalsSection, PreferencesSection, ResumesSection, TargetingSection } from './sections';
 import { DataSafetyPanel } from '../data-safety/DataSafetyPanel';
+import { UpdateSettingsCard } from '../updates/UpdateSettingsCard';
+import { CrashReportsCard } from '../help/CrashReportsCard';
 
-type Section = 'profile' | 'preferences' | 'resumes' | 'answers' | 'portals' | 'account' | 'data';
+type Section = 'profile' | 'preferences' | 'resumes' | 'answers' | 'portals' | 'account' | 'data' | 'updates';
 
 const NAV: Array<{ id: Section; label: string; icon: React.ReactNode }> = [
   { id: 'profile', label: 'Profile', icon: <User /> },
@@ -18,6 +20,7 @@ const NAV: Array<{ id: Section; label: string; icon: React.ReactNode }> = [
   { id: 'portals', label: 'Portal sign-ins', icon: <Globe /> },
   { id: 'account', label: 'Account', icon: <ShieldCheck /> },
   { id: 'data', label: 'Data & privacy', icon: <Database /> },
+  { id: 'updates', label: 'Updates', icon: <ArrowDownToLine /> },
 ];
 
 interface ProfileViewProps {
@@ -113,7 +116,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile, onSaveProfile
             {section === 'answers' && <AnswersSection {...props} />}
             {section === 'portals' && <PortalsSection />}
             {section === 'account' && <AccountSection user={currentUser} onLogout={onLogout} onRerunOnboarding={onRerunOnboarding} />}
-            {section === 'data' && <DataSafetyPanel accountEmail={currentUser?.email} onAccountDeleted={() => onLogout?.()} />}
+            {section === 'data' && (<><CrashReportsCard /><DataSafetyPanel accountEmail={currentUser?.email} onAccountDeleted={() => onLogout?.()} /></>)}
+            {section === 'updates' && <UpdateSettingsCard />}
           </div>
         </div>
       </div>

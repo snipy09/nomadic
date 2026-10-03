@@ -139,6 +139,7 @@ export type TabType =
   | 'admin-curator'
   | 'logs'
   | 'settings'
+  | 'help'
   | 'account';
 
 export type ThemeMode = 'dark' | 'light' | 'system';
@@ -212,14 +213,12 @@ export interface ActivityStats {
   totalActions: number;
 }
 
-export interface AppUpdateInfo {
-  updateAvailable: boolean;
-  currentVersion: string;
-  latestVersion: string;
-  releaseName?: string;
-  releaseNotes?: string;
-  downloadUrl?: string;
-}
+export type {
+  FeedbackInput, FeedbackKind, FeedbackResult, TelemetryState, UpdateChannel, UpdatePolicyResult, UpdaterInfo, UpdaterStatus, WhatsNewInfo,
+} from '../shared/ipc';
+import type {
+  FeedbackInput, FeedbackResult, TelemetryState, UpdateChannel, UpdatePolicyResult, UpdaterInfo, UpdaterStatus, WhatsNewInfo,
+} from '../shared/ipc';
 
 export interface ElectronAPI {
   getMasterProfile: () => Promise<Record<string, unknown> | null>;
@@ -462,11 +461,19 @@ export interface ElectronAPI {
   }) => Promise<{ success: boolean; error?: string }>;
   adminGetMetrics: () => Promise<AdminMetrics>;
 
-  // In-App Updates
-  checkForUpdates?: () => Promise<AppUpdateInfo>;
-  downloadUpdate?: (downloadUrl?: string) => Promise<{ success: boolean; filePath?: string; openedBrowser?: boolean; error?: string }>;
-  installUpdate?: (installerPath?: string) => Promise<{ success: boolean; error?: string }>;
-  onUpdateDownloadProgress?: (cb: (pct: number) => void) => () => void;
+  // Updates, crash-report consent, what's new and feedback (F11). Absent in browser preview.
+  updaterGetStatus?: () => Promise<UpdaterInfo>;
+  updaterCheck?: () => Promise<UpdaterInfo>;
+  updaterDownload?: () => Promise<UpdaterInfo>;
+  updaterInstall?: () => Promise<{ success: boolean; error?: string }>;
+  updaterSetChannel?: (channel: UpdateChannel) => Promise<UpdaterInfo>;
+  onUpdaterStatus?: (cb: (status: UpdaterStatus) => void) => () => void;
+  getUpdatePolicy?: () => Promise<UpdatePolicyResult>;
+  getWhatsNew?: () => Promise<WhatsNewInfo | null>;
+  dismissWhatsNew?: () => Promise<{ success: boolean; error?: string }>;
+  getTelemetry?: () => Promise<TelemetryState>;
+  setTelemetry?: (enabled: boolean) => Promise<TelemetryState>;
+  sendFeedback?: (input: FeedbackInput) => Promise<FeedbackResult>;
 }
 
 declare global {

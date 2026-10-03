@@ -17,7 +17,7 @@ Status: ✅ done · 🟡 partial · ⬜ not started
 | F8 | Practice and interview prep | ⬜ | One Practice area, runner, rubric AI feedback, weak topics | Limits enforced server side |
 | F9 | Billing and plans | 🟡 | Webhook done; in-app checkout, invoices, entitlements service | Plan change reflected < 10 s |
 | F10 | Sync, offline and data safety | 🟡 | Built: versioned local SQLite migrations (PRAGMA user_version, one transaction each), backup before migrating (5 kept), integrity check at startup with quarantine + restore from backup, atomic writes, Copy diagnostics, JSON export and account deletion (018) in Settings → Data & privacy. Left: event sync, apply 018 in production | Identical progress after reinstall |
-| F11 | Updates, telemetry, support | 🟡 | Signed auto-update, Sentry, in-app help/feedback | Tagged release updates a real install |
+| F11 | Updates, telemetry, support | 🟡 | Built: electron-updater with Stable/Beta channels and a forced-update floor (`update-policy.json`), opt-in scrubbed Sentry (main + renderer) with a Settings toggle, Help screen (shortcuts, links), feedback/bug form with diagnostics, "what's new" after update; old GitHub-API updater removed. Left: Sentry source maps, a real tagged release updating an install | Tagged release updates a real install |
 | F12 | Admin and content tools | ⬜ | Split AdminView, content editing with versions, scraper health, audit log | Every edit versioned |
 | F13 | Hidden/optional: Outreach, Opportunity Board, Resource Vault, Assistant | ⬜ | Behind flags until each meets the bar, or cut | Decision per feature |
 | F14 | Landing and docs site | 🟡 | Rebuild per decision, single pricing config, Lighthouse >= 95 | Pricing defined once |

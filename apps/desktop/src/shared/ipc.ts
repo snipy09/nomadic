@@ -42,15 +42,6 @@ export interface HeartbeatStatus {
   ip?: string;
 }
 
-export interface AppUpdateInfo {
-  updateAvailable: boolean;
-  currentVersion: string;
-  latestVersion: string;
-  releaseName?: string;
-  releaseNotes?: string;
-  downloadUrl?: string;
-}
-
 export interface ResumeRecord {
   id: number;
   name: string;
@@ -507,6 +498,61 @@ export interface DeleteAccountInput {
   password: string;
 }
 
+// ── Updates, telemetry and support (F11) ───────────────────────────────────
+
+export type UpdateChannel = 'stable' | 'beta';
+
+export interface UpdaterStatus {
+  state: 'unsupported' | 'idle' | 'checking' | 'up_to_date' | 'available' | 'downloading' | 'downloaded' | 'error';
+  currentVersion: string;
+  version?: string;
+  percent?: number;
+  releaseNotes?: string;
+  message?: string;
+}
+
+export interface UpdaterInfo extends UpdaterStatus {
+  channel: UpdateChannel;
+}
+
+export interface UpdatePolicyResult {
+  required: boolean;
+  currentVersion: string;
+  minimumVersion: string | null;
+  message: string | null;
+}
+
+export interface WhatsNewInfo {
+  show: boolean;
+  version: string;
+  previousVersion: string | null;
+  notes: string | null;
+  releaseUrl: string;
+}
+
+export interface TelemetryState {
+  /** The user's choice (off by default). */
+  crashReports: boolean;
+  /** This build has a Sentry DSN. */
+  available: boolean;
+  /** Reporting is running in the main process now (renderer reporting starts after a restart). */
+  active: boolean;
+}
+
+export type FeedbackKind = 'bug' | 'idea' | 'question';
+
+export interface FeedbackInput {
+  kind: FeedbackKind;
+  message: string;
+  includeDiagnostics: boolean;
+  contactEmail?: string;
+}
+
+export interface FeedbackResult extends SuccessResult {
+  via?: 'sentry' | 'email';
+  note?: string;
+}
+
 export interface HeartbeatOptions {
   userId: string;
   sessionToken: string;
@@ -633,9 +679,6 @@ export interface IpcChannels {
   'install-dependencies': Channel<[], SuccessResult>;
   'test-groq-key': Channel<[key: string], SuccessResult>;
   'open-external-url': Channel<[url: string], SuccessResult>;
-  'check-for-updates': Channel<[], AppUpdateInfo>;
-  'download-update': Channel<[downloadUrl?: string], SuccessResult & { filePath?: string; openedBrowser?: boolean }>;
-  'install-update': Channel<[installerPath?: string], SuccessResult>;
 
   // profile & resumes
   'get-master-profile': Channel<[], MasterProfileRow | null>;
@@ -698,6 +741,17 @@ export interface IpcChannels {
   'stop-heartbeat': Channel<[], { success: boolean }>;
   'sync-cloud-data': Channel<[], SuccessResult & { pulled?: boolean }>;
   'get-device-info': Channel<[], DeviceInfo>;
+  'updater-get-status': Channel<[], UpdaterInfo>;
+  'updater-check': Channel<[], UpdaterInfo>;
+  'updater-download': Channel<[], UpdaterInfo>;
+  'updater-install': Channel<[], SuccessResult>;
+  'updater-set-channel': Channel<[channel: UpdateChannel], UpdaterInfo>;
+  'get-update-policy': Channel<[], UpdatePolicyResult>;
+  'whats-new-get': Channel<[], WhatsNewInfo | null>;
+  'whats-new-dismiss': Channel<[], SuccessResult>;
+  'telemetry-get': Channel<[], TelemetryState>;
+  'telemetry-set': Channel<[enabled: boolean], TelemetryState>;
+  'send-feedback': Channel<[input: FeedbackInput], FeedbackResult>;
   'get-data-health': Channel<[], DataHealthResult>;
   'copy-diagnostics': Channel<[], SuccessResult & { text?: string }>;
   'export-account-data': Channel<[], AccountExportResult>;
@@ -724,7 +778,8 @@ export type ChannelResult<C extends ChannelName> = IpcChannels[C]['result'];
 /** Runtime list of every invoke channel (kept in sync with `IpcChannels` by the type below). */
 export const IPC_CHANNELS = [
   'check-dependencies', 'install-dependencies', 'test-groq-key', 'open-external-url',
-  'check-for-updates', 'download-update', 'install-update',
+  'updater-get-status', 'updater-check', 'updater-download', 'updater-install', 'updater-set-channel',
+  'get-update-policy', 'whats-new-get', 'whats-new-dismiss', 'telemetry-get', 'telemetry-set', 'send-feedback',
   'get-master-profile', 'save-master-profile', 'get-resumes', 'save-resume', 'delete-resume',
   'set-default-resume', 'pick-resume-file',
   'run-scrapers', 'get-cloud-feed-page', 'get-cloud-feed', 'get-saved-jobs', 'save-job', 'remove-saved-job',
@@ -752,10 +807,10 @@ void _allChannelsListed;
 // ── Push events (main -> renderer) ──────────────────────────────────────────
 
 export interface IpcEvents {
+  'updater-status': UpdaterStatus;
   log: string;
   'heartbeat-status': HeartbeatStatus;
   'auto-apply-progress': AutoApplyProgressEvent;
-  'update-download-progress': number;
   'oauth-callback': OAuthCallbackPayload;
 }
 
@@ -797,6 +852,18 @@ export interface NomadicApi {
   stopHeartbeat: Invoke<'stop-heartbeat'>;
   syncCloudData: Invoke<'sync-cloud-data'>;
   getDeviceInfo: Invoke<'get-device-info'>;
+  updaterGetStatus: Invoke<'updater-get-status'>;
+  updaterCheck: Invoke<'updater-check'>;
+  updaterDownload: Invoke<'updater-download'>;
+  updaterInstall: Invoke<'updater-install'>;
+  updaterSetChannel: Invoke<'updater-set-channel'>;
+  onUpdaterStatus: Subscribe<'updater-status'>;
+  getUpdatePolicy: Invoke<'get-update-policy'>;
+  getWhatsNew: Invoke<'whats-new-get'>;
+  dismissWhatsNew: Invoke<'whats-new-dismiss'>;
+  getTelemetry: Invoke<'telemetry-get'>;
+  setTelemetry: Invoke<'telemetry-set'>;
+  sendFeedback: Invoke<'send-feedback'>;
   getDataHealth: Invoke<'get-data-health'>;
   copyDiagnostics: Invoke<'copy-diagnostics'>;
   exportAccountData: Invoke<'export-account-data'>;
@@ -844,8 +911,4 @@ export interface NomadicApi {
   adminCreateBillingRecord: Invoke<'admin-create-billing-record'>;
   adminGetMetrics: Invoke<'admin-get-metrics'>;
 
-  checkForUpdates: Invoke<'check-for-updates'>;
-  downloadUpdate: Invoke<'download-update'>;
-  installUpdate: Invoke<'install-update'>;
-  onUpdateDownloadProgress: Subscribe<'update-download-progress'>;
 }

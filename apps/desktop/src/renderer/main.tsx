@@ -4,6 +4,9 @@ import './index.css';
 import { UIProvider } from '@nomadic/ui';
 import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { startRendererCrashReporting } from './features/help/crashReporting';
+
+void startRendererCrashReporting();
 
 const container = document.getElementById('root');
 if (container) {

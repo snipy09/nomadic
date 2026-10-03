@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
-import { ArrowDownToLine, BookOpen, Briefcase, Search, Zap } from 'lucide-react';
+import React from 'react';
+import { BookOpen, Briefcase, Search, Zap } from 'lucide-react';
 import { Button, Kbd, NomadicMark, Tabs, TabsList, TabsTrigger, type ThemePreference } from '@nomadic/ui';
 import { AppUser, TabType, PersonaTrack, WorkspaceMode } from '../types';
-import { UpdateModal } from './UpdateModal';
 import { UserMenu } from './shell/UserMenu';
-import { useUpdateCheck } from './shell/useUpdateCheck';
+import { TopBarUpdateButton } from '../features/updates/TopBarUpdateButton';
 import { normalizeTier } from '../utils/tier-utils';
 
 interface TopBarProps {
@@ -25,8 +24,6 @@ export const TopBar: React.FC<TopBarProps> = ({
   currentUser, onLogout, onNavigate, activeTrack = 'learner', setTrack, workspaceMode = 'unified',
   onOpenUpgrade, onOpenCommandPalette, onLog, theme, onThemeChange,
 }) => {
-  const updateInfo = useUpdateCheck(onLog);
-  const [showUpdate, setShowUpdate] = useState(false);
   const isMax = normalizeTier(currentUser?.tier || currentUser?.subscription_tier) === 'max';
 
   return (
@@ -54,20 +51,13 @@ export const TopBar: React.FC<TopBarProps> = ({
         <Button variant="secondary" size="sm" leftIcon={<Search />} onClick={onOpenCommandPalette} aria-label="Search and commands" rightIcon={<Kbd keys={['Ctrl', 'K']} size="sm" />}>
           <span className="hidden sm:inline">Search</span>
         </Button>
-        {updateInfo && (
-          <Button variant="subtle" size="sm" leftIcon={<ArrowDownToLine />} onClick={() => setShowUpdate(true)}>
-            Update v{updateInfo.latestVersion}
-          </Button>
-        )}
+        <TopBarUpdateButton />
         {!isMax && (
           <Button variant="primary" size="sm" leftIcon={<Zap />} onClick={onOpenUpgrade}>Upgrade</Button>
         )}
         <UserMenu user={currentUser} onNavigate={onNavigate} onLogout={onLogout} theme={theme} onThemeChange={onThemeChange} />
       </div>
 
-      {showUpdate && updateInfo && (
-        <UpdateModal isOpen={showUpdate} onClose={() => setShowUpdate(false)} updateInfo={updateInfo} onLog={onLog} />
-      )}
     </>
   );
 };

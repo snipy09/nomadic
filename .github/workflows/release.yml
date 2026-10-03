@@ -52,6 +52,7 @@ jobs:
       WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
       WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
       VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
@@ -104,14 +105,27 @@ jobs:
             ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } |
             Set-Content apps/desktop/dist-electron/SHA256SUMS.txt
 
+      - name: Release channel and update policy
+        id: channel
+        shell: bash
+        run: |
+          v=$(node -p "require('./apps/desktop/package.json').version")
+          # A version with a pre-release part (1.2.0-beta.1) is published as a pre-release: beta channel only.
+          if [[ "$v" == *-* ]]; then echo "prerelease=true" >> "$GITHUB_OUTPUT"; else echo "prerelease=false" >> "$GITHUB_OUTPUT"; fi
+          node -e "const p=require('./apps/desktop/update-policy.json'); if(!/^\d+\.\d+\.\d+/.test(p.minimumVersion)) throw new Error('update-policy.json: invalid minimumVersion')"
+          cp apps/desktop/update-policy.json apps/desktop/dist-electron/update-policy.json
+
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
           draft: ${{ github.event_name == 'workflow_dispatch' && inputs.draft || false }}
+          prerelease: ${{ steps.channel.outputs.prerelease }}
           generate_release_notes: true
           files: |
             apps/desktop/dist-electron/*.exe
             apps/desktop/dist-electron/*.blockmap
             apps/desktop/dist-electron/latest.yml
+            apps/desktop/dist-electron/beta.yml
+            apps/desktop/dist-electron/update-policy.json
             apps/desktop/dist-electron/SHA256SUMS.txt
           fail_on_unmatched_files: false
