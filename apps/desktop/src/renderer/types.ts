@@ -1,4 +1,4 @@
-import type { AutoApplyProgressEvent, BatchOverrides, BatchSnapshot, BatchStartOptions, BatchSubmitResult, BatchTarget } from '../shared/ipc';
+import type { AutoApplyProgressEvent, BatchOverrides, BatchSnapshot, BatchStartOptions, BatchSubmitResult, BatchTarget, CheckoutResult, EntitlementsResult } from '../shared/ipc';
 
 export type WorkspaceMode = 'learner_only' | 'seeker_only' | 'unified';
 export type OpportunityType = 'job' | 'internship' | 'both';
@@ -252,6 +252,10 @@ export interface ElectronAPI {
   startBatchCoPilot?: (targets: BatchTarget[], options?: BatchStartOptions) => Promise<{ success: boolean; snapshots?: BatchSnapshot[]; cancelled?: boolean; error?: string }>;
   /** Submits only the reviewed snapshot ids, writing the reviewed values first. */
   submitAllBatchCoPilot?: (overrides?: BatchOverrides, ids?: string[]) => Promise<BatchSubmitResult>;
+  /** Plan, limits and today's usage from the server (cached briefly in main). */
+  getEntitlements?: (options?: { fresh?: boolean }) => Promise<EntitlementsResult>;
+  /** Opens Razorpay checkout for a paid plan in the browser. */
+  startCheckout?: (plan: 'pro' | 'max') => Promise<CheckoutResult>;
   verifyEmail: (email: string) => Promise<{ isValid: boolean; stageFailed?: number; reason?: string }>;
   getHrContacts: (targetRole?: string) => Promise<{ success: boolean; contacts: OutreachContact[]; error?: string }>;
   sendOutreach: (contacts: Array<{ email: string; name?: string; company?: string; role?: string; subject?: string; body?: string }>) =>

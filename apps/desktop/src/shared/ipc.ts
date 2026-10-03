@@ -244,6 +244,48 @@ export interface BatchSubmitResult extends SuccessResult {
   failed?: number;
   total?: number;
   results?: BatchSubmitItemResult[];
+  /** The server refused (part of) the run because today's apply limit is used up. */
+  limitReached?: boolean;
+  /** Applications still allowed today after this run (null = unlimited, undefined = unknown). */
+  appliesRemaining?: number | null;
+}
+
+// ── Billing / entitlements (F9, migration 011) ───────────────────────────────
+// Unlimited limits are null. Everything here comes from the server
+// (get_entitlements); the client never decides a limit.
+export type BillingPlanId = 'free' | 'pro' | 'max';
+
+export interface Entitlements {
+  plan: BillingPlanId;
+  /** Raw users_profile.subscription_tier (e.g. 'trial', 'pro'). */
+  storedTier: string | null;
+  accountStatus: 'active' | 'expired' | 'suspended';
+  /** Paid period end (renewal or expiry), ISO-8601. */
+  expiresAt: string | null;
+  limits: {
+    appliesPerDay: number | null;
+    feedJobs: number | null;
+    learnTracks: number | null;
+    practicePerDay: number | null;
+    autonomousApply: boolean;
+    resumes: number | null;
+  };
+  usage: { appliesToday: number; learnTracksActive: number };
+  appliesRemaining: number | null;
+  /** When today's counters reset (Asia/Kolkata midnight), ISO-8601. */
+  resetsAt: string | null;
+  fetchedAt: string;
+}
+
+export type EntitlementsErrorCode = 'signed_out' | 'unauthorized' | 'offline';
+
+export type EntitlementsResult =
+  | { success: true; entitlements: Entitlements }
+  | { success: false; code: EntitlementsErrorCode; error: string };
+
+export interface CheckoutResult extends SuccessResult {
+  /** No checkout page is configured in this build; the dialog offers the manual route. */
+  notConfigured?: boolean;
 }
 
 /** Reviewed values per snapshot id, keyed by `BatchSnapshotField.fieldKey`. */
@@ -632,6 +674,12 @@ export interface IpcChannels {
   /** Submits only the reviewed snapshot ids (all held forms when `ids` is omitted). */
   'submit-all-batch-copilot': Channel<[overrides?: BatchOverrides, ids?: string[]], BatchSubmitResult>;
 
+  // billing
+  /** Server entitlements, cached briefly in main; `fresh` skips the cache. */
+  'get-entitlements': Channel<[options?: { fresh?: boolean }], EntitlementsResult>;
+  /** Opens the Razorpay checkout page for a paid plan in the browser. */
+  'start-checkout': Channel<[plan: Exclude<BillingPlanId, 'free'>], CheckoutResult>;
+
   // outreach
   'verify-email': Channel<[email: string], EmailVerification>;
   'get-hr-contacts': Channel<[targetRole?: string], { success: boolean; contacts: HrContact[] }>;
@@ -692,6 +740,7 @@ export const IPC_CHANNELS = [
   'get-applications', 'update-application-status', 'update-application-notes', 'delete-application', 'save-application',
   'launch-semi-auto', 'launch-autonomous', 'cancel-autonomous-apply', 'start-batch-copilot',
   'submit-all-batch-copilot',
+  'get-entitlements', 'start-checkout',
   'verify-email', 'get-hr-contacts', 'send-outreach', 'generate-ai-outreach-email',
   'ask-nomadic-assistant',
   'get-learner-progress', 'save-learner-progress', 'generate-ai-onboarding-profile',
@@ -743,6 +792,8 @@ export interface NomadicApi {
   cancelAutonomousApply: Invoke<'cancel-autonomous-apply'>;
   startBatchCoPilot: Invoke<'start-batch-copilot'>;
   submitAllBatchCoPilot: Invoke<'submit-all-batch-copilot'>;
+  getEntitlements: Invoke<'get-entitlements'>;
+  startCheckout: Invoke<'start-checkout'>;
   verifyEmail: Invoke<'verify-email'>;
   getHrContacts: Invoke<'get-hr-contacts'>;
   sendOutreach: Invoke<'send-outreach'>;

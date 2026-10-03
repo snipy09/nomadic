@@ -6,6 +6,7 @@ import userEvent from '@testing-library/user-event';
 import { UIProvider } from '@nomadic/ui';
 import type { AutoApplyProgressEvent, BatchSnapshot } from '../../shared/ipc';
 import { useApplyRunner, type ApplyTarget } from '../features/apply/useApplyRunner';
+import { QueryWrapper, entitlements } from './entitlementsFixture';
 
 afterEach(() => { cleanup(); delete (window as any).api; });
 
@@ -36,6 +37,7 @@ function mockApi(over: Record<string, unknown> = {}) {
     submitAllBatchCoPilot: vi.fn().mockResolvedValue({ success: true, applied: 1, failed: 0, total: 1, results: [{ id: 'app_1', submitted: true, confirmed: true }] }),
     cancelAutonomousApply: vi.fn().mockResolvedValue({ success: true }),
     launchAutonomous: vi.fn(),
+    getEntitlements: vi.fn().mockResolvedValue({ success: true, entitlements: entitlements() }),
     onAutoApplyProgress: vi.fn((cb: (e: AutoApplyProgressEvent) => void) => { progress = cb; return () => { progress = null; }; }),
     ...over,
   };
@@ -53,7 +55,7 @@ function Harness({ onSubmitted }: { onSubmitted?: () => void }) {
   );
 }
 
-const renderHarness = (onSubmitted?: () => void) => render(<UIProvider><Harness onSubmitted={onSubmitted} /></UIProvider>);
+const renderHarness = (onSubmitted?: () => void) => render(<QueryWrapper seed={entitlements()}><UIProvider><Harness onSubmitted={onSubmitted} /></UIProvider></QueryWrapper>);
 const submitButton = () => screen.getByRole('button', { name: /submit .*reviewed/i }) as HTMLButtonElement;
 const reviewedBox = () => screen.getByRole('checkbox', { name: /i reviewed this application/i });
 

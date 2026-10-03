@@ -141,6 +141,12 @@ export const batchOverridesArgs: ArgSchemas<'submit-all-batch-copilot'> = [
   opt(z.array(snapshotId).max(BATCH_MAX)),
 ];
 
+// ── billing ────────────────────────────────────────────────────────────────
+export const getEntitlementsArgs: ArgSchemas<'get-entitlements'> = [
+  opt(z.object({ fresh: opt(z.boolean()) }).strict()),
+];
+export const startCheckoutArgs: ArgSchemas<'start-checkout'> = [z.enum(['pro', 'max'])];
+
 // ── outreach ───────────────────────────────────────────────────────────────
 export const emailArgs: ArgSchemas<'verify-email'> = [str(320)];
 export const targetRoleArgs: ArgSchemas<'get-hr-contacts'> = [opt(str())];
