@@ -47,6 +47,8 @@ const section = [
     `(legacy ${pct(old.summary.accuracy)} / ${pct(old.summary.wrongRate)} wrong; new ${pct(neu.summary.accuracy)} / ${pct(neu.summary.wrongRate)} wrong` +
     `${noLlm ? `; new without LLM ${pct(noLlm.summary.accuracy)} / ${pct(noLlm.summary.wrongRate)} wrong` : ''}).`,
   '',
+  gatePass ? '**Step 1.7 done:** the legacy solvers (`fast-batch-filler`, `form-filler`, `deterministic-form-solver`, `omni-form-solver`, `ai-fallback`), the legacy bot bodies, the dead fill helpers in `auto-apply-engine.ts`, their tests and the `NOMADIC_FORM_ENGINE=old` flag were deleted. These numbers were re-measured after the deletion. The baseline was measured at commit `14b3480`, the last commit with the legacy code.' : '**Step 1.7 not done:** the gate failed, legacy code kept.',
+  '',
   '### Caveats',
   '',
   '- The fixtures are static re-creations of ATS markup patterns written for this benchmark, not captured live pages (live capture is scripted in `src/capture.ts` but needs real URLs). The new engine was developed against the same fixtures, so its score is an upper bound until live captures are added; the legacy engine was not tuned to them.',

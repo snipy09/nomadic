@@ -10,7 +10,6 @@ export {
   adapterById,
   runPortalAdapter,
   applyWithAdapter,
-  formEngineMode,
   PORTAL_ADAPTERS,
   type PortalAdapter,
   type BotApplyOptions,

@@ -78,8 +78,11 @@ AutoApplyEngine.formEvents.on('event', ({ url, event }) => mainWindow.webContent
 ## Feature flag
 
 `NOMADIC_FORM_ENGINE=old` routed the bots and `AutoApplyEngine` through the
-legacy solver chain during Steps 1.6/1.7. See `packages/form-bench/results/new-engine.md`
-for whether the legacy code is still present.
+legacy solver chain during Step 1.6. The benchmark gate passed
+(`packages/form-bench/results/new-engine.md`), so Step 1.7 deleted the legacy
+solvers (`fast-batch-filler`, `form-filler`, `deterministic-form-solver`,
+`omni-form-solver`, `ai-fallback`) and the flag. The last commit containing them
+is `14b3480`.
 
 ## Tests and benchmark
 

@@ -1,7 +1,7 @@
 /**
  * Form-filling benchmark runner.
  *
- *   npm run bench:forms -- --engine=old            # legacy chain -> results/baseline.{json,md}
+ *   (--engine=old, the legacy chain, was removed in Step 1.7; baseline kept in results/baseline.*)
  *   npm run bench:forms -- --engine=new            # FormEngine   -> results/new-engine.{json,md}
  *   options: --only=<substring>  --llm=mock|none (new engine)  --out=<name>  --headed
  *
@@ -27,7 +27,7 @@ const args = Object.fromEntries(
   })
 ) as Record<string, string>;
 
-const engineName = (args.engine || process.env.NOMADIC_FORM_ENGINE || 'old') as 'old' | 'new';
+const engineName = (args.engine || 'new') as 'old' | 'new';
 const RESULTS_DIR = path.join(BENCH_ROOT, 'results');
 
 export interface FormResult {
@@ -71,8 +71,9 @@ async function loadEngine(): Promise<BenchEngine> {
     const mod = await import('./engines/new.ts');
     return mod.createNewEngine({ llm: (args.llm as 'mock' | 'none') || 'mock' });
   }
-  const mod = await import('./engines/old.ts');
-  return mod.oldEngine;
+  // The legacy engine was deleted in Step 1.7. Its scoreboard is results/baseline.{json,md};
+  // to re-run it, check out commit 14b3480 (last commit with the legacy solvers).
+  throw new Error('--engine=old was removed with the legacy solvers (Step 1.7); see results/baseline.md or check out commit 14b3480');
 }
 
 function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {

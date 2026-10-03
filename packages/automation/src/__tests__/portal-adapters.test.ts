@@ -2,7 +2,7 @@ import fs from 'fs';
 import { afterAll, describe, expect, it } from 'vitest';
 import { chromium, type Browser } from 'playwright';
 import { dispatchSpecializedPortalBot } from '../bots/bot-dispatcher.js';
-import { adapterFor, formEngineMode } from '../bots/portal-adapter.js';
+import { adapterFor } from '../bots/portal-adapter.js';
 import { AutoApplyEngine } from '../auto-apply-engine.js';
 import type { MasterProfile } from '../auto-apply-engine.js';
 
@@ -19,19 +19,13 @@ const profile: MasterProfile = {
 };
 
 describe('portal adapters', () => {
-  it('routes URLs to adapters and defaults to the new engine', () => {
+  it('routes URLs to adapters', () => {
     expect(adapterFor('https://jobs.ashbyhq.com/acme/123/application').id).toBe('ashby');
     expect(adapterFor('https://boards.greenhouse.io/acme/jobs/1').id).toBe('greenhouse');
     expect(adapterFor('https://jobs.lever.co/acme/uuid/apply').id).toBe('lever');
     expect(adapterFor('https://internshala.com/internship/detail/x').id).toBe('internshala');
     expect(adapterFor('https://acme.wd5.myworkdayjobs.com/x/job/1').id).toBe('workday');
     expect(adapterFor('https://careers.acme.com/apply').id).toBe('generic');
-    const prev = process.env.NOMADIC_FORM_ENGINE;
-    delete process.env.NOMADIC_FORM_ENGINE;
-    expect(formEngineMode()).toBe('new');
-    process.env.NOMADIC_FORM_ENGINE = 'old';
-    expect(formEngineMode()).toBe('old');
-    if (prev === undefined) delete process.env.NOMADIC_FORM_ENGINE; else process.env.NOMADIC_FORM_ENGINE = prev;
   });
 
   it('maps engine events onto the desktop status events', () => {

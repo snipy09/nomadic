@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
 import { getATSConfig, ATS_PORTALS } from '../ats-portals.js';
-import { FormFiller, type CandidateProfile } from '../form-filler.js';
 import { ApplicationNavigator } from '../navigator.js';
 import { FormSubmitter } from '../submitter.js';
 
@@ -36,37 +35,6 @@ describe('Deterministic ATS Portal Registry', () => {
   it('falls back to Generic ATS for unknown portals', () => {
     const config = getATSConfig('https://careers.unknownstartup.ai/job/123');
     expect(config.name).toBe('Generic ATS');
-  });
-});
-
-describe('FormFiller Deterministic Engine', () => {
-  it('fills form fields and solves radio groups', async () => {
-    const mockPage = {
-      frames: vi.fn().mockReturnValue([]),
-      evaluate: vi.fn()
-        .mockResolvedValueOnce(5)  // text inputs
-        .mockResolvedValueOnce(3)  // radio groups
-        .mockResolvedValueOnce(2)  // dropdowns
-        .mockResolvedValueOnce(1), // checkboxes
-      $$: vi.fn().mockResolvedValue([]),
-    } as any;
-
-    const profile: CandidateProfile = {
-      firstName: 'Sajal',
-      lastName: 'Mishra',
-      email: 'sajal@nomadic.app',
-      phone: '+91 9493833632',
-    };
-
-    const config = ATS_PORTALS['internshala'];
-    const filler = new FormFiller(mockPage, config, profile);
-    const result = await filler.fillFormDeterministic();
-
-    expect(result.success).toBe(true);
-    expect(result.fieldsFilled).toBe(11);
-    expect(result.radiosSolved).toBe(3);
-    expect(result.dropdownsFilled).toBe(2);
-    expect(result.checkboxesChecked).toBe(1);
   });
 });
 

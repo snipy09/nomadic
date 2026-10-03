@@ -3,9 +3,6 @@
  * from a job page to the application form (click Apply, open a modal, pick
  * "Apply manually") and whether the flow is multi-step. Filling, verifying and
  * submitting are done by the shared engine.
- *
- * Set NOMADIC_FORM_ENGINE=old to route the bots and AutoApplyEngine through the
- * legacy solvers instead.
  */
 import type { Page } from 'playwright';
 import {
@@ -17,13 +14,6 @@ import {
   type SubmitOutcome,
 } from '../../../form-engine/src/index.js';
 import type { MasterProfile } from '../../../form-engine/src/profile.js';
-
-export type FormEngineMode = 'new' | 'old';
-
-/** Feature flag: NOMADIC_FORM_ENGINE=old keeps the legacy solver chain. */
-export function formEngineMode(): FormEngineMode {
-  return String(process.env.NOMADIC_FORM_ENGINE || '').toLowerCase() === 'old' ? 'old' : 'new';
-}
 
 export interface SpecializedBotResult {
   success: boolean;
