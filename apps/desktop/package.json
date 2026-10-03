@@ -12,7 +12,8 @@
     "start": "electron --disable-gpu .",
     "compile": "node build-main.mjs && vite build",
     "build": "node build-main.mjs && vite build",
-    "package:win": "node build-main.mjs && vite build && electron-builder --win nsis portable"
+    "package:win": "node build-main.mjs && vite build && electron-builder --win nsis portable",
+    "typecheck": "tsc --noEmit"
   },
   "build": {
     "appId": "com.nomadic.career.os",
@@ -96,6 +97,7 @@
     "cross-env": "^7.0.3",
     "electron": "^31.7.7",
     "electron-builder": "^24.9.1",
+    "jsdom": "^26.1.0",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.3.3",

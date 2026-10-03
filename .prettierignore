@@ -1,0 +1,12 @@
+node_modules
+dist
+dist-ssr
+dist-electron
+out
+build
+coverage
+package-lock.json
+**/package-lock.json
+*.excalidraw
+apps/desktop/src/renderer/data/*.json
+packages/supabase/migrations
