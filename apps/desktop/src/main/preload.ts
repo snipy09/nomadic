@@ -1,117 +1,106 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
+import type { ChannelArgs, ChannelName, ChannelResult, EventName, IpcEvents, NomadicApi } from '../shared/ipc';
 
-const apiObj = {
-  getMasterProfile: () => ipcRenderer.invoke('get-master-profile'),
-  saveMasterProfile: (data: Record<string, unknown>) => ipcRenderer.invoke('save-master-profile', data),
-  getResumes: () => ipcRenderer.invoke('get-resumes'),
-  saveResume: (resume: Record<string, unknown>) => ipcRenderer.invoke('save-resume', resume),
-  deleteResume: (id: number) => ipcRenderer.invoke('delete-resume', id),
-  setDefaultResume: (id: number) => ipcRenderer.invoke('set-default-resume', id),
-  pickResumeFile: () => ipcRenderer.invoke('pick-resume-file'),
-  runScrapers: () => ipcRenderer.invoke('run-scrapers'),
-  getCloudFeed: (userId: string) => ipcRenderer.invoke('get-cloud-feed', userId),
-  getCloudFeedPage: (options?: { page?: number; pageSize?: number; search?: string; filterTab?: string; source?: string }) =>
-    ipcRenderer.invoke('get-cloud-feed-page', options),
-  launchSemiAuto: (jobUrls: string[]) => ipcRenderer.invoke('launch-semi-auto', jobUrls),
-  launchAutonomous: (jobUrls: string[]) => ipcRenderer.invoke('launch-autonomous', jobUrls),
-  cancelAutonomousApply: () => ipcRenderer.invoke('cancel-autonomous-apply'),
-  startBatchCoPilot: (targets: Array<{ url: string; company?: string; title?: string }>) => ipcRenderer.invoke('start-batch-copilot', targets),
-  submitAllBatchCoPilot: (overrides?: Record<string, Record<string, string>>) => ipcRenderer.invoke('submit-all-batch-copilot', overrides),
-  verifyEmail: (email: string) => ipcRenderer.invoke('verify-email', email),
-  getHrContacts: (targetRole?: string) => ipcRenderer.invoke('get-hr-contacts', targetRole),
-  sendOutreach: (contacts: Array<{ email: string; name?: string; company?: string; role?: string; subject?: string; body?: string }>) =>
-    ipcRenderer.invoke('send-outreach', contacts),
-  getApplications: () => ipcRenderer.invoke('get-applications'),
-  saveApplication: (app: Record<string, unknown>) => ipcRenderer.invoke('save-application', app),
-  getSavedJobs: () => ipcRenderer.invoke('get-saved-jobs'),
-  saveJob: (job: Record<string, unknown>) => ipcRenderer.invoke('save-job', job),
-  removeSavedJob: (applyUrl: string) => ipcRenderer.invoke('remove-saved-job', applyUrl),
-  checkDependencies: () => ipcRenderer.invoke('check-dependencies'),
-  installDependencies: () => ipcRenderer.invoke('install-dependencies'),
-  testGroqKey: (key: string) => ipcRenderer.invoke('test-groq-key', key),
-  startHeartbeat: (userId: string, sessionToken: string, deviceFingerprint: string) =>
-    ipcRenderer.invoke('start-heartbeat', { userId, sessionToken, deviceFingerprint }),
-  stopHeartbeat: () => ipcRenderer.invoke('stop-heartbeat'),
-  syncCloudData: () => ipcRenderer.invoke('sync-cloud-data'),
-  getDeviceInfo: () => ipcRenderer.invoke('get-device-info'),
-  onLog: (cb: (m: string) => void) => {
-    const handler = (_: unknown, msg: string) => cb(msg);
-    ipcRenderer.on('log', handler);
-    return () => ipcRenderer.removeListener('log', handler);
-  },
-  onHeartbeatStatus: (cb: (status: { valid: boolean; reason?: string; ip?: string }) => void) => {
-    const handler = (_: unknown, status: { valid: boolean; reason?: string; ip?: string }) => cb(status);
-    ipcRenderer.on('heartbeat-status', handler);
-    return () => ipcRenderer.removeListener('heartbeat-status', handler);
-  },
-  openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
+// Runs sandboxed (webPreferences.sandbox = true): only `contextBridge` and
+// `ipcRenderer` are used, and only type imports come from shared/ipc.
+
+function invoke<C extends ChannelName>(channel: C, ...args: ChannelArgs<C>): Promise<ChannelResult<C>> {
+  return ipcRenderer.invoke(channel, ...args);
+}
+
+function subscribe<E extends EventName>(event: E, cb: (payload: IpcEvents[E]) => void): () => void {
+  const handler = (_: IpcRendererEvent, payload: IpcEvents[E]) => cb(payload);
+  ipcRenderer.on(event, handler);
+  return () => {
+    ipcRenderer.removeListener(event, handler);
+  };
+}
+
+const apiObj: NomadicApi = {
+  getMasterProfile: () => invoke('get-master-profile'),
+  saveMasterProfile: (data) => invoke('save-master-profile', data),
+  getResumes: () => invoke('get-resumes'),
+  saveResume: (resume) => invoke('save-resume', resume),
+  deleteResume: (id) => invoke('delete-resume', id),
+  setDefaultResume: (id) => invoke('set-default-resume', id),
+  pickResumeFile: () => invoke('pick-resume-file'),
+  runScrapers: () => invoke('run-scrapers'),
+  getCloudFeed: (userId) => invoke('get-cloud-feed', userId),
+  getCloudFeedPage: (options) => invoke('get-cloud-feed-page', options),
+  launchSemiAuto: (jobUrls) => invoke('launch-semi-auto', jobUrls),
+  launchAutonomous: (jobUrls) => invoke('launch-autonomous', jobUrls),
+  cancelAutonomousApply: () => invoke('cancel-autonomous-apply'),
+  startBatchCoPilot: (targets) => invoke('start-batch-copilot', targets),
+  submitAllBatchCoPilot: (overrides) => invoke('submit-all-batch-copilot', overrides),
+  verifyEmail: (email) => invoke('verify-email', email),
+  getHrContacts: (targetRole) => invoke('get-hr-contacts', targetRole),
+  sendOutreach: (contacts) => invoke('send-outreach', contacts),
+  getApplications: () => invoke('get-applications'),
+  saveApplication: (app) => invoke('save-application', app),
+  getSavedJobs: () => invoke('get-saved-jobs'),
+  saveJob: (job) => invoke('save-job', job),
+  removeSavedJob: (applyUrl) => invoke('remove-saved-job', applyUrl),
+  checkDependencies: () => invoke('check-dependencies'),
+  installDependencies: () => invoke('install-dependencies'),
+  testGroqKey: (key) => invoke('test-groq-key', key),
+  startHeartbeat: (userId, sessionToken, deviceFingerprint) =>
+    invoke('start-heartbeat', { userId, sessionToken, deviceFingerprint }),
+  stopHeartbeat: () => invoke('stop-heartbeat'),
+  syncCloudData: () => invoke('sync-cloud-data'),
+  getDeviceInfo: () => invoke('get-device-info'),
+  onLog: (cb) => subscribe('log', cb),
+  onHeartbeatStatus: (cb) => subscribe('heartbeat-status', cb),
+  onAutoApplyProgress: (cb) => subscribe('auto-apply-progress', cb),
+  openExternalUrl: (url) => invoke('open-external-url', url),
 
   // AI Generation Handlers
-  askNomadicAssistant: (data: { message: string; history?: Array<{ sender: string; text: string }> }) =>
-    ipcRenderer.invoke('ask-nomadic-assistant', data),
-  generateAiOutreachEmail: (params: { role?: string; company?: string; recipientName?: string; tone?: string; skills?: string; candidateName?: string }) =>
-    ipcRenderer.invoke('generate-ai-outreach-email', params),
-  generateAiOnboardingProfile: (params: Record<string, unknown>) =>
-    ipcRenderer.invoke('generate-ai-onboarding-profile', params),
-  generateCustomRoadmap: (params: Record<string, unknown>) =>
-    ipcRenderer.invoke('generate-custom-roadmap', params),
-  getCustomRoadmaps: () => ipcRenderer.invoke('get-custom-roadmaps'),
-  saveCustomRoadmap: (roadmap: Record<string, unknown>) =>
-    ipcRenderer.invoke('save-custom-roadmap', roadmap),
-  deleteCustomRoadmap: (id: string) => ipcRenderer.invoke('delete-custom-roadmap', id),
+  askNomadicAssistant: (data) => invoke('ask-nomadic-assistant', data),
+  generateAiOutreachEmail: (params) => invoke('generate-ai-outreach-email', params),
+  generateAiOnboardingProfile: (params) => invoke('generate-ai-onboarding-profile', params),
+  generateCustomRoadmap: (params) => invoke('generate-custom-roadmap', params),
+  getCustomRoadmaps: () => invoke('get-custom-roadmaps'),
+  saveCustomRoadmap: (roadmap) => invoke('save-custom-roadmap', roadmap),
+  deleteCustomRoadmap: (id) => invoke('delete-custom-roadmap', id),
 
   // Activity Heatmap & Logging
-  getActivityHeatmap: (days?: number) => ipcRenderer.invoke('get-activity-heatmap', days),
-  logUserActivity: (activityType: string, details?: string) =>
-    ipcRenderer.invoke('log-user-activity', { activityType, details }),
-  getActivityStats: () => ipcRenderer.invoke('get-activity-stats'),
+  getActivityHeatmap: (days) => invoke('get-activity-heatmap', days),
+  logUserActivity: (activityType, details) => invoke('log-user-activity', { activityType, details }),
+  getActivityStats: () => invoke('get-activity-stats'),
 
   // Learner Progress & Roadmap State
-  getLearnerProgress: (roadmapId: string) => ipcRenderer.invoke('get-learner-progress', roadmapId),
-  saveLearnerProgress: (progress: Record<string, unknown>) => ipcRenderer.invoke('save-learner-progress', progress),
+  getLearnerProgress: (roadmapId) => invoke('get-learner-progress', roadmapId),
+  saveLearnerProgress: (progress) => invoke('save-learner-progress', progress),
 
   // Applications Management
-  updateApplicationStatus: (id: number | string, status: string) =>
-    ipcRenderer.invoke('update-application-status', { id, status }),
-  deleteApplication: (id: number | string) => ipcRenderer.invoke('delete-application', id),
+  updateApplicationStatus: (id, status) => invoke('update-application-status', { id, status }),
+  deleteApplication: (id) => invoke('delete-application', id),
 
   // Interview Evaluation
-  evaluateInterviewAnswer: (params: { questionId: string; questionTitle: string; answerText: string; category?: string }) =>
-    ipcRenderer.invoke('evaluate-interview-answer', params),
+  evaluateInterviewAnswer: (params) => invoke('evaluate-interview-answer', params),
 
   // Admin & Authentication APIs
-  authLogin: (credentials: Record<string, unknown>) => ipcRenderer.invoke('auth-login', credentials),
-  authSignup: (credentials: Record<string, unknown>) => ipcRenderer.invoke('auth-signup', credentials),
-  adminGetUsers: () => ipcRenderer.invoke('admin-get-users'),
-  adminCreateUser: (user: Record<string, unknown>) => ipcRenderer.invoke('admin-create-user', user),
-  adminUpdateUserStatus: (id: number, status: string) => ipcRenderer.invoke('admin-update-user-status', { id, status }),
-  adminDeleteUser: (id: number) => ipcRenderer.invoke('admin-delete-user', id),
-  adminAssignPlan: (data: { userId: string | number; email?: string; planTier: string; expiresAt?: string }) =>
-    ipcRenderer.invoke('admin-assign-plan', data),
-  adminGetLearningResources: () => ipcRenderer.invoke('admin-get-learning-resources'),
-  adminAddLearningResource: (resource: Record<string, unknown>) =>
-    ipcRenderer.invoke('admin-add-learning-resource', resource),
-  adminDeleteLearningResource: (id: number | string) =>
-    ipcRenderer.invoke('admin-delete-learning-resource', id),
-  getRecommendedResourcesForJob: (params: { title: string; description?: string; techStack?: string }) =>
-    ipcRenderer.invoke('get-recommended-resources-for-job', params),
-  adminGetBilling: () => ipcRenderer.invoke('admin-get-billing'),
-  adminCreateBillingRecord: (record: Record<string, unknown>) => ipcRenderer.invoke('admin-create-billing-record', record),
-  adminGetMetrics: () => ipcRenderer.invoke('admin-get-metrics'),
-  authGoogle: () => ipcRenderer.invoke('auth-google'),
-  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
-  downloadUpdate: (downloadUrl?: string) => ipcRenderer.invoke('download-update', downloadUrl),
-  installUpdate: (installerPath?: string) => ipcRenderer.invoke('install-update', installerPath),
-  onUpdateDownloadProgress: (cb: (progressPct: number) => void) => {
-    const handler = (_: unknown, pct: number) => cb(pct);
-    ipcRenderer.on('update-download-progress', handler);
-    return () => ipcRenderer.removeListener('update-download-progress', handler);
-  },
-  onOauthCallback: (cb: (url: string) => void) => {
-    const handler = (_: unknown, url: string) => cb(url);
-    ipcRenderer.on('oauth-callback', handler);
-    return () => ipcRenderer.removeListener('oauth-callback', handler);
-  },
+  authLogin: (credentials) => invoke('auth-login', credentials),
+  authSignup: (credentials) => invoke('auth-signup', credentials),
+  authGoogle: () => invoke('auth-google'),
+  onOauthCallback: (cb) => subscribe('oauth-callback', cb),
+  adminGetUsers: () => invoke('admin-get-users'),
+  adminCreateUser: (user) => invoke('admin-create-user', user),
+  adminUpdateUserStatus: (id, status) => invoke('admin-update-user-status', { id, status }),
+  adminDeleteUser: (id) => invoke('admin-delete-user', id),
+  adminAssignPlan: (data) => invoke('admin-assign-plan', data),
+  adminGetLearningResources: () => invoke('admin-get-learning-resources'),
+  adminAddLearningResource: (resource) => invoke('admin-add-learning-resource', resource),
+  adminDeleteLearningResource: (id) => invoke('admin-delete-learning-resource', id),
+  getRecommendedResourcesForJob: (params) => invoke('get-recommended-resources-for-job', params),
+  adminGetBilling: () => invoke('admin-get-billing'),
+  adminCreateBillingRecord: (record) => invoke('admin-create-billing-record', record),
+  adminGetMetrics: () => invoke('admin-get-metrics'),
+
+  // In-App Updates
+  checkForUpdates: () => invoke('check-for-updates'),
+  downloadUpdate: (downloadUrl) => invoke('download-update', downloadUrl),
+  installUpdate: (installerPath) => invoke('install-update', installerPath),
+  onUpdateDownloadProgress: (cb) => subscribe('update-download-progress', cb),
 };
 
 contextBridge.exposeInMainWorld('api', apiObj);

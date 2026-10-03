@@ -15,6 +15,10 @@
  * only) so it can be bundled into the sandboxed preload and the renderer.
  */
 
+import type { FillReport, FormEngineEvent } from '@job-automator/form-engine';
+
+export type { FillReport, FormEngineEvent };
+
 // ── Shared payload shapes ───────────────────────────────────────────────────
 
 export interface SuccessResult {
@@ -466,16 +470,30 @@ export interface AssignPlanInput {
   expiresAt?: string;
 }
 
+/** Mirrors automation's `AutoApplyStatusEvent` (status pill + new form-engine detail). */
+export interface AutoApplyStatusEvent {
+  phase: string;
+  message: string;
+  colorState: 'grey' | 'green' | 'red';
+  progress?: number;
+  actionRequired?: string;
+  /** Structured FormEngine event behind this status (new engine only). */
+  formEvent?: FormEngineEvent;
+  /** Final fill report, attached to the closing event of a run (new engine only). */
+  report?: FillReport;
+}
+
 export interface AutoApplyProgressEvent {
   log: string;
   progress?: number;
-  statusEvent: {
-    phase: string;
-    message: string;
-    colorState: 'grey' | 'green' | 'red';
-    progress?: number;
-    actionRequired?: string;
-  };
+  statusEvent: AutoApplyStatusEvent;
+}
+
+/** A field the candidate must answer themselves (from `ApplyResult.needsUser`). */
+export interface NeedsUserField {
+  label: string;
+  reason: string;
+  required: boolean;
 }
 
 export interface OAuthCallbackPayload {

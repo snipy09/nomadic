@@ -17,9 +17,10 @@ import type { ChannelArgs, ChannelName, ChannelResult } from '../../shared/ipc.j
  */
 
 /** One zod schema per positional argument of channel `C`. */
-export type ArgSchemas<C extends ChannelName> = {
-  readonly [K in keyof ChannelArgs<C>]-?: z.ZodType<ChannelArgs<C>[K], z.ZodTypeDef, unknown>;
+type SchemaTuple<T extends readonly unknown[]> = {
+  readonly [K in keyof T]-?: z.ZodType<T[K], z.ZodTypeDef, unknown>;
 };
+export type ArgSchemas<C extends ChannelName> = SchemaTuple<ChannelArgs<C>>;
 
 export type IpcHandler<C extends ChannelName> = (
   ...args: ChannelArgs<C>
