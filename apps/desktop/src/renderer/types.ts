@@ -368,6 +368,27 @@ export interface ElectronAPI {
     improvements?: string[];
   }>;
 
+  /** Data safety (F10). Absent in browser preview. */
+  getDataHealth?: () => Promise<{
+    success: boolean;
+    error?: string;
+    health: {
+      startup: 'new' | 'ok' | 'recovered_from_backup' | 'reset_after_corruption';
+      migration: 'up_to_date' | 'migrated' | 'failed' | 'newer_than_app';
+      migrationError?: string;
+      schemaVersion: number;
+      latestSchemaVersion: number;
+      integrity: 'ok';
+      checkedAt: string;
+    } | null;
+    backups: number;
+    latestBackupAt: string | null;
+    sizeBytes: number | null;
+  }>;
+  copyDiagnostics?: () => Promise<{ success: boolean; error?: string; text?: string }>;
+  exportAccountData?: () => Promise<{ success: boolean; error?: string; canceled?: boolean; filePath?: string; serverIncluded?: boolean }>;
+  deleteAccount?: (input: { confirmEmail: string; password: string }) => Promise<{ success: boolean; error?: string }>;
+
   // Admin & Auth Handlers
   authLogin: (credentials: {
     username?: string;

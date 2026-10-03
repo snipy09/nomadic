@@ -16,7 +16,7 @@ Status: ✅ done · 🟡 partial · ⬜ not started
 | F7 | Learning: My Path and Today | 🟡 | Skill graph seed, planner, lessons, SM-2, streaks | First lesson < 3 min; failed items resurface |
 | F8 | Practice and interview prep | ⬜ | One Practice area, runner, rubric AI feedback, weak topics | Limits enforced server side |
 | F9 | Billing and plans | 🟡 | Webhook done; in-app checkout, invoices, entitlements service | Plan change reflected < 10 s |
-| F10 | Sync, offline and data safety | 🟡 | Event sync, offline lessons, local migrations + backup, export/delete account | Identical progress after reinstall |
+| F10 | Sync, offline and data safety | 🟡 | Built: versioned local SQLite migrations (PRAGMA user_version, one transaction each), backup before migrating (5 kept), integrity check at startup with quarantine + restore from backup, atomic writes, Copy diagnostics, JSON export and account deletion (018) in Settings → Data & privacy. Left: event sync, apply 018 in production | Identical progress after reinstall |
 | F11 | Updates, telemetry, support | 🟡 | Signed auto-update, Sentry, in-app help/feedback | Tagged release updates a real install |
 | F12 | Admin and content tools | ⬜ | Split AdminView, content editing with versions, scraper health, audit log | Every edit versioned |
 | F13 | Hidden/optional: Outreach, Opportunity Board, Resource Vault, Assistant | ⬜ | Behind flags until each meets the bar, or cut | Decision per feature |

@@ -8,7 +8,7 @@ if (typeof globalThis.WebSocket === 'undefined') {
     (globalThis as any).WebSocket = WebSocket;
   } catch {}
 }
-import { initLocalDatabase } from './db.js';
+import { getLocalDbHealth, initLocalDatabase } from './db.js';
 import { findChromeExecutable } from '@job-automator/automation';
 import { registerAllIpc, setIpcSenderGuard } from './ipc/index.js';
 import { getMainWindow, log } from './services/app-context.js';
@@ -106,7 +106,12 @@ app.whenReady().then(async () => {
 
   try {
     await initLocalDatabase(app.getPath('userData'));
-    log('[Database] Local SQLite initialized successfully ✓');
+    const h = getLocalDbHealth();
+    if (h && (h.startup === 'recovered_from_backup' || h.startup === 'reset_after_corruption' || h.migration === 'failed' || h.migration === 'newer_than_app')) {
+      log(`[Database] Needs attention: startup=${h.startup}, migration=${h.migration}${h.migrationError ? ` (${h.migrationError})` : ''}. See Settings → Data & privacy.`);
+    } else {
+      log(`[Database] Local SQLite ready (schema v${h?.schemaVersion ?? '?'}, integrity ok) ✓`);
+    }
   } catch (err: any) {
     console.error('[Database] Init note:', err?.message);
   }

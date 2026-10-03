@@ -2,6 +2,7 @@ import { registerAdminIpc } from './admin.js';
 import { registerApplyIpc } from './apply.js';
 import { registerAssistantIpc } from './assistant.js';
 import { registerAuthIpc } from './auth.js';
+import { registerDataSafetyIpc } from './data-safety.js';
 import { registerFeedIpc } from './feed.js';
 import { registerLearnerIpc } from './learner.js';
 import { registerOutreachIpc } from './outreach.js';
@@ -23,4 +24,5 @@ export function registerAllIpc(): void {
   registerAssistantIpc();
   registerLearnerIpc();
   registerAdminIpc();
+  registerDataSafetyIpc();
 }

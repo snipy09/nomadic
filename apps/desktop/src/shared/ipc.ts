@@ -472,6 +472,41 @@ export interface AuthResult {
   error?: string;
 }
 
+// ── Data safety (F10) ──────────────────────────────────────────────────────
+
+export type DbStartupState = 'new' | 'ok' | 'recovered_from_backup' | 'reset_after_corruption';
+export type DbMigrationStatus = 'up_to_date' | 'migrated' | 'failed' | 'newer_than_app';
+
+/** What happened to the local database at startup. */
+export interface LocalDbHealth {
+  startup: DbStartupState;
+  migration: DbMigrationStatus;
+  migrationError?: string;
+  schemaVersion: number;
+  latestSchemaVersion: number;
+  integrity: 'ok';
+  checkedAt: string;
+}
+
+export interface DataHealthResult extends SuccessResult {
+  health: LocalDbHealth | null;
+  backups: number;
+  latestBackupAt: string | null;
+  sizeBytes: number | null;
+}
+
+export interface AccountExportResult extends SuccessResult {
+  canceled?: boolean;
+  filePath?: string;
+  /** False when the account's server copy could not be fetched; the file then says why. */
+  serverIncluded?: boolean;
+}
+
+export interface DeleteAccountInput {
+  confirmEmail: string;
+  password: string;
+}
+
 export interface HeartbeatOptions {
   userId: string;
   sessionToken: string;
@@ -663,6 +698,10 @@ export interface IpcChannels {
   'stop-heartbeat': Channel<[], { success: boolean }>;
   'sync-cloud-data': Channel<[], SuccessResult & { pulled?: boolean }>;
   'get-device-info': Channel<[], DeviceInfo>;
+  'get-data-health': Channel<[], DataHealthResult>;
+  'copy-diagnostics': Channel<[], SuccessResult & { text?: string }>;
+  'export-account-data': Channel<[], AccountExportResult>;
+  'delete-account': Channel<[input: DeleteAccountInput], SuccessResult>;
 
   // admin
   'admin-get-users': Channel<[], AdminUser[]>;
@@ -699,7 +738,7 @@ export const IPC_CHANNELS = [
   'get-activity-heatmap', 'log-user-activity', 'get-activity-stats', 'evaluate-interview-answer',
   'get-recommended-resources-for-job',
   'auth-google', 'auth-login', 'auth-signup', 'start-heartbeat', 'stop-heartbeat', 'sync-cloud-data',
-  'get-device-info',
+  'get-device-info', 'get-data-health', 'copy-diagnostics', 'export-account-data', 'delete-account',
   'admin-get-users', 'admin-create-user', 'admin-update-user-status', 'admin-delete-user',
   'admin-get-billing', 'admin-create-billing-record', 'admin-get-metrics', 'admin-assign-plan',
   'admin-get-learning-resources', 'admin-add-learning-resource', 'admin-delete-learning-resource',
@@ -758,6 +797,10 @@ export interface NomadicApi {
   stopHeartbeat: Invoke<'stop-heartbeat'>;
   syncCloudData: Invoke<'sync-cloud-data'>;
   getDeviceInfo: Invoke<'get-device-info'>;
+  getDataHealth: Invoke<'get-data-health'>;
+  copyDiagnostics: Invoke<'copy-diagnostics'>;
+  exportAccountData: Invoke<'export-account-data'>;
+  deleteAccount: Invoke<'delete-account'>;
   onLog: Subscribe<'log'>;
   onHeartbeatStatus: Subscribe<'heartbeat-status'>;
   onAutoApplyProgress: Subscribe<'auto-apply-progress'>;

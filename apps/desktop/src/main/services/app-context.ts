@@ -20,10 +20,20 @@ export function sendToRenderer<E extends EventName>(event: E, payload: IpcEvents
   mainWindow?.webContents.send(event, payload);
 }
 
+const RECENT_LOG_LINES = 200;
+const recentLog: string[] = [];
+
 export function log(msg: string): void {
   const stamped = `[${new Date().toISOString()}] ${msg}`;
   console.log(stamped);
+  recentLog.push(stamped);
+  if (recentLog.length > RECENT_LOG_LINES) recentLog.shift();
   sendToRenderer('log', stamped);
+}
+
+/** The last log lines of this run, oldest first (for diagnostics; redact before sharing). */
+export function getRecentLogLines(): string[] {
+  return [...recentLog];
 }
 
 /** Brings the main window to the front (used after OAuth callbacks). */

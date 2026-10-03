@@ -4,6 +4,9 @@ Rehearsed on PostgreSQL 16 with Supabase's roles and default grants (`packages/s
 all migrations 001–010 apply in order, a re-run skips them, and an `anon` smoke test passed
 (sign-up, sign-in, single-use login ticket, device registration, application push/pull/delete with session checks,
 operator-only functions denied to `anon`).
+`018` (account export and deletion) rehearsed the same way: both session-checked, deletion refused without the typed
+email or a fresh ticket of the same user, cascade removes all user rows including append-only learning events, payment
+records kept but detached, other users untouched.
 
 ## 1. Create the project (owner)
 Supabase dashboard → New project (region: Mumbai `ap-south-1` for Indian users). Save the database password.

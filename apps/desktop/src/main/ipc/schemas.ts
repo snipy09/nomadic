@@ -274,6 +274,11 @@ const heartbeatOptions = z
   .passthrough();
 export const heartbeatArgs: ArgSchemas<'start-heartbeat'> = [heartbeatOptions];
 
+// Account deletion re-checks the password on the server (fresh login ticket, migration 018).
+export const deleteAccountArgs: ArgSchemas<'delete-account'> = [
+  z.object({ confirmEmail: z.string().trim().toLowerCase().email().max(254), password: z.string().min(1).max(SHORT) }),
+];
+
 // ── admin ──────────────────────────────────────────────────────────────────
 const adminCreateUserInput = z
   .object({

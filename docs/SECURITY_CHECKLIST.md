@@ -34,6 +34,12 @@ Legend: ✅ fixed and verified · ⚠️ mitigated, follow-up needed · ☐ open
 | S8 | `jobs` readable by anon. | ✅ by design | Only `is_active = TRUE` rows; writes service-role only (`002`). Expired jobs are hidden via the `006` status trigger. |
 | S9 | Google sign-in (`apps/desktop/src/main/services/oauth.ts`) has no server-side session: it never calls `authenticate_user` or `register_device_session`, uses Google's `sub` as the user id (not a `users_profile` UUID), and its direct `users_profile` read/insert with the anon key is denied by RLS since `008`. Result: Google users get a local, free-tier, user-role account whose heartbeat and cloud sync cannot succeed. Nothing is escalated (role/tier are never taken from the client), but the flow cannot obtain a login ticket. | ☐ | Needs a server path: an RPC or Edge Function that verifies the Google ID token (or a Supabase Auth JWT) server-side, finds or creates the `users_profile` row by the verified email, and returns the same row shape as `authenticate_user` including `login_ticket`. The desktop then registers the device exactly like password sign-in. Also move the Google code exchange to PKCE so no client secret ships in the build. |
 
+## Account export and deletion (018)
+
+| # | Item | Status | Detail |
+|---|---|---|---|
+| S12 | Export and delete account (DPDP/GDPR, SAAS_PLAN "Trust") | ✅ (apply 018) | `account_export_data` is session-checked and never returns password hashes, session tokens, login tickets or gateway payloads. `account_delete` needs the session, the account email typed exactly and a fresh single-use login ticket (password re-entered through `authenticate_user`); it removes the account and every row that references it (cascade), clears login/sign-up attempts, and keeps payment records detached from the person (`deleted-account`, no user id, payload cleared). The desktop wipes the local database, its backups and quarantined copies only after the server confirms. Rehearsed on PostgreSQL 16. **Open:** Google-only accounts (no password, after S9) need a Google re-auth path to obtain the ticket. |
+
 ## Verified as correct (no change)
 
 - RLS is enabled on every table. `users_profile`, `user_sessions`, `user_preferences`, `user_job_matches`, `billing_records`, `razorpay_payments`, `user_cloud_profiles`, `user_applications`, `user_saved_jobs`, `user_resumes`, `scrape_runs`, `learning_events`, `user_tracks`, `practice_solutions`, `login_attempts`, `login_tickets`, `app_security` have **no** anon/authenticated policy: they are reachable only through session-checked SECURITY DEFINER RPCs or the service role.
@@ -48,7 +54,7 @@ Legend: ✅ fixed and verified · ⚠️ mitigated, follow-up needed · ☐ open
 `authenticate_user`, `register_device_session`, `verify_and_update_session`, `sync_pull_user_data`,
 `sync_push_user_profile`, `sync_push_application`, `sync_push_saved_job`, `sync_remove_saved_job`,
 `sync_push_resume`, `sync_delete_resume`, `sync_delete_application` (010), `learning_start_track`, `learning_archive_track`,
-`learning_record_events`, `learning_pull_events`. Any new client RPC must be added to this list in a
+`learning_record_events`, `learning_pull_events`, `account_export_data` and `account_delete` (018). Any new client RPC must be added to this list in a
 migration; everything else is denied by default.
 
 ## Owner actions
