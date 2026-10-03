@@ -1,0 +1,193 @@
+/*
+ * @nomadic/ui theme variables.
+ *
+ * Plain CSS (no Tailwind directives), so it can be imported from JS
+ * (`import '@nomadic/ui/styles.css'`) or from CSS before `@tailwind base`.
+ *
+ * Theme selection:
+ *   - `<html data-theme="dark">` or `<html class="dark">` forces dark.
+ *   - `<html data-theme="light">` forces light.
+ *   - neither: follows prefers-color-scheme.
+ * Any element can set data-theme to scope a theme to a subtree.
+ *
+ * Colours are RGB channels for Tailwind's `<alpha-value>`; use as
+ * `rgb(var(--nm-accent))` or `rgb(var(--nm-accent) / 0.2)` in raw CSS.
+ * Keep in sync with src/tokens.ts (enforced by tokens.test.ts).
+ */
+
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+  --nm-canvas: 245 246 250;
+  --nm-surface: 255 255 255;
+  --nm-surface-raised: 255 255 255;
+  --nm-surface-sunken: 238 240 246;
+  --nm-surface-hover: 241 242 247;
+  --nm-surface-active: 231 233 241;
+  --nm-line: 227 230 239;
+  --nm-line-strong: 203 208 226;
+  --nm-fg: 10 15 44;
+  --nm-fg-muted: 74 81 112;
+  --nm-fg-subtle: 107 114 144;
+  --nm-fg-disabled: 169 176 208;
+  --nm-accent: 35 56 224;
+  --nm-accent-hover: 29 48 196;
+  --nm-accent-active: 26 42 176;
+  --nm-accent-fg: 255 255 255;
+  --nm-accent-subtle: 236 238 253;
+  --nm-accent-subtle-fg: 26 42 176;
+  --nm-focus: 35 56 224;
+  --nm-success: 18 128 92;
+  --nm-success-subtle: 230 244 238;
+  --nm-success-fg: 14 107 76;
+  --nm-warning: 184 110 0;
+  --nm-warning-subtle: 253 243 220;
+  --nm-warning-fg: 138 82 0;
+  --nm-danger: 210 44 60;
+  --nm-danger-subtle: 252 235 236;
+  --nm-danger-fg: 174 31 46;
+  --nm-overlay: 10 15 44;
+
+  --nm-overlay-alpha: 0.32;
+  --nm-shadow-e1: 0 1px 2px 0 rgb(10 15 44 / 0.05);
+  --nm-shadow-e2: 0 4px 12px -2px rgb(10 15 44 / 0.10), 0 2px 4px -2px rgb(10 15 44 / 0.06);
+  --nm-shadow-e3: 0 20px 48px -12px rgb(10 15 44 / 0.25), 0 4px 12px -4px rgb(10 15 44 / 0.08);
+}
+
+[data-theme='dark'],
+:root.dark {
+  color-scheme: dark;
+  --nm-canvas: 10 12 20;
+  --nm-surface: 17 19 29;
+  --nm-surface-raised: 24 27 39;
+  --nm-surface-sunken: 13 15 24;
+  --nm-surface-hover: 28 31 44;
+  --nm-surface-active: 36 40 56;
+  --nm-line: 35 38 54;
+  --nm-line-strong: 51 55 74;
+  --nm-fg: 236 238 246;
+  --nm-fg-muted: 164 170 194;
+  --nm-fg-subtle: 122 128 154;
+  --nm-fg-disabled: 76 81 104;
+  --nm-accent: 61 81 242;
+  --nm-accent-hover: 80 99 245;
+  --nm-accent-active: 51 70 224;
+  --nm-accent-fg: 255 255 255;
+  --nm-accent-subtle: 26 31 68;
+  --nm-accent-subtle-fg: 174 184 250;
+  --nm-focus: 124 139 247;
+  --nm-success: 60 198 138;
+  --nm-success-subtle: 16 38 30;
+  --nm-success-fg: 111 220 170;
+  --nm-warning: 242 179 61;
+  --nm-warning-subtle: 42 33 18;
+  --nm-warning-fg: 247 201 107;
+  --nm-danger: 218 52 66;
+  --nm-danger-subtle: 46 20 24;
+  --nm-danger-fg: 247 134 141;
+  --nm-overlay: 3 4 10;
+
+  --nm-overlay-alpha: 0.6;
+  --nm-shadow-e1: 0 1px 2px 0 rgb(0 0 0 / 0.35);
+  --nm-shadow-e2: 0 8px 24px -4px rgb(0 0 0 / 0.55), 0 2px 6px -2px rgb(0 0 0 / 0.40);
+  --nm-shadow-e3: 0 24px 64px -12px rgb(0 0 0 / 0.70), 0 4px 16px -4px rgb(0 0 0 / 0.50);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']):not(.light) {
+    color-scheme: dark;
+    --nm-canvas: 10 12 20;
+    --nm-surface: 17 19 29;
+    --nm-surface-raised: 24 27 39;
+    --nm-surface-sunken: 13 15 24;
+    --nm-surface-hover: 28 31 44;
+    --nm-surface-active: 36 40 56;
+    --nm-line: 35 38 54;
+    --nm-line-strong: 51 55 74;
+    --nm-fg: 236 238 246;
+    --nm-fg-muted: 164 170 194;
+    --nm-fg-subtle: 122 128 154;
+    --nm-fg-disabled: 76 81 104;
+    --nm-accent: 61 81 242;
+    --nm-accent-hover: 80 99 245;
+    --nm-accent-active: 51 70 224;
+    --nm-accent-fg: 255 255 255;
+    --nm-accent-subtle: 26 31 68;
+    --nm-accent-subtle-fg: 174 184 250;
+    --nm-focus: 124 139 247;
+    --nm-success: 60 198 138;
+    --nm-success-subtle: 16 38 30;
+    --nm-success-fg: 111 220 170;
+    --nm-warning: 242 179 61;
+    --nm-warning-subtle: 42 33 18;
+    --nm-warning-fg: 247 201 107;
+    --nm-danger: 218 52 66;
+    --nm-danger-subtle: 46 20 24;
+    --nm-danger-fg: 247 134 141;
+    --nm-overlay: 3 4 10;
+
+    --nm-overlay-alpha: 0.6;
+    --nm-shadow-e1: 0 1px 2px 0 rgb(0 0 0 / 0.35);
+    --nm-shadow-e2: 0 8px 24px -4px rgb(0 0 0 / 0.55), 0 2px 6px -2px rgb(0 0 0 / 0.40);
+    --nm-shadow-e3: 0 24px 64px -12px rgb(0 0 0 / 0.70), 0 4px 16px -4px rgb(0 0 0 / 0.50);
+  }
+}
+
+/* ---------- Shape, type and motion (theme independent) ---------- */
+
+:root {
+  --nm-font-sans: 'Archivo Variable', Archivo, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --nm-font-mono: ui-monospace, 'SF Mono', SFMono-Regular, 'Cascadia Code', Menlo, Consolas, monospace;
+
+  --nm-radius-sm: 4px;
+  --nm-radius-md: 6px;
+  --nm-radius-lg: 8px;
+  --nm-radius-xl: 12px;
+
+  --nm-dur-fast: 120ms;
+  --nm-dur-base: 180ms;
+  --nm-dur-slow: 260ms;
+  --nm-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --nm-ease-out: cubic-bezier(0.2, 0.7, 0.1, 1);
+  --nm-ease-in: cubic-bezier(0.4, 0, 1, 1);
+
+  /* Distances used inside enter/exit keyframes. Zeroed for reduced motion. */
+  --nm-motion-shift: 6px;
+  --nm-motion-scale: 0.97;
+  --nm-motion-drawer: 100%;
+  --nm-motion-spin: 700ms;
+}
+
+/*
+ * Reduced motion: nothing moves or scales; overlays still cross-fade
+ * quickly so state changes stay perceivable. Spinners slow down,
+ * skeleton shimmer stops (handled in the components).
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --nm-dur-fast: 1ms;
+    --nm-dur-base: 80ms;
+    --nm-dur-slow: 80ms;
+    --nm-motion-shift: 0px;
+    --nm-motion-scale: 1;
+    --nm-motion-drawer: 0%;
+    --nm-motion-spin: 1600ms;
+  }
+}
+
+/* Opt-in base for an app root: `<body class="nm-root">` or any wrapper. */
+.nm-root {
+  background-color: rgb(var(--nm-canvas));
+  color: rgb(var(--nm-fg));
+  font-family: var(--nm-font-sans);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+.nm-root ::selection {
+  background-color: rgb(var(--nm-accent) / 0.22);
+}

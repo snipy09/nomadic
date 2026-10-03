@@ -9,12 +9,14 @@ const sharedExclude = ['**/node_modules/**', '**/dist/**', '**/out/**', '**/dist
 export default defineConfig({
   test: {
     projects: [
+      'packages/ui/vitest.config.ts',
       {
         test: {
           name: 'packages',
           environment: 'node',
           include: ['packages/*/src/**/*.test.ts'],
-          exclude: sharedExclude,
+          // packages with their own vitest config (jsdom, setup files) run as separate projects
+          exclude: [...sharedExclude, 'packages/ui/**', 'packages/learning/**'],
         },
       },
       {

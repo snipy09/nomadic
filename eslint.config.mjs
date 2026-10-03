@@ -75,7 +75,7 @@ export default defineConfig(
     },
   },
   {
-    files: ['apps/**/*.{js,jsx,ts,tsx}'],
+    files: ['apps/**/*.{js,jsx,ts,tsx}', 'packages/**/*.{jsx,tsx}'],
     plugins: { 'react-hooks': reactHooks },
     rules: {
       'react-hooks/rules-of-hooks': 'warn',
