@@ -107,7 +107,8 @@ export function tryOfflineLogin(
     if (!res.length || !res[0].values.length) return null;
     const cols = res[0].columns;
     const row = Object.fromEntries(cols.map((c, i) => [c, res[0].values[0][i]]));
-    if (String(row['password_hash']) !== passwordHash) return { error: 'Incorrect password.' };
+    // Same message as the server so the local cache does not reveal which emails signed in here.
+    if (String(row['password_hash']) !== passwordHash) return { error: 'Incorrect email or password.' };
     if (String(row['status']) === 'suspended') {
       return { error: 'This account is suspended. Contact your administrator.' };
     }
@@ -130,6 +131,35 @@ export function tryOfflineLogin(
     };
   } catch {
     return null;
+  }
+}
+
+/** The one-time `login_ticket` column from an `authenticate_user` row (migration 008), if present. */
+export function readLoginTicket(row: unknown): string | undefined {
+  if (!row || typeof row !== 'object') return undefined;
+  const t = (row as Record<string, unknown>)['login_ticket'];
+  return typeof t === 'string' && t.length > 0 ? t : undefined;
+}
+
+/**
+ * Signs in once to obtain a login ticket for a freshly created account.
+ * register_user (009) does not issue a ticket, and register_device_session needs one
+ * once require_login_ticket is on. Returns undefined if the server gives none.
+ */
+async function obtainLoginTicket(
+  supabase: NonNullable<ReturnType<typeof getAnonSupabase>>,
+  email: string,
+  password: string,
+  userId: string
+): Promise<string | undefined> {
+  try {
+    const { data, error } = await supabase.rpc('authenticate_user', { p_email: email, p_password: password });
+    if (error) return undefined;
+    const row = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | undefined;
+    if (!row || !row['ok'] || String(row['id']) !== userId) return undefined;
+    return readLoginTicket(row);
+  } catch {
+    return undefined;
   }
 }
 
@@ -191,6 +221,8 @@ export async function loginWithCredentials(credentials: AuthCredentials): Promis
         const clientIp = await resolvePublicIp().catch(() => '127.0.0.1');
         const sessionToken = crypto.randomUUID();
 
+        // The one-time login ticket proves this device just authenticated as user.id
+        // (SECURITY_CHECKLIST S3). It is single use, so a force-takeover retry signs in again.
         const devReg = await registerDeviceSession(
           supabase,
           user.id,
@@ -198,7 +230,8 @@ export async function loginWithCredentials(credentials: AuthCredentials): Promis
           deviceFingerprint,
           deviceName,
           clientIp,
-          forceTakeover
+          forceTakeover,
+          readLoginTicket(row)
         );
 
         if (devReg.conflict && !forceTakeover) {
@@ -335,8 +368,9 @@ export async function signupLocalAccount(credentials: AuthCredentials): Promise<
     // Same device lock + session start as login.
     const clientIp = await resolvePublicIp().catch(() => '127.0.0.1');
     const sessionToken = crypto.randomUUID();
+    const loginTicket = await obtainLoginTicket(supabase, email, password, appUser.id);
     const devReg = await registerDeviceSession(
-      supabase, appUser.id, sessionToken, deviceFingerprint, deviceName, clientIp, false
+      supabase, appUser.id, sessionToken, deviceFingerprint, deviceName, clientIp, false, loginTicket
     );
     if (!devReg.ok && !devReg.conflict) {
       log(`[Auth] Device registration after sign-up failed: ${devReg.reason ?? 'unknown'}`);

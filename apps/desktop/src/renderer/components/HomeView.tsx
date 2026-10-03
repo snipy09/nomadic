@@ -6,7 +6,7 @@ import {
   Loader2, ExternalLink, Sparkles, CheckSquare, ShieldCheck, Laptop
 } from 'lucide-react';
 import { Job, Application, MasterProfile, TabType, getApi } from '../types';
-import { CompleteProfileModal } from './CompleteProfileModal';
+import { CompleteProfileModal } from '../features/onboarding/CompleteProfileModal';
 
 interface HomeViewProps {
   profile: MasterProfile;

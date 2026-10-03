@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Dialog, DialogContent, Spinner, useToast } from '@nomadic/ui';
 import { getApi, type AppUser, type MasterProfile } from '../../types';
-import { CompleteProfileModal } from '../../components/CompleteProfileModal';
+import { CompleteProfileModal } from '../onboarding/CompleteProfileModal';
 import { BatchCoPilotReviewModal } from '../../components/BatchCoPilotReviewModal';
 import type { BatchAppSnapshot } from '../../utils/batch-copilot-helpers';
 import { hasFeatureAccess } from '../../utils/tier-utils';

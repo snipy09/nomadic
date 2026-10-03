@@ -8,7 +8,7 @@ Status: ✅ done · 🟡 partial · ⬜ not started
 | # | Feature | Status | Scope to finish | Done when |
 |---|---|---|---|---|
 | F1 | App shell and navigation | ⬜ | Sidebar, TopBar, CommandPalette on `@nomadic/ui`; flags hide unfinished tabs | Keyboard-only nav works; old shell deleted |
-| F2 | Accounts and onboarding | 🟡 | Server sign-up done; login-ticket enforcement, password reset, email verify, onboarding wizard rebuild | New user to first value < 3 min |
+| F2 | Accounts and onboarding | 🟡 | Done: server sign-up, login ticket sent on sign-in and sign-up, auth screen and 4-step onboarding on `@nomadic/ui`. Open: owner enables `require_login_ticket`; password reset and email verification (no backend yet); server-side Google sign-in (SECURITY_CHECKLIST S9) | New user to first value < 3 min |
 | F3 | Job feed and matching | 🟡 | Pipeline done; Feed rebuild (virtualised), skill-based match %, missing skills, save/hide | 5k jobs at 60 fps; match tested |
 | F4 | Auto-apply | 🟡 | Engine done; apply run view (live progress, needs-you prompts, mandatory review) | Never submits unreviewed; benchmark floor held |
 | F5 | Applications tracker | ⬜ | Kanban rebuild, status history, reminders, sync | Survives reinstall; keyboard drag |

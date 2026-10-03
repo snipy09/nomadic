@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react';
 import {
   TabType, ThemeMode, MasterProfile, HeartbeatStatus, AppUser, getApi, PersonaTrack, WorkspaceMode
 } from './types';
-import { OnboardingWizard } from './components/OnboardingWizard';
+import { Onboarding } from './features/onboarding/Onboarding';
 import { AppShell, useTheme } from '@nomadic/ui';
 import { TopBar } from './components/TopBar';
 import { Sidebar } from './components/Sidebar';
@@ -15,7 +15,7 @@ import { OutreachView } from './components/OutreachView';
 import { ApplicationsView } from './components/ApplicationsView';
 import { ProfileView } from './features/profile/ProfileView';
 import { AdminView } from './components/AdminView';
-import { LoginView } from './components/LoginView';
+import { AuthScreen } from './features/auth/AuthScreen';
 import { ResourceVaultView } from './components/ResourceVaultView';
 import { InterviewPrepView } from './components/InterviewPrepView';
 import { OpportunityBoardView } from './components/OpportunityBoardView';
@@ -278,7 +278,7 @@ export default function App() {
   // 1. If not logged in, ALWAYS show the Login & Sign-up page first
   if (!currentUser) {
     return (
-      <LoginView
+      <AuthScreen
         onLoginSuccess={(u) => {
           setWantsLogin(false);
           handleLoginSuccess(u);
@@ -311,10 +311,10 @@ export default function App() {
     profile.onboardingCompleted
   );
 
-  // If new user (has NOT completed onboarding) or user requested setup, show OnboardingWizard
+  // If new user (has NOT completed onboarding) or user requested setup, show Onboarding
   if (!userHasCompletedOnboarding || showOnboarding) {
     return (
-      <OnboardingWizard
+      <Onboarding
         initialProfile={profile}
         currentUser={currentUser}
         onComplete={(completedProfile) => {

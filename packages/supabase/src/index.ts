@@ -76,6 +76,10 @@ export function getSupabaseClient(supabaseUrl: string, supabaseKey: string) {
 /**
  * Register or Lock Device Session on Login.
  * Strictly enforces 1 active device/laptop per account.
+ *
+ * `loginTicket` is the one-time ticket returned by `authenticate_user` (migration 008).
+ * It proves the caller just signed in as `userId`. It is only sent when present so
+ * builds keep working against a database that has not applied 008 yet.
  */
 export async function registerDeviceSession(
   supabase: any,
@@ -84,17 +88,20 @@ export async function registerDeviceSession(
   deviceFingerprint: string,
   deviceName: string,
   clientIp: string,
-  forceTakeover: boolean = false
+  forceTakeover: boolean = false,
+  loginTicket?: string | null
 ): Promise<{ ok: boolean; conflict: boolean; activeDevice?: string; reason?: string }> {
   try {
-    const { data, error } = await supabase.rpc('register_device_session', {
+    const params: Record<string, unknown> = {
       p_user_id: userId,
       p_session_token: sessionToken,
       p_device_fingerprint: deviceFingerprint,
       p_device_name: deviceName,
       p_client_ip: clientIp,
-      p_force_takeover: forceTakeover
-    });
+      p_force_takeover: forceTakeover,
+    };
+    if (loginTicket) params.p_login_ticket = loginTicket;
+    const { data, error } = await supabase.rpc('register_device_session', params);
 
     if (error) {
       console.error('Register Device Session Error:', error.message);
