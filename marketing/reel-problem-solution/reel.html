@@ -1,0 +1,280 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=block" rel="stylesheet">
+<style>
+  :root { --ink:#0A0F2C; --ultra:#2338E0; --ultraL:#A3AEF8; --mari:#FFC21A; --fog:#EEF0F6; --pale:#A9B0D0; --red:#FF4D5E; --green:#2BD67B; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { width:1080px; height:1920px; overflow:hidden; background:var(--ink); }
+  body { font-family:'Archivo',sans-serif; color:#fff; }
+  .wide { font-stretch:125%; }
+  #stage { position:relative; width:1080px; height:1920px; overflow:hidden; background:var(--ink); }
+  .scene { position:absolute; inset:0; opacity:0; }
+  .grid-bg { position:absolute; inset:0; background-image:linear-gradient(rgba(163,174,248,.07) 2px,transparent 2px),linear-gradient(90deg,rgba(163,174,248,.07) 2px,transparent 2px); background-size:90px 90px; }
+  .center { position:absolute; left:0; right:0; text-align:center; }
+
+  /* S1 hook */
+  #pov { top:430px; font-size:64px; font-weight:800; color:var(--pale); letter-spacing:4px; }
+  #applied { top:540px; font-size:84px; font-weight:800; }
+  #counter { top:650px; font-size:330px; font-weight:900; line-height:1; color:#fff; font-variant-numeric:tabular-nums; }
+  #jobs { top:1000px; font-size:84px; font-weight:800; }
+  #heard { top:1180px; font-size:76px; font-weight:900; color:var(--mari); }
+  #heard span { display:inline-block; background:var(--red); color:#fff; padding:4px 34px; border-radius:10px; margin-left:16px; }
+
+  /* S2 pains */
+  #painHead { top:250px; font-size:66px; font-weight:900; }
+  #painHead em { font-style:normal; color:var(--red); }
+  .pain { position:absolute; left:80px; right:80px; height:220px; background:#151B42; border:3px solid #262E63; border-radius:22px; display:flex; align-items:center; gap:36px; padding:0 44px; }
+  .pain .x { flex:none; width:96px; height:96px; border-radius:50%; background:var(--red); display:flex; align-items:center; justify-content:center; font-size:62px; font-weight:900; }
+  .pain .t { font-size:46px; font-weight:700; line-height:1.18; }
+  .pain .t b { color:var(--mari); font-weight:900; }
+
+  /* S3 reveal */
+  #s3 { background:var(--ultra); }
+  #soWe { top:640px; font-size:92px; font-weight:900; }
+  #logoBig { position:absolute; left:140px; width:800px; top:830px; }
+  #tag3 { top:1080px; font-size:50px; font-weight:700; color:var(--fog); }
+
+  /* S4 features */
+  .feat { position:absolute; inset:0; }
+  .kicker { position:absolute; left:80px; top:250px; font-size:40px; font-weight:900; letter-spacing:8px; color:var(--ink); background:var(--mari); padding:10px 26px; border-radius:8px; }
+  .fnum { position:absolute; right:80px; top:256px; font-size:40px; font-weight:800; color:var(--pale); }
+  .ftitle { position:absolute; left:80px; right:80px; top:350px; font-size:84px; font-weight:900; line-height:1.04; }
+  .ftitle em { font-style:normal; color:var(--mari); }
+  .panel { position:absolute; left:80px; right:80px; top:720px; background:var(--fog); border-radius:28px; color:var(--ink); padding:44px; box-shadow:0 40px 90px rgba(0,0,0,.45); }
+  .row { display:flex; align-items:center; justify-content:space-between; background:#fff; border:2px solid #CBD0E2; border-radius:16px; padding:28px 32px; margin-bottom:22px; }
+  .row:last-child { margin-bottom:0; }
+  .row .l { font-size:38px; font-weight:800; }
+  .row .s { font-size:28px; color:#4A5170; font-weight:600; margin-top:6px; }
+  .chip { font-size:28px; font-weight:800; padding:10px 20px; border-radius:40px; white-space:nowrap; }
+  .chip.g { background:#D8F8E6; color:#0E8A4A; }
+  .chip.r { background:#FFE0E3; color:#C8102E; text-decoration:line-through; }
+  .field { margin-bottom:24px; }
+  .field label { display:block; font-size:28px; font-weight:800; color:#4A5170; margin-bottom:10px; }
+  .field .in { height:86px; border:3px solid #CBD0E2; border-radius:14px; background:#fff; font-size:38px; font-weight:600; padding:0 26px; display:flex; align-items:center; }
+  .field .in.on { border-color:var(--ultra); }
+  .caret { display:inline-block; width:4px; height:44px; background:var(--ultra); margin-left:4px; }
+  .atsRow { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:30px; }
+  .ats { font-size:28px; font-weight:800; background:var(--ink); color:#fff; padding:10px 20px; border-radius:10px; }
+  .submit { margin-top:10px; height:100px; border-radius:16px; background:var(--ultra); color:#fff; font-size:42px; font-weight:900; display:flex; align-items:center; justify-content:center; }
+  .heat { display:grid; grid-template-columns:repeat(14,1fr); gap:10px; margin-top:26px; }
+  .heat i { display:block; aspect-ratio:1; border-radius:6px; background:#DDE1EE; }
+  .step { display:flex; align-items:center; gap:22px; font-size:36px; font-weight:800; padding:16px 0; }
+  .dot { width:46px; height:46px; border-radius:50%; border:4px solid var(--ultra); flex:none; display:flex; align-items:center; justify-content:center; font-size:28px; color:#fff; }
+  .dot.done { background:var(--ultra); }
+
+  /* S5 CTA */
+  #logoEnd { position:absolute; left:190px; width:700px; top:560px; }
+  #oneApp { top:780px; font-size:74px; font-weight:900; line-height:1.08; }
+  #pillars { top:990px; font-size:44px; font-weight:800; color:var(--mari); letter-spacing:2px; }
+  #alpha { top:1130px; }
+  #alpha span { display:inline-block; font-size:40px; font-weight:800; border:3px solid var(--ultraL); color:var(--ultraL); padding:16px 36px; border-radius:60px; }
+  #url { top:1270px; font-size:56px; font-weight:900; }
+  #follow { top:1380px; font-size:42px; font-weight:700; color:var(--pale); }
+
+  #progress { position:absolute; left:0; top:0; height:10px; background:var(--mari); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="grid-bg"></div>
+
+  <!-- S1 -->
+  <div class="scene" id="s1">
+    <div class="center wide" id="pov">POV:</div>
+    <div class="center" id="applied">you've applied to</div>
+    <div class="center wide" id="counter">0</div>
+    <div class="center" id="jobs">jobs this month</div>
+    <div class="center" id="heard">callbacks:<span>0</span></div>
+  </div>
+
+  <!-- S2 -->
+  <div class="scene" id="s2">
+    <div class="center wide" id="painHead">The job hunt is <em>broken</em></div>
+    <div class="pain" id="p0"><div class="x">✕</div><div class="t">Typed your name, email &amp; LinkedIn <b>347 times</b></div></div>
+    <div class="pain" id="p1"><div class="x">✕</div><div class="t">"New" listing… <b>closed 3 months ago</b></div></div>
+    <div class="pain" id="p2"><div class="x">✕</div><div class="t">Cold email to info@ → <b>bounced</b></div></div>
+    <div class="pain" id="p3"><div class="x">✕</div><div class="t"><b>40 YouTube tabs.</b> Zero plan.</div></div>
+  </div>
+
+  <!-- S3 -->
+  <div class="scene" id="s3">
+    <div class="center wide" id="soWe">So we built</div>
+    <img id="logoBig" src="logo-reverse.svg">
+    <div class="center" id="tag3">your whole job hunt, on autopilot</div>
+  </div>
+
+  <!-- S4 -->
+  <div class="scene" id="s4">
+    <div class="feat" id="f0">
+      <div class="kicker wide">FIND</div><div class="fnum">01 / 04</div>
+      <div class="ftitle wide">Fresh jobs pulled <em>straight from company ATS</em></div>
+      <div class="panel">
+        <div class="row r0"><div><div class="l">Frontend Engineer</div><div class="s">Northwind · Remote</div></div><span class="chip g">2h ago</span></div>
+        <div class="row r1"><div><div class="l">Product Analyst</div><div class="s">Lumen Labs · Bengaluru</div></div><span class="chip g">5h ago</span></div>
+        <div class="row r2"><div><div class="l">ML Engineer</div><div class="s">Arcfield · Hybrid</div></div><span class="chip g">today</span></div>
+        <div class="row r3"><div><div class="l">"Senior Dev"</div><div class="s">GhostCorp · ???</div></div><span class="chip r">94 days old</span></div>
+      </div>
+    </div>
+    <div class="feat" id="f1">
+      <div class="kicker wide">APPLY</div><div class="fnum">02 / 04</div>
+      <div class="ftitle wide">Fills the form <em>for you.</em> Every field.</div>
+      <div class="panel">
+        <div class="atsRow"><span class="ats">Greenhouse</span><span class="ats">Lever</span><span class="ats">Ashby</span><span class="ats">Workday</span></div>
+        <div class="field"><label>Full name</label><div class="in" id="in0"></div></div>
+        <div class="field"><label>Email</label><div class="in" id="in1"></div></div>
+        <div class="field"><label>LinkedIn</label><div class="in" id="in2"></div></div>
+        <div class="field"><label>Work authorization</label><div class="in" id="in3"></div></div>
+        <div class="submit" id="submit">Submit application</div>
+      </div>
+    </div>
+    <div class="feat" id="f2">
+      <div class="kicker wide">REACH OUT</div><div class="fnum">03 / 04</div>
+      <div class="ftitle wide">Recruiter emails, <em>verified</em> before you hit send</div>
+      <div class="panel">
+        <div class="row e0"><div><div class="l">priya@northwind.io</div><div class="s">Talent Lead</div></div><span class="chip" id="c0">checking…</span></div>
+        <div class="row e1"><div><div class="l">info@northwind.io</div><div class="s">Generic inbox</div></div><span class="chip" id="c1">checking…</span></div>
+        <div class="row e2"><div><div class="l">dev.k@arcfield.ai</div><div class="s">Eng Recruiter</div></div><span class="chip" id="c2">checking…</span></div>
+      </div>
+    </div>
+    <div class="feat" id="f3">
+      <div class="kicker wide">LEARN</div><div class="fnum">04 / 04</div>
+      <div class="ftitle wide">A day-by-day <em>roadmap</em> for your target role</div>
+      <div class="panel">
+        <div class="step"><div class="dot" id="d0">✓</div>Week 1 · JavaScript core</div>
+        <div class="step"><div class="dot" id="d1">✓</div>Week 2 · React + state</div>
+        <div class="step"><div class="dot" id="d2">✓</div>Week 3 · Node APIs</div>
+        <div class="heat" id="heat"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S5 -->
+  <div class="scene" id="s5">
+    <img id="logoEnd" src="logo-reverse.svg">
+    <div class="center wide" id="oneApp">One app for the<br>whole job hunt.</div>
+    <div class="center wide" id="pillars">LEARN · FIND · APPLY · REACH OUT</div>
+    <div class="center" id="alpha"><span>Closed alpha · Launching soon</span></div>
+    <div class="center wide" id="url">nomadicai.vercel.app</div>
+    <div class="center" id="follow">Follow so you don't miss launch day →</div>
+  </div>
+
+  <div id="progress"></div>
+</div>
+
+<script>
+const DUR = 23;
+const $ = id => document.getElementById(id);
+const clamp = (x,a=0,b=1) => Math.min(b, Math.max(a, x));
+const prog = (t,a,b) => clamp((t-a)/(b-a));
+const eo = x => 1 - Math.pow(1-x, 3);                       // ease out cubic
+const eb = x => { const c=1.70158, c3=c+1; return 1 + c3*Math.pow(x-1,3) + c*Math.pow(x-1,2); }; // ease out back
+const fadeWin = (t,a,b,f=.25) => Math.min(prog(t,a,a+f), 1-prog(t,b-f,b));
+
+function pop(el, t, at, dur=.35, fromY=60) {
+  const p = prog(t, at, at+dur);
+  el.style.opacity = p > 0 ? 1 : 0;
+  el.style.transform = `translateY(${(1-eo(p))*fromY}px) scale(${.85 + .15*eb(p)})`;
+}
+function typeInto(el, text, t, a, b) {
+  const n = Math.round(prog(t,a,b) * text.length);
+  const active = t >= a && t < b + .15;
+  el.innerHTML = text.slice(0,n) + (active ? '<span class="caret"></span>' : '');
+  el.classList.toggle('on', active);
+}
+
+// heatmap cells
+const heat = $('heat'); const cells = [];
+for (let i=0;i<56;i++){ const c=document.createElement('i'); heat.appendChild(c); cells.push(c); }
+const lv = ['#DDE1EE','#A3AEF8','#5B6CF0','#2338E0','#1A2AB0'];
+const seeded = cells.map((_,i)=> (i*37 % 11) < 2 ? 0 : 1 + ((i*13+7) % 4));
+
+window.seek = function(t) {
+  $('progress').style.width = (t/DUR*100)+'%';
+
+  // S1 0 – 3.0
+  $('s1').style.opacity = fadeWin(t, 0, 3.0, .2);
+  pop($('pov'), t, 0.0, .3);
+  pop($('applied'), t, 0.15, .3);
+  const cp = eo(prog(t, .25, 1.6));
+  $('counter').textContent = Math.round(cp*347);
+  pop($('counter'), t, .25, .3, 0);
+  pop($('jobs'), t, .4, .3);
+  pop($('heard'), t, 1.75, .3, 0);
+  if (t > 1.75 && t < 2.3) $('heard').style.transform += ` translateX(${Math.sin(t*90)*14*(1-prog(t,1.75,2.3))}px)`;
+
+  // S2 3.0 – 7.8
+  $('s2').style.opacity = fadeWin(t, 3.0, 7.8, .2);
+  pop($('painHead'), t, 3.05, .3);
+  for (let i=0;i<4;i++){
+    const el = $('p'+i), at = 3.4 + i*1.0;
+    el.style.top = (470 + i*260) + 'px';
+    const p = prog(t, at, at+.32);
+    el.style.opacity = p>0?1:0;
+    el.style.transform = `translateX(${(1-eo(p))*(i%2?-1:1)*1100}px) rotate(${(1-eo(p))*(i%2?-4:4)}deg)`;
+  }
+
+  // S3 7.8 – 9.8
+  $('s3').style.opacity = fadeWin(t, 7.8, 9.8, .12);
+  pop($('soWe'), t, 7.9, .3);
+  const lp = prog(t, 8.3, 8.75);
+  $('logoBig').style.opacity = lp>0?1:0;
+  $('logoBig').style.transform = `scale(${.3 + .7*eb(lp)})`;
+  pop($('tag3'), t, 8.85, .3);
+
+  // S4 9.8 – 19.4, four features of 2.4s
+  $('s4').style.opacity = fadeWin(t, 9.8, 19.4, .15);
+  for (let i=0;i<4;i++){
+    const a = 9.8 + i*2.4, b = a + 2.4, f = $('f'+i);
+    const pin = eo(prog(t, a, a+.35)), pout = prog(t, b-.25, b);
+    f.style.opacity = (t>=a && t<b) ? 1 : 0;
+    f.style.transform = `translateX(${(1-pin)*1080 - eo(pout)*1080}px)`;
+  }
+  // f0 feed rows
+  ['r0','r1','r2','r3'].forEach((c,i)=> pop(document.querySelector('#f0 .'+c), t, 10.15 + i*.22, .3));
+  const ghost = document.querySelector('#f0 .r3');
+  if (t > 11.3) { ghost.style.opacity = 1 - prog(t, 11.3, 11.8)*.6; ghost.style.transform = `scale(${1 - .04*prog(t,11.3,11.8)})`; }
+  // f1 typing
+  const A = 12.2;
+  typeInto($('in0'), 'Aarav Mehta', t, A+.25, A+.6);
+  typeInto($('in1'), 'aarav@mail.com', t, A+.65, A+1.0);
+  typeInto($('in2'), 'linkedin.com/in/aarav', t, A+1.05, A+1.4);
+  typeInto($('in3'), 'Authorized ✓', t, A+1.45, A+1.7);
+  const sp = prog(t, A+1.8, A+2.0);
+  $('submit').textContent = sp >= 1 ? 'Applied ✓' : 'Submit application';
+  $('submit').style.background = sp >= 1 ? '#0E8A4A' : '';
+  $('submit').style.transform = `scale(${1 - .05*Math.sin(sp*Math.PI)})`;
+  // f2 verify
+  const E = 14.6;
+  [['e0','c0','✓ verified','g'],['e1','c1','✕ skip','r'],['e2','c2','✓ verified','g']].forEach(([row,chip,txt,cls],i)=>{
+    pop(document.querySelector('#f2 .'+row), t, E+.3+i*.18, .3);
+    const done = t > E + .9 + i*.3;
+    const c = $(chip); c.textContent = done ? txt : 'checking…';
+    c.className = 'chip ' + (done ? cls : '');
+    if (!done) { c.style.background = '#EEF0F6'; c.style.color = '#4A5170'; c.style.textDecoration='none'; }
+    else { c.style.background=''; c.style.color=''; c.style.textDecoration = cls==='r' ? 'none':''; }
+  });
+  // f3 roadmap + heat
+  const L = 17.0;
+  ['d0','d1','d2'].forEach((d,i)=> $(d).classList.toggle('done', t > L+.4+i*.25));
+  ['d0','d1','d2'].forEach((d,i)=> $(d).style.color = t > L+.4+i*.25 ? '#fff' : 'transparent');
+  const hp = prog(t, L+.6, L+2.0);
+  cells.forEach((c,i)=> c.style.background = (i/cells.length) < hp ? lv[seeded[i]] : lv[0]);
+
+  // S5 19.4 – 23
+  $('s5').style.opacity = prog(t, 19.4, 19.6);
+  const ep = prog(t, 19.5, 19.9);
+  $('logoEnd').style.opacity = ep>0?1:0;
+  $('logoEnd').style.transform = `scale(${.6 + .4*eb(ep)})`;
+  pop($('oneApp'), t, 19.85, .3);
+  pop($('pillars'), t, 20.2, .3);
+  pop($('alpha'), t, 20.5, .3);
+  pop($('url'), t, 20.8, .3);
+  pop($('follow'), t, 21.1, .3);
+};
+window.DUR = DUR;
+seek(0);
+</script>
+</body>
+</html>
