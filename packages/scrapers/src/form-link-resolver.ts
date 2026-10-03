@@ -40,6 +40,8 @@ export const CLOSED_JOB_PHRASES: readonly string[] = [
   'no such job',
   'the job you are looking for has expired',
   'this position is closed',
+  'this listing has expired',
+  'this job is no longer available',
 ];
 
 /**
