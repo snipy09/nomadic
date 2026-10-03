@@ -155,7 +155,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     const api = getApi();
     try {
       const res = await api.generateAiOnboardingProfile({
-        targetRole: targetRoleTitle.trim() || 'Professional Specialist',
+        targetRole: targetRoleTitle.trim(),
         experienceLevel,
         bioOrResumeText: bioOrResumeText.trim(),
         customSkills: Array.from(selectedSkills),
@@ -169,13 +169,13 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
         const roadmapObj = res.roadmap;
         setSynthesizedProfile({
           ...initialProfile,
-          firstName: firstName.trim() || res.profile.firstName || 'Candidate',
+          firstName: firstName.trim() || res.profile.firstName || '',
           lastName: lastName.trim() || res.profile.lastName || '',
-          email: userEmail || initialProfile.email || 'user@nomadic.app',
+          email: userEmail || initialProfile.email || '',
           phone: phone.trim(),
           desiredTitle: res.profile.desiredTitle || targetRoleTitle,
           techStack: res.profile.techStack || Array.from(selectedSkills).join(', '),
-          desiredSalary: res.profile.desiredSalary || '₹12 LPA – ₹26 LPA',
+          desiredSalary: res.profile.desiredSalary || initialProfile.desiredSalary || '',
           resumeText: bioOrResumeText.trim() || res.profile.resumeText || '',
           resumeFilePath: uploadedResumePath || initialProfile.resumeFilePath,
           experienceLevel: experienceLevel as any,
@@ -188,112 +188,13 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
         throw new Error(res?.error || 'AI synthesis failed.');
       }
     } catch (err: any) {
-      console.warn('[Onboarding AI] Fallback triggered:', err?.message);
-      // Detailed fallback roadmap
-      const fallbackId = `roadmap-${Date.now()}`;
-      const fallbackRoadmap = {
-        id: fallbackId,
-        title: `${targetRoleTitle.trim() || 'Career'} Acceleration Roadmap`,
-        domain: 'Professional Mastery',
-        targetRoles: [targetRoleTitle.trim() || 'Specialist'],
-        targetHorizon,
-        dailyCommitment,
-        milestones: [
-          {
-            id: 'phase-1',
-            title: 'Phase 1: Foundations & Core Architecture',
-            level: 'Foundations',
-            estimatedHours: 25,
-            description: 'Core concepts, industry standards, and environment setup.',
-            subModules: [
-              {
-                id: 'sub-1-1',
-                title: 'Core Fundamentals & Industry Workflows',
-                description: 'Deep dive into standard operating procedures and best practices.',
-                keyConcepts: ['Foundational Principles', 'Execution Standards', 'Core Data Structures / Frameworks', 'Quality Control'],
-                resources: [
-                  { title: `${targetRoleTitle || 'Role'} Fundamentals Masterclass`, url: `https://www.youtube.com/results?search_query=${encodeURIComponent((targetRoleTitle || 'career') + ' fundamentals masterclass')}`, type: 'video', duration: '35 mins' },
-                  { title: 'Official Documentation & Standards', url: `https://google.com/search?q=${encodeURIComponent((targetRoleTitle || 'career') + ' official documentation best practices')}`, type: 'doc' }
-                ]
-              }
-            ]
-          },
-          {
-            id: 'phase-2',
-            title: 'Phase 2: Execution & Real-World Deliverables',
-            level: 'Core Execution',
-            estimatedHours: 35,
-            description: 'Hands-on practical projects, artifact design, and case studies.',
-            subModules: [
-              {
-                id: 'sub-2-1',
-                title: 'Production Artifacts & Case Studies',
-                description: 'Building end-to-end deliverables for portfolio demonstration.',
-                keyConcepts: ['End-to-End Workflow Execution', 'Performance Optimization', 'Metrics Tracking', 'Cross-Functional Strategy'],
-                resources: [
-                  { title: 'Project Case Study Breakdown', url: `https://www.youtube.com/results?search_query=${encodeURIComponent((targetRoleTitle || 'career') + ' real world case study')}`, type: 'video', duration: '45 mins' }
-                ]
-              }
-            ]
-          },
-          {
-            id: 'phase-3',
-            title: 'Phase 3: Advanced Optimization & Scaling',
-            level: 'Advanced',
-            estimatedHours: 30,
-            description: 'System design, scalability, leadership, and edge-case resolution.',
-            subModules: [
-              {
-                id: 'sub-3-1',
-                title: 'Enterprise Architecture & Scale',
-                description: 'Solving complex scaling challenges and architectural trade-offs.',
-                keyConcepts: ['High-Availability Architecture', 'Bottleneck Diagnostics', 'Cost & Latency Optimization', 'Security Protocols'],
-                resources: [
-                  { title: 'System Architecture & Scaling Guide', url: `https://www.youtube.com/results?search_query=${encodeURIComponent((targetRoleTitle || 'system architecture') + ' design and scaling')}`, type: 'video', duration: '50 mins' }
-                ]
-              }
-            ]
-          },
-          {
-            id: 'phase-4',
-            title: 'Phase 4: Interview Mastery & Portfolio Defense',
-            level: 'Interview Ready',
-            estimatedHours: 20,
-            description: 'Behavioral STAR storytelling, mock drills, and technical deep-dives.',
-            subModules: [
-              {
-                id: 'sub-4-1',
-                title: 'Interview Strategy & Technical Defense',
-                description: 'Bar-raiser interview preparation and portfolio presentation.',
-                keyConcepts: ['STAR Storytelling Framework', 'Technical Problem Solving', 'Salary Negotiation', 'Behavioral Drills'],
-                resources: [
-                  { title: 'Mock Interview & Strategy Drills', url: `https://www.youtube.com/results?search_query=${encodeURIComponent((targetRoleTitle || 'career') + ' mock interview questions and answers')}`, type: 'video', duration: '40 mins' }
-                ]
-              }
-            ]
-          }
-        ]
-      };
-
-      setSynthesizedProfile({
-        ...initialProfile,
-        firstName: firstName.trim() || 'Candidate',
-        lastName: lastName.trim() || '',
-        email: userEmail || initialProfile.email || 'user@nomadic.app',
-        phone: phone.trim(),
-        desiredTitle: targetRoleTitle.trim() || 'Professional Specialist',
-        techStack: Array.from(selectedSkills).join(', ') || 'Core Skills',
-        desiredSalary: '₹12 LPA – ₹26 LPA',
-        resumeText: bioOrResumeText.trim() || 'Professional ready for high-impact opportunities.',
-        resumeFilePath: uploadedResumePath || initialProfile.resumeFilePath,
-        experienceLevel: experienceLevel as any,
-        geminiApiKey: customAiKey.trim() || undefined,
-        workspaceMode,
-        targetOpportunityType,
-        onboardingCompleted: true,
-      });
-      setSynthesizedRoadmap(fallbackRoadmap);
-      setStep(5);
+      // Never fabricate profile or roadmap data: surface the failure and stay on this step.
+      console.warn('[Onboarding AI] Generation failed:', err?.message);
+      setSynthesizedProfile({});
+      setSynthesizedRoadmap(null);
+      setAiError(
+        `We couldn't generate your profile and roadmap${err?.message ? ` (${err.message})` : ''}. Nothing was saved. Please check your connection or AI key and try again.`
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -307,12 +208,12 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     const finalProfile: MasterProfile = {
       ...initialProfile,
       ...synthesizedProfile,
-      firstName: firstName.trim() || synthesizedProfile.firstName || 'Candidate',
+      firstName: firstName.trim() || synthesizedProfile.firstName || '',
       lastName: lastName.trim() || synthesizedProfile.lastName || '',
-      email: userEmail || synthesizedProfile.email || 'user@nomadic.app',
+      email: userEmail || synthesizedProfile.email || '',
       phone: phone.trim() || synthesizedProfile.phone || '',
-      desiredTitle: targetRoleTitle.trim() || synthesizedProfile.desiredTitle || 'Professional Specialist',
-      techStack: Array.from(selectedSkills).join(', ') || synthesizedProfile.techStack || 'Core Skills',
+      desiredTitle: targetRoleTitle.trim() || synthesizedProfile.desiredTitle || '',
+      techStack: Array.from(selectedSkills).join(', ') || synthesizedProfile.techStack || '',
       experienceLevel: experienceLevel as any,
       resumeFilePath: uploadedResumePath || synthesizedProfile.resumeFilePath || '',
       workspaceMode,
