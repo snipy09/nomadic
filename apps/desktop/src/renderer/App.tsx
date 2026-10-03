@@ -8,7 +8,8 @@ import { AppShell, useTheme } from '@nomadic/ui';
 import { TopBar } from './components/TopBar';
 import { Sidebar } from './components/Sidebar';
 import { HomeView } from './components/HomeView';
-import { LearnerView } from './components/LearnerView';
+import { LearnView } from './features/learn/LearnView';
+import { inferRole } from './features/feed/match';
 import { UpgradeModal } from './components/UpgradeModal';
 import { FeedView } from './features/feed/FeedView';
 import { OutreachView } from './components/OutreachView';
@@ -388,16 +389,11 @@ export default function App() {
               : 'max-w-6xl mx-auto animate-in fade-in duration-150 ease-out'
           }`}>
             {activeTab === 'learner-roadmaps' && (
-              <LearnerView
-                profile={profile}
-                onUpdateProfile={(u) => setProfile({ ...profile, ...u })}
-                onNavigateToSeeker={() => {
-                  setActiveTrack('seeker');
-                  setActiveTab('feed');
-                }}
-                onLog={addLog}
+              <LearnView
                 currentUser={currentUser}
+                suggestedRole={inferRole(profile.desiredTitle)}
                 onOpenUpgrade={handleOpenUpgrade}
+                onLog={addLog}
               />
             )}
 

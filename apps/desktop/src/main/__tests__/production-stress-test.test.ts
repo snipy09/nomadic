@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { searchRoleTitles, suggestRolesFromUserInput, generateTailoredRoadmapForRole } from '../../renderer/data/jobRolesDataset';
-import { ROADMAPS, calculateReadinessScore } from '../../renderer/data/roadmaps';
 
 describe('Production-Grade Stress & Resilience Testing', () => {
 
@@ -152,34 +151,6 @@ describe('Production-Grade Stress & Resilience Testing', () => {
       expect(resolveTabSafely('admin-users')).toBe('admin-users');
       expect(resolveTabSafely('outreach')).toBe('outreach');
       expect(resolveTabSafely('feed')).toBe('feed');
-    });
-
-    it('correctly maps all 10k dynamic roles to valid existing roadmap IDs', () => {
-      const sampleTitles = [
-        'AI Research Engineer', 'Machine Learning Specialist', 'LLM Architect',
-        'Data Scientist', 'DevOps Platform Engineer', 'Kubernetes SRE',
-        'Backend Go Developer', 'Full Stack React Engineer', 'Product Manager',
-        'Technical Program Manager', 'Associate Product Manager', 'Frontend UI Engineer'
-      ];
-
-      for (const title of sampleTitles) {
-        const lower = title.toLowerCase();
-        let targetId = 'frontend';
-        if (lower.includes('ai') || lower.includes('llm') || lower.includes('machine learning') || lower.includes('data') || lower.includes('backend') || lower.includes('systems') || lower.includes('node') || lower.includes('go') || lower.includes('devops') || lower.includes('cloud')) {
-          targetId = 'backend';
-        } else if (lower.includes('product') || lower.includes('tpm') || lower.includes('apm') || lower.includes('scrum') || lower.includes('project')) {
-          targetId = 'product-management';
-        } else {
-          targetId = 'frontend';
-        }
-
-        const exists = ROADMAPS.some(r => r.id === targetId);
-        expect(exists).toBe(true);
-
-        const score = calculateReadinessScore(targetId, ['html-css-dom', 'node-rest-apis']);
-        expect(score).toBeGreaterThanOrEqual(0);
-        expect(score).toBeLessThanOrEqual(100);
-      }
     });
   });
 

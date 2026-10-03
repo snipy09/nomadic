@@ -66,8 +66,22 @@ export function weeklySummary(events: LearningEvent[], now: Date, tzOffsetMinute
 }
 
 /**
+ * A lesson-level check result: `quiz_passed` with no item and `payload.lesson_id`.
+ * Item-level attempts carry `item_id` and feed spaced repetition instead.
+ */
+export function isLessonCheckPass(e: LearningEvent): boolean {
+  return e.type === 'quiz_passed' && !e.item_id && typeof e.payload.lesson_id === 'string';
+}
+
+/** Lesson ids whose check the user has passed. */
+export function completedLessons(events: LearningEvent[]): Set<string> {
+  return new Set(events.filter(isLessonCheckPass).map((e) => e.payload.lesson_id as string));
+}
+
+/**
  * Mastery per skill (0..1): a weighted average of graded attempts where later
- * attempts count more, floored by placement / "I know this" results.
+ * attempts count more, floored by placement / "I know this" results and by
+ * passed lesson checks.
  * Viewing a lesson alone never counts as mastery.
  */
 export function deriveMastery(events: LearningEvent[]): MasteryMap {
@@ -77,6 +91,11 @@ export function deriveMastery(events: LearningEvent[]): MasteryMap {
     if (!e.skill_id) continue;
     if (e.type === 'skill_marked_known') {
       floors.set(e.skill_id, Math.max(floors.get(e.skill_id) ?? 0, e.payload.mastery ?? MASTERY_THRESHOLD));
+      continue;
+    }
+    if (isLessonCheckPass(e)) {
+      // Passing a lesson's check completes it: the skill counts as mastered (item attempts still count below).
+      floors.set(e.skill_id, Math.max(floors.get(e.skill_id) ?? 0, MASTERY_THRESHOLD));
       continue;
     }
     const score =

@@ -6,6 +6,7 @@ import {
   buildSeedBundle,
   buildSkillGraph,
   buildTodayQueue,
+  completedLessons,
   compareResults,
   deriveMastery,
   deriveReviewStates,
@@ -17,7 +18,6 @@ import {
   jobMatch,
   learnTierFor,
   lessonCheckPassed,
-  migrateLegacyLocalStorage,
   newlyMatchingJobs,
   planTrack,
   qualityFromGrade,
@@ -248,6 +248,18 @@ describe('progress from events', () => {
         .css
     ).toBe(0.9);
   });
+
+  it('a passed lesson check completes the lesson and masters the skill; item attempts do not', () => {
+    const item = ev('quiz_passed', '2026-10-01T00:00:00Z', { skill_id: 'git', item_id: 'git-q1' });
+    const check = ev('quiz_passed', '2026-10-01T00:01:00Z', {
+      skill_id: 'git',
+      payload: { lesson_id: 'lesson-git', score: 1 },
+    });
+    expect(deriveMastery([item]).git).toBeLessThan(0.8);
+    expect(deriveMastery([item, check]).git).toBeGreaterThanOrEqual(0.8);
+    expect([...completedLessons([item, check])]).toEqual(['lesson-git']);
+    expect(completedLessons([item]).size).toBe(0);
+  });
 });
 
 describe('readiness and job match', () => {
@@ -261,23 +273,6 @@ describe('readiness and job match', () => {
     expect(roleReadiness(bundle, 'frontend', {}).score).toBe(0);
     const jobs = [{ id: 'j', skill_ids: ['react', 'css'], role: 'frontend' as const }];
     expect(newlyMatchingJobs(bundle, jobs, { react: 1 }, { react: 1, css: 1 })).toHaveLength(1);
-  });
-});
-
-describe('legacy migration', () => {
-  it('imports completed concepts idempotently and maps the roadmap to a track', () => {
-    const storage = {
-      nomadic_cached_roadmap: JSON.stringify({ id: 'frontend', title: 'Frontend Developer' }),
-      nomadic_completed_concepts: JSON.stringify(['React', 'Git', 'Underwater basket weaving']),
-    };
-    const a = migrateLegacyLocalStorage(storage, U, bundle, new Date('2026-10-01T00:00:00Z'));
-    const b = migrateLegacyLocalStorage(storage, U, bundle, new Date('2026-10-05T00:00:00Z'));
-    expect(a.track).toBe('frontend');
-    expect(a.events.map((e) => e.id)).toEqual(b.events.map((e) => e.id));
-    expect(a.events.every((e) => e.type === 'skill_marked_known' && e.payload.mastery === 0.5)).toBe(true);
-    expect(a.unmatchedConcepts).toEqual(['Underwater basket weaving']);
-    expect(a.keysToRemove).toEqual(['nomadic_cached_roadmap', 'nomadic_completed_concepts']);
-    expect(migrateLegacyLocalStorage({ nomadic_completed_concepts: 'not json' }, U, bundle).events).toEqual([]);
   });
 });
 

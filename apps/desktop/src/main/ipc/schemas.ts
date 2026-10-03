@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { ArgSchemas } from './handle.js';
+import { LearningEventPayloadSchema, LearningEventTypeSchema, RoleFamilyIdSchema, UuidSchema } from '@job-automator/learning';
 import { USER_APPLICATION_STATUSES } from '../../shared/ipc.js';
 
 /**
@@ -178,64 +179,25 @@ const assistantRequest = z
   .passthrough();
 export const assistantArgs: ArgSchemas<'ask-nomadic-assistant'> = [assistantRequest];
 
-// ── learner hub ────────────────────────────────────────────────────────────
-export const roadmapIdArgs: ArgSchemas<'get-learner-progress'> = [str(500)];
+// ── learn ──────────────────────────────────────────────────────────────────
+const learningEventInput = z.object({
+  id: UuidSchema,
+  type: LearningEventTypeSchema,
+  skill_id: str(120).min(1).nullable(),
+  item_id: str(120).min(1).nullable(),
+  payload: LearningEventPayloadSchema.refine((p) => JSON.stringify(p).length <= 4_000, 'payload is too large').default({}),
+  duration_s: z.number().int().min(0).max(86_400).default(0),
+  created_at: z.string().datetime({ offset: true }),
+});
+/** At most 500 events per call (the server RPC's batch limit). */
+export const learningRecordEventsArgs: ArgSchemas<'learning-record-events'> = [z.array(learningEventInput).min(1).max(500)];
 
-const learnerProgressInput = z
-  .object({
-    roadmapId: str(500),
-    completedNodes: z.array(str(500)).max(10_000),
-    targetHorizon: opt(str(100)),
-    dailyCommitment: opt(str(100)),
-    streakCount: opt(z.number().int().min(0).max(100_000)),
-  })
-  .passthrough();
-export const saveLearnerProgressArgs: ArgSchemas<'save-learner-progress'> = [learnerProgressInput];
-
-const aiKeys = { geminiKey: opt(str()), groqKey: opt(str()) };
-
-const onboardingParams = z
-  .object({
-    targetRole: str(),
-    experienceLevel: opt(str(200)),
-    bioOrResumeText: opt(str(LONG)),
-    customSkills: opt(z.array(str()).max(500)),
-    targetHorizon: opt(str(100)),
-    dailyCommitment: opt(str(100)),
-    ...aiKeys,
-  })
-  .passthrough();
-export const onboardingArgs: ArgSchemas<'generate-ai-onboarding-profile'> = [onboardingParams];
-
-const customRoadmapParams = z
-  .object({
-    roleTitle: str(),
-    customTitle: opt(str()),
-    currentSkills: opt(str(MEDIUM)),
-    targetHorizon: opt(str(100)),
-    dailyCommitment: opt(str(100)),
-    ...aiKeys,
-  })
-  .passthrough();
-export const customRoadmapArgs: ArgSchemas<'generate-custom-roadmap'> = [customRoadmapParams];
-
-const customRoadmapInput = z
-  .object({
-    id: str(500),
-    roleTitle: str(),
-    domain: str(),
-    roadmapJson: str(LONG),
-    targetHorizon: opt(str(100)),
-    dailyCommitment: opt(str(100)),
-  })
-  .passthrough();
-export const saveCustomRoadmapArgs: ArgSchemas<'save-custom-roadmap'> = [customRoadmapInput];
-export const deleteCustomRoadmapArgs: ArgSchemas<'delete-custom-roadmap'> = [str(500)];
-
-export const heatmapDaysArgs: ArgSchemas<'get-activity-heatmap'> = [opt(z.number().int().min(0).max(3_650))];
-export const logActivityArgs: ArgSchemas<'log-user-activity'> = [
-  z.object({ activityType: str(100), details: opt(str(MEDIUM)) }).passthrough(),
-];
+const learningGoalInput = z.object({
+  track_id: RoleFamilyIdSchema,
+  horizon_months: z.union([z.literal(1), z.literal(3), z.literal(6)]),
+  daily_hours: z.union([z.literal(1), z.literal(2), z.literal(4)]),
+});
+export const learningSaveGoalArgs: ArgSchemas<'learning-save-goal'> = [learningGoalInput];
 
 const interviewAnswerParams = z
   .object({
@@ -246,11 +208,6 @@ const interviewAnswerParams = z
   })
   .passthrough();
 export const interviewAnswerArgs: ArgSchemas<'evaluate-interview-answer'> = [interviewAnswerParams];
-
-const recommendedParams = z
-  .object({ title: str(), description: opt(str(LONG)), techStack: opt(str(MEDIUM)) })
-  .passthrough();
-export const recommendedResourcesArgs: ArgSchemas<'get-recommended-resources-for-job'> = [recommendedParams];
 
 // ── auth & session ─────────────────────────────────────────────────────────
 const credentials = z

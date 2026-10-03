@@ -10,5 +10,4 @@ export * from './sm2';
 export * from './progress';
 export * from './today';
 export * from './readiness';
-export * from './legacy';
 export * from './gating';

@@ -310,75 +310,50 @@ export interface AssistantReply {
   action?: AssistantAction;
 }
 
-export interface LearnerProgress {
-  roadmapId: string;
-  completedNodes: string[];
-  targetHorizon: string;
-  dailyCommitment: string;
-  streakCount: number;
-  lastActiveDate?: string;
-}
+// ── Learn (append-only learning events + goal) ─────────────────────────────
 
-export interface LearnerProgressInput {
-  roadmapId: string;
-  completedNodes: string[];
-  targetHorizon?: string;
-  dailyCommitment?: string;
-  streakCount?: number;
-}
+export const LEARNING_EVENT_TYPE_LIST = [
+  'lesson_viewed', 'quiz_passed', 'quiz_failed', 'problem_solved', 'review_done', 'skill_marked_known',
+] as const;
+export type LearningEventTypeName = (typeof LEARNING_EVENT_TYPE_LIST)[number];
 
-export interface OnboardingProfileParams {
-  targetRole: string;
-  experienceLevel?: string;
-  bioOrResumeText?: string;
-  customSkills?: string[];
-  targetHorizon?: string;
-  dailyCommitment?: string;
-  geminiKey?: string;
-  groqKey?: string;
-}
-
-export interface CustomRoadmapParams {
-  roleTitle: string;
-  customTitle?: string;
-  currentSkills?: string;
-  targetHorizon?: string;
-  dailyCommitment?: string;
-  geminiKey?: string;
-  groqKey?: string;
-}
-
-/** AI generated roadmap / profile payloads are free-form JSON. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type AiJson = any;
-
-export interface CustomRoadmapRecord {
+/** One learning event as stored locally and in Supabase (`learning_events`). */
+export interface LearningEventRecord {
   id: string;
-  roleTitle: string;
-  domain: string;
-  targetHorizon: string;
-  dailyCommitment: string;
-  roadmapJson: string;
-  updatedAt: string;
+  user_id: string;
+  type: LearningEventTypeName;
+  skill_id: string | null;
+  item_id: string | null;
+  payload: Record<string, unknown>;
+  duration_s: number;
+  created_at: string;
 }
 
-export interface CustomRoadmapInput {
-  id: string;
-  roleTitle: string;
-  domain: string;
-  roadmapJson: string;
-  targetHorizon?: string;
-  dailyCommitment?: string;
+/** What the renderer sends; the main process stamps `user_id`. */
+export type LearningEventInput = Omit<LearningEventRecord, 'user_id'>;
+
+export interface LearningGoalInput {
+  track_id: string;
+  horizon_months: 1 | 3 | 6;
+  daily_hours: 1 | 2 | 4;
 }
 
-export interface ActivityHeatmapDay {
-  date: string;
-  count: number;
+export interface LearningGoal extends LearningGoalInput {
+  started_at: string;
+  updated_at: string;
 }
 
-export interface ActivityStats {
-  streakCount: number;
-  totalActions: number;
+export interface LearningState {
+  goal: LearningGoal | null;
+  events: LearningEventRecord[];
+  /** Local events not yet accepted by the server. */
+  pendingSync: number;
+}
+
+export interface LearningSyncResult extends SuccessResult {
+  pushed: number;
+  pulled: number;
+  rejected: number;
 }
 
 export interface InterviewAnswerParams {
@@ -413,12 +388,6 @@ export interface CuratedResourceInput {
   targetRole: string;
   summary?: string;
   duration?: string;
-}
-
-export interface RecommendedResourcesParams {
-  title: string;
-  description?: string;
-  techStack?: string;
 }
 
 export type UserTier =
@@ -641,19 +610,12 @@ export interface IpcChannels {
   // assistant
   'ask-nomadic-assistant': Channel<[data: AssistantRequest], AssistantReply>;
 
-  // learner hub
-  'get-learner-progress': Channel<[roadmapId: string], LearnerProgress | null>;
-  'save-learner-progress': Channel<[progress: LearnerProgressInput], { success: boolean }>;
-  'generate-ai-onboarding-profile': Channel<[params: OnboardingProfileParams], { success: boolean; profile?: AiJson; roadmap?: AiJson }>;
-  'generate-custom-roadmap': Channel<[params: CustomRoadmapParams], { success: boolean; roadmap?: AiJson }>;
-  'get-custom-roadmaps': Channel<[], CustomRoadmapRecord[]>;
-  'save-custom-roadmap': Channel<[roadmap: CustomRoadmapInput], { success: boolean }>;
-  'delete-custom-roadmap': Channel<[id: string], { success: boolean }>;
-  'get-activity-heatmap': Channel<[days?: number], ActivityHeatmapDay[]>;
-  'log-user-activity': Channel<[params: { activityType: string; details?: string }], { success: boolean }>;
-  'get-activity-stats': Channel<[], ActivityStats>;
+  // learn
+  'learning-get-state': Channel<[], LearningState>;
+  'learning-save-goal': Channel<[goal: LearningGoalInput], SuccessResult & { goal?: LearningGoal }>;
+  'learning-record-events': Channel<[events: LearningEventInput[]], SuccessResult & { events?: LearningEventRecord[] }>;
+  'learning-sync': Channel<[], LearningSyncResult>;
   'evaluate-interview-answer': Channel<[params: InterviewAnswerParams], InterviewEvaluation>;
-  'get-recommended-resources-for-job': Channel<[params: RecommendedResourcesParams], CuratedResource[]>;
 
   // auth & session
   'auth-google': Channel<[], SuccessResult>;
@@ -694,10 +656,8 @@ export const IPC_CHANNELS = [
   'submit-all-batch-copilot',
   'verify-email', 'get-hr-contacts', 'send-outreach', 'generate-ai-outreach-email',
   'ask-nomadic-assistant',
-  'get-learner-progress', 'save-learner-progress', 'generate-ai-onboarding-profile',
-  'generate-custom-roadmap', 'get-custom-roadmaps', 'save-custom-roadmap', 'delete-custom-roadmap',
-  'get-activity-heatmap', 'log-user-activity', 'get-activity-stats', 'evaluate-interview-answer',
-  'get-recommended-resources-for-job',
+  'learning-get-state', 'learning-save-goal', 'learning-record-events', 'learning-sync',
+  'evaluate-interview-answer',
   'auth-google', 'auth-login', 'auth-signup', 'start-heartbeat', 'stop-heartbeat', 'sync-cloud-data',
   'get-device-info',
   'admin-get-users', 'admin-create-user', 'admin-update-user-status', 'admin-delete-user',
@@ -765,18 +725,11 @@ export interface NomadicApi {
 
   askNomadicAssistant: Invoke<'ask-nomadic-assistant'>;
   generateAiOutreachEmail: Invoke<'generate-ai-outreach-email'>;
-  generateAiOnboardingProfile: Invoke<'generate-ai-onboarding-profile'>;
-  generateCustomRoadmap: Invoke<'generate-custom-roadmap'>;
-  getCustomRoadmaps: Invoke<'get-custom-roadmaps'>;
-  saveCustomRoadmap: Invoke<'save-custom-roadmap'>;
-  deleteCustomRoadmap: Invoke<'delete-custom-roadmap'>;
 
-  getActivityHeatmap: Invoke<'get-activity-heatmap'>;
-  logUserActivity: (activityType: string, details?: string) => Promise<ChannelResult<'log-user-activity'>>;
-  getActivityStats: Invoke<'get-activity-stats'>;
-
-  getLearnerProgress: Invoke<'get-learner-progress'>;
-  saveLearnerProgress: Invoke<'save-learner-progress'>;
+  learningGetState: Invoke<'learning-get-state'>;
+  learningSaveGoal: Invoke<'learning-save-goal'>;
+  learningRecordEvents: Invoke<'learning-record-events'>;
+  learningSync: Invoke<'learning-sync'>;
 
   updateApplicationStatus: (id: number | string, status: string) => Promise<ChannelResult<'update-application-status'>>;
   updateApplicationNotes: (id: number | string, notes: string) => Promise<ChannelResult<'update-application-notes'>>;
@@ -796,7 +749,6 @@ export interface NomadicApi {
   adminGetLearningResources: Invoke<'admin-get-learning-resources'>;
   adminAddLearningResource: Invoke<'admin-add-learning-resource'>;
   adminDeleteLearningResource: Invoke<'admin-delete-learning-resource'>;
-  getRecommendedResourcesForJob: Invoke<'get-recommended-resources-for-job'>;
   adminGetBilling: Invoke<'admin-get-billing'>;
   adminCreateBillingRecord: Invoke<'admin-create-billing-record'>;
   adminGetMetrics: Invoke<'admin-get-metrics'>;

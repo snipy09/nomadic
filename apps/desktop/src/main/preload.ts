@@ -56,20 +56,12 @@ const apiObj: NomadicApi = {
   // AI Generation Handlers
   askNomadicAssistant: (data) => invoke('ask-nomadic-assistant', data),
   generateAiOutreachEmail: (params) => invoke('generate-ai-outreach-email', params),
-  generateAiOnboardingProfile: (params) => invoke('generate-ai-onboarding-profile', params),
-  generateCustomRoadmap: (params) => invoke('generate-custom-roadmap', params),
-  getCustomRoadmaps: () => invoke('get-custom-roadmaps'),
-  saveCustomRoadmap: (roadmap) => invoke('save-custom-roadmap', roadmap),
-  deleteCustomRoadmap: (id) => invoke('delete-custom-roadmap', id),
 
-  // Activity Heatmap & Logging
-  getActivityHeatmap: (days) => invoke('get-activity-heatmap', days),
-  logUserActivity: (activityType, details) => invoke('log-user-activity', { activityType, details }),
-  getActivityStats: () => invoke('get-activity-stats'),
-
-  // Learner Progress & Roadmap State
-  getLearnerProgress: (roadmapId) => invoke('get-learner-progress', roadmapId),
-  saveLearnerProgress: (progress) => invoke('save-learner-progress', progress),
+  // Learn
+  learningGetState: () => invoke('learning-get-state'),
+  learningSaveGoal: (goal) => invoke('learning-save-goal', goal),
+  learningRecordEvents: (events) => invoke('learning-record-events', events),
+  learningSync: () => invoke('learning-sync'),
 
   // Applications Management
   updateApplicationStatus: (id, status) => invoke('update-application-status', { id, status }),
@@ -92,7 +84,6 @@ const apiObj: NomadicApi = {
   adminGetLearningResources: () => invoke('admin-get-learning-resources'),
   adminAddLearningResource: (resource) => invoke('admin-add-learning-resource', resource),
   adminDeleteLearningResource: (id) => invoke('admin-delete-learning-resource', id),
-  getRecommendedResourcesForJob: (params) => invoke('get-recommended-resources-for-job', params),
   adminGetBilling: () => invoke('admin-get-billing'),
   adminCreateBillingRecord: (record) => invoke('admin-create-billing-record', record),
   adminGetMetrics: () => invoke('admin-get-metrics'),

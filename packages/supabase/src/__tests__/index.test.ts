@@ -11,7 +11,11 @@ import {
   syncRemoveSavedJob,
   syncPushResume,
   syncDeleteResume,
-  handleRazorpaySuccessRpc
+  handleRazorpaySuccessRpc,
+  learningRecordEvents,
+  learningPullEvents,
+  learningStartTrack,
+  learningGetTracks
 } from '../index.js';
 
 describe('Supabase Package Unit Tests', () => {
@@ -329,6 +333,33 @@ describe('Supabase Package Unit Tests', () => {
       });
       expect(res.ok).toBe(true);
       expect(res.reason).toBe('Subscription upgraded successfully!');
+    });
+  });
+
+  describe('learning RPCs', () => {
+    const sess = ['user-1', 'tok', 'fp'] as const;
+
+    it('records events and reports accepted / rejected counts', async () => {
+      const rpc = vi.fn().mockResolvedValue({ data: [{ accepted: 3, rejected: 1, error: null }], error: null });
+      const events = [{ id: 'e1', type: 'quiz_passed', skill_id: 's', item_id: 'i', payload: {}, duration_s: 0, created_at: '2026-10-01T00:00:00Z' }];
+      expect(await learningRecordEvents({ rpc }, ...sess, events)).toEqual({ ok: true, accepted: 3, rejected: 1 });
+      expect(rpc).toHaveBeenCalledWith('learning_record_events', { p_user_id: 'user-1', p_session_token: 'tok', p_device_fingerprint: 'fp', p_events: events });
+    });
+
+    it('treats a server-side error row (e.g. unauthorized) as a failure', async () => {
+      const rpc = vi.fn().mockResolvedValue({ data: [{ accepted: 0, rejected: 0, error: 'unauthorized' }], error: null });
+      expect(await learningRecordEvents({ rpc }, ...sess, [])).toMatchObject({ ok: false, error: 'unauthorized' });
+    });
+
+    it('pulls events since a cursor and starts tracks', async () => {
+      const rpc = vi.fn()
+        .mockResolvedValueOnce({ data: [{ id: 'e1' }], error: null })
+        .mockResolvedValueOnce({ data: [{ ok: false, error: 'free_tier_track_limit' }], error: null })
+        .mockResolvedValueOnce({ data: null, error: { message: 'function learning_get_tracks does not exist' } });
+      expect((await learningPullEvents({ rpc }, ...sess, '2026-10-01T00:00:00Z')).events).toHaveLength(1);
+      expect(rpc.mock.calls[0][1].p_since).toBe('2026-10-01T00:00:00Z');
+      expect(await learningStartTrack({ rpc }, ...sess, { track_id: 'frontend', horizon_months: 3, daily_hours: 2 })).toEqual({ ok: false, error: 'free_tier_track_limit' });
+      expect(await learningGetTracks({ rpc }, ...sess)).toMatchObject({ ok: false, tracks: [] });
     });
   });
 });

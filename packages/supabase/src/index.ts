@@ -451,3 +451,139 @@ export async function handleRazorpaySuccessRpc(
     return { ok: false, reason: String(err?.message ?? err) };
   }
 }
+
+// ── Learn (migration 007 RPCs; 012 adds the track pull) ─────────────────────
+// Every call is session-checked server-side (learning_session_ok). Free-tier
+// limits (1 active track, 10 practice attempts per UTC day) are enforced there.
+
+export interface CloudLearningEvent {
+  id: string;
+  type: string;
+  skill_id: string | null;
+  item_id: string | null;
+  payload: Record<string, unknown>;
+  duration_s: number;
+  created_at: string;
+  received_at?: string;
+}
+
+export interface CloudLearningTrack {
+  track_id: string;
+  status: 'active' | 'archived';
+  horizon_months: number;
+  daily_hours: number;
+  started_at: string;
+  archived_at: string | null;
+}
+
+/** Appends events (idempotent by id). Over-limit practice attempts come back as `rejected`. */
+export async function learningRecordEvents(
+  supabase: any,
+  userId: string,
+  sessionToken: string,
+  deviceFingerprint: string,
+  events: Array<Omit<CloudLearningEvent, 'received_at'>>
+): Promise<{ ok: boolean; accepted: number; rejected: number; error?: string }> {
+  try {
+    const { data, error } = await supabase.rpc('learning_record_events', {
+      p_user_id: userId,
+      p_session_token: sessionToken,
+      p_device_fingerprint: deviceFingerprint,
+      p_events: events,
+    });
+    if (error) return { ok: false, accepted: 0, rejected: 0, error: error.message };
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row || row.error) return { ok: false, accepted: 0, rejected: 0, error: row?.error || 'No response' };
+    return { ok: true, accepted: Number(row.accepted) || 0, rejected: Number(row.rejected) || 0 };
+  } catch (err: any) {
+    return { ok: false, accepted: 0, rejected: 0, error: String(err?.message ?? err) };
+  }
+}
+
+/** Events the server received after `since` (ISO time), oldest first, at most 5000 per call. */
+export async function learningPullEvents(
+  supabase: any,
+  userId: string,
+  sessionToken: string,
+  deviceFingerprint: string,
+  since: string = '1970-01-01T00:00:00Z'
+): Promise<{ ok: boolean; events: CloudLearningEvent[]; error?: string }> {
+  try {
+    const { data, error } = await supabase.rpc('learning_pull_events', {
+      p_user_id: userId,
+      p_session_token: sessionToken,
+      p_device_fingerprint: deviceFingerprint,
+      p_since: since,
+    });
+    if (error) return { ok: false, events: [], error: error.message };
+    return { ok: true, events: Array.isArray(data) ? data : [] };
+  } catch (err: any) {
+    return { ok: false, events: [], error: String(err?.message ?? err) };
+  }
+}
+
+/** Starts or resumes a track. Free tier: fails with `free_tier_track_limit` while another track is active. */
+export async function learningStartTrack(
+  supabase: any,
+  userId: string,
+  sessionToken: string,
+  deviceFingerprint: string,
+  track: { track_id: string; horizon_months: number; daily_hours: number }
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const { data, error } = await supabase.rpc('learning_start_track', {
+      p_user_id: userId,
+      p_session_token: sessionToken,
+      p_device_fingerprint: deviceFingerprint,
+      p_track_id: track.track_id,
+      p_horizon_months: track.horizon_months,
+      p_daily_hours: track.daily_hours,
+    });
+    if (error) return { ok: false, error: error.message };
+    const row = Array.isArray(data) ? data[0] : data;
+    return { ok: Boolean(row?.ok), error: row?.error ?? undefined };
+  } catch (err: any) {
+    return { ok: false, error: String(err?.message ?? err) };
+  }
+}
+
+export async function learningArchiveTrack(
+  supabase: any,
+  userId: string,
+  sessionToken: string,
+  deviceFingerprint: string,
+  trackId: string
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const { data, error } = await supabase.rpc('learning_archive_track', {
+      p_user_id: userId,
+      p_session_token: sessionToken,
+      p_device_fingerprint: deviceFingerprint,
+      p_track_id: trackId,
+    });
+    if (error) return { ok: false, error: error.message };
+    return { ok: data === true };
+  } catch (err: any) {
+    return { ok: false, error: String(err?.message ?? err) };
+  }
+}
+
+/** The user's tracks (migration 012). Fails softly on a database without it. */
+export async function learningGetTracks(
+  supabase: any,
+  userId: string,
+  sessionToken: string,
+  deviceFingerprint: string
+): Promise<{ ok: boolean; tracks: CloudLearningTrack[]; error?: string }> {
+  try {
+    const { data, error } = await supabase.rpc('learning_get_tracks', {
+      p_user_id: userId,
+      p_session_token: sessionToken,
+      p_device_fingerprint: deviceFingerprint,
+    });
+    if (error) return { ok: false, tracks: [], error: error.message };
+    return { ok: true, tracks: Array.isArray(data) ? data : [] };
+  } catch (err: any) {
+    return { ok: false, tracks: [], error: String(err?.message ?? err) };
+  }
+}

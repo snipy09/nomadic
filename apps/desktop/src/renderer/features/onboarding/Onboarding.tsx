@@ -7,8 +7,11 @@ import { toForm, type ProfileForm } from '../profile/profileForm';
 import { useResumes } from '../profile/useResumes';
 import { ResumesSection } from '../profile/sections';
 import {
-  ROLE_OPTIONS, SKIPPABLE, STEPS, buildOnboardingProfile, stepErrors, suggestedSkills, toggleSkill, type StepId,
+  ROLE_OPTIONS, SKIPPABLE, STEPS, buildOnboardingProfile, roadmapRoleFor, stepErrors, suggestedSkills, toggleSkill, type StepId,
 } from './onboardingLogic';
+import { GoalFields, PlanPreview, type GoalDraft } from '../learn/GoalFields';
+import { isRoleId, skillIdsFromNames } from '../learn/content';
+import { DEFAULT_HORIZON, DEFAULT_PACE, selfReportedEvents, selfReportedMastery } from '../learn/learnLogic';
 
 interface OnboardingProps {
   initialProfile: MasterProfile;
@@ -24,7 +27,11 @@ const chipClass = (on: boolean) =>
     on ? 'border-accent bg-accent-subtle text-accent-subtle-fg' : 'border-line bg-surface text-fg-muted hover:border-line-strong hover:text-fg',
   ].join(' ');
 
-/** Four short steps from a new account to a usable profile. Nothing is marked complete until the save succeeds. */
+/**
+ * Five short steps from a new account to a usable profile and a learning roadmap.
+ * The last step runs the deterministic planner on the role and skills picked earlier.
+ * Nothing is marked complete until every save succeeds.
+ */
 export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentUser, onComplete }) => {
   const [stepIndex, setStepIndex] = useState(0);
   const [form, setForm] = useState<ProfileForm>(() =>
@@ -34,6 +41,8 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
   const [skillDraft, setSkillDraft] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [goal, setGoal] = useState<GoalDraft>({ role: '', pace: DEFAULT_PACE, horizon: DEFAULT_HORIZON });
+  const goalTouched = useRef(false);
   const resumes = useResumes();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const firstRender = useRef(true);
@@ -47,6 +56,15 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
     if (firstRender.current) { firstRender.current = false; return; }
     headingRef.current?.focus();
   }, [stepIndex]);
+
+  // Entering the roadmap step: start from the role picked on the "Role and skills" step.
+  useEffect(() => {
+    if (step !== 'roadmap' || goalTouched.current) return;
+    const role = roadmapRoleFor(form.targetRole);
+    setGoal((g) => ({ ...g, role: isRoleId(role) ? role : '' }));
+  }, [step, form.targetRole]);
+
+  const knownSkillIds = skillIdsFromNames(form.skills);
 
   const set = <K extends keyof ProfileForm>(key: K, value: ProfileForm[K]) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -62,12 +80,22 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
     setStepIndex(Math.max(0, Math.min(STEPS.length - 1, i)));
   };
 
-  const finish = async () => {
+  const finish = async (withRoadmap: boolean) => {
     setSaving(true);
     setSaveError(null);
     try {
       const api = getApi();
       if (!api?.saveMasterProfile) throw new Error('Profile storage is not available.');
+      // The roadmap: the goal feeds the deterministic planner; skills picked earlier are
+      // recorded as self-reported (below mastered) so they take less time but still get a check.
+      if (withRoadmap && goal.role) {
+        const saved = await api.learningSaveGoal({ track_id: goal.role, horizon_months: goal.horizon, daily_hours: goal.pace });
+        if (!saved?.success) throw new Error(saved?.error || 'Your roadmap could not be saved.');
+        if (knownSkillIds.length) {
+          const rec = await api.learningRecordEvents(selfReportedEvents(knownSkillIds, goal.role, new Date()));
+          if (!rec?.success) throw new Error(rec?.error || 'Your roadmap could not be saved.');
+        }
+      }
       const profile = buildOnboardingProfile(form, initialProfile, resumes.resumes);
       const res = await api.saveMasterProfile({
         ...profile,
@@ -91,7 +119,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
       document.getElementById(`onb-${first}`)?.focus();
       return;
     }
-    if (isLast) void finish();
+    if (isLast) void finish(true);
     else goTo(stepIndex + 1);
   };
 
@@ -251,13 +279,35 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
                   { value: 'seeker_only', label: 'Apply', description: 'Job and internship feed, applications and tracking.' },
                 ]}
               />
-              {saveError && (
-                <div role="alert" className="flex items-start gap-2 rounded-md border border-danger/40 bg-danger-subtle px-3 py-2 text-body text-danger-fg">
-                  <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-                  <span>We could not save your profile: {saveError} Nothing was marked complete. Try again.</span>
-                </div>
+            </>
+          )}
+
+          {step === 'roadmap' && (
+            <>
+              <StepHeading
+                ref={headingRef}
+                title="Your roadmap"
+                description="Built from the role and skills you picked. Choose your pace; you can change it any time in Learn without losing progress."
+              />
+              <GoalFields
+                value={goal}
+                onChange={(v) => { goalTouched.current = true; setGoal(v); }}
+                idPrefix="onb-goal"
+              />
+              <PlanPreview draft={goal} mastery={selfReportedMastery(knownSkillIds)} />
+              {knownSkillIds.length > 0 && goal.role && (
+                <p className="text-caption text-fg-subtle">
+                  Skills you said you know are shortened. A quick check in Learn marks them mastered.
+                </p>
               )}
             </>
+          )}
+
+          {isLast && saveError && (
+            <div role="alert" className="flex items-start gap-2 rounded-md border border-danger/40 bg-danger-subtle px-3 py-2 text-body text-danger-fg">
+              <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              <span>We could not finish setup: {saveError} Nothing was marked complete. Try again.</span>
+            </div>
           )}
 
           <div className="flex items-center gap-2 border-t border-line pt-4">
@@ -268,7 +318,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
             )}
             <div className="flex-1" />
             {SKIPPABLE.has(step) && (
-              <Button variant="ghost" onClick={() => goTo(stepIndex + 1)}>Skip for now</Button>
+              <Button variant="ghost" disabled={saving} onClick={() => (isLast ? void finish(false) : goTo(stepIndex + 1))}>Skip for now</Button>
             )}
             <Button
               type="submit"

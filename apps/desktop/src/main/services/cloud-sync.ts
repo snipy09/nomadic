@@ -11,6 +11,7 @@ import { getActiveSyncSession } from './session.js';
 import { getAnonSupabase } from './supabase.js';
 import { upsertMasterProfile } from './profile.js';
 import { mergeCloudApplications } from './applications-store.js';
+import { syncLearning } from './learning.js';
 
 // ── Cloud Sync & Single-Laptop Lock Helpers ─────────────────────────────────
 
@@ -109,6 +110,8 @@ export async function syncPullUserDataToLocalDb(
     }
 
     persistDb();
+    // Learn progress (goal + events) syncs through its own session-checked RPCs.
+    void syncLearning().catch(() => {});
     log(`[Cloud Sync] Pulled & synchronized profile, applications (${applications?.length || 0}), and saved jobs (${savedJobs?.length || 0}) from Supabase ✓`);
     return true;
   } catch (err: unknown) {
