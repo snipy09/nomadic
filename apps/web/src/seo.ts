@@ -1,6 +1,10 @@
+import { pricingSentence } from '@nomadic/config';
+
 export const SITE = 'https://nomadicai.vercel.app';
-export const OG_IMAGE = `${SITE}/og.png`;
-export const OG_ALT = 'Nomadic: your whole job search, in one window.';
+
+/** Share-card image for a page; generated at build time by scripts/og.mjs from `og` below. */
+export const ogImageFor = (id: PageId) => `${SITE}/og/${id === 'notfound' ? 'home' : id}.png`;
+export const OG_IMAGE = ogImageFor('home');
 
 export type PageId = 'home' | 'download' | 'terms' | 'privacy' | 'refunds' | 'notfound';
 
@@ -12,6 +16,8 @@ export interface PageMeta {
   index: boolean;
   updated: string;
   priority: string;
+  /** Text on the page's share card. */
+  og: { heading: string; sub: string };
 }
 
 /** One source for titles and descriptions: the prerender script and client-side navigation both read it. */
@@ -24,15 +30,17 @@ export const PAGES: Record<PageId, PageMeta> = {
     index: true,
     updated: '2026-10-01',
     priority: '1.0',
+    og: { heading: 'Your whole job search, in one window.', sub: pricingSentence() },
   },
   download: {
     path: '/download',
     title: 'Nomadic for desktop: download coming soon',
     description:
-      'Nomadic for Windows, macOS and Linux is coming soon. See what the first release does and where the installer will appear.',
+      'Nomadic for Windows is coming soon, with macOS after the beta. See what the first release does and where the installer will appear.',
     index: true,
     updated: '2026-10-01',
     priority: '0.8',
+    og: { heading: 'Nomadic for desktop', sub: 'Windows first, macOS after the beta. Download coming soon.' },
   },
   terms: {
     path: '/terms',
@@ -42,6 +50,7 @@ export const PAGES: Record<PageId, PageMeta> = {
     index: true,
     updated: '2026-10-03',
     priority: '0.4',
+    og: { heading: 'Terms of Service', sub: 'Using Nomadic, plans and payments.' },
   },
   privacy: {
     path: '/privacy',
@@ -51,6 +60,7 @@ export const PAGES: Record<PageId, PageMeta> = {
     index: true,
     updated: '2026-10-03',
     priority: '0.4',
+    og: { heading: 'Privacy Policy', sub: 'What stays on your computer, what syncs, and who sees it.' },
   },
   refunds: {
     path: '/refunds',
@@ -59,6 +69,7 @@ export const PAGES: Record<PageId, PageMeta> = {
     index: true,
     updated: '2026-10-03',
     priority: '0.3',
+    og: { heading: 'Refund and Cancellation', sub: 'Monthly plans, no auto-renewal, all payments final.' },
   },
   notfound: {
     path: '/404',
@@ -67,6 +78,7 @@ export const PAGES: Record<PageId, PageMeta> = {
     index: false,
     updated: '2026-10-01',
     priority: '0',
+    og: { heading: 'Page not found', sub: 'Go back to the Nomadic home page.' },
   },
 };
 
@@ -98,15 +110,15 @@ function tagsFor(id: PageId): Tag[] {
     { tag: 'meta', key: 'property=og:locale', attrs: { property: 'og:locale', content: 'en_IN' } },
     { tag: 'meta', key: 'property=og:title', attrs: { property: 'og:title', content: page.title } },
     { tag: 'meta', key: 'property=og:description', attrs: { property: 'og:description', content: page.description } },
-    { tag: 'meta', key: 'property=og:image', attrs: { property: 'og:image', content: OG_IMAGE } },
+    { tag: 'meta', key: 'property=og:image', attrs: { property: 'og:image', content: ogImageFor(id) } },
     { tag: 'meta', key: 'property=og:image:width', attrs: { property: 'og:image:width', content: '1200' } },
     { tag: 'meta', key: 'property=og:image:height', attrs: { property: 'og:image:height', content: '630' } },
-    { tag: 'meta', key: 'property=og:image:alt', attrs: { property: 'og:image:alt', content: OG_ALT } },
+    { tag: 'meta', key: 'property=og:image:alt', attrs: { property: 'og:image:alt', content: `${page.og.heading} ${page.og.sub}` } },
     { tag: 'meta', key: 'name=twitter:card', attrs: { name: 'twitter:card', content: 'summary_large_image' } },
     { tag: 'meta', key: 'name=twitter:title', attrs: { name: 'twitter:title', content: page.title } },
     { tag: 'meta', key: 'name=twitter:description', attrs: { name: 'twitter:description', content: page.description } },
-    { tag: 'meta', key: 'name=twitter:image', attrs: { name: 'twitter:image', content: OG_IMAGE } },
-    { tag: 'meta', key: 'name=twitter:image:alt', attrs: { name: 'twitter:image:alt', content: OG_ALT } },
+    { tag: 'meta', key: 'name=twitter:image', attrs: { name: 'twitter:image', content: ogImageFor(id) } },
+    { tag: 'meta', key: 'name=twitter:image:alt', attrs: { name: 'twitter:image:alt', content: `${page.og.heading} ${page.og.sub}` } },
   ];
 
   if (page.index) {

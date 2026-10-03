@@ -1,9 +1,10 @@
 import { defineConfig } from 'vitest/config';
 
-// One vitest run, three projects:
+// One vitest run, four projects:
 //  - packages:          shared Node packages (automation, scrapers, supabase, email-verifier)
 //  - desktop-main:      Electron main-process code (Node environment)
 //  - desktop-renderer:  React renderer code, resolved from apps/desktop with a DOM (jsdom)
+//  - web:               landing page data (pricing from config, SEO, share cards, privacy content)
 const sharedExclude = ['**/node_modules/**', '**/dist/**', '**/out/**', '**/dist-electron/**'];
 
 export default defineConfig({
@@ -18,6 +19,15 @@ export default defineConfig({
           include: ['packages/*/src/**/*.test.ts'],
           // packages with their own vitest config (jsdom, setup files) run as separate projects
           exclude: [...sharedExclude, 'packages/ui/**', 'packages/learning/**'],
+        },
+      },
+      {
+        test: {
+          name: 'web',
+          root: './apps/web',
+          environment: 'node',
+          include: ['src/**/*.test.ts'],
+          exclude: sharedExclude,
         },
       },
       {

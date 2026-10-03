@@ -1,8 +1,9 @@
 // Runs after the client and SSR builds. Writes one static HTML file per route, so crawlers and
 // slow connections get real content and per-page tags before any JavaScript runs.
-import { readFile, writeFile, rm } from 'node:fs/promises';
+import { readdir, readFile, writeFile, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { writeOgImages } from './og.mjs';
 
 const web = fileURLToPath(new URL('..', import.meta.url));
 const dist = resolve(web, 'dist');
@@ -29,10 +30,16 @@ const FILES = {
 
 const safeJson = (value) => JSON.stringify(value).replace(/</g, '\\u003c');
 
+// Preload the Latin width-axis font file so headings render in Archivo on first paint.
+const assets = await readdir(resolve(dist, 'assets'));
+const latinFont = assets.find((f) => /^archivo-latin-wdth-normal-.*\.woff2$/.test(f));
+if (!latinFont) throw new Error('Self-hosted Archivo font missing from dist/assets.');
+const fontPreload = `<link rel="preload" href="/assets/${latinFont}" as="font" type="font/woff2" crossorigin />`;
+
 for (const [id, file] of Object.entries(FILES)) {
   const page = server.PAGES[id];
   const ld = server.jsonLd(id);
-  const head = [server.headTags(id)];
+  const head = [fontPreload, server.headTags(id)];
   if (ld) head.push(`<script type="application/ld+json" id="ld-json">${safeJson(ld)}</script>`);
 
   const body = server.render(page.path);
@@ -58,5 +65,7 @@ await writeFile(
   `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`,
 );
 console.log('wrote sitemap.xml');
+
+await writeOgImages(server.PAGES, dist, server.SITE);
 
 await rm(ssrDir, { recursive: true, force: true });

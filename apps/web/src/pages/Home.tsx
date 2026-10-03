@@ -40,7 +40,7 @@ function Hero() {
             </p>
             <ComingSoon tone="dark" size="lg" className="mt-8" />
             <p className="mt-4 max-w-md text-white/85">
-              For Windows, macOS and Linux. Public downloads are not open yet.
+              For Windows first, macOS after the beta. Public downloads are not open yet.
             </p>
             <a
               href="#learn"

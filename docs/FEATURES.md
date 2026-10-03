@@ -20,7 +20,7 @@ Status: ✅ done · 🟡 partial · ⬜ not started
 | F11 | Updates, telemetry, support | 🟡 | Built: electron-updater with Stable/Beta channels and a forced-update floor (`update-policy.json`), opt-in scrubbed Sentry (main + renderer) with a Settings toggle, Help screen (shortcuts, links), feedback/bug form with diagnostics, "what's new" after update; old GitHub-API updater removed. Left: Sentry source maps, a real tagged release updating an install | Tagged release updates a real install |
 | F12 | Admin and content tools | 🟡 | Built: `features/admin` (Users with plan/status changes behind confirmation + reason, Audit log, Scraper health from `scrape_runs`, Content list + lesson text and resource status edits with version bump and history), all via session-checked admin RPCs (migration 014, append-only audit log, no service-role key in the app). Left: apply 014 in production; practice item and skill editing; review assignment (second reviewer) for publishing | Every edit versioned |
 | F13 | Hidden/optional: Outreach, Opportunity Board, Resource Vault, Assistant | ⬜ | Behind flags until each meets the bar, or cut | Decision per feature |
-| F14 | Landing and docs site | 🟡 | Rebuild per decision, single pricing config, Lighthouse >= 95 | Pricing defined once |
+| F14 | Landing and docs site | ✅ | Built: pricing from packages/config, per-page OG images, sitemap, JSON-LD, legal pages (terms/privacy/refunds) from config, data-handling facts match the app. Lighthouse mobile (local preview): performance 97, accessibility 100, best practices 100, SEO 100 | Pricing defined once |
 
 ## Recommended order
 F1 → F6 → F3 → F4 → F5 → F2 → F7 → F8 → F10 → F9 → F11 → F12 → F14 (F13 last or cut).
