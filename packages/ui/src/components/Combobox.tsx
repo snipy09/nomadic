@@ -14,7 +14,10 @@ export interface ComboboxOption {
 
 export interface ComboboxProps {
   options: ComboboxOption[];
+  /** Controlled value. */
   value?: string | null;
+  /** Initial value when uncontrolled. */
+  defaultValue?: string | null;
   onChange?: (value: string | null, option: ComboboxOption | null) => void;
   placeholder?: string;
   /** Shown when nothing matches. */
@@ -47,7 +50,8 @@ const defaultFilter = (o: ComboboxOption, q: string) => {
 export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(function Combobox(
   {
     options,
-    value = null,
+    value: valueProp,
+    defaultValue = null,
     onChange,
     placeholder = 'Search…',
     emptyText = 'No matches',
@@ -69,6 +73,8 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(functi
   const listId = `nm-cb-${reactId}-list`;
   const optionId = (i: number) => `nm-cb-${reactId}-opt-${i}`;
 
+  const [innerValue, setInnerValue] = React.useState<string | null>(defaultValue);
+  const value = valueProp !== undefined ? valueProp : innerValue;
   const selected = React.useMemo(() => options.find((o) => o.value === value) ?? null, [options, value]);
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState(selected?.label ?? '');
@@ -120,6 +126,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(functi
 
   const choose = (o: ComboboxOption | undefined) => {
     if (!o || o.disabled) return;
+    setInnerValue(o.value);
     onChange?.(o.value, o);
     setQuery(o.label);
     setDirty(false);
@@ -153,6 +160,7 @@ export const Combobox = React.forwardRef<HTMLInputElement, ComboboxProps>(functi
           e.preventDefault();
           setQuery('');
           setDirty(false);
+          setInnerValue(null);
           onChange?.(null, null);
         }
         break;
