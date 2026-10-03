@@ -572,6 +572,45 @@ export interface AuthResult {
   error?: string;
 }
 
+// ── Password reset and email verification (migration 019, Edge Function send-email-code) ──
+
+export interface PasswordResetRequestInput {
+  email: string;
+}
+
+export interface PasswordResetConfirmInput {
+  email: string;
+  /** The 6-digit code from the email. */
+  code: string;
+  newPassword: string;
+}
+
+export interface EmailVerificationConfirmInput {
+  code: string;
+}
+
+/**
+ * `not_signed_in`: no online session (offline sign-in or signed out). `unauthorized`: the server refused the
+ * session. `invalid_code`: wrong, expired, used or locked code (one message for all). `rate_limited`: too many
+ * codes requested. `email_failed`: the email could not be sent. `network`: the server could not be reached.
+ */
+export type EmailCodeErrorCode =
+  | 'not_signed_in' | 'unauthorized' | 'invalid_code' | 'invalid_password' | 'rate_limited'
+  | 'email_failed' | 'network' | 'not_configured';
+
+export interface EmailCodeResult extends SuccessResult {
+  code?: EmailCodeErrorCode;
+  /** auth-send-verification / auth-confirm-verification: the account was already verified. */
+  alreadyVerified?: boolean;
+}
+
+export interface EmailVerificationStatus extends SuccessResult {
+  verified?: boolean;
+  email?: string;
+  verifiedAt?: string | null;
+  code?: EmailCodeErrorCode;
+}
+
 export interface HeartbeatOptions {
   userId: string;
   sessionToken: string;
@@ -701,6 +740,11 @@ export interface IpcChannels {
   'auth-google': Channel<[], SuccessResult>;
   'auth-login': Channel<[credentials: AuthCredentials], AuthResult>;
   'auth-signup': Channel<[credentials: AuthCredentials], AuthResult>;
+  'auth-request-password-reset': Channel<[input: PasswordResetRequestInput], EmailCodeResult>;
+  'auth-confirm-password-reset': Channel<[input: PasswordResetConfirmInput], EmailCodeResult>;
+  'auth-send-verification': Channel<[], EmailCodeResult>;
+  'auth-confirm-verification': Channel<[input: EmailVerificationConfirmInput], EmailCodeResult>;
+  'auth-verification-status': Channel<[], EmailVerificationStatus>;
   'start-heartbeat': Channel<[opts: HeartbeatOptions], { success: boolean }>;
   'stop-heartbeat': Channel<[], { success: boolean }>;
   'sync-cloud-data': Channel<[], SuccessResult & { pulled?: boolean }>;
@@ -737,7 +781,9 @@ export const IPC_CHANNELS = [
   'ask-nomadic-assistant',
   'learning-get-state', 'learning-save-goal', 'learning-record-events', 'learning-sync',
   'practice-get-catalog', 'practice-get-state', 'practice-record-attempt',
-  'auth-google', 'auth-login', 'auth-signup', 'start-heartbeat', 'stop-heartbeat', 'sync-cloud-data',
+  'auth-google', 'auth-login', 'auth-signup',
+  'auth-request-password-reset', 'auth-confirm-password-reset', 'auth-send-verification', 'auth-confirm-verification',
+  'auth-verification-status', 'start-heartbeat', 'stop-heartbeat', 'sync-cloud-data',
   'get-device-info',
   'admin-list-users', 'admin-set-user-plan', 'admin-set-user-status', 'admin-list-audit',
   'admin-scrape-health', 'admin-list-content', 'admin-update-lesson', 'admin-set-resource-status',
@@ -823,6 +869,11 @@ export interface NomadicApi {
   authLogin: Invoke<'auth-login'>;
   authSignup: Invoke<'auth-signup'>;
   authGoogle: Invoke<'auth-google'>;
+  authRequestPasswordReset: Invoke<'auth-request-password-reset'>;
+  authConfirmPasswordReset: Invoke<'auth-confirm-password-reset'>;
+  authSendVerification: Invoke<'auth-send-verification'>;
+  authConfirmVerification: Invoke<'auth-confirm-verification'>;
+  authVerificationStatus: Invoke<'auth-verification-status'>;
   onOauthCallback: Subscribe<'oauth-callback'>;
   adminListUsers: Invoke<'admin-list-users'>;
   adminSetUserPlan: Invoke<'admin-set-user-plan'>;

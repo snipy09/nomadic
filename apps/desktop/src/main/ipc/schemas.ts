@@ -237,6 +237,20 @@ const credentials = z
   .passthrough();
 export const credentialsArgs: ArgSchemas<'auth-login'> = [credentials];
 
+// Password reset / email verification (019). Strict: these channels have no legacy callers. Password length
+// rules are applied by the service (same messages as sign-up); the server re-checks everything.
+const resetEmail = z.string().trim().min(3).max(320).regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Enter a valid email address.');
+const emailCode = z.string().trim().regex(/^[0-9]{6}$/, 'Enter the 6-digit code.');
+export const passwordResetRequestArgs: ArgSchemas<'auth-request-password-reset'> = [
+  z.object({ email: resetEmail }).strict(),
+];
+export const passwordResetConfirmArgs: ArgSchemas<'auth-confirm-password-reset'> = [
+  z.object({ email: resetEmail, code: emailCode, newPassword: z.string().max(SHORT) }).strict(),
+];
+export const emailVerificationConfirmArgs: ArgSchemas<'auth-confirm-verification'> = [
+  z.object({ code: emailCode }).strict(),
+];
+
 const heartbeatOptions = z
   .object({
     userId: z.union([str(200), z.number().finite()]).transform(String),

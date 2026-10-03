@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { BAD_CREDENTIALS, friendlyAuthError, validateAuth } from '../features/auth/authForm';
+import {
+  BAD_CREDENTIALS, friendlyAuthError, normalizeCode, validateAuth, validateCode, validateEmailOnly, validateResetConfirm,
+} from '../features/auth/authForm';
 import {
   ROLE_OPTIONS, STEPS, applyReadinessErrors, buildOnboardingProfile, roadmapRoleFor, stepErrors, suggestedSkills, toggleSkill,
 } from '../features/onboarding/onboardingLogic';
@@ -45,6 +47,25 @@ describe('friendlyAuthError', () => {
   it('gives a generic retry message when there is no error text', () => {
     expect(friendlyAuthError('signin', undefined)).toBe('Sign-in failed. Please try again.');
     expect(friendlyAuthError('signup', '')).toBe('Sign-up failed. Please try again.');
+  });
+});
+
+describe('password reset helpers', () => {
+  it('normalises pasted codes to six digits', () => {
+    expect(normalizeCode('123 456')).toBe('123456');
+    expect(normalizeCode('12-34-56-78')).toBe('123456');
+    expect(normalizeCode('abc')).toBe('');
+  });
+
+  it('validates email, code and the sign-up password rule', () => {
+    expect(validateEmailOnly('')).toMatch(/enter your email/i);
+    expect(validateEmailOnly('nope')).toMatch(/valid email/i);
+    expect(validateEmailOnly(' a@b.co ')).toBeUndefined();
+    expect(validateCode('12345')).toMatch(/6-digit/);
+    expect(validateCode('123456')).toBeUndefined();
+    expect(validateResetConfirm('123456', 'secret')).toEqual({});
+    expect(validateResetConfirm('123456', '  12345  ').password).toMatch(/at least 6/);
+    expect(validateResetConfirm('1', '').code).toBeTruthy();
   });
 });
 

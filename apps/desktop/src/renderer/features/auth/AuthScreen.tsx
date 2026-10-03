@@ -7,6 +7,8 @@ import { getApi, type AppUser } from '../../types';
 import { prefs } from '../../store/preferences';
 import { friendlyAuthError, validateAuth, type AuthFieldErrors, type AuthFormValues, type AuthMode } from './authForm';
 import { TermsDialog } from './TermsDialog';
+import { ForgotPasswordFlow } from './ForgotPasswordFlow';
+import { VerifyEmailPanel } from './VerifyEmailPanel';
 
 interface AuthScreenProps {
   onLoginSuccess: (user: AppUser) => void;
@@ -43,6 +45,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog })
   const [conflictDevice, setConflictDevice] = useState<string | null>(null);
   const [googleWaiting, setGoogleWaiting] = useState(false);
   const [termsPrompt, setTermsPrompt] = useState(false);
+  // 'forgot': password reset flow; 'verify': optional email verification right after sign-up.
+  const [view, setView] = useState<'form' | 'forgot' | 'verify'>('form');
+  const [pendingUser, setPendingUser] = useState<AppUser | null>(null);
   const formErrorRef = useRef<HTMLDivElement>(null);
 
   // Google sign-in finishes in the browser; the main process reports back here.
@@ -112,6 +117,12 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog })
           return;
         }
         onLog?.(`[Auth] Account created for ${res.user.email}`);
+        if (api.authSendVerification) {
+          // Offer verification before onboarding. It is optional and never blocks the account.
+          setPendingUser(res.user);
+          setView('verify');
+          return;
+        }
         onLoginSuccess(res.user);
         return;
       }
@@ -156,8 +167,34 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog })
     }
   };
 
+  const openForgot = () => {
+    setFormError(null);
+    setConflictDevice(null);
+    setShowErrors(false);
+    setView('forgot');
+  };
+
+  const backFromForgot = (email: string) => {
+    setView('form');
+    setMode('signin');
+    setShowErrors(false);
+    setFormError(null);
+    setValues((v) => ({ ...v, email: email || v.email, password: '' }));
+    setTimeout(() => document.getElementById(email ? IDS.password : IDS.email)?.focus(), 0);
+  };
+
+  const finishSignup = () => {
+    const u = pendingUser;
+    if (!u) return;
+    setPendingUser(null);
+    onLoginSuccess(u);
+  };
+
   const busy = submitting || googleWaiting;
   const isSignup = mode === 'signup';
+  const title = view === 'forgot' ? 'Reset your password'
+    : view === 'verify' ? 'Verify your email'
+    : isSignup ? 'Create your account' : 'Sign in to Nomadic';
   // Google needs only the terms, so its prompt does not reveal the form's field errors.
   const termsError = errors.terms ?? (termsPrompt && !termsAccepted ? 'Accept the terms to continue.' : undefined);
 
@@ -167,12 +204,18 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog })
         <header className="flex flex-col items-center gap-3 text-center">
           <NomadicLogo className="h-7" />
           <div className="flex flex-col gap-1">
-            <h1 className="text-title font-strong text-fg">{isSignup ? 'Create your account' : 'Sign in to Nomadic'}</h1>
+            <h1 className="text-title font-strong text-fg">{title}</h1>
             <p className="text-body text-fg-muted">Placements, internships and the skills to land them.</p>
           </div>
         </header>
 
         <Card variant="raised" padding="lg" className="gap-5">
+          {view === 'forgot' ? (
+            <ForgotPasswordFlow initialEmail={values.email} onBack={backFromForgot} />
+          ) : view === 'verify' && pendingUser ? (
+            <VerifyEmailPanel email={pendingUser.email} autoSend onVerified={finishSignup} onSkip={finishSignup} />
+          ) : (
+          <>
           <Tabs variant="segmented" value={mode} onValueChange={switchMode} className="items-center">
             <TabsList aria-label="Account">
               <TabsTrigger value="signin" disabled={busy}>Sign in</TabsTrigger>
@@ -284,6 +327,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog })
               >
                 {isSignup ? 'Create account' : 'Sign in'}
               </Button>
+              {!isSignup && (
+                <Button variant="ghost" size="sm" className="self-center" onClick={openForgot} disabled={busy}>
+                  Forgot password?
+                </Button>
+              )}
             </form>
           )}
 
@@ -306,6 +354,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog })
             <Button variant="secondary" fullWidth leftIcon={<GoogleIcon />} onClick={() => void startGoogle()} disabled={submitting}>
               Continue with Google
             </Button>
+          )}
+          </>
           )}
         </Card>
 
