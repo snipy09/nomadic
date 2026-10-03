@@ -479,8 +479,9 @@ export type PracticeRecordResult =
   | { success: false; code: PracticeRecordErrorCode; error: string };
 
 /**
- * AI rubric feedback on a written answer. No channel yet: the server-side AI
- * proxy does not exist, so the renderer shows the feature as unavailable.
+ * AI rubric feedback on a written answer ('ai-rubric-feedback'). Main sends it to the
+ * Nomadic AI proxy (Edge Function `ai-proxy`), which holds the model key and enforces the
+ * plan flag and daily quota (migration 020).
  */
 export interface RubricCriterion {
   id: string;
@@ -508,6 +509,31 @@ export interface RubricFeedback {
   items: RubricFeedbackItem[];
   summary: string;
 }
+
+/** Why an AI proxy call was refused or failed. */
+export type AiErrorCode =
+  | 'not_signed_in'
+  | 'unauthorized'
+  | 'account_suspended'
+  | 'plan_required'
+  | 'quota_exceeded'
+  | 'bad_request'
+  | 'unavailable'
+  | 'failed'
+  | 'network';
+
+/** Today's AI allowance for one feature, as the server counted it. */
+export interface AiQuota {
+  plan: string | null;
+  limit: number | null;
+  used: number | null;
+  remaining: number | null;
+  resetsAt: string | null;
+}
+
+export type RubricFeedbackResult =
+  | { success: true; feedback: RubricFeedback; quota: AiQuota | null }
+  | { success: false; code: AiErrorCode; error: string; quota?: AiQuota | null };
 
 export interface CuratedResource {
   id: number;
@@ -635,7 +661,6 @@ export interface IpcChannels {
   // system / settings
   'check-dependencies': Channel<[], DependencyStatus>;
   'install-dependencies': Channel<[], SuccessResult>;
-  'test-groq-key': Channel<[key: string], SuccessResult>;
   'open-external-url': Channel<[url: string], SuccessResult>;
   'check-for-updates': Channel<[], AppUpdateInfo>;
   'download-update': Channel<[downloadUrl?: string], SuccessResult & { filePath?: string; openedBrowser?: boolean }>;
@@ -696,6 +721,8 @@ export interface IpcChannels {
   'practice-get-catalog': Channel<[], PracticeCatalogResult>;
   'practice-get-state': Channel<[], PracticeStateResult>;
   'practice-record-attempt': Channel<[attempt: PracticeAttempt], PracticeRecordResult>;
+  /** AI rubric feedback through the server-side AI proxy (plan- and quota-checked there). */
+  'ai-rubric-feedback': Channel<[req: RubricFeedbackRequest], RubricFeedbackResult>;
 
   // auth & session
   'auth-google': Channel<[], SuccessResult>;
@@ -724,7 +751,7 @@ export type ChannelResult<C extends ChannelName> = IpcChannels[C]['result'];
 
 /** Runtime list of every invoke channel (kept in sync with `IpcChannels` by the type below). */
 export const IPC_CHANNELS = [
-  'check-dependencies', 'install-dependencies', 'test-groq-key', 'open-external-url',
+  'check-dependencies', 'install-dependencies', 'open-external-url',
   'check-for-updates', 'download-update', 'install-update',
   'get-master-profile', 'save-master-profile', 'get-resumes', 'save-resume', 'delete-resume',
   'set-default-resume', 'pick-resume-file',
@@ -736,7 +763,7 @@ export const IPC_CHANNELS = [
   'verify-email', 'get-hr-contacts', 'send-outreach', 'generate-ai-outreach-email',
   'ask-nomadic-assistant',
   'learning-get-state', 'learning-save-goal', 'learning-record-events', 'learning-sync',
-  'practice-get-catalog', 'practice-get-state', 'practice-record-attempt',
+  'practice-get-catalog', 'practice-get-state', 'practice-record-attempt', 'ai-rubric-feedback',
   'auth-google', 'auth-login', 'auth-signup', 'start-heartbeat', 'stop-heartbeat', 'sync-cloud-data',
   'get-device-info',
   'admin-list-users', 'admin-set-user-plan', 'admin-set-user-status', 'admin-list-audit',
@@ -794,7 +821,6 @@ export interface NomadicApi {
   removeSavedJob: Invoke<'remove-saved-job'>;
   checkDependencies: Invoke<'check-dependencies'>;
   installDependencies: Invoke<'install-dependencies'>;
-  testGroqKey: Invoke<'test-groq-key'>;
   startHeartbeat: (userId: string, sessionToken: string, deviceFingerprint: string) => Promise<ChannelResult<'start-heartbeat'>>;
   stopHeartbeat: Invoke<'stop-heartbeat'>;
   syncCloudData: Invoke<'sync-cloud-data'>;
@@ -819,6 +845,7 @@ export interface NomadicApi {
   practiceGetCatalog: Invoke<'practice-get-catalog'>;
   practiceGetState: Invoke<'practice-get-state'>;
   practiceRecordAttempt: Invoke<'practice-record-attempt'>;
+  aiRubricFeedback: Invoke<'ai-rubric-feedback'>;
 
   authLogin: Invoke<'auth-login'>;
   authSignup: Invoke<'auth-signup'>;

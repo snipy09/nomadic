@@ -6,6 +6,41 @@ export interface LlmClient {
   completeJson(system: string, user: string): Promise<unknown | null>;
 }
 
+/** Profile facts the model may use (nothing else about the candidate is sent). */
+export interface FormAnswerCandidate {
+  name?: string;
+  current_title?: string;
+  current_company?: string;
+  desired_title?: string;
+  years_of_experience?: number;
+  skills?: string;
+  summary?: string;
+  education?: string;
+  location?: string;
+}
+
+/** One batched request: every open-ended question on the form, answered in one call. */
+export interface FormAnswerRequest {
+  candidate: FormAnswerCandidate;
+  job: { title?: string; company?: string; description?: string };
+  questions: Array<{ id: string; question: string; type: 'cover_letter' | 'open_ended'; max_chars: number }>;
+}
+
+/**
+ * Structured alternative to LlmClient for a server that owns the prompt (the Nomadic AI
+ * proxy): the client sends facts and questions, never a prompt. Returns one entry per
+ * question id (null = could not answer from the profile), or null when the call failed.
+ */
+export interface FormAnswerClient {
+  answerForm(req: FormAnswerRequest): Promise<Record<string, string | null> | null>;
+}
+
+export type AnswerLlm = LlmClient | FormAnswerClient;
+
+export function isFormAnswerClient(llm: AnswerLlm): llm is FormAnswerClient {
+  return typeof (llm as FormAnswerClient).answerForm === 'function';
+}
+
 export class GroqClient implements LlmClient {
   constructor(
     private readonly apiKey: string,

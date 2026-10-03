@@ -135,7 +135,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
   const totalApplied = applications.filter(a => a.mode !== 'outreach').length;
   const totalReferralsSent = applications.filter(a => a.mode === 'outreach').length;
   const totalAvailableCount = jobs.length;
-  const hasGroqKey = Boolean(profile.groqApiKey && profile.groqApiKey.trim().length > 0);
 
   // Profile gatekeeper check before applying
   const checkProfileAndRun = async (urls: string[], mode: 'autonomous' | 'semi-auto') => {
@@ -412,7 +411,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           </div>
           <p className="text-[11px] text-slate-500 mt-1">
-            {hasGroqKey ? 'AI Enhanced (Neural Model + Heuristics)' : 'Active (Profile & ATS Heuristics)'}
+            Profile answers, plus Nomadic AI for open-ended questions
           </p>
         </div>
       </div>

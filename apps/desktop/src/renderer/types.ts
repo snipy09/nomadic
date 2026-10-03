@@ -228,7 +228,6 @@ export interface ElectronAPI {
   onHeartbeatStatus: (callback: (status: HeartbeatStatus) => void) => () => void;
   checkDependencies: () => Promise<DependencyStatus>;
   installDependencies: () => Promise<{ success: boolean; error?: string }>;
-  testGroqKey: (key: string) => Promise<{ success: boolean; error?: string }>;
   onLog: (callback: (msg: string) => void) => () => void;
   onAutoApplyProgress?: (callback: (data: AutoApplyProgressEvent) => void) => () => void;
   getApplications: () => Promise<Application[]>;
@@ -307,6 +306,8 @@ export interface ElectronAPI {
   practiceGetCatalog: NomadicApi['practiceGetCatalog'];
   practiceGetState: NomadicApi['practiceGetState'];
   practiceRecordAttempt: NomadicApi['practiceRecordAttempt'];
+  /** AI rubric feedback through the Nomadic AI proxy (desktop only). */
+  aiRubricFeedback?: NomadicApi['aiRubricFeedback'];
 
 
   // In-App Updates

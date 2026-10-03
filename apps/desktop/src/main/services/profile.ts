@@ -271,7 +271,7 @@ export function buildAutomationProfile(opts: { logCachedAnswers: boolean }): Mas
     sponsorship:  String(profileRaw['sponsorship'] ?? ''),
     salary:       String(profileRaw['desired_salary'] ?? ''),
     noticePeriod: String(profileRaw['notice_period'] ?? ''),
-    groqApiKey:   String(profileRaw['groq_api_key'] ?? ''),
+    // No groqApiKey: open-ended answers go through the Nomadic AI proxy (AutoApplyEngine.llm).
     summaryText:  String(profileRaw['resume_text'] ?? ''),
     desiredTitle: String(profileRaw['desired_title'] ?? ''),
     techStack:    String(profileRaw['tech_stack'] ?? ''),

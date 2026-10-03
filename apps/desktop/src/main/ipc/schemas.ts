@@ -47,7 +47,6 @@ const urlList = z.array(url).max(LIST_MAX);
 const freeRecord = z.record(z.string(), z.unknown());
 
 // ── system / settings ──────────────────────────────────────────────────────
-export const testGroqKeyArgs: ArgSchemas<'test-groq-key'> = [str(SHORT)];
 export const openExternalUrlArgs: ArgSchemas<'open-external-url'> = [url];
 export const downloadUpdateArgs: ArgSchemas<'download-update'> = [opt(url)];
 export const installUpdateArgs: ArgSchemas<'install-update'> = [opt(str(4_096))];
@@ -223,6 +222,30 @@ const practiceAttempt = z.unknown().transform((value, ctx): PracticeAttempt => {
   return z.NEVER;
 });
 export const practiceRecordAttemptArgs: ArgSchemas<'practice-record-attempt'> = [practiceAttempt];
+
+// AI rubric feedback: same limits the ai-proxy Edge Function enforces (8000-char answer,
+// 1-10 criteria with unique ids), so oversized requests never leave the device.
+const nonBlank = (max: number) => z.string().max(max).refine((v) => v.trim().length > 0, 'must not be empty');
+const rubricCriterion = z
+  .object({
+    id: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/),
+    label: nonBlank(100),
+    description: z.string().max(500),
+  })
+  .strip();
+const rubricFeedbackRequest = z
+  .object({
+    entryId: nonBlank(200),
+    question: nonBlank(4_000),
+    answer: nonBlank(8_000),
+    rubric: z
+      .array(rubricCriterion)
+      .min(1)
+      .max(10)
+      .refine((r) => new Set(r.map((c) => c.id)).size === r.length, 'rubric ids must be unique'),
+  })
+  .strip();
+export const aiRubricFeedbackArgs: ArgSchemas<'ai-rubric-feedback'> = [rubricFeedbackRequest];
 
 // ── auth & session ─────────────────────────────────────────────────────────
 const credentials = z

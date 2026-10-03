@@ -86,23 +86,6 @@ export async function installDependencies(): Promise<{ success: boolean }> {
   }
 }
 
-export async function testGroqKey(key: string): Promise<{ success: boolean; error?: string }> {
-  log('[Groq AI] Validating Groq API Key...');
-  try {
-    const { answerCustomQuestionWithGroq } = await import('@job-automator/automation');
-    const res = await answerCustomQuestionWithGroq(key, 'Are you operational?', 'Test user summary');
-    if (res && res.length > 0) {
-      log('[Groq AI] Key validated successfully ✓');
-      return { success: true };
-    }
-    return { success: false, error: 'Empty response received from Groq' };
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    log(`[Groq AI] Validation failed: ${msg}`);
-    return { success: false, error: msg };
-  }
-}
-
 // ── In-App Version & Update Checker ─────────────────────────────────────────
 declare const __APP_VERSION__: string | undefined;
 

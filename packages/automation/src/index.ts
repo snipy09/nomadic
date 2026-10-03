@@ -121,4 +121,7 @@ export {
   type FormEngineEvent,
   type FormField,
   type FormPolicy,
+  type AnswerLlm,
+  type FormAnswerClient,
+  type FormAnswerRequest,
 } from '../../form-engine/src/index.ts';

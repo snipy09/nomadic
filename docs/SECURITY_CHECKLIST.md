@@ -42,6 +42,22 @@ Legend: ✅ fixed and verified · ⚠️ mitigated, follow-up needed · ☐ open
 - `learning_*` RPCs (`007`) check the device session and enforce the free tier server-side (1 active track, 10 practice attempts/day); `learning_events` is append-only (update trigger).
 - `get_entitlements` / `consume_apply_quota` (`011`) check the device session; plan limits come from `plan_limits()` (rows rendered from `packages/config`, parity-tested). Daily applies are counted in `usage_counters` (RLS on, no anon/authenticated access) under a per-user advisory lock, all or nothing. There is no refund RPC, so a client cannot reset its own count. The desktop calls `consume_apply_quota` before every submission and refuses to submit when it is refused or unreachable. Helpers (`plan_limits`, `billing_effective_plan`, `billing_session_ok`, `billing_today`) are not callable by anon.
 - Learn content tables expose only published lessons/practice and `active` (link-checked) resources.
+- AI proxy (`020` + Edge Function `ai-proxy`, DECISIONS #12/#20/#23): the operator's model key lives only in Vault
+  (`gemini_api_key`), read by the function through `server_secret` (018, service_role only); the desktop ships no model
+  key and reads none from the user (the `test-groq-key` channel is gone and the renderer CSP no longer allows model
+  hosts). `consume_ai_quota`, `refund_ai_quota` and `ai_limits` are **service_role only** (revoked from PUBLIC, anon,
+  authenticated; rehearsed: anon and authenticated get `permission denied`). The function is deployed with
+  `verify_jwt = true` (the app's public anon key is the bearer) and passes the user's `user_id + session_token +
+  device_fingerprint` to `consume_ai_quota`, which checks the active device session, suspended accounts, the plan
+  (`aiFeedback` flag, `ai_limits` rows rendered from `packages/config`, parity-tested) and the daily count under a
+  per-user advisory lock before counting one call; refusals count nothing. The function refunds a call only after it
+  counted one and the model gave no usable answer. Prompts are built on the server from structured fields (no client
+  prompt passthrough, user text sent as JSON data with an instruction to ignore embedded instructions), replies are
+  forced to a JSON schema and checked: rubric quotes must be verbatim substrings of the answer, form answers are kept
+  only for the question ids asked and clipped to their length. Body capped at 64 KB, answer 8000 chars, 30 questions;
+  25 s timeout per model attempt, one retry. Logs carry kind, outcome codes, timings and the model name only, never
+  prompts, answers, profile facts, session tokens or the key (tested). Tests: `packages/supabase/src/__tests__/ai-proxy.test.ts`,
+  `ai-limits-parity.test.ts`, `apps/desktop/src/main/__tests__/ai-proxy.test.ts`.
 - SECURITY DEFINER functions added in `002`–`008` pin `search_path`.
 - The Razorpay webhook verifies the HMAC signature and refuses to run without `RAZORPAY_WEBHOOK_SECRET`.
 
@@ -55,6 +71,11 @@ session and the admin role): `admin_list_users`, `admin_set_user_plan`, `admin_s
 `admin_scrape_health`, `admin_list_content`, `admin_update_lesson`, `admin_set_resource_status`,
 `admin_content_history`. Any new client RPC must be added to this list in a migration; everything else is denied by
 default. (`login_prehash` is also executable by anon; it is a pure hashing helper with no data access.)
+
+## Service-role-only functions (not client RPCs)
+
+`server_secret` (018), `consume_ai_quota`, `refund_ai_quota`, `ai_limits` (020): callable only with the service-role
+key, i.e. from Edge Functions. None of them may ever be granted to anon/authenticated.
 
 ## Owner actions
 
@@ -70,6 +91,8 @@ default. (`login_prehash` is also executable by anon; it is a pure hashing helpe
 - ☐ Apply `014` (admin tools) to production. Until it is applied the desktop Admin screen shows "the server does not
   have the admin functions yet"; nothing falls back to the service-role key. Admins are whoever has
   `users_profile.role = 'admin'` (set in SQL by the operator).
+- ☐ Apply `020` and deploy `ai-proxy` (DATABASE_SETUP §7) before shipping the build that calls it; until then AI
+  feedback and AI form answers report "not available" and the form engine leaves open-ended questions to the user.
 - ☐ Rotate the service-role key if it was ever on a customer machine, and the code-signing cert per
   `docs/SECURITY_CLEANUP.md`.
 - ☐ Electron hardening and secrets-in-keychain were done in the main-process work stream (Step 3.2);
