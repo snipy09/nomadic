@@ -28,6 +28,8 @@ function stubApi(overrides: Record<string, unknown> = {}) {
     pickResumeFile: vi.fn().mockResolvedValue({ canceled: false, filePath: resume.filePath, fileName: resume.name }),
     saveResume: vi.fn(async () => { stored = [resume]; return { success: true }; }),
     saveMasterProfile: vi.fn().mockResolvedValue({ success: true }),
+    learningSaveGoal: vi.fn(async (g: any) => ({ success: true, goal: { ...g, started_at: 'x', updated_at: 'x' } })),
+    learningRecordEvents: vi.fn(async (events: any[]) => ({ success: true, events })),
     ...overrides,
   };
   (window as any).api = api;
@@ -59,7 +61,7 @@ describe('Onboarding', () => {
     expect(document.activeElement).toBe(screen.getByLabelText(/full name/i));
   });
 
-  it('walks all four steps and completes only after the save succeeds', async () => {
+  it('walks all five steps, creates the roadmap and completes only after the saves succeed', async () => {
     const api = stubApi();
     const onComplete = renderOnboarding();
 
@@ -85,10 +87,26 @@ describe('Onboarding', () => {
 
     expect(await screen.findByRole('heading', { name: /choose your workspace/i })).toBeTruthy();
     await userEvent.click(screen.getByRole('radio', { name: /^apply/i }));
+    await userEvent.click(continueBtn());
+
+    // Roadmap: role carried over from step 2, defaults for pace and horizon, a live plan preview.
+    expect(await screen.findByRole('heading', { name: /your roadmap/i })).toBeTruthy();
+    expect(progress()).toBe('5');
+    expect(screen.getByRole('radio', { name: 'Data Analyst' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('radio', { name: /10 hours a week/i }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('radio', { name: /3 months/i }).getAttribute('aria-checked')).toBe('true');
+    const preview = screen.getByRole('region', { name: /roadmap preview/i });
+    expect(preview.textContent).toMatch(/skills? over \d+ weeks?/);
+    await userEvent.click(screen.getByRole('radio', { name: /20 hours a week/i }));
     expect(onComplete).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole('button', { name: /finish setup/i }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    expect(api.learningSaveGoal).toHaveBeenCalledWith({ track_id: 'data-analyst', horizon_months: 3, daily_hours: 4 });
+    const selfReported = api.learningRecordEvents.mock.calls[0][0];
+    expect(selfReported.length).toBeGreaterThan(0);
+    expect(selfReported.every((e: any) => e.type === 'skill_marked_known' && e.payload.source === 'onboarding' && e.payload.mastery < 0.8)).toBe(true);
+    expect(api.learningSaveGoal.mock.invocationCallOrder[0]).toBeLessThan(api.saveMasterProfile.mock.invocationCallOrder[0]);
     const saved = api.saveMasterProfile.mock.calls[0][0];
     expect(saved.onboarding_completed).toBe(1);
     expect(saved.firstName).toBe('Asha');
@@ -110,8 +128,13 @@ describe('Onboarding', () => {
     await userEvent.click(await screen.findByRole('button', { name: /skip for now/i }));
     await screen.findByRole('heading', { name: /add your resume/i });
     await userEvent.click(screen.getByRole('button', { name: /skip for now/i }));
-    await userEvent.click(await screen.findByRole('button', { name: /finish setup/i }));
+    await screen.findByRole('heading', { name: /choose your workspace/i });
+    await userEvent.click(continueBtn());
+    await screen.findByRole('heading', { name: /your roadmap/i });
+    expect(screen.getByText(/pick a role to see your roadmap/i)).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: /finish setup/i }));
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    expect(api.learningSaveGoal).not.toHaveBeenCalled();
     const saved = api.saveMasterProfile.mock.calls[0][0];
     expect(saved.desiredTitle).toBe('');
     expect(saved.techStack).toBe('');
@@ -130,6 +153,8 @@ describe('Onboarding', () => {
     await userEvent.click(await screen.findByRole('button', { name: /skip for now/i }));
     await screen.findByRole('heading', { name: /add your resume/i });
     await userEvent.click(screen.getByRole('button', { name: /skip for now/i }));
+    await screen.findByRole('heading', { name: /choose your workspace/i });
+    await userEvent.click(continueBtn());
     await userEvent.click(await screen.findByRole('button', { name: /finish setup/i }));
 
     expect(await screen.findByText(/disk is full\. nothing was marked complete/i)).toBeTruthy();
@@ -137,6 +162,26 @@ describe('Onboarding', () => {
     await userEvent.click(screen.getByRole('button', { name: /try again/i }));
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
     expect(saveMasterProfile).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not complete or save the profile when the roadmap cannot be saved', async () => {
+    const api = stubApi({ learningSaveGoal: vi.fn().mockResolvedValue({ success: false, error: 'Database locked.' }) });
+    const onComplete = renderOnboarding();
+    await userEvent.click(continueBtn());
+    await userEvent.click(await screen.findByRole('button', { name: 'Backend Engineer' }));
+    await userEvent.click(continueBtn());
+    await screen.findByRole('heading', { name: /add your resume/i });
+    await userEvent.click(screen.getByRole('button', { name: /skip for now/i }));
+    await screen.findByRole('heading', { name: /choose your workspace/i });
+    await userEvent.click(continueBtn());
+    await screen.findByRole('heading', { name: /your roadmap/i });
+    await userEvent.click(screen.getByRole('button', { name: /finish setup/i }));
+    expect(await screen.findByText(/database locked\. nothing was marked complete/i)).toBeTruthy();
+    expect(api.saveMasterProfile).not.toHaveBeenCalled();
+    expect(onComplete).not.toHaveBeenCalled();
+    // Skipping the roadmap still finishes setup.
+    await userEvent.click(screen.getByRole('button', { name: /skip for now/i }));
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
   });
 
   it('goes back without losing what was typed', async () => {

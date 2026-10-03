@@ -1,4 +1,9 @@
-import type { AutoApplyProgressEvent, BatchOverrides, BatchSnapshot, BatchStartOptions, BatchSubmitResult, BatchTarget, CheckoutResult, EntitlementsResult, NomadicApi } from '../shared/ipc';
+import type {
+  AutoApplyProgressEvent, BatchOverrides, BatchSnapshot, BatchStartOptions, BatchSubmitResult, BatchTarget, CheckoutResult, EntitlementsResult, NomadicApi,
+  LearningEventInput, LearningEventRecord, LearningGoal, LearningGoalInput, LearningState, LearningSyncResult,
+} from '../shared/ipc';
+
+export type { LearningEventInput, LearningEventRecord, LearningGoal, LearningGoalInput, LearningState, LearningSyncResult };
 
 export type WorkspaceMode = 'learner_only' | 'seeker_only' | 'unified';
 export type OpportunityType = 'job' | 'internship' | 'both';
@@ -166,25 +171,6 @@ export interface AppUser {
   onboardingCompleted?: boolean;
 }
 
-export interface CustomRoadmapRecord {
-  id: string;
-  roleTitle: string;
-  domain: string;
-  targetHorizon: string;
-  dailyCommitment: string;
-  roadmapJson: string;
-  updatedAt: string;
-}
-
-export interface ActivityHeatmapDay {
-  date: string;
-  count: number;
-}
-
-export interface ActivityStats {
-  streakCount: number;
-  totalActions: number;
-}
 
 export interface AppUpdateInfo {
   updateAvailable: boolean;
@@ -272,66 +258,11 @@ export interface ElectronAPI {
     body?: string;
     error?: string;
   }>;
-  generateAiOnboardingProfile: (params: {
-    targetRole: string;
-    experienceLevel?: string;
-    bioOrResumeText?: string;
-    customSkills?: string[];
-    targetHorizon?: string;
-    dailyCommitment?: string;
-    geminiKey?: string;
-    groqKey?: string;
-  }) => Promise<{
-    success: boolean;
-    profile?: Partial<MasterProfile>;
-    roadmap?: any;
-    error?: string;
-  }>;
-  generateCustomRoadmap: (params: {
-    roleTitle: string;
-    customTitle?: string;
-    currentSkills?: string;
-    targetHorizon?: string;
-    dailyCommitment?: string;
-    geminiKey?: string;
-    groqKey?: string;
-  }) => Promise<{
-    success: boolean;
-    roadmap?: any;
-    error?: string;
-  }>;
-  getCustomRoadmaps: () => Promise<CustomRoadmapRecord[]>;
-  saveCustomRoadmap: (roadmap: {
-    id: string;
-    roleTitle: string;
-    domain: string;
-    roadmapJson: string;
-    targetHorizon?: string;
-    dailyCommitment?: string;
-  }) => Promise<{ success: boolean; error?: string }>;
-  deleteCustomRoadmap: (id: string) => Promise<{ success: boolean; error?: string }>;
-
-  // Activity Heatmap & Logging
-  getActivityHeatmap: (days?: number) => Promise<ActivityHeatmapDay[]>;
-  logUserActivity: (activityType: string, details?: string) => Promise<{ success: boolean }>;
-  getActivityStats: () => Promise<ActivityStats>;
-
-  // Learner Progress & Roadmap State
-  getLearnerProgress: (roadmapId: string) => Promise<{
-    roadmapId: string;
-    completedNodes: string[];
-    targetHorizon?: string;
-    dailyCommitment?: string;
-    streakCount?: number;
-    lastActiveDate?: string;
-  } | null>;
-  saveLearnerProgress: (progress: {
-    roadmapId: string;
-    completedNodes: string[];
-    targetHorizon?: string;
-    dailyCommitment?: string;
-    streakCount?: number;
-  }) => Promise<{ success: boolean }>;
+  // Learn: goal and append-only learning events (local SQLite, synced to Supabase)
+  learningGetState: () => Promise<LearningState>;
+  learningSaveGoal: (goal: LearningGoalInput) => Promise<{ success: boolean; goal?: LearningGoal; error?: string }>;
+  learningRecordEvents: (events: LearningEventInput[]) => Promise<{ success: boolean; events?: LearningEventRecord[]; error?: string }>;
+  learningSync: () => Promise<LearningSyncResult>;
 
   // Auth Handlers
   authLogin: (credentials: {
@@ -377,11 +308,6 @@ export interface ElectronAPI {
   practiceGetState: NomadicApi['practiceGetState'];
   practiceRecordAttempt: NomadicApi['practiceRecordAttempt'];
 
-  getRecommendedResourcesForJob: (params: {
-    title: string;
-    description?: string;
-    techStack?: string;
-  }) => Promise<CuratedResource[]>;
 
   // In-App Updates
   checkForUpdates?: () => Promise<AppUpdateInfo>;

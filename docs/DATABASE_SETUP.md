@@ -12,6 +12,8 @@ all migrations 001–011 apply in order, a re-run skips them, and an `anon` smok
 operator-only functions denied to `anon`; for 011: entitlements with a valid session, bad token / wrong device /
 inactive session rejected, daily apply quota counted all-or-nothing and refused when used up, Pro and Max limits after
 an upgrade, expired Pro falls back to Free, suspended accounts refused, billing helpers and `usage_counters` denied to `anon`).
+`012` (learning track pull) was rehearsed the same way: it applies after 010, and
+as `anon` the learning RPCs enforced the session check and the free tier's one active track (archive, then start the new one).
 
 ## 1. Create the project (owner)
 Supabase dashboard → New project (region: Mumbai `ap-south-1` for Indian users). Save the database password.

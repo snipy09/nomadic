@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BAD_CREDENTIALS, friendlyAuthError, validateAuth } from '../features/auth/authForm';
 import {
-  ROLE_OPTIONS, STEPS, applyReadinessErrors, buildOnboardingProfile, stepErrors, suggestedSkills, toggleSkill,
+  ROLE_OPTIONS, STEPS, applyReadinessErrors, buildOnboardingProfile, roadmapRoleFor, stepErrors, suggestedSkills, toggleSkill,
 } from '../features/onboarding/onboardingLogic';
 import { toForm } from '../features/profile/profileForm';
 import { profileMastery } from '../features/feed/match';
@@ -49,8 +49,16 @@ describe('friendlyAuthError', () => {
 });
 
 describe('onboarding steps', () => {
-  it('has four steps in order', () => {
-    expect(STEPS.map((s) => s.id)).toEqual(['about', 'target', 'resume', 'workspace']);
+  it('has five steps in order, ending on the roadmap', () => {
+    expect(STEPS.map((s) => s.id)).toEqual(['about', 'target', 'resume', 'workspace', 'roadmap']);
+  });
+
+  it('carries the picked role into the roadmap step', () => {
+    expect(roadmapRoleFor('Data Analyst')).toBe('data-analyst');
+    expect(roadmapRoleFor('  backend engineer ')).toBe('backend');
+    expect(roadmapRoleFor('Frontend Developer')).toBe('frontend');
+    expect(roadmapRoleFor('Underwater basket weaver')).toBe('');
+    expect(roadmapRoleFor('')).toBe('');
   });
 
   it('only checks the fields shown on the current step', () => {

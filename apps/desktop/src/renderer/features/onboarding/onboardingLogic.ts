@@ -5,6 +5,7 @@
  */
 import { roles, role_skills, skills } from '@job-automator/learning/seed/bundle.json';
 import type { MasterProfile, ResumeRecord } from '../../types';
+import { inferRole } from '../feed/match';
 import { toMasterProfile, validate, type FieldErrors, type ProfileForm } from '../profile/profileForm';
 
 export const STEPS = [
@@ -12,18 +13,20 @@ export const STEPS = [
   { id: 'target', label: 'Role and skills' },
   { id: 'resume', label: 'Resume' },
   { id: 'workspace', label: 'Workspace' },
+  { id: 'roadmap', label: 'Your roadmap' },
 ] as const;
 
 export type StepId = (typeof STEPS)[number]['id'];
 
-/** Steps the user may skip: nothing on them is required to get value from the app. */
-export const SKIPPABLE: ReadonlySet<StepId> = new Set<StepId>(['target', 'resume']);
+/** Steps the user may skip: nothing on them is required to get value from the app. Skipping the last step finishes setup. */
+export const SKIPPABLE: ReadonlySet<StepId> = new Set<StepId>(['target', 'resume', 'roadmap']);
 
 const STEP_FIELDS: Record<StepId, Array<keyof FieldErrors>> = {
   about: ['fullName', 'email', 'phone'],
   target: [],
   resume: [],
   workspace: [],
+  roadmap: [],
 };
 
 /** Validation errors for the fields shown on one step. */
@@ -84,4 +87,9 @@ export function buildOnboardingProfile(
   const def = resumes.find((r) => r.isDefault) ?? resumes[0];
   if (def?.filePath) profile.resumeFilePath = def.filePath;
   return profile;
+}
+
+/** Role family for the roadmap step: the picked catalogue role, else one inferred from a typed title, else none. */
+export function roadmapRoleFor(targetRole: string): string {
+  return roleIdByName.get(targetRole.trim().toLowerCase()) ?? inferRole(targetRole) ?? '';
 }

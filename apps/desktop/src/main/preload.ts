@@ -58,20 +58,12 @@ const apiObj: NomadicApi = {
   // AI Generation Handlers
   askNomadicAssistant: (data) => invoke('ask-nomadic-assistant', data),
   generateAiOutreachEmail: (params) => invoke('generate-ai-outreach-email', params),
-  generateAiOnboardingProfile: (params) => invoke('generate-ai-onboarding-profile', params),
-  generateCustomRoadmap: (params) => invoke('generate-custom-roadmap', params),
-  getCustomRoadmaps: () => invoke('get-custom-roadmaps'),
-  saveCustomRoadmap: (roadmap) => invoke('save-custom-roadmap', roadmap),
-  deleteCustomRoadmap: (id) => invoke('delete-custom-roadmap', id),
 
-  // Activity Heatmap & Logging
-  getActivityHeatmap: (days) => invoke('get-activity-heatmap', days),
-  logUserActivity: (activityType, details) => invoke('log-user-activity', { activityType, details }),
-  getActivityStats: () => invoke('get-activity-stats'),
-
-  // Learner Progress & Roadmap State
-  getLearnerProgress: (roadmapId) => invoke('get-learner-progress', roadmapId),
-  saveLearnerProgress: (progress) => invoke('save-learner-progress', progress),
+  // Learn
+  learningGetState: () => invoke('learning-get-state'),
+  learningSaveGoal: (goal) => invoke('learning-save-goal', goal),
+  learningRecordEvents: (events) => invoke('learning-record-events', events),
+  learningSync: () => invoke('learning-sync'),
 
   // Applications Management
   updateApplicationStatus: (id, status) => invoke('update-application-status', { id, status }),
@@ -88,7 +80,6 @@ const apiObj: NomadicApi = {
   practiceGetCatalog: () => invoke('practice-get-catalog'),
   practiceGetState: () => invoke('practice-get-state'),
   practiceRecordAttempt: (attempt) => invoke('practice-record-attempt', attempt),
-  getRecommendedResourcesForJob: (params) => invoke('get-recommended-resources-for-job', params),
 
   // Admin (F12): every call is re-authorized server side (session + admin role)
   adminListUsers: (query) => invoke('admin-list-users', query),

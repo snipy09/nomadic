@@ -1,4 +1,4 @@
-import { ElectronAPI, Job, Application, AppUser, DependencyStatus, ResumeRecord } from './types';
+import { ElectronAPI, Job, Application, AppUser, DependencyStatus, ResumeRecord, type LearningEventRecord, type LearningGoal } from './types';
 
 // In-memory / localStorage simulation for browser preview mode
 export function createBrowserApiShim(): ElectronAPI {
@@ -11,6 +11,7 @@ export function createBrowserApiShim(): ElectronAPI {
     code: 'not_configured',
     error: 'Admin tools are not available in browser preview. Use the desktop app.',
   });
+  const learningMemory: { goal: LearningGoal | null; events: LearningEventRecord[] } = { goal: null, events: [] };
 
   // Read from Vite env at build time. The anon key is safe to expose in the
   // client because RLS (migration 002) restricts it to reading the public job
@@ -396,97 +397,21 @@ export function createBrowserApiShim(): ElectronAPI {
       };
     },
 
-    generateAiOnboardingProfile: async (params: any) => {
-      emitLog(`[AI Onboarding] Analyzing profile for ${params.targetRole}...`);
-      const targetRole = params.targetRole || 'Full Stack Engineer';
-      const skills = params.customSkills && params.customSkills.length > 0
-        ? params.customSkills.join(', ')
-        : 'TypeScript, React, Node.js, PostgreSQL, Docker';
-      return {
-        success: true,
-        profile: {
-          desiredTitle: targetRole,
-          techStack: skills,
-          experienceLevel: params.experienceLevel || 'fresher',
-          onboardingCompleted: true,
-        },
-      };
+    // Learn in browser preview: kept in memory for this tab only (no app data in localStorage).
+    learningGetState: async () => ({ goal: learningMemory.goal, events: [...learningMemory.events], pendingSync: 0 }),
+    learningSaveGoal: async (goal) => {
+      const at = new Date().toISOString();
+      const startedAt = learningMemory.goal?.track_id === goal.track_id ? learningMemory.goal.started_at : at;
+      learningMemory.goal = { ...goal, started_at: startedAt, updated_at: at };
+      return { success: true, goal: learningMemory.goal };
     },
-
-    generateCustomRoadmap: async (params: any) => {
-      emitLog(`[AI Roadmap] Synthesizing curriculum for ${params.customTitle || params.roleTitle}...`);
-      const roadmapTitle = (params.customTitle && params.customTitle.trim()) || (params.roleTitle + ' Acceleration Roadmap');
-      return {
-        success: true,
-        roadmap: {
-          id: 'custom-' + Date.now(),
-          title: roadmapTitle,
-          domain: 'Core Engineering',
-          targetRoles: [params.roleTitle],
-          milestones: [
-            {
-              id: 'phase-1',
-              title: 'Phase 1: Foundations & Architecture',
-              level: 'Foundations',
-              difficulty: 'Beginner',
-              estimatedHours: 20,
-              topics: ['Core syntax & typing', 'Data structures', 'Git versioning'],
-              skills: ['TypeScript', 'Git', 'CLI'],
-              description: 'Establish foundational principles and tooling.',
-              resources: [],
-              practice: [],
-              quizzes: []
-            }
-          ]
-        }
-      };
+    learningRecordEvents: async (events) => {
+      const known = new Set(learningMemory.events.map((e) => e.id));
+      const added = events.filter((e) => !known.has(e.id)).map((e) => ({ ...e, user_id: 'local' }));
+      learningMemory.events.push(...added);
+      return { success: true, events: added };
     },
-
-    getCustomRoadmaps: async () => {
-      const raw = localStorage.getItem('nomadic_custom_roadmaps');
-      return raw ? JSON.parse(raw) : [];
-    },
-
-    saveCustomRoadmap: async (roadmap: any) => {
-      const raw = localStorage.getItem('nomadic_custom_roadmaps');
-      const list = raw ? JSON.parse(raw) : [];
-      const filtered = list.filter((r: any) => r.id !== roadmap.id);
-      filtered.unshift({ ...roadmap, updatedAt: new Date().toISOString() });
-      localStorage.setItem('nomadic_custom_roadmaps', JSON.stringify(filtered));
-      return { success: true };
-    },
-
-    deleteCustomRoadmap: async (id: string) => {
-      const raw = localStorage.getItem('nomadic_custom_roadmaps');
-      const list = raw ? JSON.parse(raw) : [];
-      localStorage.setItem('nomadic_custom_roadmaps', JSON.stringify(list.filter((r: any) => r.id !== id)));
-      return { success: true };
-    },
-
-    getActivityHeatmap: async () => {
-      const raw = localStorage.getItem('nomadic_activity_logs');
-      const logs: any[] = raw ? JSON.parse(raw) : [];
-      const map = new Map<string, number>();
-      logs.forEach(l => {
-        const d = (l.created_at || '').split('T')[0];
-        if (d) map.set(d, (map.get(d) || 0) + 1);
-      });
-      return Array.from(map.entries()).map(([date, count]) => ({ date, count }));
-    },
-
-    logUserActivity: async (activityType: string, details?: string) => {
-      const raw = localStorage.getItem('nomadic_activity_logs');
-      const list = raw ? JSON.parse(raw) : [];
-      list.push({ activityType, details, created_at: new Date().toISOString() });
-      localStorage.setItem('nomadic_activity_logs', JSON.stringify(list));
-      return { success: true };
-    },
-
-    getActivityStats: async () => {
-      const raw = localStorage.getItem('nomadic_activity_logs');
-      const list = raw ? JSON.parse(raw) : [];
-      return { streakCount: list.length > 0 ? 3 : 1, totalActions: list.length };
-    },
+    learningSync: async () => ({ success: false, pushed: 0, pulled: 0, rejected: 0, error: 'Sync needs the Nomadic desktop app.' }),
 
     getApplications: async (): Promise<Application[]> => {
       try {
@@ -604,36 +529,6 @@ export function createBrowserApiShim(): ElectronAPI {
       }
     },
 
-    getLearnerProgress: async (roadmapId: string) => {
-      try {
-        const key = `nomadic_learner_progress_${roadmapId}`;
-        const fallbackKey = `nomadic_learner_progress_${roadmapId}`;
-        const stored = localStorage.getItem(key) || localStorage.getItem(fallbackKey);
-        if (stored) return JSON.parse(stored);
-      } catch {}
-      return {
-        roadmapId,
-        completedNodes: ['html-css-dom'],
-        targetHorizon: '2 Months',
-        dailyCommitment: '2 Hours/Day',
-        streakCount: 5,
-        lastActiveDate: new Date().toISOString().split('T')[0],
-      };
-    },
-
-    saveLearnerProgress: async (progress) => {
-      try {
-        const key = `nomadic_learner_progress_${progress.roadmapId}`;
-        const fallbackKey = `nomadic_learner_progress_${progress.roadmapId}`;
-        localStorage.setItem(key, JSON.stringify(progress));
-        localStorage.setItem(fallbackKey, JSON.stringify(progress));
-        emitLog(`[Learner] Progress saved for track "${progress.roadmapId}".`);
-        return { success: true };
-      } catch {
-        return { success: false };
-      }
-    },
-
     // Auth & Admin Handlers
     // Server-authoritative: preview mode calls the SAME authenticate_user RPC
     // the desktop app uses. No hardcoded admin, no auto-provisioning.
@@ -714,62 +609,6 @@ export function createBrowserApiShim(): ElectronAPI {
     practiceGetCatalog: async () => ({ success: false as const, error: 'Practice question sets load in the desktop app.' }),
     practiceGetState: async () => ({ success: true as const, state: { attempts: [], usedToday: null, signedIn: false } }),
     practiceRecordAttempt: async () => ({ success: false as const, code: 'not_signed_in' as const, error: 'Sign in in the desktop app to save practice attempts.' }),
-
-    getRecommendedResourcesForJob: async (params) => {
-      let list = [];
-      try {
-        const s = localStorage.getItem('nomadic_curated_resources');
-        list = s ? JSON.parse(s) : [];
-      } catch {}
-      if (!list.length) {
-        list = [
-          {
-            id: 1,
-            title: 'Next.js 14 Full Stack Architecture & Server Components',
-            youtubeUrl: 'https://www.youtube.com/watch?v=wm5gMKuwSYk',
-            topic: 'React & Next.js',
-            targetRole: 'Frontend Engineer, Full Stack Developer',
-            summary: 'Deep dive into React Server Components, streaming SSR, App Router architecture, and edge caching.',
-            duration: '35 mins',
-          },
-          {
-            id: 2,
-            title: 'System Design Interview: Distributed Cache & Redis Sharding',
-            youtubeUrl: 'https://www.youtube.com/watch?v=iuqZvajTOyA',
-            topic: 'System Design & Scalability',
-            targetRole: 'Backend Engineer, Full Stack Developer, Systems Architect',
-            summary: 'LRU eviction algorithms, cache-aside patterns, write-through vs write-back, and cluster failover mechanisms.',
-            duration: '45 mins',
-          },
-        ];
-      }
-
-      const titleLower = (params.title || '').toLowerCase();
-      const descLower = (params.description || '').toLowerCase();
-      const stackLower = (params.techStack || '').toLowerCase();
-
-      const scored = list.map((r: any) => {
-        let score = 0;
-        const topicTokens = (r.topic || '').toLowerCase().split(/[^a-z0-9]+/);
-        const roleTokens = (r.targetRole || '').toLowerCase().split(/[^a-z0-9]+/);
-
-        for (const tok of roleTokens) {
-          if (tok.length > 2 && titleLower.includes(tok)) score += 6;
-        }
-        for (const tok of topicTokens) {
-          if (tok.length > 2) {
-            if (titleLower.includes(tok)) score += 5;
-            if (stackLower.includes(tok)) score += 4;
-            if (descLower.includes(tok)) score += 2;
-          }
-        }
-        return { resource: r, score };
-      });
-
-      scored.sort((a: any, b: any) => b.score - a.score);
-      const matched = scored.filter((s: any) => s.score > 0).map((s: any) => s.resource);
-      return matched.length > 0 ? matched.slice(0, 4) : list.slice(0, 3);
-    },
 
     authSignup: async (cred: any) => {
       const email = String(cred.email || 'user@nomadic.app').trim().toLowerCase();
