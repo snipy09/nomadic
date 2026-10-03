@@ -20,7 +20,12 @@ Environment settings → environment variables:
 
 Network access must allow `*.supabase.co` and `*.pooler.supabase.com`.
 
-## 3. Apply migrations
+## 3a. Fresh project (one paste)
+Open the project's SQL editor, paste `packages/supabase/baseline/baseline_001_010.sql`, click Run. It creates the final
+schema of migrations 001–010 in one transaction and records them in `schema_migrations`, so `migrate.sh` later only
+applies 011+. Verified on a fresh PostgreSQL with Supabase's default grants, plus the `anon` smoke test.
+
+## 3b. Existing project: apply migrations
 ```
 bash packages/supabase/scripts/migrate.sh --dry-run   # list what will run
 bash packages/supabase/scripts/migrate.sh             # apply; re-running only applies new files
