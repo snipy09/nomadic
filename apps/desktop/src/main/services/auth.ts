@@ -39,10 +39,6 @@ export function normalizeTier(t: unknown): CanonicalTier {
 
 export async function getVerifiedServerUserTier(email?: string): Promise<string> {
   const normEmail = (email || '').toLowerCase().trim();
-  if (normEmail === 'sajalmishra0906@gmail.com' || normEmail === 'sajalmishra222@gmail.com') {
-    return 'max';
-  }
-
   const supabase = getAnonSupabase();
   if (supabase && normEmail) {
     try {

@@ -55,16 +55,16 @@ async function handleOAuthToken(accessToken: string, _refreshToken?: string): Pr
     session.userId = userId;
     session.sessionToken = sessionToken;
 
-    const isAdminUser = email === 'sajalmishra0906@gmail.com' || email === 'admin@jobmaxxer.com';
+    // Role and tier are never derived from the email address; elevated roles come only from the server (authenticate_user).
     const appUser: ValidatedUser = {
       id: userId,
       email,
       fullName,
-      role: isAdminUser ? 'admin' : 'user',
-      tier: isAdminUser ? 'lifetime' : 'free',
-      licenseKey: isAdminUser ? `NOMADIC-ADMIN-MASTER` : `NOMADIC-GOOGLE-${userId.slice(0, 8).toUpperCase()}`,
+      role: 'user',
+      tier: 'free',
+      licenseKey: `NOMADIC-GOOGLE-${userId.slice(0, 8).toUpperCase()}`,
       status: 'active',
-      appsCount: isAdminUser ? 9999 : 0,
+      appsCount: 0,
       createdAt: userData.created_at || new Date().toISOString(),
       lastLogin: new Date().toISOString(),
     };
@@ -143,9 +143,9 @@ async function handleGoogleAuthCode(code: string): Promise<OAuthCallbackPayload>
     session.userId = userId;
     session.sessionToken = sessionToken;
 
-    const isAdminUser = email === 'sajalmishra0906@gmail.com' || email === 'admin@jobmaxxer.com';
-    let assignedTier = isAdminUser ? 'lifetime' : 'free';
-    let assignedRole = isAdminUser ? 'admin' : 'user';
+    // Role and tier are never derived from the email address; elevated roles come only from the server (authenticate_user).
+    let assignedTier = 'free';
+    let assignedRole = 'user';
     let assignedStatus = 'active';
 
     const supabase = getAnonSupabase();
@@ -158,8 +158,8 @@ async function handleGoogleAuthCode(code: string): Promise<OAuthCallbackPayload>
           .maybeSingle();
 
         if (existingUser) {
-          assignedTier = isAdminUser ? 'lifetime' : (existingUser.subscription_tier || 'free');
-          assignedRole = isAdminUser ? 'admin' : (existingUser.role || 'user');
+          assignedTier = existingUser.subscription_tier || 'free';
+          assignedRole = existingUser.role || 'user';
           assignedStatus = existingUser.status || 'active';
           await supabase
             .from('users_profile')
@@ -175,8 +175,8 @@ async function handleGoogleAuthCode(code: string): Promise<OAuthCallbackPayload>
             subscription_tier: assignedTier,
             role: assignedRole,
             status: assignedStatus,
-            license_key: isAdminUser ? 'NOMADIC-ADMIN-MASTER' : `NOMADIC-GGL-${userId.slice(0, 8).toUpperCase()}`,
-            apps_count: isAdminUser ? 9999 : 0,
+            license_key: `NOMADIC-GGL-${userId.slice(0, 8).toUpperCase()}`,
+            apps_count: 0,
             created_at: new Date().toISOString(),
             last_login: new Date().toISOString(),
           });
@@ -192,9 +192,9 @@ async function handleGoogleAuthCode(code: string): Promise<OAuthCallbackPayload>
       fullName,
       role: assignedRole as 'user' | 'admin',
       tier: normalizeTier(assignedTier),
-      licenseKey: isAdminUser ? `NOMADIC-ADMIN-MASTER` : `NOMADIC-GGL-${userId.slice(0, 8).toUpperCase()}`,
+      licenseKey: `NOMADIC-GGL-${userId.slice(0, 8).toUpperCase()}`,
       status: (assignedStatus === 'suspended' ? 'suspended' : 'active') as 'active' | 'suspended',
-      appsCount: isAdminUser ? 9999 : 0,
+      appsCount: 0,
       createdAt: new Date().toISOString(),
       lastLogin: new Date().toISOString(),
     };
