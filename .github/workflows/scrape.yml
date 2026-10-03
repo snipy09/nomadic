@@ -1,0 +1,81 @@
+name: Scrape jobs
+
+# Runs the job pipeline (packages/scrapers/src/cli.ts) on a schedule and publishes
+# to Supabase. Requires repository secrets SUPABASE_URL and
+# SUPABASE_SERVICE_ROLE_KEY, and migration 006_scraper_pipeline.sql applied.
+
+on:
+  schedule:
+    # Every 6 hours, offset from the top of the hour.
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'run = publish to Supabase, dry-run = no writes, bench = per-source metrics'
+        type: choice
+        options: [run, dry-run, bench]
+        default: run
+      sources:
+        description: 'Comma-separated source ids (empty = tier 1 + 2)'
+        required: false
+        default: ''
+      include_tier3:
+        description: 'Include tier 3 sources (Naukri, Indeed, web search, DOM)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scrape-jobs
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      MODE: ${{ github.event_name == 'schedule' && 'run' || inputs.mode }}
+      SOURCES: ${{ inputs.sources }}
+      INCLUDE_TIER3: ${{ inputs.include_tier3 && 'true' || 'false' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Run pipeline
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          args=()
+          if [ -n "$SOURCES" ]; then args+=(--sources "$SOURCES"); fi
+          if [ "$INCLUDE_TIER3" = "true" ]; then args+=(--include-tier3); fi
+          mkdir -p scrape-output
+          case "$MODE" in
+            run)     npx tsx packages/scrapers/src/cli.ts run --publish --json scrape-output/report.json "${args[@]}" ;;
+            dry-run) npx tsx packages/scrapers/src/cli.ts run --json scrape-output/report.json "${args[@]}" ;;
+            bench)   npx tsx packages/scrapers/src/cli.ts bench --out scrape-output/baseline.md --json scrape-output/report.json "${args[@]}" ;;
+            *)       echo "unknown mode $MODE"; exit 2 ;;
+          esac
+
+      - name: Upload report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: scrape-report-${{ github.run_id }}
+          path: scrape-output/
+          if-no-files-found: ignore
+          retention-days: 14

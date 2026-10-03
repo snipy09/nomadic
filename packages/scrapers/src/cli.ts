@@ -10,7 +10,7 @@
  *
  * Publishing needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment.
  */
-import { mkdirSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { parseArgs } from 'util';
@@ -21,6 +21,12 @@ import { SupabaseJobStore, getRecentScrapeRuns } from './pipeline/store.js';
 import { SOURCES, selectSources, type Tier } from './sources/registry.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+
+/** Operators keep credentials in the repo-root .env; real env vars win. */
+function loadRootEnv() {
+  const envPath = resolve(HERE, '..', '..', '..', '.env');
+  if (existsSync(envPath) && typeof process.loadEnvFile === 'function') process.loadEnvFile(envPath);
+}
 
 function list(value: string | undefined): string[] | undefined {
   return value
@@ -110,7 +116,8 @@ async function main(argv: string[]): Promise<number> {
 
   const isBench = command === 'bench';
   const publish = !isBench && values.publish;
-  const store = publish ? new SupabaseJobStore(serviceClientFromEnv()) : undefined;
+  const client = publish ? serviceClientFromEnv() : undefined;
+  const store = client ? new SupabaseJobStore(client) : undefined;
 
   console.log(
     `[scrape ${command}] sources: ${sources.map((s) => `${s.id}(t${s.tier})`).join(', ')}${publish ? ' — publishing' : ' — dry run'}`
@@ -131,6 +138,12 @@ async function main(argv: string[]): Promise<number> {
   console.log(
     `\nunique live jobs: ${t.unique} | duplicates: ${t.duplicates} | failed links: ${t.linkFailed} | upserted: ${t.upserted} | expired: ${t.expired} | legacy rows expired: ${t.legacyExpired}`
   );
+  if (client) {
+    // Expire jobs no source has listed for 14 days; delete rows expired for 30 days.
+    const { data, error } = await client.rpc('maintain_jobs_lifecycle');
+    if (error) annotate('warning', `maintain_jobs_lifecycle failed: ${error.message}`);
+    else console.log(`lifecycle maintenance: ${JSON.stringify(data)}`);
+  }
   for (const s of report.sources) for (const w of s.warnings) annotate('warning', `${s.source}: ${w}`);
   for (const alert of report.alerts) annotate('warning', `scrape alert — ${alert}`);
 
@@ -158,6 +171,7 @@ async function main(argv: string[]): Promise<number> {
 
 const isDirectRun = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isDirectRun) {
+  loadRootEnv();
   main(process.argv.slice(2)).then(
     (code) => process.exit(code),
     (err) => {

@@ -234,7 +234,7 @@ Hyper-personalized cold outreach engine (`OutreachView.tsx`):
 ├────────────────────────────────────────────────────────────────────────────────────────┤
 │ 4. CLOUD INFRASTRUCTURE & SCRAPERS (Supabase + Vercel)                                 │
 │    • PostgreSQL users_profile & Auth      • get-cloud-feed-page (18/36/54 range)       │
-│    • npm run scrape:all (Master Pipeline) • Web Portal (nomadic.runs-on.dev)           │
+│    • npm run scrape:publish (pipeline)    • Web Portal (nomadic.runs-on.dev)           │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -278,7 +278,7 @@ nomadic/
 │   └── supabase/                        # Supabase client, migrations & sync scripts
 ├── scripts/sign-windows.js              # Optional Authenticode signing (cert from env vars)
 ├── build-nomadic.ps1                    # Windows build + package helper ("Build Nomadic.bat")
-├── Run-Job-Scraper.bat, Run-HR-Scraper.bat # Windows shortcuts for the scraper publishers
+├── Run-Job-Scraper.bat, Run-HR-Scraper.bat # Windows shortcuts: job pipeline publish / HR publisher
 ├── docs/SECURITY_CLEANUP.md             # History purge + credential rotation runbook
 ├── nomadic_architecture.excalidraw      # System architecture diagram
 └── package.json                         # Monorepo root scripts & dependencies
@@ -303,10 +303,12 @@ Located permanently at `%APPDATA%\Nomadic\job_automator_local.db` on Windows and
 * `hr_contacts`: Verified recruiter email database.
 * `get-cloud-feed-page`: High-speed SQL stored procedure for range pagination (18/36/54 items).
 
-### C. Master ATS Scraper Pipeline
-Run via `npm run scrape:all` (or double-click `Run-Job-Scraper.bat` on Windows for jobs only):
-* Hits public JSON APIs and sitemaps for Ashby, Greenhouse, Lever, Internshala, and Remotive.
-* Deduplicates and syncs active jobs directly into Supabase.
+### C. Job Pipeline (`packages/scrapers`)
+One entry point, `packages/scrapers/src/cli.ts` (`npm run scrape -- <command>`), scheduled by `.github/workflows/scrape.yml`:
+* **Sources by tier.** Tier 1: Greenhouse, Lever and Ashby public APIs, Remotive, Internshala. Tier 2: RSS, Arbeitnow, Jobicy. Tier 3 (off unless `--include-tier3`, `SCRAPER_ENABLE_TIER3=1` or named in `--sources`): Naukri, Indeed, web search, generic DOM.
+* **Stages:** fetch → normalize to one zod `Job` schema (invalid records are logged and dropped) → classify (role family, seniority, internship/full-time) → dedupe (canonical URL, and company + title + location) → link validation (directory-URL guard, HEAD/GET, closed-job phrases) → score → upsert by `source_key + source_id` → expire jobs that vanished from their source or failed the link check.
+* **Freshness:** `first_seen`, `last_seen` and `status` on `jobs` (migration `006_scraper_pipeline.sql`); expired jobs drop out of the feed automatically.
+* **Observability:** one `scrape_runs` row per source per run; a source returning 0 jobs or dropping >50% vs. its last run raises an alert and its unseen jobs are not expired that run.
 
 ---
 
@@ -361,14 +363,18 @@ npm run build:web        # production build + prerendered pages in apps/web/dist
 npm run preview:web      # serve the production build locally
 ```
 
-### 4. Running the Job Scrapers
+### 4. Running the Job Pipeline
 ```bash
-npm run scrape           # run every scraper once and print a summary (no upload)
-npm run scrape:all       # scrape jobs + recruiter leads and publish them to Supabase
-npm run scrapers:jobs    # publish jobs only
-npm run scrapers:hrs     # publish HR / recruiter contacts only
+npm run scrape                                  # dry run of tier 1 + 2 sources: fetch, validate, dedupe, link-check, print a table
+npm run scrape -- run --sources lever,ashby     # only some sources (naming a tier 3 source opts into it)
+npm run scrape -- run --no-link-check           # skip the HTTP liveness check (structural URL check still runs)
+npm run scrape:publish                          # same pipeline, then upsert/expire in Supabase and write scrape_runs
+npm run scrapers:bench                          # per-source metrics -> packages/scrapers/results/baseline.md
+npm run scrape -- runs --limit 20               # recent scrape_runs rows
+npm run scrape -- sources                       # list sources and tiers
+npm run scrapers:hrs                            # publish HR / recruiter contacts (Outreach; separate from the job pipeline)
 ```
-Publishing needs `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (operator only) in `.env` at the repo root. On Windows, `Run-Job-Scraper.bat` and `Run-HR-Scraper.bat` run the same publishers as `scrapers:jobs` and `scrapers:hrs`.
+Publishing and `runs` need `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (operator only), from the environment or `.env` at the repo root. Apply `packages/supabase/migrations/006_scraper_pipeline.sql` first. On Windows, `Run-Job-Scraper.bat` runs `scrape:publish` and `Run-HR-Scraper.bat` runs `scrapers:hrs`.
 
 ### 5. Quality Checks
 ```bash

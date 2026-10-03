@@ -9,7 +9,10 @@ import { computeJobHash } from './hasher.ts';
 import { scrapeRecruiterLeads, type RecruiterLead } from './recruiter-scraper.ts';
 import { getScraperSupabase } from './env-helper.ts';
 import { batchResolveAndFilterJobs } from './form-link-resolver.ts';
+import { getRecentScrapeRuns, type ScrapeRunRow, type RecentRunsOptions } from './pipeline/store.ts';
 
+// The normalized pipeline lives in ./pipeline/index.ts (CLI: src/cli.ts).
+// Only the admin read helper is re-exported here to keep the desktop bundle lean.
 export {
   scrapeAtsApis,
   scrapeAggregatorsAndRss,
@@ -22,6 +25,9 @@ export {
   scrapeRecruiterLeads,
   computeJobHash,
   batchResolveAndFilterJobs,
+  getRecentScrapeRuns,
+  type ScrapeRunRow,
+  type RecentRunsOptions,
   type RawJob,
   type InternshalaJob,
   type RecruiterLead

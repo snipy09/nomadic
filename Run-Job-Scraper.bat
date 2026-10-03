@@ -6,7 +6,7 @@ echo ========================================================================
 echo  ⚡ NOMADIC: Running Local Job Scraper & Supabase Publisher
 echo ========================================================================
 echo.
-call npx tsx packages/scrapers/src/publish-jobs.ts
+call npx tsx packages/scrapers/src/cli.ts run --publish
 echo.
 echo ========================================================================
 echo  Press any key to exit...
