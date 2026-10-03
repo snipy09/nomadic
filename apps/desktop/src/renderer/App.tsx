@@ -13,7 +13,7 @@ import { UpgradeModal } from './components/UpgradeModal';
 import { FeedView } from './components/FeedView';
 import { OutreachView } from './components/OutreachView';
 import { ApplicationsView } from './components/ApplicationsView';
-import { ProfileView } from './components/ProfileView';
+import { ProfileView } from './features/profile/ProfileView';
 import { AdminView } from './components/AdminView';
 import { LoginView } from './components/LoginView';
 import { ResourceVaultView } from './components/ResourceVaultView';
@@ -240,7 +240,7 @@ export default function App() {
     }
     try {
       if (api && api.saveMasterProfile) {
-        await api.saveMasterProfile({
+        const res: any = await api.saveMasterProfile({
           firstName: profToSave.firstName,
           lastName: profToSave.lastName,
           email: profToSave.email,
@@ -258,6 +258,7 @@ export default function App() {
           customAnswersJson: JSON.stringify(profToSave.customAnswers || {}),
           onboarding_completed: 1,
         });
+        if (res && res.success === false) throw new Error(res.error || 'Save rejected');
       }
       addLog('[Profile] Master candidate profile saved.');
       return true;
@@ -489,7 +490,6 @@ export default function App() {
               <ProfileView
                 profile={profile}
                 onSaveProfile={handleSaveProfile}
-                onSave={handleSaveProfile}
                 saving={savingProfile}
                 onLog={addLog}
                 currentUser={currentUser}
