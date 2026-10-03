@@ -1,0 +1,23 @@
+{
+  "name": "@job-automator/learning",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./browser": "./src/practice/browser-runners.ts",
+    "./seed/*": "./seed/*"
+  },
+  "scripts": {
+    "test": "vitest run --root .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "seed": "tsx scripts/seed.ts",
+    "check-links": "tsx scripts/check-links.ts",
+    "build-seed": "tsx scripts/build-seed.ts"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  }
+}
