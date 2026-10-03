@@ -73,3 +73,38 @@ variables the upgrade dialog offers the manual WhatsApp route instead. The plan 
 
 Plan limits live in `packages/config/src/plans.ts`. After changing a limit, update the `plan_limits` rows in a new
 migration; `packages/supabase/src/__tests__/entitlements-parity.test.ts` fails until SQL and config agree.
+
+## 7. Google sign-in (SECURITY_CHECKLIST S9)
+Desktop Google sign-in uses the installed-app flow (authorization code + PKCE on the loopback redirect
+`http://127.0.0.1:42813/callback`). The desktop sends the Google ID token to the `google-sign-in` Edge Function, which
+verifies it (signature via Google's JWKS, issuer, audience = the client id below, expiry, verified email) and calls
+`google_sign_in` (migration `021`, service_role only). That returns the same row as `authenticate_user`, including the
+single-use login ticket, so the device registers exactly like password sign-in.
+
+`021` was rehearsed on PostgreSQL 16 (shim + `baseline/supabase_full_setup.sql` + 012, 017, 018, 021, stub Vault):
+new Google user created with a ticket; ticket registers a device once with `require_login_ticket` on; returning user
+found by `google_sub`; existing password user with the same email linked (password sign-in still works); a different
+Google account for a linked email refused; suspended refused; expired plan still signs in; `anon`/`authenticated`
+get permission denied on `google_sign_in`.
+
+Owner steps, in order:
+1. **Google Cloud Console → APIs & Services → OAuth consent screen**: user type External, app name "Nomadic",
+   support email, scopes `openid`, `email`, `profile`. Publish the app (in "Testing" only listed test users can sign in).
+2. **Credentials → Create credentials → OAuth client ID → Application type "Desktop app"**. Desktop clients accept
+   any `http://127.0.0.1:<port>` loopback redirect, so there is no redirect URI to register. (If you use a
+   "Web application" client instead, add the authorized redirect URI `http://127.0.0.1:42813/callback` exactly.)
+   Google still issues a client secret for Desktop clients and requires it at the token endpoint; Google documents it
+   as not confidential for installed apps (PKCE protects the code). Keep it out of the repo anyway.
+3. **Vault** (SQL editor): the function reads the client id as the token audience.
+   ```sql
+   select vault.create_secret('<client id>.apps.googleusercontent.com', 'google_oauth_client_id',
+                              'Google OAuth desktop client id (ID token audience)');
+   ```
+4. **Apply `021`**: `bash packages/supabase/scripts/migrate.sh` (018 must already be applied; it provides `server_secret`).
+5. **Deploy the function**: `supabase functions deploy google-sign-in --project-ref grqkiddfwoyicktpgdea`
+   (keep JWT verification on; the desktop sends the anon key as bearer). It needs no extra secrets:
+   `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` are provided by the platform.
+6. **Desktop build environment** (CI secrets / local `.env`, never committed): `GOOGLE_OAUTH_CLIENT_ID` and
+   `GOOGLE_OAUTH_CLIENT_SECRET` from step 2. Without the client id the app shows "Google sign-in is not configured".
+7. Test with a new Google account and with a Google account whose email already has a password account (it is linked,
+   keeps its plan and role). Then `require_login_ticket` (step 5) can be turned on without breaking Google sign-in.

@@ -236,6 +236,7 @@ const credentials = z
   })
   .passthrough();
 export const credentialsArgs: ArgSchemas<'auth-login'> = [credentials];
+export const googleSignInArgs: ArgSchemas<'auth-google'> = [opt(z.object({ forceTakeover: opt(z.boolean()) }).strict())];
 
 const heartbeatOptions = z
   .object({

@@ -171,6 +171,102 @@ export function identifyDevice(): { deviceFingerprint: string; deviceName: strin
   return { deviceFingerprint, deviceName };
 }
 
+/**
+ * Builds the app user from an `authenticate_user`-shaped row (also returned by `google_sign_in`, migration 021).
+ * Role, tier and status come only from the server row, never from the client.
+ */
+export function userFromServerRow(row: Record<string, any>): ValidatedUser {
+  const tier: ValidatedUser['tier'] =
+    ['trial', 'pro', 'max', 'lifetime'].includes(row.tier) ? row.tier : 'pro';
+  return {
+    id: String(row.id),
+    email: String(row.email),
+    fullName: String(row.full_name ?? ''),
+    role: row.role === 'admin' ? 'admin' : 'user',
+    tier,
+    licenseKey: String(row.license_key ?? ''),
+    status: row.status === 'suspended' ? 'suspended' : 'active',
+    appsCount: Number(row.apps_count ?? 0),
+    createdAt: '',
+    expiresAt: row.expires_at ? String(row.expires_at) : undefined,
+    lastLogin: new Date().toISOString(),
+  };
+}
+
+export interface ServerSessionOptions {
+  forceTakeover?: boolean;
+  /** Stored in the offline cache; Google sign-in passes an unguessable value so it cannot be used offline. */
+  offlineCredentialHash: string;
+  deviceFingerprint: string;
+  deviceName: string;
+  /** Label for the log line ("Supabase", "Google"). */
+  source: string;
+}
+
+/**
+ * Shared tail of every server sign-in (password and Google): registers this device with the row's single-use
+ * login ticket (SECURITY_CHECKLIST S3), then records the session, caches the profile, starts the heartbeat and
+ * pulls cloud data. `row` must be a successful (`ok`) authenticate_user-shaped row.
+ */
+export async function startServerSession(
+  supabase: NonNullable<ReturnType<typeof getAnonSupabase>>,
+  row: Record<string, any>,
+  opts: ServerSessionOptions
+): Promise<AuthResult> {
+  const user = userFromServerRow(row);
+  const { deviceFingerprint, deviceName, forceTakeover = false } = opts;
+
+  // Enforce Single-Laptop Lock
+  const clientIp = await resolvePublicIp().catch(() => '127.0.0.1');
+  const sessionToken = crypto.randomUUID();
+
+  // The one-time login ticket proves this device just authenticated as user.id.
+  // It is single use, so a force-takeover retry signs in again.
+  const devReg = await registerDeviceSession(
+    supabase,
+    user.id,
+    sessionToken,
+    deviceFingerprint,
+    deviceName,
+    clientIp,
+    forceTakeover,
+    readLoginTicket(row)
+  );
+
+  if (devReg.conflict && !forceTakeover) {
+    log(`[Auth] Device lock conflict: Account in use on "${devReg.activeDevice}".`);
+    return {
+      success: false,
+      conflict: true,
+      activeDevice: devReg.activeDevice || 'Another Laptop',
+      error: devReg.reason || 'Account is currently active on another device.',
+    };
+  }
+
+  session.userId = user.id;
+  session.sessionToken = sessionToken;
+
+  cacheValidatedUser(user, opts.offlineCredentialHash);
+  log(`[Auth] Authenticated via ${opts.source}: ${user.email} (${user.tier.toUpperCase()}) on [${deviceName}]`);
+
+  // Start heartbeat loop immediately
+  startHeartbeatLoop(user.id, sessionToken, deviceFingerprint);
+
+  // Pull cloud data into local SQLite
+  await syncPullUserDataToLocalDb(user.id, sessionToken, deviceFingerprint);
+
+  return {
+    success: true,
+    user: {
+      ...user,
+      onboardingCompleted: isOnboardingCompleted(),
+      sessionToken,
+      deviceFingerprint,
+      deviceName,
+    },
+  };
+}
+
 /** Business logic behind the `auth-login` channel. */
 export async function loginWithCredentials(credentials: AuthCredentials): Promise<AuthResult> {
   try {
@@ -201,71 +297,13 @@ export async function loginWithCredentials(credentials: AuthCredentials): Promis
         if (!row) return { success: false, error: 'Login failed. Please try again.' };
         if (!row.ok) return { success: false, error: row.reason || 'Login failed.' };
 
-        const tier: ValidatedUser['tier'] =
-          ['trial', 'pro', 'max', 'lifetime'].includes(row.tier) ? row.tier : 'pro';
-        const user: ValidatedUser = {
-          id: String(row.id),
-          email: String(row.email),
-          fullName: String(row.full_name ?? ''),
-          role: row.role === 'admin' ? 'admin' : 'user',
-          tier,
-          licenseKey: String(row.license_key ?? ''),
-          status: row.status === 'suspended' ? 'suspended' : 'active',
-          appsCount: Number(row.apps_count ?? 0),
-          createdAt: '',
-          expiresAt: row.expires_at ? String(row.expires_at) : undefined,
-          lastLogin: new Date().toISOString(),
-        };
-
-        // Enforce Single-Laptop Lock
-        const clientIp = await resolvePublicIp().catch(() => '127.0.0.1');
-        const sessionToken = crypto.randomUUID();
-
-        // The one-time login ticket proves this device just authenticated as user.id
-        // (SECURITY_CHECKLIST S3). It is single use, so a force-takeover retry signs in again.
-        const devReg = await registerDeviceSession(
-          supabase,
-          user.id,
-          sessionToken,
+        return await startServerSession(supabase, row, {
+          forceTakeover,
+          offlineCredentialHash: passwordHash,
           deviceFingerprint,
           deviceName,
-          clientIp,
-          forceTakeover,
-          readLoginTicket(row)
-        );
-
-        if (devReg.conflict && !forceTakeover) {
-          log(`[Auth] Device lock conflict: Account in use on "${devReg.activeDevice}".`);
-          return {
-            success: false,
-            conflict: true,
-            activeDevice: devReg.activeDevice || 'Another Laptop',
-            error: devReg.reason || 'Account is currently active on another device.',
-          };
-        }
-
-        session.userId = user.id;
-        session.sessionToken = sessionToken;
-
-        cacheValidatedUser(user, passwordHash);
-        log(`[Auth] Authenticated via Supabase: ${user.email} (${user.tier.toUpperCase()}) on [${deviceName}]`);
-
-        // Start heartbeat loop immediately
-        startHeartbeatLoop(user.id, sessionToken, deviceFingerprint);
-
-        // Pull cloud data into local SQLite
-        await syncPullUserDataToLocalDb(user.id, sessionToken, deviceFingerprint);
-
-        return {
-          success: true,
-          user: {
-            ...user,
-            onboardingCompleted: isOnboardingCompleted(),
-            sessionToken,
-            deviceFingerprint,
-            deviceName,
-          }
-        };
+          source: 'Supabase',
+        });
       } catch (rpcErr: unknown) {
         const msg = rpcErr instanceof Error ? rpcErr.message : String(rpcErr);
         log(`[Auth] Supabase unreachable (${msg}) — trying offline cache.`);

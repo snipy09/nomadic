@@ -75,7 +75,7 @@ const apiObj: NomadicApi = {
   // Authentication APIs
   authLogin: (credentials) => invoke('auth-login', credentials),
   authSignup: (credentials) => invoke('auth-signup', credentials),
-  authGoogle: () => invoke('auth-google'),
+  authGoogle: (options) => invoke('auth-google', options),
   onOauthCallback: (cb) => subscribe('oauth-callback', cb),
   practiceGetCatalog: () => invoke('practice-get-catalog'),
   practiceGetState: () => invoke('practice-get-state'),
