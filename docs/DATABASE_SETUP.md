@@ -138,5 +138,5 @@ verified.
 
 
 ## Live status (2026-10-03)
-- Migrations 001–012, 014–018, 021 applied. Edge Function `google-sign-in` deployed (v1, JWT verification on).
+- Migrations 001–012, 014–018, 021 applied. Edge Functions `google-sign-in` and `send-email-code` deployed (v1, JWT verification on). **019 must be pasted by the owner** (`baseline/apply_019.sql`; contains DELETEs that the MCP connector cannot confirm).
 - Vault: `resend_api_key`, `gemini_api_key` set. Still needed: `google_oauth_client_id` (owner), `email_from` once a sending domain is verified.
