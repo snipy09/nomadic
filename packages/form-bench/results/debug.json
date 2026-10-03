@@ -1,0 +1,140 @@
+{
+  "engine": "old",
+  "llm": null,
+  "summary": {
+    "forms": 1,
+    "fields": 10,
+    "found": null,
+    "filled": 9,
+    "correct": 7,
+    "wrong": 2,
+    "skipped": 1,
+    "missing": 0,
+    "accuracy": 0.7,
+    "wrongRate": 0.2,
+    "wrongPerFilled": 0.2222222222222222,
+    "submitClicked": 1,
+    "wallsDetected": 0,
+    "wallsExpected": 0,
+    "totalTimeMs": 10378,
+    "byCategory": {
+      "profile": {
+        "n": 9,
+        "correct": 6,
+        "wrong": 2,
+        "skipped": 1
+      },
+      "file": {
+        "n": 1,
+        "correct": 1,
+        "wrong": 0,
+        "skipped": 0
+      }
+    }
+  },
+  "results": [
+    {
+      "id": "ashby-basic",
+      "ats": "ashby",
+      "title": "Ashby: system fields + links + resume",
+      "fields": 10,
+      "found": null,
+      "filled": 9,
+      "correct": 7,
+      "wrong": 2,
+      "skipped": 1,
+      "missing": 0,
+      "timeMs": 10378,
+      "submitClicked": true,
+      "wallsExpected": [],
+      "wallsReported": [],
+      "needsUser": null,
+      "llmCalls": null,
+      "notes": [
+        "legacy interactions reported: 14"
+      ],
+      "details": [
+        {
+          "label": "Name",
+          "category": "profile",
+          "required": true,
+          "expected": "Jordan Rivera",
+          "actual": "Jordan Rivera",
+          "verdict": "correct"
+        },
+        {
+          "label": "Email",
+          "category": "profile",
+          "required": true,
+          "expected": "jordan.rivera@example.com",
+          "actual": "jordan.rivera@example.com",
+          "verdict": "correct"
+        },
+        {
+          "label": "Resume",
+          "category": "file",
+          "required": true,
+          "expected": "@file",
+          "actual": "@file",
+          "verdict": "correct"
+        },
+        {
+          "label": "Phone",
+          "category": "profile",
+          "required": true,
+          "expected": "+1 512 555 0142",
+          "actual": "+1 512 555 0142",
+          "verdict": "correct"
+        },
+        {
+          "label": "LinkedIn Profile",
+          "category": "profile",
+          "required": true,
+          "expected": "https://www.linkedin.com/in/jordan-rivera-dev",
+          "actual": "I have hands-on experience designing and shipping scalable software in TypeScript, React, Node.js, PostgreSQL, AWS. I am eager to apply my technical background to help Engineering Team build high-quality systems.",
+          "verdict": "wrong"
+        },
+        {
+          "label": "GitHub",
+          "category": "profile",
+          "required": false,
+          "expected": "https://github.com/jrivera-dev",
+          "actual": "https://github.com/jrivera-dev",
+          "verdict": "correct"
+        },
+        {
+          "label": "Website or Portfolio",
+          "category": "profile",
+          "required": false,
+          "expected": "https://jordanrivera.dev",
+          "actual": "https://jordanrivera.dev",
+          "verdict": "correct"
+        },
+        {
+          "label": "Current Company",
+          "category": "profile",
+          "required": false,
+          "expected": "Nimbus Analytics",
+          "actual": "",
+          "verdict": "skipped"
+        },
+        {
+          "label": "Are you legally authorized to work in the United States?",
+          "category": "profile",
+          "required": true,
+          "expected": "Yes",
+          "actual": "Yes",
+          "verdict": "correct"
+        },
+        {
+          "label": "Will you now or in the future require visa sponsorship to work in the United States?",
+          "category": "profile",
+          "required": true,
+          "expected": "No",
+          "actual": "Yes",
+          "verdict": "wrong"
+        }
+      ]
+    }
+  ]
+}

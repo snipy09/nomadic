@@ -6,7 +6,7 @@
  * Every stage is an interface so it can be unit-tested and swapped.
  */
 import type { Page } from 'playwright';
-import type { MasterProfile } from './profile.ts';
+import type { MasterProfile } from './profile.js';
 
 export type FieldKind =
   | 'text'
