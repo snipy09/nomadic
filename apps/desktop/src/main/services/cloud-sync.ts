@@ -10,6 +10,7 @@ import { log } from './app-context.js';
 import { getActiveSyncSession } from './session.js';
 import { getAnonSupabase } from './supabase.js';
 import { upsertMasterProfile } from './profile.js';
+import { readSecret } from './secrets.js';
 import { mergeCloudApplications } from './applications-store.js';
 import { syncLearning } from './learning.js';
 
@@ -50,9 +51,10 @@ export async function syncPullUserDataToLocalDb(
         github: p.github ?? null,
         sponsorship: p.sponsorship ?? 'No',
         desired_salary: p.desired_salary ?? null,
-        notice_period: p.notice_period ?? '2 weeks',
-        groq_api_key: p.groq_api_key ?? null,
-        smtp_password: p.smtp_password ?? null,
+        notice_period: p.notice_period ?? null,
+        // Secrets never come from the cloud: keep whatever this computer has (they are not uploaded either).
+        groq_api_key: readSecret('groq_api_key', db),
+        smtp_password: readSecret('smtp_password', db),
         resume_text: p.resume_text ?? null,
         custom_answers_json: customAnswersStr,
         onboarding_completed: onboardingInt,

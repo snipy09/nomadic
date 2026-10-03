@@ -186,9 +186,10 @@ export function saveMasterProfile(p: Record<string, unknown>): { success: boolea
           github: (p.github as string) ?? (p.github_url as string) ?? null,
           sponsorship: (p.sponsorship as string) ?? 'No',
           desired_salary: (p.desiredSalary as string) ?? (p.desired_salary as string) ?? null,
-          notice_period: (p.noticePeriod as string) ?? (p.notice_period as string) ?? '2 weeks',
-          groq_api_key: (p.groqApiKey as string) ?? (p.groq_api_key as string) ?? null,
-          smtp_password: (p.smtpPassword as string) ?? (p.smtp_password as string) ?? null,
+          notice_period: (p.noticePeriod as string) ?? (p.notice_period as string) ?? null,
+          // API keys and the SMTP password stay on this computer (OS keychain); they are never uploaded.
+          groq_api_key: null,
+          smtp_password: null,
           resume_text: (p.resumeText as string) ?? (p.resume_text as string) ?? null,
           custom_answers_json: customAnswersObj as Record<string, unknown>,
           onboarding_completed: Boolean(onboardingVal),
