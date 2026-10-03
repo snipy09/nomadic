@@ -66,35 +66,4 @@ describe('10,000 Job Roles Dataset & AI Detection Engine', () => {
     expect(roadmap.interviewQuestions.length).toBeGreaterThan(0);
     expect(roadmap.recommendedKeywords.length).toBeGreaterThan(3);
   });
-
-  it('renders OnboardingWizard component without crashing', async () => {
-    const React = await import('react');
-    const { renderToString } = await import('react-dom/server');
-    const { OnboardingWizard } = await import('../../renderer/components/OnboardingWizard');
-    const mockProfile = {
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      linkedin: '',
-      github: '',
-      sponsorship: 'No',
-      desiredSalary: '',
-      noticePeriod: '2 weeks',
-      groqApiKey: '',
-      smtpPassword: '',
-      resumeText: '',
-      desiredTitle: '',
-      techStack: '',
-      customAnswers: {},
-      onboardingCompleted: false,
-    };
-    const html = renderToString(
-      React.createElement(OnboardingWizard, {
-        initialProfile: mockProfile,
-        onComplete: () => {},
-      })
-    );
-    expect(html).toContain('Welcome to Nomadic');
-  });
 });

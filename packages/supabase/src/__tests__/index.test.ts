@@ -53,6 +53,34 @@ describe('Supabase Package Unit Tests', () => {
       expect(res.conflict).toBe(false);
     });
 
+    it('sends the login ticket as p_login_ticket when one is given', async () => {
+      const mockSupabase = {
+        rpc: vi.fn().mockResolvedValue({ data: [{ ok: true, conflict: false }], error: null }),
+      };
+
+      await registerDeviceSession(mockSupabase, 'user-1', 'tok-1', 'fp-1', 'Laptop', '1.2.3.4', true, 'ticket-abc');
+
+      expect(mockSupabase.rpc).toHaveBeenCalledWith('register_device_session', {
+        p_user_id: 'user-1',
+        p_session_token: 'tok-1',
+        p_device_fingerprint: 'fp-1',
+        p_device_name: 'Laptop',
+        p_client_ip: '1.2.3.4',
+        p_force_takeover: true,
+        p_login_ticket: 'ticket-abc',
+      });
+    });
+
+    it('omits p_login_ticket when no ticket is available', async () => {
+      const mockSupabase = {
+        rpc: vi.fn().mockResolvedValue({ data: [{ ok: true, conflict: false }], error: null }),
+      };
+
+      await registerDeviceSession(mockSupabase, 'user-1', 'tok-1', 'fp-1', 'Laptop', '1.2.3.4', false, null);
+
+      expect(mockSupabase.rpc.mock.calls[0][1]).not.toHaveProperty('p_login_ticket');
+    });
+
     it('detects active device conflict and returns activeDevice info', async () => {
       const mockSupabase = {
         rpc: vi.fn().mockResolvedValue({

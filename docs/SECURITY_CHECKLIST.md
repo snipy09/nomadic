@@ -12,7 +12,7 @@ Legend: ✅ fixed and verified · ⚠️ mitigated, follow-up needed · ☐ open
 |---|---|---|---|
 | S1a | `set_user_password` was only revoked `FROM PUBLIC`; anon still had EXECUTE through Supabase default privileges, so **anyone could reset any user's password**. | ✅ | `008` revokes EXECUTE from anon/authenticated on every public function, stops future auto-grants (`ALTER DEFAULT PRIVILEGES`), re-grants an explicit allow-list. |
 | S1b | `handle_razorpay_payment_success` same problem: **anyone could upgrade their own plan** without paying. | ✅ | Same allow-list; service role only. |
-| S3 | `register_device_session` accepted any `p_user_id` with no proof of login: anyone with a user's UUID could mint a session, kick the real device (`p_force_takeover`) and **read that user's synced profile, resumes and applications** via `sync_pull_user_data`. | ⚠️ | `008`: requires a one-time `login_ticket` (issued by `authenticate_user`, 10 min, single use) **or**, for current desktop builds, a successful login for that user in the last 10 minutes. A session token can't be moved between users. **Follow-up:** desktop passes `p_login_ticket` from the login result, then `update app_security set require_login_ticket = true;`. |
+| S3 | `register_device_session` accepted any `p_user_id` with no proof of login: anyone with a user's UUID could mint a session, kick the real device (`p_force_takeover`) and **read that user's synced profile, resumes and applications** via `sync_pull_user_data`. | ⚠️ | `008`: requires a one-time `login_ticket` (issued by `authenticate_user`, 10 min, single use) **or**, for older desktop builds, a successful login for that user in the last 10 minutes. A session token can't be moved between users. **Desktop (F2):** password sign-in passes the ticket from `authenticate_user` as `p_login_ticket`; a force-takeover retry signs in again for a fresh ticket; sign-up calls `authenticate_user` once after `register_user` (which issues no ticket) and sends that ticket. The parameter is omitted only when the server returns no ticket (database without `008`). Tests: `apps/desktop/src/main/__tests__/auth-login-ticket.test.ts`, `packages/supabase/src/__tests__/index.test.ts`. **Remaining:** owner turns on `require_login_ticket` after this build ships (see Owner actions). Google sign-in never calls `register_device_session` (S9). |
 | S5 | Razorpay fulfilment trusted `notes.plan` from checkout: ₹1 with `plan: lifetime` gave a non-expiring plan, `turbo` gave Max; replayed webhooks re-extended plans. | ✅ | `008` derives the plan from the captured amount (₹249 Pro, ₹599 Max, below ₹249 rejected) and fulfils each `payment_id` once; webhook ignores `notes.plan` and compares signatures in constant time. |
 
 ## High
@@ -28,10 +28,11 @@ Legend: ✅ fixed and verified · ⚠️ mitigated, follow-up needed · ☐ open
 
 | # | Finding | Status | Fix |
 |---|---|---|---|
-| S2d | Login error messages revealed whether an email has an account. | ✅ | One message: "Incorrect email or password." |
+| S2d | Login error messages revealed whether an email has an account. | ✅ | One message: "Incorrect email or password." The desktop's offline-cache fallback now returns the same text, and the sign-in screen collapses any credential error into it. Sign-up still says an email is taken (unavoidable without email verification); `register_user` rate-limits that to 5 attempts per email per 15 minutes. |
 | S4 | `hr_contacts` (recruiter names and emails) readable by anyone with the anon key. | ✅ | `008` drops the policy. Outreach is hidden behind a feature flag; re-enabling it needs a session-checked RPC (`apps/desktop/src/main/services/outreach.ts` reads the table with the anon key today). |
 | S7 | `match_jobs_for_user(p_user_id)` (SECURITY DEFINER, no `search_path`) callable by anon for any user. | ✅ | Removed from anon by the `008` allow-list (no client calls it). |
 | S8 | `jobs` readable by anon. | ✅ by design | Only `is_active = TRUE` rows; writes service-role only (`002`). Expired jobs are hidden via the `006` status trigger. |
+| S9 | Google sign-in (`apps/desktop/src/main/services/oauth.ts`) has no server-side session: it never calls `authenticate_user` or `register_device_session`, uses Google's `sub` as the user id (not a `users_profile` UUID), and its direct `users_profile` read/insert with the anon key is denied by RLS since `008`. Result: Google users get a local, free-tier, user-role account whose heartbeat and cloud sync cannot succeed. Nothing is escalated (role/tier are never taken from the client), but the flow cannot obtain a login ticket. | ☐ | Needs a server path: an RPC or Edge Function that verifies the Google ID token (or a Supabase Auth JWT) server-side, finds or creates the `users_profile` row by the verified email, and returns the same row shape as `authenticate_user` including `login_ticket`. The desktop then registers the device exactly like password sign-in. Also move the Google code exchange to PKCE so no client secret ships in the build. |
 
 ## Verified as correct (no change)
 
@@ -54,8 +55,13 @@ migration; everything else is denied by default.
 
 - ☐ Apply `006`, `007`, `008` to the production project, in order. `008` changes `authenticate_user`'s
   result (adds `login_ticket`); the desktop reads columns by name, so existing builds keep working.
-- ☐ Desktop main process: send `p_login_ticket` to `register_device_session`, ship, then set
-  `require_login_ticket = true` (closes the 10-minute compatibility window in S3).
+- ✅ Desktop main process sends `p_login_ticket` to `register_device_session` (password sign-in and sign-up).
+- ☐ Ship that build, wait until no older desktop builds are in use, then run
+  `update app_security set require_login_ticket = true;` (closes the 10-minute compatibility window in S3).
+  Do this only after `006`-`009` are applied. With it on, Google sign-in is unaffected (it never registers a
+  device, see S9); password sign-in and sign-up keep working because both now send a ticket.
+- ☐ S9: build the server-side Google sign-in path (verifies the token, issues a login ticket) before Google sign-in is
+  promoted as a primary option.
 - ☐ Rotate the service-role key if it was ever on a customer machine, and the code-signing cert per
   `docs/SECURITY_CLEANUP.md`.
 - ☐ Electron hardening and secrets-in-keychain were done in the main-process work stream (Step 3.2);
