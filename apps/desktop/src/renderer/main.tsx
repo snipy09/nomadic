@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
+import { UIProvider } from '@nomadic/ui';
 import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
@@ -9,7 +10,9 @@ if (container) {
   const root = createRoot(container);
   root.render(
     <ErrorBoundary>
-      <App />
+      <UIProvider>
+        <App />
+      </UIProvider>
     </ErrorBoundary>
   );
 }

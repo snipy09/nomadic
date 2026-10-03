@@ -20,6 +20,7 @@ const K = {
   terms: 'nomadic_terms_accepted',
   calibrated: 'nomadic_last_calibrated_date',
   oppWaitlist: 'nomadic_opp_board_waitlist',
+  sidebarCollapsed: 'nomadic_sidebar_collapsed',
 } as const;
 
 export const prefs = {
@@ -60,6 +61,8 @@ export const prefs = {
   setTermsAccepted: (v: boolean) => write(K.terms, v ? 'true' : 'false'),
   getLastCalibrated: () => read(K.calibrated),
   setLastCalibrated: (d: string) => write(K.calibrated, d),
+  getSidebarCollapsed: () => read(K.sidebarCollapsed) === 'true',
+  setSidebarCollapsed: (v: boolean) => write(K.sidebarCollapsed, v ? 'true' : 'false'),
   getOppWaitlist: () => read(K.oppWaitlist) === 'true',
   setOppWaitlist: () => write(K.oppWaitlist, 'true'),
 };

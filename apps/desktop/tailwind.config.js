@@ -1,7 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  presets: [require('@nomadic/ui/tailwind-preset')],
   darkMode: 'class',
-  content: ['./src/renderer/**/*.{ts,tsx,html}'],
+  content: ['./src/renderer/**/*.{ts,tsx,html}', '../../packages/ui/src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       fontFamily: {

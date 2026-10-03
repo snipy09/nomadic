@@ -11,6 +11,7 @@ export const FEATURE_DEFAULTS = {
   outreach: false,
   resourceVault: false,
   opportunityBoard: false,
+  assistant: false,
 } as const;
 
 export type FeatureFlag = keyof typeof FEATURE_DEFAULTS;

@@ -79,6 +79,7 @@
     "@job-automator/scrapers": "file:../../packages/scrapers",
     "@job-automator/supabase": "file:../../packages/supabase",
     "@nomadic/config": "*",
+    "@nomadic/ui": "*",
     "@tanstack/react-query": "^5.104.1",
     "animejs": "^4.5.0",
     "lucide-react": "^0.330.0",

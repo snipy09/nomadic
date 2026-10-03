@@ -4,6 +4,7 @@ import {
   TabType, ThemeMode, MasterProfile, HeartbeatStatus, AppUser, getApi, PersonaTrack, WorkspaceMode
 } from './types';
 import { OnboardingWizard } from './components/OnboardingWizard';
+import { AppShell, useTheme } from '@nomadic/ui';
 import { TopBar } from './components/TopBar';
 import { Sidebar } from './components/Sidebar';
 import { HomeView } from './components/HomeView';
@@ -20,11 +21,15 @@ import { InterviewPrepView } from './components/InterviewPrepView';
 import { OpportunityBoardView } from './components/OpportunityBoardView';
 import { CommandPalette } from './components/CommandPalette';
 import { NomadicAssistant } from './components/NomadicAssistant';
-import { isTabEnabled } from './features';
+import { isTabEnabled, FEATURES } from './features';
 import { prefs } from './store/preferences';
 import { useAppStore } from './store/appStore';
 export default function App() {
   // Current user state (session pointer persisted via the preferences module)
+  const { theme, setTheme } = useTheme({ defaultTheme: 'light' });
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => prefs.getSidebarCollapsed());
+  const toggleSidebar = () => setSidebarCollapsed((c) => { prefs.setSidebarCollapsed(!c); return !c; });
+
   // Single source of truth: Zustand store (see store/appStore.ts)
   const currentUser = useAppStore((s) => s.currentUser);
   const setCurrentUser = useAppStore((s) => s.setCurrentUser);
@@ -341,43 +346,42 @@ export default function App() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden font-sans">
-      
-      {/* Top Application Header */}
-      <TopBar
-        currentUser={currentUser}
-        onLogout={handleLogout}
-        activeTab={activeTab}
-        onNavigate={handleNavigate}
-        activeTrack={activeTrack}
-        setTrack={handleTrackChange}
-        workspaceMode={workspaceMode}
-        onOpenUpgrade={() => handleOpenUpgrade()}
-        onOpenCommandPalette={() => setShowCommandPalette(true)}
-      />
-
-      {/* Main Workspace Layout (Sidebar + View) */}
-      <div className="flex-1 flex overflow-hidden">
-        
-        {/* Navigation Sidebar */}
+    <AppShell
+      className="h-screen"
+      sidebarCollapsed={sidebarCollapsed}
+      sidebar={
         <Sidebar
           activeTrack={activeTrack}
           activeTab={activeTab}
           onSelectTab={handleNavigate}
-          heartbeat={heartbeat}
-          logsCount={logs.length}
           currentUser={currentUser}
-          onOpenUpgrade={() => handleOpenUpgrade()}
-          onLogout={handleLogout}
+          onToggleCollapsed={toggleSidebar}
         />
-
+      }
+      topbar={
+        <TopBar
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          onNavigate={handleNavigate}
+          activeTrack={activeTrack}
+          setTrack={handleTrackChange}
+          workspaceMode={workspaceMode}
+          onOpenUpgrade={() => handleOpenUpgrade()}
+          onOpenCommandPalette={() => setShowCommandPalette(true)}
+          onLog={addLog}
+          theme={theme}
+          onThemeChange={setTheme}
+        />
+      }
+      mainClassName={
+        activeTab === 'profile' || activeTab === 'settings' || Boolean(activeTab && activeTab.startsWith('admin'))
+          ? 'overflow-hidden flex flex-col'
+          : 'overflow-y-auto p-5 md:p-8'
+      }
+    >
+      <>
         {/* Dynamic Sub-view Container */}
-        <main className={`flex-1 transition-colors ${
-          activeTab === 'profile' || activeTab === 'settings' || Boolean(activeTab && activeTab.startsWith('admin'))
-            ? 'overflow-hidden flex flex-col'
-            : 'overflow-y-auto p-5 md:p-8'
-        }`}>
-          <div key={activeTab} className={`w-full ${
+        <div key={activeTab} className={`w-full ${
             activeTab === 'profile' || activeTab === 'settings' || Boolean(activeTab && activeTab.startsWith('admin'))
               ? 'h-full flex-1 flex flex-col overflow-hidden'
               : 'max-w-6xl mx-auto animate-in fade-in duration-150 ease-out'
@@ -514,7 +518,6 @@ export default function App() {
               />
             )}
           </div>
-        </main>
 
         {showUpgradeModal && (
           <UpgradeModal
@@ -537,14 +540,16 @@ export default function App() {
         )}
 
         {/* ── Max-Exclusive Autonomous Assistant on Steroids (Bottom-Right) ── */}
-        <NomadicAssistant
-          currentUser={currentUser}
-          onNavigateTab={handleNavigate}
-          onTriggerAutoApply={(_urls) => handleNavigate('feed')}
-          onOpenUpgrade={(feat) => handleOpenUpgrade(feat || 'Nomadic Autonomous Co-Pilot on Steroids')}
-          onLog={addLog}
-        />
-      </div>
-    </div>
+        {FEATURES.assistant && (
+          <NomadicAssistant
+            currentUser={currentUser}
+            onNavigateTab={handleNavigate}
+            onTriggerAutoApply={(_urls) => handleNavigate('feed')}
+            onOpenUpgrade={(feat) => handleOpenUpgrade(feat || 'Nomadic Autonomous Co-Pilot on Steroids')}
+            onLog={addLog}
+          />
+        )}
+      </>
+    </AppShell>
   );
 }
