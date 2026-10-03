@@ -121,9 +121,15 @@ export const jobUrlsArgs: ArgSchemas<'launch-autonomous'> = [urlList];
 const batchTarget = z
   .object({ url, company: opt(str()), title: opt(str()) })
   .passthrough();
-export const batchTargetsArgs: ArgSchemas<'start-batch-copilot'> = [z.array(batchTarget).max(LIST_MAX)];
+const BATCH_MAX = 50;
+export const batchTargetsArgs: ArgSchemas<'start-batch-copilot'> = [
+  z.array(batchTarget).max(BATCH_MAX),
+  opt(z.object({ keep: opt(z.boolean()) }).strict()),
+];
+const snapshotId = str(200);
 export const batchOverridesArgs: ArgSchemas<'submit-all-batch-copilot'> = [
-  opt(z.record(z.string(), z.record(z.string(), str(MEDIUM)))),
+  opt(z.record(snapshotId, z.record(str(200), str(MEDIUM)))),
+  opt(z.array(snapshotId).max(BATCH_MAX)),
 ];
 
 // ── outreach ───────────────────────────────────────────────────────────────

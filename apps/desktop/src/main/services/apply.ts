@@ -1,13 +1,19 @@
-import { AutoApplyEngine } from '@job-automator/automation';
+import { AutoApplyEngine, outcomeKey, type ReviewHandle } from '@job-automator/automation';
 import type {
   ApplicationInput,
   ApplicationRow,
+  AutoApplyProgressEvent,
+  AutoApplyStatusEvent,
   AutonomousApplyResult,
   BatchOverrides,
   BatchSnapshot,
+  BatchStartOptions,
+  BatchSubmitItemResult,
+  BatchSubmitResult,
   BatchTarget,
   IdStatusInput,
 } from '../../shared/ipc.js';
+import { toSnapshot } from './batch-review.js';
 import {
   getDb,
   persistDb,
@@ -119,6 +125,7 @@ let isAutoApplyCanceled = false;
 export function cancelAutonomousApply(): { success: boolean } {
   log('[Autonomous Auto-Apply] Cancellation requested by user.');
   isAutoApplyCanceled = true;
+  batchRunSeq++;
   return { success: true };
 }
 
@@ -288,123 +295,138 @@ export async function launchAutonomous(jobUrls: string[]): Promise<AutonomousApp
   }
 }
 
-// ── Batch Co-Pilot Parallel Pre-Fill ────────────────────────────────────────
-let activeBatchTargets: BatchTarget[] = [];
+// ── Batch pre-fill for review, then submit what the candidate reviewed ────────
+// Each form is filled in the external browser with autoSubmit off and held open.
+// Submission writes the reviewed values into that same tab and only then submits.
+interface HeldApplication {
+  target: BatchTarget;
+  handle: ReviewHandle | null;
+}
+const heldApplications = new Map<string, HeldApplication>();
+let batchRunSeq = 0;
+let snapshotSeq = 0;
 
-export function startBatchCopilot(
-  targets: BatchTarget[]
-): { success: boolean; snapshots?: BatchSnapshot[]; error?: string } {
-  log(`[Batch Co-Pilot] Pre-filling ${targets.length} applications in parallel...`);
-  activeBatchTargets = targets || [];
-  try {
-    getDb();
-    const pmap = getMasterProfileRow();
-    let fName = 'Candidate';
-    let lName = '';
-    let email = 'candidate@example.com';
-    let phone = '+1 (555) 000-0000';
-    let linkedin = '';
-    let github = '';
-    let role = 'Software Engineer';
-    let skills = 'TypeScript, React, Node.js';
+function sendBatchProgress(url: string, statusEvent: AutoApplyStatusEvent, snapshot?: BatchSnapshot): void {
+  const mainWindow = getMainWindow();
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  // The fill report travels in the snapshot; keep progress events small.
+  const { report: _report, ...event } = statusEvent as AutoApplyStatusEvent & { report?: unknown };
+  const payload: AutoApplyProgressEvent = { log: `[Apply] ${statusEvent.message}`, progress: statusEvent.progress, statusEvent: event, url, snapshot };
+  mainWindow.webContents.send('auto-apply-progress', payload);
+}
 
-    if (pmap) {
-      fName = String(pmap['first_name'] ?? 'Candidate');
-      lName = String(pmap['last_name'] ?? '');
-      email = String(pmap['email'] ?? 'candidate@example.com');
-      phone = String(pmap['phone'] ?? '+1 (555) 000-0000');
-      linkedin = String(pmap['linkedin'] ?? '');
-      github = String(pmap['github'] ?? '');
-      role = String(pmap['desired_title'] ?? 'Software Engineer');
-      skills = String(pmap['tech_stack'] ?? 'TypeScript, React, Node.js');
-    }
-
-    const snapshots: BatchSnapshot[] = targets.map((t, i) => ({
-      id: `batch_snap_${Date.now()}_${i + 1}`,
-      company: t.company || 'Tech Company',
-      jobTitle: t.title || role,
-      applyUrl: t.url,
-      resumeFileName: 'Resume.pdf',
-      fields: [
-        { fieldKey: 'fullName', label: 'Full Name', value: `${fName} ${lName}`.trim(), fieldType: 'text' as const },
-        { fieldKey: 'email', label: 'Email', value: email, fieldType: 'text' as const },
-        { fieldKey: 'phone', label: 'Phone Number', value: phone, fieldType: 'text' as const },
-        { fieldKey: 'linkedin', label: 'LinkedIn Profile', value: linkedin || 'https://linkedin.com/in/candidate', fieldType: 'text' as const },
-        { fieldKey: 'github', label: 'GitHub Profile', value: github || 'https://github.com/candidate', fieldType: 'text' as const },
-        { fieldKey: 'workAuth', label: 'Authorized to work?', value: 'Yes', fieldType: 'radio' as const },
-        { fieldKey: 'sponsorship', label: 'Require Visa Sponsorship?', value: 'No', fieldType: 'radio' as const },
-        { fieldKey: 'noticePeriod', label: 'Notice Period', value: 'Immediately (0 days)', fieldType: 'text' as const },
-        { fieldKey: 'desiredSalary', label: 'Desired Salary', value: 'Competitive', fieldType: 'text' as const },
-        { fieldKey: 'coverLetter', label: `Why are you a fit for ${t.company || 'this role'}?`, value: `With hands-on expertise in ${skills}, I design high-concurrency systems and responsive web architectures that deliver measurable business impact.`, fieldType: 'textarea' as const },
-      ],
-      status: 'ready' as const
-    }));
-
-    return { success: true, snapshots };
-  } catch (err: any) {
-    return { success: false, error: err?.message || String(err) };
+export async function startBatchCopilot(
+  targets: BatchTarget[],
+  options: BatchStartOptions = {}
+): Promise<{ success: boolean; snapshots?: BatchSnapshot[]; cancelled?: boolean; error?: string }> {
+  const seq = ++batchRunSeq;
+  isAutoApplyCanceled = false;
+  const unique = [...new Map((targets || []).map((t) => [t.url, t])).values()];
+  if (!options.keep) heldApplications.clear();
+  for (const [id, held] of heldApplications) {
+    if (unique.some((t) => t.url === held.target.url)) heldApplications.delete(id);
   }
+  log(`[Apply] Pre-filling ${unique.length} application(s) for review (nothing is submitted)...`);
+
+  const profile = buildAutomationProfile({ logCachedAnswers: true });
+  if (!profile) return { success: false, error: NO_PROFILE_ERR };
+
+  const snapshots: BatchSnapshot[] = [];
+  for (const target of unique) {
+    if (isAutoApplyCanceled || seq !== batchRunSeq) {
+      log('[Apply] Pre-fill cancelled; remaining applications were not opened.');
+      return { success: true, snapshots, cancelled: true };
+    }
+    const id = `app_${Date.now()}_${++snapshotSeq}`;
+    let handle: ReviewHandle | null = null;
+    let snapshot: BatchSnapshot;
+    try {
+      const result = await AutoApplyEngine.submitApplication(
+        target.url,
+        profile,
+        (ev) => {
+          if (typeof ev === 'string') log(ev);
+          // Events carrying the final report are end-of-fill summaries; the snapshot below replaces them.
+          else if (!ev.report) sendBatchProgress(target.url, ev);
+          else log(`[Apply] ${ev.message}`);
+        },
+        { autoSubmit: false, jobTitle: target.title, company: target.company, onReadyForReview: (h) => { handle = h; } }
+      );
+      snapshot = toSnapshot(id, target, result, Boolean(handle), outcomeKey);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      snapshot = toSnapshot(id, target, null, false, outcomeKey, msg);
+    }
+    heldApplications.set(id, { target, handle });
+    snapshots.push(snapshot);
+    log(`[Apply] ${snapshot.company}: ${snapshot.status} (${snapshot.fields.filter((f) => f.status === 'filled').length} fields filled)`);
+    sendBatchProgress(target.url, { phase: 'user_input_required', message: `Ready for your review: ${snapshot.company}`, colorState: snapshot.status === 'ready' ? 'green' : 'red' }, snapshot);
+  }
+  return { success: true, snapshots };
 }
 
 export async function submitAllBatchCopilot(
-  overrides?: BatchOverrides
-): Promise<{ success: boolean; applied?: number; failed?: number; total?: number; error?: string }> {
-  log(`[Batch Co-Pilot] Submitting all held applications with verified browser automation...`);
+  overrides?: BatchOverrides,
+  ids?: string[]
+): Promise<BatchSubmitResult> {
+  isAutoApplyCanceled = false;
+  const seq = ++batchRunSeq;
+  const chosen = ids ?? [...heldApplications.keys()];
+  log(`[Apply] Submitting ${chosen.length} reviewed application(s)...`);
   try {
     getDb();
     if (overrides) {
-      Object.entries(overrides).forEach(([_, fields]) => {
-        Object.entries(fields).forEach(([k, v]) => {
-          if (v && v.trim().length > 0) {
-            saveCachedFormAnswerDb(k, v);
-          }
-        });
-      });
+      // Remember what the candidate wrote, keyed by question fingerprint, for future forms.
+      for (const id of chosen) {
+        for (const [k, v] of Object.entries(overrides[id] || {})) {
+          if (v && v.trim().length > 0) saveCachedFormAnswerDb(k, v);
+        }
+      }
       persistDb();
     }
 
-    const profile = buildAutomationProfile({ logCachedAnswers: false });
-    if (!profile) {
-      return { success: false, error: NO_PROFILE_ERR };
-    }
-
-    let applied = 0;
-    let failed = 0;
-
-    for (const target of activeBatchTargets) {
+    const results: BatchSubmitItemResult[] = [];
+    for (const id of chosen) {
+      if (isAutoApplyCanceled || seq !== batchRunSeq) {
+        results.push({ id, submitted: false, confirmed: false, error: 'Cancelled before submitting.' });
+        continue;
+      }
+      const held = heldApplications.get(id);
+      if (!held?.handle) {
+        results.push({ id, submitted: false, confirmed: false, error: 'This form is no longer open. Retry it to fill it again.' });
+        continue;
+      }
+      const { target, handle } = held;
       try {
-        log(`[Batch Co-Pilot Submitter] Executing real Playwright submit for ${target.company || 'Job'} (${target.url})...`);
-        const res = await AutoApplyEngine.submitApplication(target.url, profile, (msg) => {
-          log(typeof msg === 'string' ? msg : `[Batch Status] ${msg.message}`);
+        const res = await AutoApplyEngine.submitReviewed(handle, overrides?.[id] ?? {}, (ev) => {
+          if (typeof ev === 'string') log(ev);
+          else sendBatchProgress(target.url, ev);
         });
-
-        if (res.submitted) {
-          applied++;
-          logAndSyncApplication({
-            company: target.company || 'Direct ATS Posting',
-            title: target.title || profile.desiredTitle || 'Software Engineer',
-            apply_url: target.url,
-            status: 'submitted',
-            mode: 'batch_copilot',
-          });
-        } else {
-          failed++;
-          logAndSyncApplication({
-            company: target.company || 'Direct ATS Posting',
-            title: target.title || profile.desiredTitle || 'Software Engineer',
-            apply_url: target.url,
-            status: res.captchaDetected ? 'captcha_blocked' : (res.requiresLogin ? 'requires_login' : 'failed'),
-            mode: 'batch_copilot',
-          });
-        }
-      } catch (err: any) {
-        failed++;
-        log(`[Batch Co-Pilot Submitter] Error applying to ${target.url}: ${err?.message || err}`);
+        const confirmed = res.submitted && !res.error;
+        results.push({ id, submitted: res.submitted, confirmed, error: res.error });
+        if (res.submitted) heldApplications.delete(id);
+        logAndSyncApplication({
+          company: target.company || 'Direct ATS Posting',
+          title: target.title || profileTitle(),
+          apply_url: target.url,
+          status: res.submitted ? 'submitted' : res.captchaDetected ? 'captcha_blocked' : res.requiresLogin ? 'requires_login' : 'failed',
+          mode: 'batch_copilot',
+        });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        log(`[Apply] Error submitting ${target.url}: ${msg}`);
+        results.push({ id, submitted: false, confirmed: false, error: msg });
       }
     }
 
-    return { success: true, applied, failed, total: activeBatchTargets.length };
-  } catch (err: any) {
-    return { success: false, error: err?.message || String(err) };
+    const applied = results.filter((r) => r.submitted).length;
+    return { success: true, applied, failed: results.length - applied, total: results.length, results };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
   }
+}
+
+function profileTitle(): string {
+  const row = getMasterProfileRow();
+  return String(row?.['desired_title'] ?? '') || 'Application';
 }
