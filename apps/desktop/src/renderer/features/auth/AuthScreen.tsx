@@ -19,7 +19,7 @@ const readTerms = () => {
   try { return prefs.getTermsAccepted(); } catch { return false; }
 };
 
-interface OAuthPayload { success?: boolean; user?: AppUser; error?: string }
+interface OAuthPayload { success?: boolean; user?: AppUser; conflict?: boolean; activeDevice?: string; error?: string }
 
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -41,6 +41,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog })
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [conflictDevice, setConflictDevice] = useState<string | null>(null);
+  // Which sign-in hit the single-laptop lock: "Continue here" retries the same method with takeover.
+  const [conflictVia, setConflictVia] = useState<'password' | 'google'>('password');
   const [googleWaiting, setGoogleWaiting] = useState(false);
   const [termsPrompt, setTermsPrompt] = useState(false);
   const formErrorRef = useRef<HTMLDivElement>(null);
@@ -52,6 +54,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog })
     const unsubscribe = api.onOauthCallback(((data: unknown) => {
       const payload = (data ?? {}) as OAuthPayload;
       setGoogleWaiting(false);
+      if (payload.conflict) {
+        setConflictVia('google');
+        setConflictDevice(payload.activeDevice || 'another computer');
+        return;
+      }
       if (payload.success && payload.user) {
         onLog?.(`[Auth] Signed in with Google as ${payload.user.email}`);
         onLoginSuccess(payload.user);
@@ -117,6 +124,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog })
       }
       const res = await api.authLogin({ email, password: values.password, forceTakeover });
       if (res?.conflict && !forceTakeover) {
+        setConflictVia('password');
         setConflictDevice(res.activeDevice || 'another computer');
         return;
       }
@@ -133,7 +141,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog })
     }
   };
 
-  const startGoogle = async () => {
+  const startGoogle = async (forceTakeover = false) => {
     if (!termsAccepted) {
       setTermsPrompt(true);
       setFormError(null);
@@ -141,9 +149,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog })
       return;
     }
     setFormError(null);
+    setConflictDevice(null);
     setGoogleWaiting(true);
     try {
-      const res = await getApi().authGoogle();
+      const res = await getApi().authGoogle(forceTakeover ? { forceTakeover: true } : undefined);
       if (!res?.success) {
         setGoogleWaiting(false);
         setFormError(res?.error || 'Could not open Google sign-in in your browser.');
@@ -193,7 +202,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog })
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="secondary" onClick={() => setConflictDevice(null)} disabled={submitting}>Cancel</Button>
-                <Button variant="primary" loading={submitting} loadingText="Signing in…" onClick={() => void submit(true)} autoFocus>
+                <Button variant="primary" loading={submitting} loadingText="Signing in…" onClick={() => void (conflictVia === 'google' ? startGoogle(true) : submit(true))} autoFocus>
                   Continue here
                 </Button>
               </div>

@@ -20,7 +20,9 @@ async function build() {
 
   // Secrets are injected from the build environment only (CI secrets / local
   // .env). Missing values compile to '' and the matching feature degrades:
-  //   GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET -> Google sign-in
+  //   GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET -> Google sign-in (installed-app flow with PKCE;
+  //     Google's "Desktop app" client type still requires the secret at the token endpoint and documents it as
+  //     not confidential; the ID token is verified server-side by the google-sign-in Edge Function)
   //   GEMINI_API_KEY (optional GEMINI_API_KEY_1 / _2 rotation) -> built-in AI fallback
   // Legacy names GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are still honoured.
   const env = (...names) => {

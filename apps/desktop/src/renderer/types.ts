@@ -291,7 +291,7 @@ export interface ElectronAPI {
     user?: AppUser;
     error?: string;
   }>;
-  authGoogle: () => Promise<{ success: boolean; error?: string }>;
+  authGoogle: (options?: { forceTakeover?: boolean }) => Promise<{ success: boolean; error?: string }>;
   onOauthCallback: (callback: (url: string) => void) => () => void;
   // Admin tools (F12): session-checked RPCs; the server re-checks the admin role on every call.
   adminListUsers: NomadicApi['adminListUsers'];

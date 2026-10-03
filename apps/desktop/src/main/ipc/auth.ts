@@ -1,6 +1,6 @@
 import { app } from 'electron';
 import { handle } from './handle.js';
-import { credentialsArgs, heartbeatArgs } from './schemas.js';
+import { credentialsArgs, googleSignInArgs, heartbeatArgs } from './schemas.js';
 import { getDeviceIdentifier } from '../device.js';
 import { loginWithCredentials, signupLocalAccount } from '../services/auth.js';
 import { startGoogleSignIn } from '../services/oauth.js';
@@ -9,7 +9,7 @@ import { syncPullUserDataToLocalDb } from '../services/cloud-sync.js';
 
 /** Sign-in flows, single-laptop heartbeat and cloud data pull. */
 export function registerAuthIpc(): void {
-  handle('auth-google', () => startGoogleSignIn());
+  handle('auth-google', googleSignInArgs, (options) => startGoogleSignIn(options ?? {}));
   handle('auth-login', credentialsArgs, (credentials) => loginWithCredentials(credentials));
   handle('auth-signup', credentialsArgs, (credentials) => signupLocalAccount(credentials));
 

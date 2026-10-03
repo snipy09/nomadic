@@ -621,7 +621,15 @@ export interface NeedsUserField {
 export interface OAuthCallbackPayload {
   success: boolean;
   user?: SessionUser;
+  /** Single-laptop lock: the account is active on another device (retry with forceTakeover). */
+  conflict?: boolean;
+  activeDevice?: string;
   error?: string;
+}
+
+export interface GoogleSignInOptions {
+  /** Sign the other device out (a fresh Google sign-in is needed; login tickets are single use). */
+  forceTakeover?: boolean;
 }
 
 // ── Invoke channels (renderer -> main, request/response) ───────────────────
@@ -698,7 +706,7 @@ export interface IpcChannels {
   'practice-record-attempt': Channel<[attempt: PracticeAttempt], PracticeRecordResult>;
 
   // auth & session
-  'auth-google': Channel<[], SuccessResult>;
+  'auth-google': Channel<[options?: GoogleSignInOptions], SuccessResult>;
   'auth-login': Channel<[credentials: AuthCredentials], AuthResult>;
   'auth-signup': Channel<[credentials: AuthCredentials], AuthResult>;
   'start-heartbeat': Channel<[opts: HeartbeatOptions], { success: boolean }>;
