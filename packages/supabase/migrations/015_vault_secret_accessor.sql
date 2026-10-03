@@ -2,6 +2,7 @@
 -- The secret itself is created out of band and never committed:
 --   select vault.create_secret('<key>', 'resend_api_key', 'Resend API key used by the send-email Edge Function');
 -- Only service_role (Edge Functions) may read it; anon/authenticated cannot.
+SET check_function_bodies = false; -- vault exists on Supabase; plain PostgreSQL rehearsals lack it.
 CREATE SCHEMA IF NOT EXISTS private;
 REVOKE ALL ON SCHEMA private FROM PUBLIC, anon, authenticated;
 GRANT USAGE ON SCHEMA private TO service_role;
