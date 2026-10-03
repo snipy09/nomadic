@@ -20,9 +20,10 @@ async function build() {
 
   // Secrets are injected from the build environment only (CI secrets / local
   // .env). Missing values compile to '' and the matching feature degrades:
-  //   GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET -> Google sign-in
+  //   GOOGLE_OAUTH_CLIENT_ID -> Google sign-in (public id; PKCE, the client secret
+  //     lives only in the google-signin Edge Function's Supabase secrets)
   //   GEMINI_API_KEY (optional GEMINI_API_KEY_1 / _2 rotation) -> built-in AI fallback
-  // Legacy names GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are still honoured.
+  // Legacy name GOOGLE_CLIENT_ID is still honoured.
   const env = (...names) => {
     for (const n of names) {
       if (process.env[n]) return process.env[n];
@@ -35,7 +36,6 @@ async function build() {
     'process.env.SUPABASE_URL': JSON.stringify(process.env.SUPABASE_URL || DEFAULT_SUPABASE_URL),
     'process.env.SUPABASE_ANON_KEY': JSON.stringify(process.env.SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY),
     'process.env.GOOGLE_CLIENT_ID': JSON.stringify(env('GOOGLE_OAUTH_CLIENT_ID', 'GOOGLE_CLIENT_ID')),
-    'process.env.GOOGLE_CLIENT_SECRET': JSON.stringify(env('GOOGLE_OAUTH_CLIENT_SECRET', 'GOOGLE_CLIENT_SECRET')),
     'process.env.GEMINI_API_KEY': JSON.stringify(env('GEMINI_API_KEY')),
     'process.env.GEMINI_API_KEY_1': JSON.stringify(env('GEMINI_API_KEY_1')),
     'process.env.GEMINI_API_KEY_2': JSON.stringify(env('GEMINI_API_KEY_2')),

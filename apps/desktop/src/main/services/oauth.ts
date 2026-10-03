@@ -1,424 +1,233 @@
 import { shell } from 'electron';
 import http from 'http';
 import crypto from 'crypto';
-import type { OAuthCallbackPayload, ValidatedUser } from '../../shared/ipc.js';
-import { getDb } from '../db.js';
+import { registerDeviceSession } from '@job-automator/supabase';
+import type { OAuthCallbackPayload } from '../../shared/ipc.js';
 import { focusMainWindow, log, sendToRenderer } from './app-context.js';
-import { session, startHeartbeatLoop } from './session.js';
+import { session, resolvePublicIp, startHeartbeatLoop } from './session.js';
 import { getAnonSupabase } from './supabase.js';
 import { syncPullUserDataToLocalDb } from './cloud-sync.js';
 import { isOnboardingCompleted, seedProfileIdentity } from './profile.js';
-import { cacheValidatedUser, hashLogin, identifyDevice, normalizeTier } from './auth.js';
+import { cacheValidatedUser, identifyDevice, readLoginTicket, userFromAuthRow } from './auth.js';
+import {
+  GOOGLE_LOOPBACK_PORT,
+  buildGoogleAuthUrl,
+  createPendingSignIn,
+  stateMatches,
+  type PendingGoogleSignIn,
+} from './google-pkce.js';
 
-// ── Google OAuth & Loopback Server (Port 42813) ──────────────────────────
-const OAUTH_PORT = 42813;
+// ── Google sign-in (SECURITY_CHECKLIST S9) ────────────────────────────────
+// Authorization-code flow with PKCE on a loopback redirect. The desktop never
+// holds a client secret and never trusts a Google profile itself: it sends the
+// code + verifier to the google-signin Edge Function, which exchanges it,
+// verifies the ID token and returns the same row as authenticate_user with a
+// one-time login ticket. The device is then registered exactly like password
+// sign-in.
+
+// Injected at build time from GOOGLE_OAUTH_CLIENT_ID (see build-main.mjs). The client id is public.
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+const SIGN_IN_TIMEOUT_MS = 180_000;
+
 let oauthServer: http.Server | null = null;
 let oauthTimeoutTimer: NodeJS.Timeout | null = null;
+let pending: PendingGoogleSignIn | null = null;
 
 export function closeOAuthServer(): void {
+  if (oauthTimeoutTimer) {
+    clearTimeout(oauthTimeoutTimer);
+    oauthTimeoutTimer = null;
+  }
   if (oauthServer) {
     try { oauthServer.close(); } catch {}
     oauthServer = null;
   }
 }
 
-async function handleOAuthToken(accessToken: string, _refreshToken?: string): Promise<OAuthCallbackPayload> {
-  try {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const anonKey = process.env.SUPABASE_ANON_KEY;
-    if (!supabaseUrl || !anonKey) {
-      return { success: false, error: 'Supabase credentials missing.' };
-    }
-
-    log('[OAuth] Fetching authenticated user profile from Supabase...');
-    const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'apikey': anonKey,
-      },
-    });
-
-    if (!userRes.ok) {
-      const errBody = await userRes.text();
-      log(`[OAuth] User verification failed: ${errBody}`);
-      return { success: false, error: 'Failed to validate Google session with Supabase.' };
-    }
-
-    const userData: any = await userRes.json();
-    const email = String(userData.email || '').toLowerCase().trim();
-    const fullName = String(userData.user_metadata?.full_name || userData.user_metadata?.name || email.split('@')[0] || 'User');
-    const userId = String(userData.id || crypto.randomUUID());
-
-    const { deviceFingerprint, deviceName } = identifyDevice();
-
-    const sessionToken = crypto.randomUUID();
-    session.userId = userId;
-    session.sessionToken = sessionToken;
-
-    // Role and tier are never derived from the email address; elevated roles come only from the server (authenticate_user).
-    const appUser: ValidatedUser = {
-      id: userId,
-      email,
-      fullName,
-      role: 'user',
-      tier: 'free',
-      licenseKey: `NOMADIC-GOOGLE-${userId.slice(0, 8).toUpperCase()}`,
-      status: 'active',
-      appsCount: 0,
-      createdAt: userData.created_at || new Date().toISOString(),
-      lastLogin: new Date().toISOString(),
-    };
-
-    cacheValidatedUser(appUser, hashLogin(email, 'oauth_session_token'));
-    startHeartbeatLoop(userId, sessionToken, deviceFingerprint);
-    await syncPullUserDataToLocalDb(userId, sessionToken, deviceFingerprint).catch(() => {});
-
-    const hasCompleted = isOnboardingCompleted();
-
-    log(`[OAuth] Google authentication successful: ${email} (${fullName}) [existing=${hasCompleted}] ✓`);
-    return {
-      success: true,
-      user: {
-        ...appUser,
-        onboardingCompleted: hasCompleted,
-        sessionToken,
-        deviceFingerprint,
-        deviceName,
-      },
-    };
-  } catch (err: any) {
-    const msg = err instanceof Error ? err.message : String(err);
-    log(`[OAuth] Error processing token: ${msg}`);
-    return { success: false, error: msg };
+/**
+ * Sends the PKCE-bound code to the google-signin Edge Function and, on success,
+ * registers this device with the returned login ticket.
+ */
+export async function completeGoogleSignIn(code: string, flow: PendingGoogleSignIn): Promise<OAuthCallbackPayload> {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY;
+  const supabase = getAnonSupabase();
+  if (!supabaseUrl || !anonKey || !supabase) {
+    return { success: false, error: 'Google sign-in needs the licensing server, which is not configured.' };
   }
-}
 
-// Injected at build time from GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET (see build-main.mjs).
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
-
-async function handleGoogleAuthCode(code: string): Promise<OAuthCallbackPayload> {
+  let row: Record<string, any> | undefined;
   try {
-    log('[Google OAuth] Exchanging authorization code for token with Google...');
-    const tokenParams = new URLSearchParams({
-      code,
-      client_id: GOOGLE_CLIENT_ID,
-      client_secret: GOOGLE_CLIENT_SECRET,
-      redirect_uri: `http://localhost:${OAUTH_PORT}/callback`,
-      grant_type: 'authorization_code',
-    });
-
-    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    const res = await fetch(`${supabaseUrl}/functions/v1/google-signin`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: tokenParams.toString(),
+      headers: { 'Content-Type': 'application/json', apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+      body: JSON.stringify({
+        code,
+        code_verifier: flow.codeVerifier,
+        redirect_uri: flow.redirectUri,
+        nonce: flow.nonce,
+      }),
     });
-
-    if (!tokenRes.ok) {
-      const errText = await tokenRes.text();
-      log(`[Google OAuth] Token exchange failure: ${errText}`);
-      return { success: false, error: 'Google authentication code exchange failed.' };
+    row = (await res.json().catch(() => undefined)) as Record<string, any> | undefined;
+    if (!res.ok && !row?.reason) {
+      log(`[Google OAuth] Server sign-in failed with HTTP ${res.status}`);
+      return { success: false, error: 'Google sign-in failed on the server. Try again.' };
     }
-
-    const tokenData: any = await tokenRes.json();
-    const googleAccessToken = tokenData.access_token;
-
-    log('[Google OAuth] Fetching verified profile from Google UserInfo API...');
-    const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: `Bearer ${googleAccessToken}` },
-    });
-
-    if (!userRes.ok) {
-      return { success: false, error: 'Failed to retrieve Google user profile.' };
-    }
-
-    const profile: any = await userRes.json();
-    const email = String(profile.email || '').toLowerCase().trim();
-    const fullName = String(profile.name || profile.given_name || email.split('@')[0]);
-    const userId = String(profile.sub || crypto.randomUUID());
-
-    const { deviceFingerprint, deviceName } = identifyDevice();
-
-    const sessionToken = crypto.randomUUID();
-    session.userId = userId;
-    session.sessionToken = sessionToken;
-
-    // Role and tier are never derived from the email address; elevated roles come only from the server (authenticate_user).
-    let assignedTier = 'free';
-    let assignedRole = 'user';
-    let assignedStatus = 'active';
-
-    const supabase = getAnonSupabase();
-    if (supabase) {
-      try {
-        const { data: existingUser } = await supabase
-          .from('users_profile')
-          .select('*')
-          .eq('email', email)
-          .maybeSingle();
-
-        if (existingUser) {
-          assignedTier = existingUser.subscription_tier || 'free';
-          assignedRole = existingUser.role || 'user';
-          assignedStatus = existingUser.status || 'active';
-          await supabase
-            .from('users_profile')
-            .update({
-              full_name: fullName,
-              last_login: new Date().toISOString(),
-            })
-            .eq('email', email);
-        } else {
-          await supabase.from('users_profile').insert({
-            email,
-            full_name: fullName,
-            subscription_tier: assignedTier,
-            role: assignedRole,
-            status: assignedStatus,
-            license_key: `NOMADIC-GGL-${userId.slice(0, 8).toUpperCase()}`,
-            apps_count: 0,
-            created_at: new Date().toISOString(),
-            last_login: new Date().toISOString(),
-          });
-        }
-      } catch (err: any) {
-        log(`[Google OAuth] Supabase profile sync note: ${err?.message}`);
-      }
-    }
-
-    const appUser: ValidatedUser = {
-      id: userId,
-      email,
-      fullName,
-      role: assignedRole as 'user' | 'admin',
-      tier: normalizeTier(assignedTier),
-      licenseKey: `NOMADIC-GGL-${userId.slice(0, 8).toUpperCase()}`,
-      status: (assignedStatus === 'suspended' ? 'suspended' : 'active') as 'active' | 'suspended',
-      appsCount: 0,
-      createdAt: new Date().toISOString(),
-      lastLogin: new Date().toISOString(),
-    };
-
-    cacheValidatedUser(appUser, hashLogin(email, 'google_oauth_token'));
-    startHeartbeatLoop(userId, sessionToken, deviceFingerprint);
-    await syncPullUserDataToLocalDb(userId, sessionToken, deviceFingerprint).catch(() => {});
-
-    // Sync Google profile into master_profile for onboarding
-    let hasCompleted = false;
-    try {
-      getDb();
-      hasCompleted = isOnboardingCompleted();
-      const givenName = profile.given_name || fullName.split(' ')[0] || '';
-      const familyName = profile.family_name || (fullName.split(' ').slice(1).join(' ')) || '';
-
-      if (!hasCompleted) {
-        seedProfileIdentity(givenName, familyName, email);
-      }
-    } catch (e: any) {
-      log(`[Google OAuth] Master profile sync note: ${e?.message}`);
-    }
-
-    log(`[Google OAuth] Verified Google identity: ${email} (${fullName}) [existing=${hasCompleted}] ✓`);
-    return {
-      success: true,
-      user: {
-        ...appUser,
-        onboardingCompleted: hasCompleted,
-        sessionToken,
-        deviceFingerprint,
-        deviceName,
-      },
-    };
-  } catch (err: any) {
-    const msg = err instanceof Error ? err.message : String(err);
-    log(`[Google OAuth] Exception: ${msg}`);
-    return { success: false, error: msg };
+  } catch (err: unknown) {
+    log(`[Google OAuth] Server unreachable: ${err instanceof Error ? err.message : String(err)}`);
+    return { success: false, error: 'Could not reach the server to finish Google sign-in. Check your connection.' };
   }
+
+  if (!row || !row.ok) {
+    return { success: false, error: String(row?.reason || 'Google sign-in failed. Try again.') };
+  }
+
+  const user = userFromAuthRow(row);
+  const { deviceFingerprint, deviceName } = identifyDevice();
+  const clientIp = await resolvePublicIp().catch(() => '127.0.0.1');
+  const sessionToken = crypto.randomUUID();
+
+  const devReg = await registerDeviceSession(
+    supabase, user.id, sessionToken, deviceFingerprint, deviceName, clientIp, false, readLoginTicket(row)
+  );
+  if (devReg.conflict) {
+    // The ticket is single use, so a takeover needs a fresh sign-in; password sign-in offers that prompt.
+    return {
+      success: false,
+      error: `${devReg.reason || 'Account is currently active on another device.'} Sign out there, or sign in with your password to move the session here.`,
+    };
+  }
+  if (!devReg.ok) {
+    log(`[Google OAuth] Device registration failed: ${devReg.reason ?? 'unknown'}`);
+    return { success: false, error: 'Could not start a session for this device. Try signing in again.' };
+  }
+
+  session.userId = user.id;
+  session.sessionToken = sessionToken;
+  // No password exists for this sign-in: cache an unguessable value so the offline
+  // password fallback can never match it.
+  cacheValidatedUser(user, crypto.randomBytes(32).toString('hex'));
+  startHeartbeatLoop(user.id, sessionToken, deviceFingerprint);
+  await syncPullUserDataToLocalDb(user.id, sessionToken, deviceFingerprint).catch(() => {});
+
+  const onboardingCompleted = isOnboardingCompleted();
+  if (!onboardingCompleted) {
+    try {
+      const parts = user.fullName.trim().split(/\s+/);
+      seedProfileIdentity(parts[0] || '', parts.slice(1).join(' '), user.email);
+    } catch {}
+  }
+
+  log(`[Google OAuth] Signed in via server: ${user.email} (${user.tier.toUpperCase()}) on [${deviceName}] ✓`);
+  return {
+    success: true,
+    user: { ...user, onboardingCompleted, sessionToken, deviceFingerprint, deviceName },
+  };
 }
 
+/** Validates a callback against the in-flight sign-in and completes it. Single use. */
+export async function handleGoogleCallback(params: URLSearchParams): Promise<OAuthCallbackPayload> {
+  const flow = pending;
+  const error = params.get('error');
+  if (!flow) return { success: false, error: 'No Google sign-in is in progress. Start again from Nomadic.' };
+  if (!stateMatches(flow.state, params.get('state'))) {
+    return { success: false, error: 'Sign-in response did not match this request. Start again from Nomadic.' };
+  }
+  pending = null;
+  if (error) return { success: false, error: error === 'access_denied' ? 'Google sign-in was cancelled.' : `Google sign-in failed (${error}).` };
+  const code = params.get('code');
+  if (!code) return { success: false, error: 'Google did not return an authorization code.' };
+  return completeGoogleSignIn(code, flow);
+}
+
+/** `nomadic://` deep links. Accepted only for the in-flight sign-in (state must match). */
 export async function handleProtocolUrl(rawUrl: string): Promise<void> {
   try {
-    log(`[Deep Link] Processing OAuth callback: ${rawUrl.slice(0, 80)}...`);
-    const hashIdx = rawUrl.indexOf('#');
     const queryIdx = rawUrl.indexOf('?');
-    const queryString = hashIdx !== -1 ? rawUrl.substring(hashIdx + 1) : (queryIdx !== -1 ? rawUrl.substring(queryIdx + 1) : '');
-    const params = new URLSearchParams(queryString);
-    const accessToken = params.get('access_token');
-    const refreshToken = params.get('refresh_token');
-    const code = params.get('code');
-    const error = params.get('error') || params.get('error_description');
-
-    if (error) {
-      sendToRenderer('oauth-callback', { success: false, error });
-      return;
-    }
-
-    if (code) {
-      const loginResult = await handleGoogleAuthCode(code);
-      sendToRenderer('oauth-callback', loginResult);
-      focusMainWindow();
-      return;
-    }
-
-    if (accessToken) {
-      const loginResult = await handleOAuthToken(accessToken, refreshToken || undefined);
-      sendToRenderer('oauth-callback', loginResult);
-      focusMainWindow();
-    }
+    if (queryIdx === -1) return;
+    const params = new URLSearchParams(rawUrl.substring(queryIdx + 1));
+    if (!params.get('code') && !params.get('error')) return;
+    const result = await handleGoogleCallback(params);
+    sendToRenderer('oauth-callback', result);
+    focusMainWindow();
   } catch (err: any) {
     log(`[Deep Link] Protocol error: ${err?.message || String(err)}`);
   }
 }
 
-const OAUTH_CALLBACK_HTML = `<!DOCTYPE html>
+const CALLBACK_HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Nomadic — Authentication</title>
+  <title>Nomadic sign-in</title>
   <style>
-    body { background: #09090b; color: #fafafa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-    .card { background: #121215; border: 1px solid #27272a; border-radius: 20px; padding: 36px 32px; text-align: center; max-width: 420px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
-    h2 { margin: 16px 0 8px; font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
-    p { margin: 0; color: #a1a1aa; font-size: 13px; line-height: 1.5; }
-    .spinner { width: 28px; height: 28px; border: 3px solid #27272a; border-top-color: #10b981; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    body { background: #09090b; color: #fafafa; font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+    .card { border: 1px solid #27272a; border-radius: 16px; padding: 32px; text-align: center; max-width: 420px; }
+    p { color: #a1a1aa; font-size: 14px; }
   </style>
 </head>
 <body>
   <div class="card">
-    <div class="spinner" id="spinner"></div>
-    <h2 id="title">Authenticating...</h2>
-    <p id="desc">Connecting your account to Nomadic Desktop.</p>
+    <h2>Return to Nomadic</h2>
+    <p>Nomadic is finishing your sign-in. You can close this tab.</p>
   </div>
-  <script>
-    const hash = window.location.hash.substring(1);
-    const params = new URLSearchParams(hash || window.location.search);
-    const accessToken = params.get('access_token');
-    const refreshToken = params.get('refresh_token');
-    const code = params.get('code');
-    const err = params.get('error') || params.get('error_description');
-
-    if (err) {
-      document.getElementById('spinner').style.display = 'none';
-      document.getElementById('title').textContent = 'Authentication Failed';
-      document.getElementById('desc').textContent = err;
-      fetch('/token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ error: err }) });
-    } else if (accessToken || code) {
-      fetch('/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken, refreshToken, code })
-      }).then(() => {
-        document.getElementById('spinner').style.display = 'none';
-        document.getElementById('title').textContent = '✓ Sign In Successful!';
-        document.getElementById('desc').textContent = 'You can now close this tab and return to Nomadic.';
-        setTimeout(() => window.close(), 1200);
-      }).catch(() => {
-        document.getElementById('desc').textContent = 'Connected. Return to Nomadic Desktop.';
-      });
-    } else {
-      document.getElementById('desc').textContent = 'Please return to Nomadic Desktop.';
-    }
-  </script>
 </body>
 </html>`;
 
-function startOAuthLoopbackServer(): Promise<number> {
+function startLoopbackServer(): Promise<boolean> {
   return new Promise((resolve) => {
     closeOAuthServer();
-    if (oauthTimeoutTimer) {
-      clearTimeout(oauthTimeoutTimer);
-      oauthTimeoutTimer = null;
-    }
-
-    const port = OAUTH_PORT;
-    oauthServer = http.createServer(async (req, res) => {
-      const parsedUrl = new URL(req.url || '/', `http://localhost:${port}`);
-
-      if (req.method === 'GET' && (parsedUrl.pathname === '/callback' || parsedUrl.pathname === '/')) {
-        const error = parsedUrl.searchParams.get('error') || parsedUrl.searchParams.get('error_description');
-        if (error) {
-          sendToRenderer('oauth-callback', { success: false, error });
-        }
-
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(OAUTH_CALLBACK_HTML);
+    const server = http.createServer((req, res) => {
+      const url = new URL(req.url || '/', `http://127.0.0.1:${GOOGLE_LOOPBACK_PORT}`);
+      if (req.method !== 'GET' || url.pathname !== '/callback') {
+        res.writeHead(404);
+        res.end('Not Found');
         return;
       }
-
-      if (req.method === 'POST' && parsedUrl.pathname === '/token') {
-        let body = '';
-        req.on('data', chunk => { body += chunk; });
-        req.on('end', async () => {
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ received: true }));
-
-          try {
-            const data = JSON.parse(body);
-            if (data.error) {
-              sendToRenderer('oauth-callback', { success: false, error: data.error });
-            } else if (data.accessToken) {
-              const loginResult = await handleOAuthToken(data.accessToken, data.refreshToken);
-              sendToRenderer('oauth-callback', loginResult);
-              focusMainWindow();
-            } else if (data.code) {
-              const loginResult = await handleGoogleAuthCode(data.code);
-              sendToRenderer('oauth-callback', loginResult);
-              focusMainWindow();
-            }
-          } catch (e: any) {
-            log(`[OAuth Server] Payload error: ${e?.message}`);
-          }
-
-          setTimeout(() => {
-            if (oauthServer) {
-              oauthServer.close();
-              oauthServer = null;
-            }
-          }, 3000);
-        });
-        return;
-      }
-
-      res.writeHead(404);
-      res.end('Not Found');
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.end(CALLBACK_HTML);
+      // Ignore stray requests that are not for the in-flight sign-in (state checked inside).
+      void handleGoogleCallback(url.searchParams).then((result) => {
+        sendToRenderer('oauth-callback', result);
+        focusMainWindow();
+        if (!pending) closeOAuthServer();
+      });
     });
-
-    oauthServer.on('error', (err: any) => {
-      log(`[OAuth Server] Loopback port note: ${err.message}`);
-      resolve(0);
+    server.on('error', (err: any) => {
+      log(`[OAuth Server] Loopback listener failed: ${err.message}`);
+      resolve(false);
     });
-
-    oauthServer.listen(port, '127.0.0.1', () => {
-      log(`[OAuth Server] Loopback listener active on http://127.0.0.1:${port}/callback ✓`);
-      resolve(port);
+    server.listen(GOOGLE_LOOPBACK_PORT, '127.0.0.1', () => {
+      oauthServer = server;
+      resolve(true);
     });
-
     oauthTimeoutTimer = setTimeout(() => {
-      if (oauthServer) {
-        oauthServer.close();
-        oauthServer = null;
-        log('[OAuth Server] Loopback listener closed after idle timeout.');
-      }
-    }, 180_000);
+      pending = null;
+      closeOAuthServer();
+      log('[OAuth Server] Google sign-in timed out; loopback listener closed.');
+    }, SIGN_IN_TIMEOUT_MS);
   });
 }
 
 /** Business logic behind the `auth-google` channel. */
 export async function startGoogleSignIn(): Promise<{ success: boolean; error?: string }> {
-  const googleClientId = GOOGLE_CLIENT_ID;
-  if (!googleClientId) {
+  if (!GOOGLE_CLIENT_ID) {
     log('[Google OAuth] GOOGLE_OAUTH_CLIENT_ID was not provided at build time — Google sign-in disabled.');
     return { success: false, error: 'Google sign-in is not configured for this build.' };
   }
 
-  await startOAuthLoopbackServer();
+  const listening = await startLoopbackServer();
+  if (!listening) {
+    return { success: false, error: `Could not open the sign-in listener on port ${GOOGLE_LOOPBACK_PORT}. Close other Nomadic windows and try again.` };
+  }
 
-  const redirectUri = encodeURIComponent(`http://localhost:${OAUTH_PORT}/callback`);
-  const scope = encodeURIComponent('openid email profile');
-  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent`;
-
-  log(`[Google OAuth] Launching Google authentication in default browser: ${authUrl}`);
-  shell.openExternal(authUrl);
+  pending = createPendingSignIn();
+  log('[Google OAuth] Opening Google sign-in in the default browser.');
+  await shell.openExternal(buildGoogleAuthUrl(GOOGLE_CLIENT_ID, pending));
   return { success: true };
+}
+
+/** Test hook: seeds the in-flight sign-in. */
+export function __setPendingGoogleSignInForTest(flow: PendingGoogleSignIn | null): void {
+  pending = flow;
 }

@@ -45,8 +45,9 @@ inside a built installer.
      CI, store it as a base64 GitHub Actions secret.
 2. **Google OAuth client secret**: Google Cloud Console -> APIs & Services ->
    Credentials -> the OAuth 2.0 client `762160653751-...` -> **Reset secret**.
-   Then set the new value only through the `GOOGLE_CLIENT_SECRET` env var or a
-   CI secret, and delete the hard-coded fallback in `apps/desktop/build-main.mjs`.
+   Set the new value only as a Supabase secret for the `google-signin` Edge Function
+   (`supabase secrets set GOOGLE_OAUTH_CLIENT_SECRET=...`). Since S9 the desktop uses
+   PKCE and no longer reads or bundles the client secret.
 3. **Gemini API keys (x2)**: Google AI Studio / Cloud Console -> API keys ->
    delete both keys and create new ones with API and quota restrictions. They
    are compiled into every shipped desktop build, so for production move the

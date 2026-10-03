@@ -141,6 +141,25 @@ export function readLoginTicket(row: unknown): string | undefined {
   return typeof t === 'string' && t.length > 0 ? t : undefined;
 }
 
+/** Maps an `authenticate_user` / `google_signin` row (same shape) to the app's user. */
+export function userFromAuthRow(row: Record<string, any>): ValidatedUser {
+  const tier: ValidatedUser['tier'] =
+    ['trial', 'pro', 'max', 'lifetime'].includes(row.tier) ? row.tier : 'pro';
+  return {
+    id: String(row.id),
+    email: String(row.email),
+    fullName: String(row.full_name ?? ''),
+    role: row.role === 'admin' ? 'admin' : 'user',
+    tier,
+    licenseKey: String(row.license_key ?? ''),
+    status: row.status === 'suspended' ? 'suspended' : 'active',
+    appsCount: Number(row.apps_count ?? 0),
+    createdAt: '',
+    expiresAt: row.expires_at ? String(row.expires_at) : undefined,
+    lastLogin: new Date().toISOString(),
+  };
+}
+
 /**
  * Signs in once to obtain a login ticket for a freshly created account.
  * register_user (009) does not issue a ticket, and register_device_session needs one
@@ -201,21 +220,7 @@ export async function loginWithCredentials(credentials: AuthCredentials): Promis
         if (!row) return { success: false, error: 'Login failed. Please try again.' };
         if (!row.ok) return { success: false, error: row.reason || 'Login failed.' };
 
-        const tier: ValidatedUser['tier'] =
-          ['trial', 'pro', 'max', 'lifetime'].includes(row.tier) ? row.tier : 'pro';
-        const user: ValidatedUser = {
-          id: String(row.id),
-          email: String(row.email),
-          fullName: String(row.full_name ?? ''),
-          role: row.role === 'admin' ? 'admin' : 'user',
-          tier,
-          licenseKey: String(row.license_key ?? ''),
-          status: row.status === 'suspended' ? 'suspended' : 'active',
-          appsCount: Number(row.apps_count ?? 0),
-          createdAt: '',
-          expiresAt: row.expires_at ? String(row.expires_at) : undefined,
-          lastLogin: new Date().toISOString(),
-        };
+        const user = userFromAuthRow(row);
 
         // Enforce Single-Laptop Lock
         const clientIp = await resolvePublicIp().catch(() => '127.0.0.1');

@@ -12,7 +12,7 @@ Legend: ✅ fixed and verified · ⚠️ mitigated, follow-up needed · ☐ open
 |---|---|---|---|
 | S1a | `set_user_password` was only revoked `FROM PUBLIC`; anon still had EXECUTE through Supabase default privileges, so **anyone could reset any user's password**. | ✅ | `008` revokes EXECUTE from anon/authenticated on every public function, stops future auto-grants (`ALTER DEFAULT PRIVILEGES`), re-grants an explicit allow-list. |
 | S1b | `handle_razorpay_payment_success` same problem: **anyone could upgrade their own plan** without paying. | ✅ | Same allow-list; service role only. |
-| S3 | `register_device_session` accepted any `p_user_id` with no proof of login: anyone with a user's UUID could mint a session, kick the real device (`p_force_takeover`) and **read that user's synced profile, resumes and applications** via `sync_pull_user_data`. | ⚠️ | `008`: requires a one-time `login_ticket` (issued by `authenticate_user`, 10 min, single use) **or**, for older desktop builds, a successful login for that user in the last 10 minutes. A session token can't be moved between users. **Desktop (F2):** password sign-in passes the ticket from `authenticate_user` as `p_login_ticket`; a force-takeover retry signs in again for a fresh ticket; sign-up calls `authenticate_user` once after `register_user` (which issues no ticket) and sends that ticket. The parameter is omitted only when the server returns no ticket (database without `008`). Tests: `apps/desktop/src/main/__tests__/auth-login-ticket.test.ts`, `packages/supabase/src/__tests__/index.test.ts`. **Remaining:** owner turns on `require_login_ticket` after this build ships (see Owner actions). Google sign-in never calls `register_device_session` (S9). |
+| S3 | `register_device_session` accepted any `p_user_id` with no proof of login: anyone with a user's UUID could mint a session, kick the real device (`p_force_takeover`) and **read that user's synced profile, resumes and applications** via `sync_pull_user_data`. | ⚠️ | `008`: requires a one-time `login_ticket` (issued by `authenticate_user`, 10 min, single use) **or**, for older desktop builds, a successful login for that user in the last 10 minutes. A session token can't be moved between users. **Desktop (F2):** password sign-in passes the ticket from `authenticate_user` as `p_login_ticket`; a force-takeover retry signs in again for a fresh ticket; sign-up calls `authenticate_user` once after `register_user` (which issues no ticket) and sends that ticket. The parameter is omitted only when the server returns no ticket (database without `008`). Tests: `apps/desktop/src/main/__tests__/auth-login-ticket.test.ts`, `packages/supabase/src/__tests__/index.test.ts`. **Remaining:** owner turns on `require_login_ticket` after this build ships (see Owner actions). Google sign-in now registers the device with a ticket from `google_signin` (S9, `015`). |
 | S5 | Razorpay fulfilment trusted `notes.plan` from checkout: ₹1 with `plan: lifetime` gave a non-expiring plan, `turbo` gave Max; replayed webhooks re-extended plans. | ✅ | `008` derives the plan from the captured amount (₹249 Pro, ₹599 Max, below ₹249 rejected) and fulfils each `payment_id` once; webhook ignores `notes.plan` and compares signatures in constant time. |
 
 ## High
@@ -32,7 +32,7 @@ Legend: ✅ fixed and verified · ⚠️ mitigated, follow-up needed · ☐ open
 | S4 | `hr_contacts` (recruiter names and emails) readable by anyone with the anon key. | ✅ | `008` drops the policy. Outreach is hidden behind a feature flag; re-enabling it needs a session-checked RPC (`apps/desktop/src/main/services/outreach.ts` reads the table with the anon key today). |
 | S7 | `match_jobs_for_user(p_user_id)` (SECURITY DEFINER, no `search_path`) callable by anon for any user. | ✅ | Removed from anon by the `008` allow-list (no client calls it). |
 | S8 | `jobs` readable by anon. | ✅ by design | Only `is_active = TRUE` rows; writes service-role only (`002`). Expired jobs are hidden via the `006` status trigger. |
-| S9 | Google sign-in (`apps/desktop/src/main/services/oauth.ts`) has no server-side session: it never calls `authenticate_user` or `register_device_session`, uses Google's `sub` as the user id (not a `users_profile` UUID), and its direct `users_profile` read/insert with the anon key is denied by RLS since `008`. Result: Google users get a local, free-tier, user-role account whose heartbeat and cloud sync cannot succeed. Nothing is escalated (role/tier are never taken from the client), but the flow cannot obtain a login ticket. | ☐ | Needs a server path: an RPC or Edge Function that verifies the Google ID token (or a Supabase Auth JWT) server-side, finds or creates the `users_profile` row by the verified email, and returns the same row shape as `authenticate_user` including `login_ticket`. The desktop then registers the device exactly like password sign-in. Also move the Google code exchange to PKCE so no client secret ships in the build. |
+| S9 | Google sign-in (`apps/desktop/src/main/services/oauth.ts`) had no server-side session: it never called `authenticate_user` or `register_device_session`, used Google's `sub` as the user id, read/inserted `users_profile` with the anon key (denied by RLS since `008`), and shipped the Google client secret in the build. | ✅ (deploy pending) | `015` + Edge Function `google-signin`. Desktop runs the code flow with **PKCE (S256)**, `state` and `nonce` on a `127.0.0.1` loopback redirect and holds no client secret. It posts `{code, code_verifier, redirect_uri, nonce}` to `google-signin`, which exchanges the code (Google requires the secret for Desktop clients even with PKCE, so it lives only in Supabase secrets), verifies the ID token against Google's JWKS (issuer, audience, expiry) plus nonce and `email_verified`, then calls `google_signin()` (service role only). That finds the user by `google_sub`, else links by verified email (refuses an email already linked to another Google account), else creates a 14-day trial account like `register_user`; it refuses suspended/expired accounts and returns `authenticate_user`'s row with a one-time `login_ticket`. The desktop registers the device with that ticket (same path as password sign-in). Tests: `packages/supabase/src/__tests__/google-signin-claims.test.ts`, `apps/desktop/src/main/__tests__/google-signin.test.ts`; `015` rehearsed on PostgreSQL 16 (anon/authenticated denied, ticket registers a device once and only for its user, linking, refusals). **Remaining:** owner deploys the function and sets secrets (Owner actions). |
 
 ## Verified as correct (no change)
 
@@ -51,6 +51,9 @@ Legend: ✅ fixed and verified · ⚠️ mitigated, follow-up needed · ☐ open
 `learning_record_events`, `learning_pull_events`. Any new client RPC must be added to this list in a
 migration; everything else is denied by default.
 
+Service-role only (called from Edge Functions after their own verification, never with the anon key):
+`handle_razorpay_payment_success` (008, webhook HMAC), `google_signin` (015, verified Google ID token).
+
 ## Owner actions
 
 - ☐ Apply `006`, `007`, `008` to the production project, in order. `008` changes `authenticate_user`'s
@@ -58,10 +61,11 @@ migration; everything else is denied by default.
 - ✅ Desktop main process sends `p_login_ticket` to `register_device_session` (password sign-in and sign-up).
 - ☐ Ship that build, wait until no older desktop builds are in use, then run
   `update app_security set require_login_ticket = true;` (closes the 10-minute compatibility window in S3).
-  Do this only after `006`-`009` are applied. With it on, Google sign-in is unaffected (it never registers a
-  device, see S9); password sign-in and sign-up keep working because both now send a ticket.
-- ☐ S9: build the server-side Google sign-in path (verifies the token, issues a login ticket) before Google sign-in is
-  promoted as a primary option.
+  Do this only after `006`-`009` are applied. Password sign-in, sign-up and Google sign-in (after `015`) all send a ticket.
+- ☐ S9: apply `015`, then deploy `google-signin` (`supabase functions deploy google-signin --no-verify-jwt`; the
+  function authenticates the caller by the Google code itself) and set `GOOGLE_OAUTH_CLIENT_ID` and
+  `GOOGLE_OAUTH_CLIENT_SECRET` with `supabase secrets set`. Build the desktop with `GOOGLE_OAUTH_CLIENT_ID` only.
+  The OAuth client must be a Google "Desktop app" client (any `127.0.0.1` loopback port is accepted without registration).
 - ☐ Rotate the service-role key if it was ever on a customer machine, and the code-signing cert per
   `docs/SECURITY_CLEANUP.md`.
 - ☐ Electron hardening and secrets-in-keychain were done in the main-process work stream (Step 3.2);

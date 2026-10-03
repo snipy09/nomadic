@@ -4,6 +4,8 @@ Rehearsed on PostgreSQL 16 with Supabase's roles and default grants (`packages/s
 all migrations 001–010 apply in order, a re-run skips them, and an `anon` smoke test passed
 (sign-up, sign-in, single-use login ticket, device registration, application push/pull/delete with session checks,
 operator-only functions denied to `anon`).
+`015` (Google sign-in) rehearsed the same way: `google_signin` denied to `anon`/`authenticated`, its ticket registers a
+device once and only for its own user, and an email already linked to another Google account is refused.
 
 ## 1. Create the project (owner)
 Supabase dashboard → New project (region: Mumbai `ap-south-1` for Indian users). Save the database password.
@@ -39,5 +41,8 @@ SELECT public.set_user_password('you@example.com', '<strong password>');
 `UPDATE public.app_security SET require_login_ticket = true;` (SECURITY_CHECKLIST S3), after a manual sign-in,
 sign-up and device-takeover test against this project.
 
-## 6. Edge function
-Deploy `packages/supabase/functions/razorpay-webhook` with `RAZORPAY_WEBHOOK_SECRET` set (billing, F9).
+## 6. Edge functions
+- `packages/supabase/functions/razorpay-webhook` with `RAZORPAY_WEBHOOK_SECRET` set (billing, F9).
+- `packages/supabase/functions/google-signin` (needs migration `015`), deployed with `--no-verify-jwt`, with
+  `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` set as Supabase secrets (SECURITY_CHECKLIST S9).
+  The desktop build gets only `GOOGLE_OAUTH_CLIENT_ID`.
