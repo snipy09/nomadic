@@ -13,8 +13,6 @@ const write = (key: string, value: string | null): void => {
 
 const K = {
   user: 'nomadic_user',
-  legacyUser: 'hirestack_user',
-  legacyUser2: 'jobmaxxer_user',
   workspaceMode: 'nomadic_workspace_mode',
   oppType: 'nomadic_target_opportunity_type',
   track: 'nomadic_active_track',
@@ -26,7 +24,7 @@ const K = {
 
 export const prefs = {
   getUser(): AppUser | null {
-    const raw = read(K.user) || read(K.legacyUser);
+    const raw = read(K.user);
     if (!raw) return null;
     try {
       const u = JSON.parse(raw);
@@ -35,12 +33,11 @@ export const prefs = {
   },
   setUser(user: AppUser | null): void {
     if (!user) {
-      [K.user, K.legacyUser, K.legacyUser2, K.track, K.tab('learner'), K.tab('seeker')].forEach((k) => write(k, null));
+      [K.user, K.track, K.tab('learner'), K.tab('seeker')].forEach((k) => write(k, null));
       return;
     }
     const json = JSON.stringify(user);
     write(K.user, json);
-    write(K.legacyUser, json);
   },
   getWorkspaceMode(): WorkspaceMode | null {
     const v = read(K.workspaceMode);

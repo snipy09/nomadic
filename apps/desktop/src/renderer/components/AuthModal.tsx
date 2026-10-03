@@ -72,7 +72,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <Key className="w-6 h-6" />
           </div>
           <h2 className="text-base font-bold text-slate-900">
-            Sign In to JobMaxxer
+            Sign In to Nomadic
           </h2>
           <p className="text-xs text-slate-500">
             Enter your custom login credentials or issued license key.

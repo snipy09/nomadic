@@ -72,7 +72,7 @@ if (!gotTheLock) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.show();
       mainWindow.focus();
-      const url = commandLine.find(arg => arg.startsWith('nomadic://') || arg.startsWith('hirestack://') || arg.startsWith('jobmaxxer://'));
+      const url = commandLine.find(arg => arg.startsWith('nomadic://'));
       if (url) handleProtocolUrl(url);
     } else {
       createWindow();
@@ -83,8 +83,6 @@ if (!gotTheLock) {
 // Resilient deep linking protocol registration
 try {
   app.setAsDefaultProtocolClient('nomadic');
-  app.setAsDefaultProtocolClient('hirestack');
-  app.setAsDefaultProtocolClient('jobmaxxer');
 } catch {}
 
 app.on('open-url', (event, url) => {

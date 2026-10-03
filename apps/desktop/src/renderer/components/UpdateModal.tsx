@@ -39,7 +39,7 @@ export const UpdateModal: React.FC<UpdateModalProps> = ({
     const api = getApi();
     if (!api || !api.downloadUpdate) {
       // Browser fallback: open release url
-      window.open(updateInfo.downloadUrl || 'https://github.com/snipy09/JobMaxxer/releases/latest', '_blank');
+      window.open(updateInfo.downloadUrl || 'https://github.com/snipy09/nomadic/releases/latest', '_blank');
       return;
     }
 

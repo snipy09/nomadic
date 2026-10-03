@@ -19,3 +19,7 @@
 | 15 | Limits | Free: limited applies/day and 1 learning track; Pro/Max raise limits; server-enforced |
 | 16 | Existing users | No alpha users: skip localStorage/legacy-table migration; delete legacy code outright |
 | 17 | Ready assets | Logo and brand colors only. Still needed before release: code-signing cert, Razorpay live account, domain and support email |
+| 18 | Product name | "Nomadic" is final; remove all `hirestack` / `jobmaxxer` names |
+| 19 | Backend | Supabase for at least the first year; keep data access behind an adapter so a later move is possible |
+| 20 | AI provider | Server-side proxy behind a provider interface supporting Google Gemini and Groq; choose per task by cost/quality benchmark |
+| 21 | Offline | No offline mode: lessons and feed need a connection; drop offline caching from Step 3B.7 (keep only local DB as a cache/outbox for sync) |

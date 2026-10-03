@@ -76,12 +76,12 @@ export class ExternalChromeOutreach {
         await page.goto(composeUrl, { waitUntil: 'domcontentloaded', timeout: 35000 }).catch(() => {});
         await page.bringToFront().catch(() => {});
 
-        // Inject floating JobMaxxer banner
+        // Inject floating Nomadic banner
         await page.evaluate(
           ({ name, company, email }: { name?: string; company?: string; email: string }) => {
             try {
               const banner = document.createElement('div');
-              banner.id = 'jobmaxxer-outreach-banner';
+              banner.id = 'nomadic-outreach-banner';
               banner.style.position = 'fixed';
               banner.style.top = '16px';
               banner.style.right = '24px';
@@ -96,7 +96,7 @@ export class ExternalChromeOutreach {
               banner.style.fontWeight = 'bold';
               banner.style.border = '1px solid rgba(56,189,248,0.6)';
               banner.style.pointerEvents = 'none';
-              banner.innerHTML = `<span>⚡ JobMaxxer: Outreach to ${name || 'Recruiter'} (${company || email})</span>`;
+              banner.innerHTML = `<span>⚡ Nomadic: Outreach to ${name || 'Recruiter'} (${company || email})</span>`;
               document.body.appendChild(banner);
             } catch {}
           },

@@ -18,7 +18,7 @@ const TEST_PROFILE: MasterProfile = {
   phone: '+919493833632',
   linkedin: 'https://linkedin.com/in/sajalm',
   github: 'https://github.com/snipy09',
-  portfolio: 'https://jobmaxxer.com',
+  portfolio: 'https://nomadic.app',
   location: 'San Francisco, CA, USA',
   desiredTitle: 'Software Engineer',
   techStack: 'TypeScript, React, Node.js, Python, PostgreSQL, AWS',

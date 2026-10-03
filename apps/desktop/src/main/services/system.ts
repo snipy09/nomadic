@@ -106,7 +106,7 @@ export async function testGroqKey(key: string): Promise<{ success: boolean; erro
 // ── In-App Version & Update Checker ─────────────────────────────────────────
 declare const __APP_VERSION__: string | undefined;
 
-const RELEASES_URL = 'https://github.com/snipy09/JobMaxxer/releases/latest';
+const RELEASES_URL = 'https://github.com/snipy09/nomadic/releases/latest';
 
 export function isNewerVersion(latest: string, current: string): boolean {
   const parse = (v: string) => v.replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0);
@@ -123,7 +123,7 @@ export async function checkForUpdates(): Promise<AppUpdateInfo> {
   const currentVersion = (typeof __APP_VERSION__ !== 'undefined' && __APP_VERSION__) ? __APP_VERSION__ : (app.getVersion() || '1.0.1');
   try {
     // 1. Fetch latest release from GitHub API
-    const res = await fetch('https://api.github.com/repos/snipy09/JobMaxxer/releases/latest', {
+    const res = await fetch('https://api.github.com/repos/snipy09/nomadic/releases/latest', {
       headers: { 'User-Agent': 'Nomadic-Desktop' }
     });
 
