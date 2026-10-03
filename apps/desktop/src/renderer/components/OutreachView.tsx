@@ -197,7 +197,7 @@ export const OutreachView: React.FC<OutreachViewProps> = ({
         setCustomSubject(res.subject);
         setCustomBody(res.body);
         setOutreachToast({
-          success: true,
+          type: 'success',
           message: `✓ AI generated high-converting "${chosenTone}" outreach email!`,
         });
         onLog(`[AI Outreach] Generated personalized ${chosenTone} outreach template.`);
@@ -236,8 +236,8 @@ export const OutreachView: React.FC<OutreachViewProps> = ({
 
   const renderEmailBody = (contact: OutreachContact) => {
     let body = customBody;
-    body = body.replace(/{{name}}/g, contact.name.split(' ')[0] || contact.name);
-    body = body.replace(/{{company}}/g, contact.company);
+    body = body.replace(/{{name}}/g, (contact.name || '').split(' ')[0] || contact.name || '');
+    body = body.replace(/{{company}}/g, contact.company || '');
     body = body.replace(/{{role}}/g, profile.desiredTitle || 'Software Engineer');
     body = body.replace(/{{skills}}/g, profile.techStack || 'Full Stack Engineering');
     body = body.replace(/{{senderName}}/g, `${profile.firstName} ${profile.lastName}`.trim() || 'Candidate');
@@ -246,8 +246,8 @@ export const OutreachView: React.FC<OutreachViewProps> = ({
 
   const renderEmailSubject = (contact: OutreachContact) => {
     let sub = customSubject;
-    sub = sub.replace(/{{name}}/g, contact.name.split(' ')[0] || contact.name);
-    sub = sub.replace(/{{company}}/g, contact.company);
+    sub = sub.replace(/{{name}}/g, (contact.name || '').split(' ')[0] || contact.name || '');
+    sub = sub.replace(/{{company}}/g, contact.company || '');
     sub = sub.replace(/{{role}}/g, profile.desiredTitle || 'Software Engineer');
     return sub;
   };
@@ -331,7 +331,7 @@ export const OutreachView: React.FC<OutreachViewProps> = ({
     }
     setContacts(prev => prev.map(c => c.email === contact.email ? { ...c, sentStatus: 'drafted' } : c));
     setOutreachToast({
-      success: true,
+      type: 'success',
       message: `✓ Opened pre-filled Gmail compose draft for ${contact.name} (${contact.company})`,
     });
     onLog(`[Outreach] Opened pre-filled Gmail compose draft for ${contact.name} (${contact.email})`);

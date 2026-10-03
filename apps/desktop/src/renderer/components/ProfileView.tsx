@@ -5,7 +5,7 @@ import {
   ArrowRight, ExternalLink, Sparkles, Check, ChevronRight,
   Globe, Laptop, Lock, UserCheck, BookOpen, Briefcase, GraduationCap
 } from 'lucide-react';
-import { MasterProfile, getApi, AppUser, WorkspaceMode, OpportunityType } from '../types';
+import { MasterProfile, getApi, AppUser, WorkspaceMode, OpportunityType, TabType } from '../types';
 
 interface ProfileFormData {
   fullName: string;
@@ -45,7 +45,7 @@ interface ProfileViewProps {
   onSave?: (profile: MasterProfile) => Promise<boolean | void>;
   onLog?: (msg: string) => void;
   currentUser?: AppUser | null;
-  onNavigateTab?: (tab: string) => void;
+  onNavigateTab?: (tab: TabType) => void;
   onLogout?: () => void;
   onRerunOnboarding?: () => void;
   saving?: boolean;
@@ -182,6 +182,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         phone: formData.phone,
         linkedin: formData.linkedin,
         github: formData.github,
+        desiredSalary: profile?.desiredSalary ?? '',
+        noticePeriod: profile?.noticePeriod ?? '',
+        resumeText: profile?.resumeText ?? '',
         desiredTitle: formData.targetRole,
         techStack,
         sponsorship: formData.requiresSponsorship ? 'Yes' : 'No',

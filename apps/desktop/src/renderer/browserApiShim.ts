@@ -1083,6 +1083,7 @@ export function createBrowserApiShim(): ElectronAPI {
         tier: 'free',
         licenseKey: 'NOMADIC-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
         status: 'active',
+        appsCount: 0,
         createdAt: new Date().toISOString(),
         onboardingCompleted: false,
       };
@@ -1098,6 +1099,7 @@ export function createBrowserApiShim(): ElectronAPI {
           tier: 'free',
           licenseKey: 'NOMADIC-GGL-DEMO',
           status: 'active',
+          appsCount: 0,
           createdAt: new Date().toISOString(),
           onboardingCompleted: false,
         };
