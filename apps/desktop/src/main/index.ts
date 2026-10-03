@@ -8,7 +8,7 @@ if (typeof globalThis.WebSocket === 'undefined') {
     (globalThis as any).WebSocket = WebSocket;
   } catch {}
 }
-import { initLocalDatabase } from './db.js';
+import { getLocalDbHealth, initLocalDatabase } from './db.js';
 import { AutoApplyEngine, findChromeExecutable } from '@job-automator/automation';
 import { createProxyFormAnswerClient } from './services/ai-proxy.js';
 import { registerAllIpc, setIpcSenderGuard } from './ipc/index.js';
@@ -24,6 +24,10 @@ import {
   type SecurityOptions,
 } from './security.js';
 import { createWindow } from './window.js';
+import { initAppSettings } from './services/app-settings.js';
+import { initCrashReporting } from './services/telemetry-runtime.js';
+import { currentAppVersion, initUpdates } from './services/updates-runtime.js';
+import { initWhatsNew } from './services/whats-new.js';
 
 const securityOptions: SecurityOptions = { devServerUrl: process.env.VITE_DEV_SERVER_URL };
 
@@ -105,13 +109,22 @@ app.on('web-contents-created', (_event, contents) => {
 });
 
 // ── App lifecycle ───────────────────────────────────────────────────────
+// Settings first: crash-report consent must be known before Sentry may start.
+initAppSettings(app.getPath('userData'));
+void initCrashReporting();
+
 app.whenReady().then(async () => {
   installContentSecurityPolicy(electronSession.defaultSession, securityOptions);
   installPermissionPolicy(electronSession.defaultSession);
 
   try {
     await initLocalDatabase(app.getPath('userData'));
-    log('[Database] Local SQLite initialized successfully ✓');
+    const h = getLocalDbHealth();
+    if (h && (h.startup === 'recovered_from_backup' || h.startup === 'reset_after_corruption' || h.migration === 'failed' || h.migration === 'newer_than_app')) {
+      log(`[Database] Needs attention: startup=${h.startup}, migration=${h.migration}${h.migrationError ? ` (${h.migrationError})` : ''}. See Settings → Data & privacy.`);
+    } else {
+      log(`[Database] Local SQLite ready (schema v${h?.schemaVersion ?? '?'}, integrity ok) ✓`);
+    }
   } catch (err: any) {
     console.error('[Database] Init note:', err?.message);
   }
@@ -126,6 +139,8 @@ app.whenReady().then(async () => {
   }
 
   createWindow();
+  initWhatsNew(currentAppVersion());
+  void initUpdates().catch((err: unknown) => log(`[Updates] Init note: ${err instanceof Error ? err.message : String(err)}`));
 
   // Background verification: check if local Chrome / Edge is present
   setTimeout(() => {

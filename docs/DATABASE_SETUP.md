@@ -13,6 +13,9 @@ inactive session rejected, daily apply quota counted all-or-nothing and refused 
 an upgrade, expired Pro falls back to Free, suspended accounts refused, billing helpers and `usage_counters` denied to `anon`).
 `012` (learning track pull) was rehearsed the same way: it applies after 010, and
 as `anon` the learning RPCs enforced the session check and the free tier's one active track (archive, then start the new one).
+`022` (account export and deletion) rehearsed the same way: both session-checked, deletion refused without the typed
+email or a fresh ticket of the same user, cascade removes all user rows including append-only learning events, payment
+records kept but detached, other users untouched.
 
 ## 1. Create the project (owner)
 Supabase dashboard → New project (region: Mumbai `ap-south-1` for Indian users). Save the database password.

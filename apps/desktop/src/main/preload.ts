@@ -1,8 +1,11 @@
+// Sentry's IPC bridge for the renderer SDK. It only forwards events to the main
+// process, which drops them unless the user opted in to crash reports.
+import '@sentry/electron/preload';
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
 import type { ChannelArgs, ChannelName, ChannelResult, EventName, IpcEvents, NomadicApi } from '../shared/ipc';
 
 // Runs sandboxed (webPreferences.sandbox = true): only `contextBridge` and
-// `ipcRenderer` are used, and only type imports come from shared/ipc.
+// `ipcRenderer` are used (also by the Sentry bridge), and only type imports come from shared/ipc.
 
 function invoke<C extends ChannelName>(channel: C, ...args: ChannelArgs<C>): Promise<ChannelResult<C>> {
   return ipcRenderer.invoke(channel, ...args);
@@ -80,6 +83,22 @@ const apiObj: NomadicApi = {
   authSendVerification: () => invoke('auth-send-verification'),
   authConfirmVerification: (input) => invoke('auth-confirm-verification', input),
   authVerificationStatus: () => invoke('auth-verification-status'),
+  getDataHealth: () => invoke('get-data-health'),
+  updaterGetStatus: () => invoke('updater-get-status'),
+  updaterCheck: () => invoke('updater-check'),
+  updaterDownload: () => invoke('updater-download'),
+  updaterInstall: () => invoke('updater-install'),
+  updaterSetChannel: (channel) => invoke('updater-set-channel', channel),
+  onUpdaterStatus: (cb) => subscribe('updater-status', cb),
+  getUpdatePolicy: () => invoke('get-update-policy'),
+  getWhatsNew: () => invoke('whats-new-get'),
+  dismissWhatsNew: () => invoke('whats-new-dismiss'),
+  getTelemetry: () => invoke('telemetry-get'),
+  setTelemetry: (enabled) => invoke('telemetry-set', enabled),
+  sendFeedback: (input) => invoke('send-feedback', input),
+  copyDiagnostics: () => invoke('copy-diagnostics'),
+  exportAccountData: () => invoke('export-account-data'),
+  deleteAccount: (input) => invoke('delete-account', input),
   onOauthCallback: (cb) => subscribe('oauth-callback', cb),
   practiceGetCatalog: () => invoke('practice-get-catalog'),
   practiceGetState: () => invoke('practice-get-state'),
@@ -98,10 +117,6 @@ const apiObj: NomadicApi = {
   adminContentHistory: (query) => invoke('admin-content-history', query),
 
   // In-App Updates
-  checkForUpdates: () => invoke('check-for-updates'),
-  downloadUpdate: (downloadUrl) => invoke('download-update', downloadUrl),
-  installUpdate: (installerPath) => invoke('install-update', installerPath),
-  onUpdateDownloadProgress: (cb) => subscribe('update-download-progress', cb),
 };
 
 contextBridge.exposeInMainWorld('api', apiObj);

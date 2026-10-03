@@ -4,7 +4,7 @@ vi.mock('electron', () => ({ shell: { openExternal: vi.fn() }, app: { getPath: (
 vi.mock('@job-automator/automation', () => ({ findChromeExecutable: vi.fn(), ensureChromeForTesting: vi.fn() }));
 
 import { buildContentSecurityPolicy, createIpcSenderGuard, isAppUrl } from '../security';
-import { isAllowedInstallerPath } from '../services/system';
+import { updateChannelArgs } from '../ipc/schemas';
 
 describe('Electron hardening', () => {
   it('production CSP only allows bundled scripts and known API hosts', () => {
@@ -34,9 +34,10 @@ describe('Electron hardening', () => {
     expect(guard({ senderFrame: null } as any)).toBe(false);
   });
 
-  it('install-update only accepts installers inside the updates folder', () => {
-    expect(isAllowedInstallerPath('/data/Nomadic/updates/Nomadic.Setup.exe', '/data/Nomadic/updates')).toBe(true);
-    expect(isAllowedInstallerPath('/data/Nomadic/updates/../../evil.exe', '/data/Nomadic/updates')).toBe(false);
-    expect(isAllowedInstallerPath('C:/Windows/System32/cmd.exe', '/data/Nomadic/updates')).toBe(false);
+  it('update IPC accepts only the two channels and never a file path or URL', () => {
+    expect(updateChannelArgs[0].safeParse('stable').success).toBe(true);
+    expect(updateChannelArgs[0].safeParse('beta').success).toBe(true);
+    expect(updateChannelArgs[0].safeParse('C:/Windows/System32/cmd.exe').success).toBe(false);
+    expect(updateChannelArgs[0].safeParse('https://evil.example/latest.yml').success).toBe(false);
   });
 });

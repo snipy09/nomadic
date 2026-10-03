@@ -6,6 +6,9 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './queryClient';
 import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { startRendererCrashReporting } from './features/help/crashReporting';
+
+void startRendererCrashReporting();
 
 const container = document.getElementById('root');
 if (container) {

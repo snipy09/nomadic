@@ -59,15 +59,6 @@ export interface HeartbeatStatus {
   ip?: string;
 }
 
-export interface AppUpdateInfo {
-  updateAvailable: boolean;
-  currentVersion: string;
-  latestVersion: string;
-  releaseName?: string;
-  releaseNotes?: string;
-  downloadUrl?: string;
-}
-
 export interface ResumeRecord {
   id: number;
   name: string;
@@ -637,6 +628,96 @@ export interface EmailVerificationStatus extends SuccessResult {
   code?: EmailCodeErrorCode;
 }
 
+// ── Data safety (F10) ──────────────────────────────────────────────────────
+
+export type DbStartupState = 'new' | 'ok' | 'recovered_from_backup' | 'reset_after_corruption';
+export type DbMigrationStatus = 'up_to_date' | 'migrated' | 'failed' | 'newer_than_app';
+
+/** What happened to the local database at startup. */
+export interface LocalDbHealth {
+  startup: DbStartupState;
+  migration: DbMigrationStatus;
+  migrationError?: string;
+  schemaVersion: number;
+  latestSchemaVersion: number;
+  integrity: 'ok';
+  checkedAt: string;
+}
+
+export interface DataHealthResult extends SuccessResult {
+  health: LocalDbHealth | null;
+  backups: number;
+  latestBackupAt: string | null;
+  sizeBytes: number | null;
+}
+
+export interface AccountExportResult extends SuccessResult {
+  canceled?: boolean;
+  filePath?: string;
+  /** False when the account's server copy could not be fetched; the file then says why. */
+  serverIncluded?: boolean;
+}
+
+export interface DeleteAccountInput {
+  confirmEmail: string;
+  password: string;
+}
+
+// ── Updates, telemetry and support (F11) ───────────────────────────────────
+
+export type UpdateChannel = 'stable' | 'beta';
+
+export interface UpdaterStatus {
+  state: 'unsupported' | 'idle' | 'checking' | 'up_to_date' | 'available' | 'downloading' | 'downloaded' | 'error';
+  currentVersion: string;
+  version?: string;
+  percent?: number;
+  releaseNotes?: string;
+  message?: string;
+}
+
+export interface UpdaterInfo extends UpdaterStatus {
+  channel: UpdateChannel;
+}
+
+export interface UpdatePolicyResult {
+  required: boolean;
+  currentVersion: string;
+  minimumVersion: string | null;
+  message: string | null;
+}
+
+export interface WhatsNewInfo {
+  show: boolean;
+  version: string;
+  previousVersion: string | null;
+  notes: string | null;
+  releaseUrl: string;
+}
+
+export interface TelemetryState {
+  /** The user's choice (off by default). */
+  crashReports: boolean;
+  /** This build has a Sentry DSN. */
+  available: boolean;
+  /** Reporting is running in the main process now (renderer reporting starts after a restart). */
+  active: boolean;
+}
+
+export type FeedbackKind = 'bug' | 'idea' | 'question';
+
+export interface FeedbackInput {
+  kind: FeedbackKind;
+  message: string;
+  includeDiagnostics: boolean;
+  contactEmail?: string;
+}
+
+export interface FeedbackResult extends SuccessResult {
+  via?: 'sentry' | 'email';
+  note?: string;
+}
+
 export interface HeartbeatOptions {
   userId: string;
   sessionToken: string;
@@ -709,9 +790,6 @@ export interface IpcChannels {
   'check-dependencies': Channel<[], DependencyStatus>;
   'install-dependencies': Channel<[], SuccessResult>;
   'open-external-url': Channel<[url: string], SuccessResult>;
-  'check-for-updates': Channel<[], AppUpdateInfo>;
-  'download-update': Channel<[downloadUrl?: string], SuccessResult & { filePath?: string; openedBrowser?: boolean }>;
-  'install-update': Channel<[installerPath?: string], SuccessResult>;
 
   // profile & resumes
   'get-master-profile': Channel<[], MasterProfileRow | null>;
@@ -784,6 +862,21 @@ export interface IpcChannels {
   'stop-heartbeat': Channel<[], { success: boolean }>;
   'sync-cloud-data': Channel<[], SuccessResult & { pulled?: boolean }>;
   'get-device-info': Channel<[], DeviceInfo>;
+  'updater-get-status': Channel<[], UpdaterInfo>;
+  'updater-check': Channel<[], UpdaterInfo>;
+  'updater-download': Channel<[], UpdaterInfo>;
+  'updater-install': Channel<[], SuccessResult>;
+  'updater-set-channel': Channel<[channel: UpdateChannel], UpdaterInfo>;
+  'get-update-policy': Channel<[], UpdatePolicyResult>;
+  'whats-new-get': Channel<[], WhatsNewInfo | null>;
+  'whats-new-dismiss': Channel<[], SuccessResult>;
+  'telemetry-get': Channel<[], TelemetryState>;
+  'telemetry-set': Channel<[enabled: boolean], TelemetryState>;
+  'send-feedback': Channel<[input: FeedbackInput], FeedbackResult>;
+  'get-data-health': Channel<[], DataHealthResult>;
+  'copy-diagnostics': Channel<[], SuccessResult & { text?: string }>;
+  'export-account-data': Channel<[], AccountExportResult>;
+  'delete-account': Channel<[input: DeleteAccountInput], SuccessResult>;
 
   // admin (F12): session-checked RPCs, re-authorized server side on every call
   'admin-list-users': Channel<[query: AdminUserQuery], AdminResult<AdminUsersPage>>;
@@ -804,7 +897,8 @@ export type ChannelResult<C extends ChannelName> = IpcChannels[C]['result'];
 /** Runtime list of every invoke channel (kept in sync with `IpcChannels` by the type below). */
 export const IPC_CHANNELS = [
   'check-dependencies', 'install-dependencies', 'open-external-url',
-  'check-for-updates', 'download-update', 'install-update',
+  'updater-get-status', 'updater-check', 'updater-download', 'updater-install', 'updater-set-channel',
+  'get-update-policy', 'whats-new-get', 'whats-new-dismiss', 'telemetry-get', 'telemetry-set', 'send-feedback',
   'get-master-profile', 'save-master-profile', 'get-resumes', 'save-resume', 'delete-resume',
   'set-default-resume', 'pick-resume-file',
   'run-scrapers', 'get-cloud-feed-page', 'get-cloud-feed', 'get-saved-jobs', 'save-job', 'remove-saved-job',
@@ -819,7 +913,7 @@ export const IPC_CHANNELS = [
   'auth-google', 'auth-login', 'auth-signup',
   'auth-request-password-reset', 'auth-confirm-password-reset', 'auth-send-verification', 'auth-confirm-verification',
   'auth-verification-status', 'start-heartbeat', 'stop-heartbeat', 'sync-cloud-data',
-  'get-device-info',
+  'get-device-info', 'get-data-health', 'copy-diagnostics', 'export-account-data', 'delete-account',
   'admin-list-users', 'admin-set-user-plan', 'admin-set-user-status', 'admin-list-audit',
   'admin-scrape-health', 'admin-list-content', 'admin-update-lesson', 'admin-set-resource-status',
   'admin-content-history',
@@ -833,10 +927,10 @@ void _allChannelsListed;
 // ── Push events (main -> renderer) ──────────────────────────────────────────
 
 export interface IpcEvents {
+  'updater-status': UpdaterStatus;
   log: string;
   'heartbeat-status': HeartbeatStatus;
   'auto-apply-progress': AutoApplyProgressEvent;
-  'update-download-progress': number;
   'oauth-callback': OAuthCallbackPayload;
 }
 
@@ -879,6 +973,22 @@ export interface NomadicApi {
   stopHeartbeat: Invoke<'stop-heartbeat'>;
   syncCloudData: Invoke<'sync-cloud-data'>;
   getDeviceInfo: Invoke<'get-device-info'>;
+  updaterGetStatus: Invoke<'updater-get-status'>;
+  updaterCheck: Invoke<'updater-check'>;
+  updaterDownload: Invoke<'updater-download'>;
+  updaterInstall: Invoke<'updater-install'>;
+  updaterSetChannel: Invoke<'updater-set-channel'>;
+  onUpdaterStatus: Subscribe<'updater-status'>;
+  getUpdatePolicy: Invoke<'get-update-policy'>;
+  getWhatsNew: Invoke<'whats-new-get'>;
+  dismissWhatsNew: Invoke<'whats-new-dismiss'>;
+  getTelemetry: Invoke<'telemetry-get'>;
+  setTelemetry: Invoke<'telemetry-set'>;
+  sendFeedback: Invoke<'send-feedback'>;
+  getDataHealth: Invoke<'get-data-health'>;
+  copyDiagnostics: Invoke<'copy-diagnostics'>;
+  exportAccountData: Invoke<'export-account-data'>;
+  deleteAccount: Invoke<'delete-account'>;
   onLog: Subscribe<'log'>;
   onHeartbeatStatus: Subscribe<'heartbeat-status'>;
   onAutoApplyProgress: Subscribe<'auto-apply-progress'>;
@@ -920,8 +1030,4 @@ export interface NomadicApi {
   adminSetResourceStatus: Invoke<'admin-set-resource-status'>;
   adminContentHistory: Invoke<'admin-content-history'>;
 
-  checkForUpdates: Invoke<'check-for-updates'>;
-  downloadUpdate: Invoke<'download-update'>;
-  installUpdate: Invoke<'install-update'>;
-  onUpdateDownloadProgress: Subscribe<'update-download-progress'>;
 }

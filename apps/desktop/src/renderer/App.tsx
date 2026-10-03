@@ -18,6 +18,10 @@ import { ApplicationsView } from './features/applications/ApplicationsView';
 import { ProfileView } from './features/profile/ProfileView';
 import { AdminView } from './features/admin/AdminView';
 import { AuthScreen } from './features/auth/AuthScreen';
+import { HelpView } from './features/help/HelpView';
+import { UpdateRequiredScreen } from './features/updates/UpdateRequiredScreen';
+import { WhatsNewDialog } from './features/updates/WhatsNewDialog';
+import { useUpdatePolicy } from './features/updates/useUpdater';
 import { ResourceVaultView } from './components/ResourceVaultView';
 import { PracticeView } from './features/practice/PracticeView';
 import { OpportunityBoardView } from './components/OpportunityBoardView';
@@ -34,6 +38,7 @@ export default function App() {
 
   // Single source of truth: Zustand store (see store/appStore.ts)
   const currentUser = useAppStore((s) => s.currentUser);
+  const updatePolicy = useUpdatePolicy();
   const setCurrentUser = useAppStore((s) => s.setCurrentUser);
   const workspaceMode = useAppStore((s) => s.workspaceMode);
   const setWorkspaceModeState = useAppStore((s) => s.setWorkspaceMode);
@@ -280,6 +285,8 @@ export default function App() {
   };
 
   // 1. If not logged in, ALWAYS show the Login & Sign-up page first
+  if (updatePolicy?.required) return <UpdateRequiredScreen policy={updatePolicy} />;
+
   if (!currentUser) {
     return (
       <AuthScreen
@@ -385,6 +392,7 @@ export default function App() {
       }
     >
       <>
+        <WhatsNewDialog />
         {/* Dynamic Sub-view Container */}
         <div key={activeTab} className={`w-full ${
             activeTab === 'profile' || activeTab === 'settings' || Boolean(activeTab && activeTab.startsWith('admin'))
@@ -478,6 +486,8 @@ export default function App() {
                 </div>
               </div>
             )}
+
+            {activeTab === 'help' && <HelpView />}
 
             {(activeTab === 'profile' || activeTab === 'settings') && (
               <ProfileView

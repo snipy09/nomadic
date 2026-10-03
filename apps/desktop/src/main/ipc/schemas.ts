@@ -48,8 +48,16 @@ const freeRecord = z.record(z.string(), z.unknown());
 
 // ── system / settings ──────────────────────────────────────────────────────
 export const openExternalUrlArgs: ArgSchemas<'open-external-url'> = [url];
-export const downloadUpdateArgs: ArgSchemas<'download-update'> = [opt(url)];
-export const installUpdateArgs: ArgSchemas<'install-update'> = [opt(str(4_096))];
+export const updateChannelArgs: ArgSchemas<'updater-set-channel'> = [z.enum(['stable', 'beta'])];
+export const telemetrySetArgs: ArgSchemas<'telemetry-set'> = [z.boolean()];
+export const feedbackArgs: ArgSchemas<'send-feedback'> = [
+  z.object({
+    kind: z.enum(['bug', 'idea', 'question']),
+    message: z.string().trim().min(10).max(5_000),
+    includeDiagnostics: z.boolean(),
+    contactEmail: opt(z.string().trim().email().max(254)),
+  }),
+];
 
 // ── profile & resumes ──────────────────────────────────────────────────────
 const masterProfileInput = z
@@ -283,6 +291,11 @@ const heartbeatOptions = z
   })
   .passthrough();
 export const heartbeatArgs: ArgSchemas<'start-heartbeat'> = [heartbeatOptions];
+
+// Account deletion re-checks the password on the server (fresh login ticket, migration 022).
+export const deleteAccountArgs: ArgSchemas<'delete-account'> = [
+  z.object({ confirmEmail: z.string().trim().toLowerCase().email().max(254), password: z.string().min(1).max(SHORT) }),
+];
 
 // ── admin (F12) ────────────────────────────────────────────────────────────
 // Strict objects: admin payloads have no legacy callers. The server re-validates

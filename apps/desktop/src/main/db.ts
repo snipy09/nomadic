@@ -5,9 +5,25 @@ import { fileURLToPath } from 'url';
 import { migrateApplicationsSchema } from './services/applications-store.js';
 import { migratePracticeSchema } from './services/practice-store.js';
 import { migrateLearningSchema } from './services/learning-store.js';
+import type { LocalDbHealth } from '../shared/ipc.js';
+import { getUserVersion, latestVersion, runLocalMigrations, type LocalMigration, type MigrationOutcome } from './local-db/migrations.js';
+import { backupsDir, createBackup, openOrRecover, writeFileAtomic } from './local-db/safety.js';
 
 let db: Database | null = null;
 let dbFilePath = '';
+let userDataDir = '';
+
+export type { LocalDbHealth };
+
+let health: LocalDbHealth | null = null;
+
+export function getLocalDbHealth(): LocalDbHealth | null {
+  return health;
+}
+
+export function getLocalDbPath(): string {
+  return dbFilePath;
+}
 
 export async function initLocalDatabase(userDataPath: string): Promise<Database> {
   // Ensure directory exists
@@ -15,6 +31,7 @@ export async function initLocalDatabase(userDataPath: string): Promise<Database>
     fs.mkdirSync(userDataPath, { recursive: true });
   }
 
+  userDataDir = userDataPath;
   dbFilePath = path.join(userDataPath, 'job_automator_local.db');
 
   let wasmBinary: Buffer | undefined;
@@ -53,20 +70,62 @@ export async function initLocalDatabase(userDataPath: string): Promise<Database>
 
   const SQL = await initSqlJs(sqlOptions);
 
-  // Load existing DB file if present, otherwise create fresh
-  if (fs.existsSync(dbFilePath)) {
-    try {
-      const fileBuffer = fs.readFileSync(dbFilePath);
-      db = new SQL.Database(fileBuffer);
-    } catch (err: any) {
-      console.warn('[SQLite] Existing DB file unreadable, creating fresh:', err.message);
-      db = new SQL.Database();
+  // Open, verifying integrity; a damaged file is moved aside and the newest good backup restored.
+  const opened = openOrRecover(SQL, dbFilePath);
+  db = opened.db;
+  if (opened.quarantinedTo) console.error('[SQLite] Database failed its integrity check; moved to', opened.quarantinedTo);
+  if (opened.restoredFrom) console.warn('[SQLite] Restored from backup', opened.restoredFrom);
+
+  // Versioned migrations, with a backup of the file before the first pending one.
+  let outcome: MigrationOutcome;
+  try {
+    outcome = runLocalMigrations(db, LOCAL_MIGRATIONS, {
+      beforeMigrate: (from, to) => {
+        if (opened.state !== 'new') createBackup(dbFilePath, `before-v${to}-from-v${from}`);
+      },
+    });
+  } catch (err: unknown) {
+    // Backup failed: do not migrate without one.
+    const msg = err instanceof Error ? err.message : String(err);
+    outcome = { status: 'failed', from: getUserVersion(db), to: getUserVersion(db), applied: [], error: `Could not back up before updating the database: ${msg}` };
+  }
+  if (outcome.status === 'failed') console.error('[SQLite]', outcome.error);
+
+  health = {
+    startup: opened.state,
+    migration: outcome.status,
+    migrationError: outcome.error,
+    schemaVersion: getUserVersion(db),
+    latestSchemaVersion: latestVersion(LOCAL_MIGRATIONS),
+    integrity: 'ok',
+    checkedAt: new Date().toISOString(),
+  };
+
+  // Ensure default master profile row exists
+  try {
+    const profCheck = db.exec('SELECT COUNT(*) as count FROM master_profile WHERE id = 1');
+    const profCount = profCheck.length && profCheck[0].values.length ? Number(profCheck[0].values[0][0]) : 0;
+    if (profCount === 0) {
+      db.run(
+        `INSERT OR IGNORE INTO master_profile (id, first_name, last_name, email, phone, desired_title, tech_stack, sponsorship, onboarding_completed)
+         VALUES (1, '', '', '', '', '', '', 'No', 0)`
+      );
     }
-  } else {
-    db = new SQL.Database();
+  } catch (err: any) {
+    console.warn('[SQLite] Error initializing master profile:', err.message);
   }
 
-  // Initialize schema
+  persistDb();
+  console.log('[SQLite (sql.js)] Initialized local database at', dbFilePath, `(schema v${health.schemaVersion})`);
+  return db;
+}
+
+/**
+ * Local migration 1: the schema as it stood before versioned migrations. Every
+ * statement is idempotent (IF NOT EXISTS / guarded ALTER), so databases created
+ * by earlier builds pass through it unchanged.
+ */
+function createBaselineSchema(db: Database): void {
   db.run(`
     CREATE TABLE IF NOT EXISTS master_profile (
       id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -235,53 +294,41 @@ export async function initLocalDatabase(userDataPath: string): Promise<Database>
       `);
     }
   } catch {}
-
-  // Applications tracker: notes, unique apply_url, append-only status history.
-  try {
-    migrateApplicationsSchema(db);
-  } catch (err: any) {
-    console.warn('[SQLite] Applications migration failed:', err.message);
-  }
-
-  // Practice attempts cache (F8): rows the server accepted.
-  try {
-    migratePracticeSchema(db);
-  } catch (err: any) {
-    console.warn('[SQLite] Practice migration failed:', err.message);
-  }
-
-  // Ensure default master profile row exists
-  try {
-    const profCheck = db.exec('SELECT COUNT(*) as count FROM master_profile WHERE id = 1');
-    const profCount = profCheck.length && profCheck[0].values.length ? Number(profCheck[0].values[0][0]) : 0;
-    if (profCount === 0) {
-      db.run(
-        `INSERT OR IGNORE INTO master_profile (id, first_name, last_name, email, phone, desired_title, tech_stack, sponsorship, onboarding_completed)
-         VALUES (1, '', '', '', '', '', '', 'No', 0)`
-      );
-    }
-  } catch (err: any) {
-    console.warn('[SQLite] Error initializing master profile:', err.message);
-  }
-
-  persistDb();
-  console.log('[SQLite (sql.js)] Initialized local database at', dbFilePath);
-  return db;
 }
+
+/** Ordered local migrations. Append new ones; never edit or renumber a shipped one. */
+export const LOCAL_MIGRATIONS: readonly LocalMigration[] = [
+  { version: 1, name: 'baseline schema', up: createBaselineSchema },
+  { version: 2, name: 'applications tracker history and notes', up: migrateApplicationsSchema },
+  { version: 3, name: 'practice attempts cache', up: migratePracticeSchema },
+  { version: 4, name: 'learning goal and events', up: migrateLearningSchema },
+];
 
 /** Flush in-memory DB to disk. Call after every write. */
 export function persistDb(): void {
   if (!db || !dbFilePath) return;
   try {
-    const dir = path.dirname(dbFilePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    const data = db.export();
-    fs.writeFileSync(dbFilePath, Buffer.from(data));
+    writeFileAtomic(dbFilePath, db.export());
   } catch (err: any) {
     console.error('[SQLite] Failed to persist DB to disk:', err.message);
   }
+}
+
+/**
+ * Removes every local trace of the account (database, its backups and any quarantined
+ * copies) and starts a fresh empty database. Used after the account is deleted.
+ */
+export async function wipeLocalData(): Promise<void> {
+  if (!userDataDir) return;
+  try { db?.close(); } catch { /* already closed */ }
+  db = null;
+  const dir = path.dirname(dbFilePath);
+  const base = path.basename(dbFilePath);
+  for (const name of fs.existsSync(dir) ? fs.readdirSync(dir) : []) {
+    if (name === base || name.startsWith(`${base}.`)) fs.rmSync(path.join(dir, name), { force: true });
+  }
+  fs.rmSync(backupsDir(dbFilePath), { recursive: true, force: true });
+  await initLocalDatabase(userDataDir);
 }
 
 export function getDb(): Database {

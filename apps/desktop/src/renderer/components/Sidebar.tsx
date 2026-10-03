@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  PanelLeftClose, PanelLeft, BookOpen, MessageSquare, Settings as SettingsIcon,
+  PanelLeftClose, PanelLeft, BookOpen, MessageSquare, Settings as SettingsIcon, LifeBuoy,
   Briefcase, Mail, LayoutGrid, Shield, Compass, Target, TrendingUp,
 } from 'lucide-react';
 import { NavItem, NavSection, IconButton, Badge, useAppShell } from '@nomadic/ui';
@@ -31,6 +31,7 @@ const SYSTEM: SectionDef = {
   items: [
     { id: 'logs', label: 'Activity', icon: TrendingUp },
     { id: 'settings', label: 'Settings', icon: SettingsIcon },
+    { id: 'help', label: 'Help', icon: LifeBuoy },
   ],
 };
 

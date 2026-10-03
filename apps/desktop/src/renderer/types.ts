@@ -140,6 +140,7 @@ export type TabType =
   | 'admin-overview'
   | 'logs'
   | 'settings'
+  | 'help'
   | 'account';
 
 export type ThemeMode = 'dark' | 'light' | 'system';
@@ -172,14 +173,12 @@ export interface AppUser {
 }
 
 
-export interface AppUpdateInfo {
-  updateAvailable: boolean;
-  currentVersion: string;
-  latestVersion: string;
-  releaseName?: string;
-  releaseNotes?: string;
-  downloadUrl?: string;
-}
+export type {
+  FeedbackInput, FeedbackKind, FeedbackResult, TelemetryState, UpdateChannel, UpdatePolicyResult, UpdaterInfo, UpdaterStatus, WhatsNewInfo,
+} from '../shared/ipc';
+import type {
+  FeedbackInput, FeedbackResult, TelemetryState, UpdateChannel, UpdatePolicyResult, UpdaterInfo, UpdaterStatus, WhatsNewInfo,
+} from '../shared/ipc';
 
 export interface ElectronAPI {
   getMasterProfile: () => Promise<Record<string, unknown> | null>;
@@ -263,6 +262,27 @@ export interface ElectronAPI {
   learningRecordEvents: (events: LearningEventInput[]) => Promise<{ success: boolean; events?: LearningEventRecord[]; error?: string }>;
   learningSync: () => Promise<LearningSyncResult>;
 
+  /** Data safety (F10). Absent in browser preview. */
+  getDataHealth?: () => Promise<{
+    success: boolean;
+    error?: string;
+    health: {
+      startup: 'new' | 'ok' | 'recovered_from_backup' | 'reset_after_corruption';
+      migration: 'up_to_date' | 'migrated' | 'failed' | 'newer_than_app';
+      migrationError?: string;
+      schemaVersion: number;
+      latestSchemaVersion: number;
+      integrity: 'ok';
+      checkedAt: string;
+    } | null;
+    backups: number;
+    latestBackupAt: string | null;
+    sizeBytes: number | null;
+  }>;
+  copyDiagnostics?: () => Promise<{ success: boolean; error?: string; text?: string }>;
+  exportAccountData?: () => Promise<{ success: boolean; error?: string; canceled?: boolean; filePath?: string; serverIncluded?: boolean }>;
+  deleteAccount?: (input: { confirmEmail: string; password: string }) => Promise<{ success: boolean; error?: string }>;
+
   // Auth Handlers
   authLogin: (credentials: {
     username?: string;
@@ -316,11 +336,19 @@ export interface ElectronAPI {
   aiRubricFeedback?: NomadicApi['aiRubricFeedback'];
 
 
-  // In-App Updates
-  checkForUpdates?: () => Promise<AppUpdateInfo>;
-  downloadUpdate?: (downloadUrl?: string) => Promise<{ success: boolean; filePath?: string; openedBrowser?: boolean; error?: string }>;
-  installUpdate?: (installerPath?: string) => Promise<{ success: boolean; error?: string }>;
-  onUpdateDownloadProgress?: (cb: (pct: number) => void) => () => void;
+  // Updates, crash-report consent, what's new and feedback (F11). Absent in browser preview.
+  updaterGetStatus?: () => Promise<UpdaterInfo>;
+  updaterCheck?: () => Promise<UpdaterInfo>;
+  updaterDownload?: () => Promise<UpdaterInfo>;
+  updaterInstall?: () => Promise<{ success: boolean; error?: string }>;
+  updaterSetChannel?: (channel: UpdateChannel) => Promise<UpdaterInfo>;
+  onUpdaterStatus?: (cb: (status: UpdaterStatus) => void) => () => void;
+  getUpdatePolicy?: () => Promise<UpdatePolicyResult>;
+  getWhatsNew?: () => Promise<WhatsNewInfo | null>;
+  dismissWhatsNew?: () => Promise<{ success: boolean; error?: string }>;
+  getTelemetry?: () => Promise<TelemetryState>;
+  setTelemetry?: (enabled: boolean) => Promise<TelemetryState>;
+  sendFeedback?: (input: FeedbackInput) => Promise<FeedbackResult>;
 }
 
 declare global {

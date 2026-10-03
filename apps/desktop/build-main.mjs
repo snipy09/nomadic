@@ -36,6 +36,9 @@ async function build() {
     '__APP_VERSION__': JSON.stringify(appVersion),
     'process.env.SUPABASE_URL': JSON.stringify(process.env.SUPABASE_URL || DEFAULT_SUPABASE_URL),
     'process.env.SUPABASE_ANON_KEY': JSON.stringify(process.env.SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY),
+    // Public values (not secrets): a Sentry DSN only allows sending events; the policy URL is public.
+    'process.env.SENTRY_DSN': JSON.stringify(env('SENTRY_DSN')),
+    'process.env.UPDATE_POLICY_URL': JSON.stringify(env('UPDATE_POLICY_URL')),
     'process.env.GOOGLE_CLIENT_ID': JSON.stringify(env('GOOGLE_OAUTH_CLIENT_ID', 'GOOGLE_CLIENT_ID')),
     'process.env.GOOGLE_CLIENT_SECRET': JSON.stringify(env('GOOGLE_OAUTH_CLIENT_SECRET', 'GOOGLE_CLIENT_SECRET')),
     'process.env.GEMINI_API_KEY': JSON.stringify(env('GEMINI_API_KEY')),

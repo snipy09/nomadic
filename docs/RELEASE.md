@@ -20,9 +20,18 @@ Required repository secrets (Settings → Secrets and variables → Actions):
 The build fails if the signing secrets are missing (`WIN_SIGN_REQUIRED=1`) or if the tag does not
 match the app version. The certificate is never committed (see `docs/SECURITY_CLEANUP.md`).
 
-**Auto-update** still needs: `build.publish: [{ provider: 'github', owner: 'snipy09', repo: 'nomadic' }]`
-in `apps/desktop/package.json` and an `electron-updater` `autoUpdater.checkForUpdatesAndNotify()` call
-in the main process (owned by the main-process work stream).
+**Auto-update** (`electron-updater`, wired in `apps/desktop/src/main/services/updater.ts`):
+- `build.publish` points at GitHub (`snipy09/nomadic`) and `generateUpdatesFilesForAllChannels` writes
+  `latest.yml` and `beta.yml`. A version with a pre-release part (`1.2.0-beta.1`) is published as a GitHub
+  pre-release and only reaches users on the **Beta** channel (Settings → Updates); **Stable** users get full releases.
+- The app checks at start and every 6 hours, never downloads without the user, installs on restart or quit, and
+  refuses downgrades. electron-updater verifies the installer signature against `build.win.publisherName`.
+- **Forced-update floor:** `apps/desktop/update-policy.json` is uploaded with every release. A version below its
+  `minimumVersion` shows a blocking "Update required" screen (with `message`). Raise it only for security fixes,
+  in the release that contains the fix. The last policy seen is cached, so the floor holds offline; a missing or
+  malformed policy never blocks.
+- The app reads the policy from `releases/latest/download/update-policy.json` (override with `UPDATE_POLICY_URL`
+  at build time).
 
 ## Nightly benchmarks (`.github/workflows/nightly-bench.yml`)
 
@@ -31,36 +40,21 @@ in the main process (owned by the main-process work stream).
   test URLs are approved.
 - **Scrapers:** `scrape bench` against live sources, no database writes; report as an artifact.
 
-## Sentry (setup notes; not wired in yet)
+## Sentry (opt-in crash reports)
 
-Crash and error reporting is **opt-in** and off by default.
+Wired in `apps/desktop/src/main/services/telemetry.ts` (main) and `renderer/features/help/crashReporting.ts`
+(renderer), using `@sentry/electron`. Off by default; the user turns it on in Settings → Data & privacy.
 
-1. Create a Sentry project (platform: Electron). Put the DSN in the `SENTRY_DSN` secret.
-2. `npm install @sentry/electron --workspace @nomadic/desktop`.
-3. Main process, first lines of `apps/desktop/src/main/index.ts`:
-   ```ts
-   import * as Sentry from '@sentry/electron/main';
-   if (settings.telemetryOptIn && process.env.VITE_SENTRY_DSN) {
-     Sentry.init({
-       dsn: process.env.VITE_SENTRY_DSN,
-       release: `nomadic@${app.getVersion()}`,
-       sendDefaultPii: false,
-       beforeSend: scrubEvent,
-     });
-   }
-   ```
-4. Renderer entry (`apps/desktop/src/renderer/main.tsx`):
-   ```ts
-   import * as Sentry from '@sentry/electron/renderer';
-   import { init as reactInit } from '@sentry/react';
-   Sentry.init({ sendDefaultPii: false }, reactInit);
-   ```
-5. `scrubEvent` must drop request bodies, breadcrumbs with form values, resume text, emails and
-   file paths under the user's home directory. Never send profile fields or AI prompts.
-6. Upload source maps in `release.yml` after the build with `@sentry/cli sourcemaps upload`
-   (`SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` secrets).
-7. Add a Settings toggle: "Send anonymous crash reports" (default off), stored in local settings, and
-   mention it in the privacy section of the website.
+- `SENTRY_DSN` (repository secret) is injected at build time into the main process. A DSN only allows sending
+  events, it is not a credential. Without it the toggle shows "Not available in this build".
+- Main starts only with consent; the renderer SDK starts on the next launch after consent and only forwards to main.
+- Every event goes through `scrubEvent`: no user, request, server name, extra data, input or console breadcrumbs,
+  stack-frame variables, emails, tokens or home-directory paths. `dataCollection` turns off user info, cookies,
+  headers, bodies and query parameters. Turning consent off drops events immediately.
+- Feedback from Help → "Send feedback" goes to Sentry as user feedback (diagnostics attached) when crash reports
+  are on; otherwise it opens an email to support with the diagnostics.
+- Still to do: upload source maps in `release.yml` with `@sentry/cli` (`SENTRY_AUTH_TOKEN`, `SENTRY_ORG`,
+  `SENTRY_PROJECT`), and describe crash reports in the website's privacy section.
 
 Anonymous apply-success telemetry (REVAMP_PLAN 5) should go through the same opt-in flag and only
 send counts (filled / needs-user / failed per ATS), never field values.
