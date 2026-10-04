@@ -4,6 +4,7 @@
  *
  *   scrape run   [--sources a,b] [--tiers 1,2] [--include-tier3] [--publish]
  *                [--no-link-check] [--limit-per-source N] [--json report.json] [--fail-on-alert]
+ *                [--region india|all]   (default india, or SCRAPER_REGION)
  *   scrape bench [--sources a,b] [--include-tier3] [--out results/baseline.md]
  *   scrape runs  [--limit 20] [--source greenhouse]
  *   scrape sources
@@ -16,6 +17,7 @@ import { fileURLToPath } from 'url';
 import { parseArgs } from 'util';
 import { createClient } from '@supabase/supabase-js';
 import { formatBenchMarkdown, formatRunTable } from './pipeline/report.js';
+import { parseRegion } from './pipeline/region.js';
 import { runPipeline } from './pipeline/run.js';
 import { SupabaseJobStore, getRecentScrapeRuns } from './pipeline/store.js';
 import { SOURCES, selectSources, type Tier } from './sources/registry.js';
@@ -65,6 +67,7 @@ async function main(argv: string[]): Promise<number> {
       publish: { type: 'boolean', default: false },
       'no-link-check': { type: 'boolean', default: false },
       'limit-per-source': { type: 'string' },
+      region: { type: 'string' },
       json: { type: 'string' },
       out: { type: 'string' },
       'fail-on-alert': { type: 'boolean', default: false },
@@ -116,11 +119,12 @@ async function main(argv: string[]): Promise<number> {
 
   const isBench = command === 'bench';
   const publish = !isBench && values.publish;
+  const region = parseRegion(values.region ?? process.env.SCRAPER_REGION);
   const client = publish ? serviceClientFromEnv() : undefined;
   const store = client ? new SupabaseJobStore(client) : undefined;
 
   console.log(
-    `[scrape ${command}] sources: ${sources.map((s) => `${s.id}(t${s.tier})`).join(', ')}${publish ? ' — publishing' : ' — dry run'}`
+    `[scrape ${command}] sources: ${sources.map((s) => `${s.id}(t${s.tier})`).join(', ')}${publish ? ' — publishing' : ' — dry run'} — region ${region}`
   );
 
   const report = await runPipeline({
@@ -130,13 +134,14 @@ async function main(argv: string[]): Promise<number> {
     linkCheck: isBench ? true : !values['no-link-check'],
     checkOfficialLinks: isBench,
     limitPerSource: values['limit-per-source'] ? Number(values['limit-per-source']) : undefined,
+    region,
     log: (message) => console.log(message),
   });
 
   console.log('\n' + formatRunTable(report));
   const t = report.totals;
   console.log(
-    `\nunique live jobs: ${t.unique} | duplicates: ${t.duplicates} | failed links: ${t.linkFailed} | upserted: ${t.upserted} | expired: ${t.expired} | legacy rows expired: ${t.legacyExpired}`
+    `\nunique live jobs: ${t.unique} | outside region: ${report.sources.reduce((n, s) => n + s.outOfRegion, 0)} | duplicates: ${t.duplicates} | failed links: ${t.linkFailed} | upserted: ${t.upserted} | expired: ${t.expired} | legacy rows expired: ${t.legacyExpired}`
   );
   if (client) {
     // Expire jobs no source has listed for 14 days; delete rows expired for 30 days.

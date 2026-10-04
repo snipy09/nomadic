@@ -6,6 +6,7 @@ import { classifyRoleFamily, classifySeniority, refineEmploymentType } from './c
 import { dedupeJobs } from './dedupe.js';
 import { isFailedLink, validateLinks } from './link-validate.js';
 import { canonicalizeUrl, dedupeKeyFor } from './normalize.js';
+import { isIndiaEligible, type Region } from './region.js';
 import { scoreJob } from './score.js';
 import { toJobRow, type JobStore, type ScrapeRunRow } from './store.js';
 
@@ -26,6 +27,8 @@ export interface SourceStats {
   valid: number;
   invalid: number;
   invalidSamples: string[];
+  /** Valid jobs dropped by the region filter (e.g. US-only roles when region is india). */
+  outOfRegion: number;
   duplicates: number;
   linkOk: number;
   linkFailed: number;
@@ -73,6 +76,8 @@ export interface PipelineOptions {
   sourceTimeoutMs?: number;
   /** Max jobs kept per source after validation (0 = unlimited). */
   limitPerSource?: number;
+  /** 'india' keeps only jobs open to candidates in India (see region.ts). Default 'all'. */
+  region?: Region;
   now?: () => Date;
   log?: (message: string) => void;
 }
@@ -117,6 +122,7 @@ function emptyStats(source: SourceDefinition): SourceStats {
     valid: 0,
     invalid: 0,
     invalidSamples: [],
+    outOfRegion: 0,
     duplicates: 0,
     linkOk: 0,
     linkFailed: 0,
@@ -171,6 +177,10 @@ export async function runPipeline(options: PipelineOptions = {}): Promise<Pipeli
             continue;
           }
           const job = parsed.job;
+          if (options.region === 'india' && !source.indiaOnly && !isIndiaEligible(job)) {
+            stats.outOfRegion++;
+            continue;
+          }
           const seniority = classifySeniority(job.title, job.employmentType);
           valid.push({
             ...job,
@@ -197,7 +207,7 @@ export async function runPipeline(options: PipelineOptions = {}): Promise<Pipeli
       if (stats.invalid > 0)
         log(`[${source.id}] dropped ${stats.invalid} invalid record(s): ${stats.invalidSamples[0]}`);
       log(
-        `[${source.id}] fetched=${stats.fetched} valid=${stats.valid}${stats.error ? ` error=${stats.error}` : ''} (${stats.durationMs}ms)`
+        `[${source.id}] fetched=${stats.fetched} valid=${stats.valid}${stats.outOfRegion ? ` outside-region=${stats.outOfRegion}` : ''}${stats.error ? ` error=${stats.error}` : ''} (${stats.durationMs}ms)`
       );
       return valid;
     })

@@ -58,3 +58,4 @@ coverage/
 # Workspaces install from the root lockfile only; nested lockfiles go stale.
 apps/*/package-lock.json
 packages/*/package-lock.json
+scrape-output/
