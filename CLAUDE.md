@@ -258,7 +258,10 @@ Assistant still call AI directly); OS notification for due follow-ups (today an 
 - Apply review: answers the user types are remembered in local SQLite `cached_form_answers` (fingerprint `q_<16 hex>`
   and label keys; `services/form-answers.ts`; matched in `packages/form-engine/src/answerer.ts` `lookupUserAnswer`).
   Messages such as "* Please try again." in the review list come from the portal's own page, not from Nomadic.
-- Next most useful work: owner actions in section 7 (consent screen, Resend domain, key rotation),
+- **In progress: Learn v2** (owner approved "make it", 4 Oct 2026). Plan: `docs/LEARN_V2_PLAN.md`; handoff with the
+  final engine design, build order and git cautions: `docs/LEARN_V2_HANDOFF.md`. Done so far: the v2 zod model
+  `packages/learning/src/v2/types.ts` only. Continue from "Build order" step 1 in the handoff.
+- Next most useful work after Learn v2: owner actions in section 7 (consent screen, Resend domain, key rotation),
   then a live end-to-end pass (Google sign-in, reviewed submit, AI feedback), then the code follow-ups in section 7.
 
 ## 10. Build, package, test and deploy
