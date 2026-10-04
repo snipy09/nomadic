@@ -31,7 +31,8 @@ export function PracticeView({ currentUser, onOpenUpgrade, onLog }: PracticeView
 
   const plan = getPlan(normalizeTier(currentUser?.tier || currentUser?.subscription_tier));
   const dailyLimit = plan.limits.practicePerDay;
-  const companyLocked = !plan.limits.companyQuestionSets;
+  // The main process strips company data unless the server-reported plan includes it.
+  const companyLocked = !plan.limits.companyQuestionSets || data.catalog?.companyLocked === true;
   const effective = useMemo(() => (companyLocked && filters.company ? { ...filters, company: '' } : filters), [filters, companyLocked]);
 
   useEffect(() => { setShown(PAGE); }, [filters]);

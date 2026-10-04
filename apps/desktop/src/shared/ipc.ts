@@ -459,8 +459,13 @@ export interface PracticeEntry {
 export interface PracticeCatalog {
   version: string;
   entries: PracticeEntry[];
-  /** Companies in the company sets dataset, by name. */
+  /** Companies in the company sets dataset, by name. Empty when `companyLocked`. */
   companies: Array<{ name: string; problemCount: number }>;
+  /**
+   * True when the signed-in plan (from the server) does not include company question sets: the main
+   * process then removes every company name and frequency before the catalog reaches the renderer.
+   */
+  companyLocked?: boolean;
 }
 
 export type PracticeCatalogResult = { success: true; catalog: PracticeCatalog } | { success: false; error: string };

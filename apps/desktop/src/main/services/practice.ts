@@ -1,11 +1,14 @@
 import { attemptToEvent, attemptsFromEvents, type LearningEventInput, type PracticeAttempt } from '@job-automator/learning';
 import type {
+  PracticeCatalog,
   PracticeCatalogResult,
   PracticeRecordResult,
   PracticeStateResult,
 } from '../../shared/ipc.js';
+import { getPlan } from '@nomadic/config';
 import { getDb, persistDb } from '../db.js';
 import { errorMessage, log } from './app-context.js';
+import { getEntitlements } from './entitlements.js';
 import { loadPracticeCatalog } from './practice-catalog.js';
 import { listAttempts, saveAttempt } from './practice-store.js';
 import { getActiveSyncSession } from './session.js';
@@ -69,9 +72,26 @@ function trackEvents(rows: PulledEvent[]): void {
   }
 }
 
+/** The catalog without company names or frequencies (problems stay: they are public LeetCode links). */
+export function lockCompanySets(catalog: PracticeCatalog): PracticeCatalog {
+  return {
+    ...catalog,
+    companies: [],
+    companyLocked: true,
+    entries: catalog.entries.map((e) => (e.companies.length ? { ...e, companies: [] } : e)),
+  };
+}
+
+/** Company sets only for plans that include them, as reported by the server; signed out or offline = locked. */
+async function companySetsAllowed(): Promise<boolean> {
+  const res = await getEntitlements();
+  return res.success && res.entitlements.accountStatus === 'active' && getPlan(res.entitlements.plan).limits.companyQuestionSets;
+}
+
 export async function getPracticeCatalog(): Promise<PracticeCatalogResult> {
   try {
-    return { success: true, catalog: await loadPracticeCatalog() };
+    const [catalog, allowed] = await Promise.all([loadPracticeCatalog(), companySetsAllowed()]);
+    return { success: true, catalog: allowed ? catalog : lockCompanySets(catalog) };
   } catch (err) {
     log(`[Practice] Catalog not loaded: ${errorMessage(err)}`);
     return { success: false, error: errorMessage(err) };
