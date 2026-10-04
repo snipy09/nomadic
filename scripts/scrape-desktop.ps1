@@ -1,12 +1,18 @@
-# Scrapes jobs and publishes them to Supabase from this computer (Windows), with a per-run summary.
-# Used by the launchers in Desktop\Nomadic-Scraper (docs/SCRAPER_LAPTOP.md). At most -MaxNew jobs that are not
-# in Supabase yet are added per run; jobs already there are refreshed, duplicates of published jobs are skipped.
-#   -SummaryDir  where scrape-<time>.txt, latest-summary.txt and history.csv go
-#   -Quiet       scheduled run: never prompt, never open Notepad
-# Extra arguments go to the scraper CLI (e.g. --sources internshala,lever).
+# Scrapes jobs or hiring contacts and publishes them to Supabase from this computer (Windows), with a per-run
+# summary. Used by the launchers in Desktop\Nomadic-Scraper (docs/SCRAPER_LAPTOP.md).
+#   -Mode jobs      at most -MaxNew jobs that are not in Supabase yet are added per run; jobs already there are
+#                   refreshed, duplicates of published jobs are skipped (summary: latest-summary.txt)
+#   -Mode contacts  public hiring contacts (recruiters/HR, hiring managers, founders, employees, team inboxes)
+#                   into outreach_contacts (summary: latest-contacts.txt)
+#   -SummaryDir     where the per-run summaries and history go
+#   -DryRun         scrape and report only, write nothing to Supabase (no key needed)
+#   -Quiet          scheduled run: never prompt, never open Notepad
+# Extra arguments go to the scraper CLI (e.g. --sources internshala,lever, or --sources hn,jobs for contacts).
 param(
+  [ValidateSet('jobs', 'contacts')][string]$Mode = 'jobs',
   [string]$SummaryDir = '',
   [int]$MaxNew = 100,
+  [switch]$DryRun,
   [switch]$Quiet,
   [Parameter(ValueFromRemainingArguments = $true)][string[]]$Rest = @()
 )
@@ -31,8 +37,8 @@ $envPath = Join-Path $repo '.env'
 $lines = @()
 if (Test-Path $envPath) { $lines = @(Get-Content $envPath) }
 $hasKey = [bool]($lines | Where-Object { $_ -match '^SUPABASE_SERVICE_ROLE_KEY=(eyJ|sb_secret_)' })
-if (-not $hasKey) {
-  if ($Quiet) { Fail 'SUPABASE_SERVICE_ROLE_KEY is not set in .env. Double-click "Run scraper.cmd" once to enter it.' }
+if (-not $hasKey -and -not $DryRun) {
+  if ($Quiet) { Fail 'SUPABASE_SERVICE_ROLE_KEY is not set in .env. Double-click "Run job scraper.cmd" once to enter it.' }
   Write-Host 'First run: paste the Supabase service_role / secret key.'
   Write-Host '(Supabase dashboard > Project Settings > API keys. It is saved only in this computer''s .env.)'
   $secure = Read-Host -AsSecureString 'Service role key'
@@ -56,14 +62,21 @@ if (-not (Test-Path (Join-Path $repo 'node_modules\tsx'))) {
 }
 
 # ── Run ────────────────────────────────────────────────────────────────────────
-Add-Content -Path $log -Value "[scrape] $(Get-Date -Format s) starting (max new $MaxNew)"
-$cliArgs = @('tsx', 'packages\scrapers\src\cli.ts', 'run', '--publish', '--max-new', "$MaxNew", '--summary-dir', $SummaryDir, '--json', 'scrape-output\report.json') + $Rest
+$publish = @(); if (-not $DryRun) { $publish = @('--publish') }
+if ($Mode -eq 'contacts') {
+  Add-Content -Path $log -Value "[scrape] $(Get-Date -Format s) starting contacts$(if ($DryRun) { ' (dry run)' })"
+  $cliArgs = @('tsx', 'packages\scrapers\src\cli.ts', 'contacts') + $publish + @('--summary-dir', $SummaryDir, '--json', 'scrape-output\contacts-report.json') + $Rest
+  $latest = Join-Path $SummaryDir 'latest-contacts.txt'
+} else {
+  Add-Content -Path $log -Value "[scrape] $(Get-Date -Format s) starting jobs (max new $MaxNew)$(if ($DryRun) { ' (dry run)' })"
+  $cliArgs = @('tsx', 'packages\scrapers\src\cli.ts', 'run') + $publish + @('--max-new', "$MaxNew", '--summary-dir', $SummaryDir, '--json', 'scrape-output\report.json') + $Rest
+  $latest = Join-Path $SummaryDir 'latest-summary.txt'
+}
 $ErrorActionPreference = 'Continue'
 & npx.cmd @cliArgs 2>&1 | ForEach-Object { "$_" } | Tee-Object -FilePath $log -Append
 $rc = $LASTEXITCODE
 Add-Content -Path $log -Value "[scrape] $(Get-Date -Format s) finished with exit code $rc"
 
-$latest = Join-Path $SummaryDir 'latest-summary.txt'
-if ($rc -ne 0) { Add-Content -Path (Join-Path $SummaryDir 'errors.log') -Value "$(Get-Date -Format s) scraper exited with code $rc (see $log)" }
+if ($rc -ne 0) { Add-Content -Path (Join-Path $SummaryDir 'errors.log') -Value "$(Get-Date -Format s) $Mode scraper exited with code $rc (see $log)" }
 elseif ((Test-Path $latest) -and -not $Quiet) { Start-Process notepad.exe $latest }
 exit $rc

@@ -168,7 +168,8 @@ Owner actions:
    --write-seed` and `npm run build-seed` (the build container could not reach leetcode.com or the resource sites,
    so paid-only flags are a hand list and the 26 new resources stay hidden until link-checked), then regenerate and re-paste `baseline/content_seed.sql` and package the next version.
 1. Keep the live `jobs` table fresh (seeded once on 4 Oct 2026 with 328 active India-open jobs, 137 internships): run
-   `Desktop\Nomadic-Scraper\Run scraper.cmd` (`scripts/scrape-desktop.ps1`: `--max-new 100` new jobs per run,
+   `Desktop\Nomadic-Scraper\Run job scraper.cmd` (contacts: `Run contact scraper.cmd` → `outreach_contacts`; sources
+   in `scripts/desktop-scraper/`) (`scripts/scrape-desktop.ps1 -Mode jobs|contacts`: `--max-new 100` new jobs per run,
    duplicates of published jobs skipped, a summary in `reports\` per run; first run asks for the service role key,
    which no `.env` on this laptop had on 4 Oct 2026) or `scripts\scrape-laptop.cmd` (`docs/SCRAPER_LAPTOP.md`) and/or set the GitHub Actions secrets
    (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`). The pipeline keeps only jobs open to candidates in India by default

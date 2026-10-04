@@ -15,11 +15,20 @@ no longer lists are expired, and a row per source goes to `scrape_runs` (Admin â
    the app.
 3. Try a dry run first (nothing is written): `npx tsx packages/scrapers/src/cli.ts run` after `npm ci --ignore-scripts`.
 
-## Desktop launcher (100 new jobs per run, summary after every run)
+## Desktop launchers (jobs and contacts, summary after every run)
 
-`Desktop\Nomadic-Scraper` (next to the `Nomadic` repo folder) holds double-click launchers for
-`scripts\scrape-desktop.ps1`: `Run scraper.cmd`, `Schedule every 6 hours.cmd`, `Remove schedule.cmd`. Each run
-publishes with `--max-new 100`: at most 100 jobs that are not in Supabase yet are added (best score first, the rest
+`Desktop\Nomadic-Scraper` (next to the `Nomadic` repo folder; source copies in `scripts\desktop-scraper\`) holds
+double-click launchers for `scripts\scrape-desktop.ps1`: `Run job scraper.cmd`, `Run contact scraper.cmd`,
+`Schedule every 6 hours.cmd` (runs jobs, then contacts) and `Remove schedule.cmd`. Add `-DryRun` to scrape and report
+without writing to Supabase.
+
+Contacts (`-Mode contacts`, CLI `contacts --publish`): recruiters/HR, hiring managers, founders, employees and team
+inboxes from public pages only (HN "Who is hiring", job pages, company team/contact pages; no LinkedIn scraping, no
+guessed emails, MX-checked) into `outreach_contacts`, which the app's Outreach directory reads. Summaries:
+`latest-contacts.txt` and `contacts-<time>.txt`. Options: `--sources hn,jobs,pages`, `--region all`, `--months N`,
+`--max-pages N`.
+
+Jobs (`-Mode jobs`, the default): each run publishes with `--max-new 100`: at most 100 jobs that are not in Supabase yet are added (best score first, the rest
 next run), jobs already there are refreshed (so expiry works as before), and a job another source already published
 (same company + title + location, or same apply URL) is skipped as a duplicate. The first interactive run asks for
 the service role key (hidden input) and saves it to `.env`. Summaries go to `reports\` (`latest-summary.txt`,
