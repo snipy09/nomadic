@@ -1,8 +1,8 @@
 import React from 'react';
-import { Building2, CalendarDays, StickyNote } from 'lucide-react';
+import { BellRing, Building2, CalendarDays, StickyNote } from 'lucide-react';
 import { Badge, Card, Select, cn } from '@nomadic/ui';
 import type { Application } from '../../types';
-import { MOVE_OPTIONS, formatDate, isUserStatus, modeLabel, stageOf, statusMeta, STAGES } from './applicationsLogic';
+import { MOVE_OPTIONS, followUpLabel, followUpState, formatDate, isUserStatus, modeLabel, stageOf, statusMeta, STAGES } from './applicationsLogic';
 
 export function StatusBadge({ status }: { status: string }) {
   const meta = statusMeta(status);
@@ -28,6 +28,20 @@ export function MoveSelect({ app, onMove, size = 'sm', className }: MoveSelectPr
       options={MOVE_OPTIONS}
       className={className}
     />
+  );
+}
+
+/** Shown when a follow-up date is set and the application is not closed. */
+export function FollowUpBadge({ app }: { app: Application }) {
+  const state = followUpState(app);
+  const label = followUpLabel(app);
+  if (!state || !label) return null;
+  return (
+    <div>
+      <Badge size="sm" tone={state === 'overdue' ? 'danger' : state === 'today' ? 'warning' : 'neutral'}>
+        <BellRing className="mr-1 inline size-3" aria-hidden="true" />{label}
+      </Badge>
+    </div>
   );
 }
 
@@ -61,6 +75,7 @@ export const ApplicationCard = React.memo(function ApplicationCard({ app, onOpen
         <span>{modeLabel(app.mode)}</span>
       </div>
       {meta.label !== stageLabel && <div><StatusBadge status={app.status} /></div>}
+      <FollowUpBadge app={app} />
       <MoveSelect app={app} onMove={onMove} className="w-full" />
     </Card>
   );

@@ -132,6 +132,8 @@ const applicationStatus = z.object({ id, status: z.enum(USER_APPLICATION_STATUSE
 export const applicationStatusArgs: ArgSchemas<'update-application-status'> = [applicationStatus];
 const applicationNotes = z.object({ id, notes: str(APPLICATION_NOTES_MAX) }).passthrough();
 export const applicationNotesArgs: ArgSchemas<'update-application-notes'> = [applicationNotes];
+const applicationFollowUp = z.object({ id, followUpAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable() }).strict();
+export const applicationFollowUpArgs: ArgSchemas<'update-application-follow-up'> = [applicationFollowUp];
 
 const applicationInput = z
   .object({

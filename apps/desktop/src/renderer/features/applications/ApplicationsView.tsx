@@ -1,12 +1,12 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Briefcase, LayoutGrid, List, Plus, RefreshCw, Search, X } from 'lucide-react';
+import { BellRing, Briefcase, LayoutGrid, List, Plus, RefreshCw, Search, X } from 'lucide-react';
 import {
-  Button, EmptyState, IconButton, Input, Select, Skeleton, Tabs, TabsList, TabsTrigger, useToast,
+  Button, Card, EmptyState, IconButton, Input, Select, Skeleton, Tabs, TabsList, TabsTrigger, useToast,
 } from '@nomadic/ui';
 import type { Application } from '../../types';
 import { prefs } from '../../store/preferences';
 import {
-  DEFAULT_FILTERS, STAGES, filterApplications, groupByStage, isFiltered, modeLabel, modesPresent, sortApplications,
+  DEFAULT_FILTERS, STAGES, dueFollowUps, filterApplications, followUpLabel, groupByStage, isFiltered, modeLabel, modesPresent, sortApplications,
   stageCounts, statusLabel, type ApplicationFilters, type SortKey, type StageFilter,
 } from './applicationsLogic';
 import { useApplications } from './useApplications';
@@ -35,6 +35,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({ onBrowseJobs
   const groups = useMemo(() => groupByStage(visible), [visible]);
   const counts = useMemo(() => stageCounts(data.apps), [data.apps]);
   const modes = useMemo(() => modesPresent(data.apps), [data.apps]);
+  const due = useMemo(() => dueFollowUps(data.apps), [data.apps]);
   const opened = openId === null ? null : data.apps.find((a) => a.id === openId) ?? null;
 
   const changeView = (v: ViewMode) => { setView(v); prefs.setApplicationsView(v); };
@@ -49,6 +50,12 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({ onBrowseJobs
   const saveNotes = useCallback(async (app: Application, notes: string) => {
     const ok = await data.saveNotes(app, notes);
     if (ok) toast({ title: 'Notes saved', tone: 'success' });
+    return ok;
+  }, [data, toast]);
+
+  const setFollowUp = useCallback(async (app: Application, followUpAt: string | null) => {
+    const ok = await data.setFollowUp(app, followUpAt);
+    if (!ok) toast({ title: 'Follow-up not saved', description: 'Try again.', tone: 'danger' });
     return ok;
   }, [data, toast]);
 
@@ -132,6 +139,26 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({ onBrowseJobs
         <Button size="sm" leftIcon={<Plus />} onClick={() => setAdding(true)}>Add application</Button>
       </header>
 
+      {due.length > 0 && !data.error && (
+        <Card padding="sm" variant="sunken" role="region" aria-label="Follow-ups due" className="flex flex-col gap-2">
+          <p className="flex items-center gap-2 text-body font-strong text-fg">
+            <BellRing className="size-4" aria-hidden="true" />
+            {due.length === 1 ? '1 follow-up due' : `${due.length} follow-ups due`}
+          </p>
+          <ul className="flex flex-col gap-1">
+            {due.slice(0, 5).map((a) => (
+              <li key={a.id} className="flex flex-wrap items-center gap-2 text-body">
+                <span className="text-fg">{a.title} at {a.company}</span>
+                <span className="text-caption text-fg-subtle">{followUpLabel(a)}</span>
+                <Button size="sm" variant="ghost" className="ml-auto" onClick={() => setOpenId(a.id ?? null)}>Open</Button>
+                <Button size="sm" variant="ghost" onClick={() => void setFollowUp(a, null)} aria-label={`Mark follow-up done for ${a.title} at ${a.company}`}>Done</Button>
+              </li>
+            ))}
+          </ul>
+          {due.length > 5 && <p className="text-caption text-fg-subtle">and {due.length - 5} more</p>}
+        </Card>
+      )}
+
       {data.apps.length > 0 && !data.error && (
         <div className="flex flex-wrap items-center gap-3">
           <Input
@@ -180,6 +207,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({ onBrowseJobs
         onClose={() => setOpenId(null)}
         onMove={(a, s) => void move(a, s)}
         onSaveNotes={saveNotes}
+        onSetFollowUp={setFollowUp}
         onDelete={(a) => void remove(a)}
         onCopied={() => toast({ title: 'Link copied', tone: 'success' })}
       />

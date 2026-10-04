@@ -2,6 +2,7 @@ import { handle } from './handle.js';
 import {
   batchOverridesArgs,
   batchTargetsArgs,
+  applicationFollowUpArgs,
   applicationNotesArgs,
   applicationStatusArgs,
   idArgs,
@@ -19,6 +20,7 @@ import {
   deleteApplication,
   getApplications,
   saveApplication,
+  updateApplicationFollowUp,
   updateApplicationNotes,
   updateApplicationStatus,
 } from '../services/applications.js';
@@ -28,6 +30,7 @@ export function registerApplyIpc(): void {
   handle('get-applications', () => getApplications());
   handle('update-application-status', applicationStatusArgs, (data) => updateApplicationStatus(data));
   handle('update-application-notes', applicationNotesArgs, (data) => updateApplicationNotes(data));
+  handle('update-application-follow-up', applicationFollowUpArgs, (data) => updateApplicationFollowUp(data));
   handle('delete-application', idArgs, (id) => deleteApplication(id));
   handle('save-application', saveApplicationArgs, (app) => saveApplication(app));
   handle('launch-semi-auto', jobUrlsArgs, (jobUrls) => launchSemiAuto(jobUrls));

@@ -171,6 +171,8 @@ export interface ApplicationRecord {
   applied_at: string;
   updated_at: string | null;
   notes: string;
+  /** Follow-up reminder date (YYYY-MM-DD) kept on this computer; null when none. */
+  follow_up_at: string | null;
   history: ApplicationStatusEvent[];
 }
 
@@ -190,6 +192,12 @@ export interface ApplicationInput {
 export interface ApplicationNotesInput {
   id: number | string;
   notes: string;
+}
+
+export interface ApplicationFollowUpInput {
+  id: number | string;
+  /** YYYY-MM-DD, or null to clear. */
+  followUpAt: string | null;
 }
 
 export interface AutonomousApplyResult {
@@ -847,6 +855,7 @@ export interface IpcChannels {
   'get-applications': Channel<[], ApplicationRecord[]>;
   'update-application-status': Channel<[data: IdStatusInput], SuccessResult & { application?: ApplicationRecord }>;
   'update-application-notes': Channel<[data: ApplicationNotesInput], SuccessResult & { application?: ApplicationRecord }>;
+  'update-application-follow-up': Channel<[data: ApplicationFollowUpInput], SuccessResult & { application?: ApplicationRecord }>;
   'delete-application': Channel<[id: number | string], SuccessResult>;
   'save-application': Channel<[app: ApplicationInput], SuccessResult & { id?: number }>;
   'launch-semi-auto': Channel<[jobUrls: string[]], SuccessResult>;
@@ -939,7 +948,7 @@ export const IPC_CHANNELS = [
   'set-default-resume', 'pick-resume-file',
   'run-scrapers', 'get-cloud-feed-page', 'get-cloud-feed', 'get-saved-jobs', 'save-job', 'remove-saved-job',
   'get-hidden-jobs', 'hide-job', 'unhide-job',
-  'get-applications', 'update-application-status', 'update-application-notes', 'delete-application', 'save-application',
+  'get-applications', 'update-application-status', 'update-application-notes', 'update-application-follow-up', 'delete-application', 'save-application',
   'launch-semi-auto', 'launch-autonomous', 'cancel-autonomous-apply', 'start-batch-copilot',
   'submit-all-batch-copilot',
   'get-entitlements', 'start-checkout', 'get-payment-history',
@@ -1045,6 +1054,7 @@ export interface NomadicApi {
 
   updateApplicationStatus: (id: number | string, status: string) => Promise<ChannelResult<'update-application-status'>>;
   updateApplicationNotes: (id: number | string, notes: string) => Promise<ChannelResult<'update-application-notes'>>;
+  updateApplicationFollowUp: (id: number | string, followUpAt: string | null) => Promise<ChannelResult<'update-application-follow-up'>>;
   deleteApplication: Invoke<'delete-application'>;
 
   practiceGetCatalog: Invoke<'practice-get-catalog'>;

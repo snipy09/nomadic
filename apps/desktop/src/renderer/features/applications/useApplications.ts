@@ -10,6 +10,8 @@ export interface ApplicationsData {
   /** Optimistic; rolled back on failure. Resolves false on failure. */
   move: (app: Application, status: string) => Promise<boolean>;
   saveNotes: (app: Application, notes: string) => Promise<boolean>;
+  /** YYYY-MM-DD or null to clear. Optimistic; rolled back on failure. */
+  setFollowUp: (app: Application, followUpAt: string | null) => Promise<boolean>;
   /** Optimistic; rolled back on failure. */
   remove: (app: Application) => Promise<boolean>;
   add: (draft: NewApplicationDraft) => Promise<{ ok: boolean; error?: string }>;
@@ -77,6 +79,22 @@ export function useApplications(): ApplicationsData {
     }
   }, []);
 
+  const setFollowUp = useCallback(async (app: Application, followUpAt: string | null) => {
+    const api = getApi();
+    if (app.id === undefined || !api.updateApplicationFollowUp) return false;
+    const prev = appsRef.current.find((a) => a.id === app.id) ?? app;
+    replace(app.id, { ...prev, follow_up_at: followUpAt });
+    try {
+      const res = await api.updateApplicationFollowUp(app.id, followUpAt);
+      if (!res || res.success === false) throw new Error(res?.error || 'Follow-up not saved.');
+      if (res.application) replace(app.id, res.application);
+      return true;
+    } catch {
+      replace(app.id, prev);
+      return false;
+    }
+  }, []);
+
   const remove = useCallback(async (app: Application) => {
     if (app.id === undefined) return false;
     const snapshot = appsRef.current;
@@ -110,5 +128,5 @@ export function useApplications(): ApplicationsData {
     }
   }, [refresh]);
 
-  return { apps, loading, error, refresh, move, saveNotes, remove, add };
+  return { apps, loading, error, refresh, move, saveNotes, setFollowUp, remove, add };
 }

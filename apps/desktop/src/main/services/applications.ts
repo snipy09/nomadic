@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { syncDeleteApplication, syncPushApplication } from '@job-automator/supabase';
 import {
   MANUAL_APPLICATION_KEY_PREFIX,
+  type ApplicationFollowUpInput,
   type ApplicationInput,
   type ApplicationNotesInput,
   type ApplicationRecord,
@@ -16,6 +17,7 @@ import {
   listApplications,
   recordApplication,
   removeApplication,
+  setApplicationFollowUp,
   setApplicationNotes,
   setApplicationStatus,
   toIso,
@@ -111,6 +113,18 @@ export function updateApplicationNotes(data: ApplicationNotesInput): { success: 
     if (!rec) return { success: false, error: 'Application not found.' };
     persistDb();
     pushToCloud(rec);
+    return { success: true, application: rec };
+  } catch (err) {
+    return { success: false, error: errorMessage(err) };
+  }
+}
+
+/** Local only: follow-up dates are not synced to the account. */
+export function updateApplicationFollowUp(data: ApplicationFollowUpInput): { success: boolean; error?: string; application?: ApplicationRecord } {
+  try {
+    const rec = setApplicationFollowUp(getDb(), data.id, data.followUpAt, now());
+    if (!rec) return { success: false, error: 'Application not found.' };
+    persistDb();
     return { success: true, application: rec };
   } catch (err) {
     return { success: false, error: errorMessage(err) };

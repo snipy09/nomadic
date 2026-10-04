@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { Copy, ExternalLink, Trash2 } from 'lucide-react';
-import { Button, Drawer, DrawerContent, Field, Textarea } from '@nomadic/ui';
+import { Button, Drawer, DrawerContent, Field, Input, Textarea } from '@nomadic/ui';
 import { getApi, type Application } from '../../types';
-import { NOTES_MAX, formatDate, formatDateTime, historyNewestFirst, modeLabel, postingUrl, statusLabel } from './applicationsLogic';
-import { MoveSelect, StatusBadge } from './ApplicationCard';
+import { NOTES_MAX, addDays, formatDate, formatDateTime, historyNewestFirst, localDay, modeLabel, postingUrl, stageOf, statusLabel } from './applicationsLogic';
+import { FollowUpBadge, MoveSelect, StatusBadge } from './ApplicationCard';
 
 interface ApplicationDrawerProps {
   app: Application | null;
   onClose: () => void;
   onMove: (app: Application, status: string) => void;
   onSaveNotes: (app: Application, notes: string) => Promise<boolean>;
+  onSetFollowUp?: (app: Application, followUpAt: string | null) => Promise<boolean>;
   onDelete: (app: Application) => void;
   onCopied: () => void;
 }
@@ -20,7 +21,13 @@ function openExternal(url: string) {
   else window.open(url, '_blank', 'noopener');
 }
 
-export function ApplicationDrawer({ app, onClose, onMove, onSaveNotes, onDelete, onCopied }: ApplicationDrawerProps) {
+export function ApplicationDrawer({ app, onClose, onMove, onSaveNotes, onSetFollowUp, onDelete, onCopied }: ApplicationDrawerProps) {
+  const [followUpError, setFollowUpError] = useState<string | null>(null);
+  const followUp = async (value: string | null) => {
+    if (!app || !onSetFollowUp) return;
+    const ok = await onSetFollowUp(app, value);
+    setFollowUpError(ok ? null : 'The follow-up date was not saved. Try again.');
+  };
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [notesError, setNotesError] = useState<string | null>(null);
@@ -30,6 +37,7 @@ export function ApplicationDrawer({ app, onClose, onMove, onSaveNotes, onDelete,
   useEffect(() => {
     setNotes(app?.notes ?? '');
     setNotesError(null);
+    setFollowUpError(null);
     setConfirmDelete(false);
   }, [app?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -91,6 +99,35 @@ export function ApplicationDrawer({ app, onClose, onMove, onSaveNotes, onDelete,
                 </dd>
               </dl>
             </section>
+
+            {onSetFollowUp && (
+              <section aria-labelledby="app-followup-h" className="flex flex-col gap-2">
+                <h3 id="app-followup-h" className="text-body font-strong text-fg">Follow-up reminder</h3>
+                {stageOf(app.status) === 'closed' ? (
+                  <p className="text-caption text-fg-subtle">Closed applications have no follow-ups.</p>
+                ) : (
+                  <>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Input
+                        type="date"
+                        aria-label="Follow-up date"
+                        value={app.follow_up_at ?? ''}
+                        min={localDay()}
+                        onChange={(e) => void followUp(e.target.value || null)}
+                        wrapperClassName="w-44"
+                      />
+                      <Button size="sm" variant="secondary" onClick={() => void followUp(addDays(localDay(), 3))}>In 3 days</Button>
+                      <Button size="sm" variant="secondary" onClick={() => void followUp(addDays(localDay(), 7))}>In a week</Button>
+                      {app.follow_up_at && <Button size="sm" variant="ghost" onClick={() => void followUp(null)}>Clear</Button>}
+                    </div>
+                    <FollowUpBadge app={app} />
+                    <p className="text-caption text-fg-subtle">
+                      {followUpError ?? 'Shown at the top of the tracker when it is due. Kept on this computer.'}
+                    </p>
+                  </>
+                )}
+              </section>
+            )}
 
             <section aria-labelledby="app-history-h" className="flex flex-col gap-2">
               <h3 id="app-history-h" className="text-body font-strong text-fg">Status history</h3>

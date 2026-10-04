@@ -100,6 +100,45 @@ export function lastActivity(app: Application): number {
   return times.length ? Math.max(...times) : 0;
 }
 
+// ── follow-ups ───────────────────────────────────────────────────────────────
+
+/** Local calendar date as YYYY-MM-DD (follow-ups are whole days in the user's time zone). */
+export function localDay(d: Date = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+/** `days` after `from` (a YYYY-MM-DD), as YYYY-MM-DD. */
+export function addDays(from: string, days: number): string {
+  const [y, m, d] = from.split('-').map(Number);
+  return localDay(new Date(y, m - 1, d + days));
+}
+
+export type FollowUpState = 'overdue' | 'today' | 'upcoming';
+
+/** Closed applications never need a follow-up, whatever date is stored. */
+export function followUpState(app: Pick<Application, 'follow_up_at' | 'status'>, today: string = localDay()): FollowUpState | null {
+  const at = app.follow_up_at;
+  if (!at || stageOf(app.status) === 'closed') return null;
+  return at < today ? 'overdue' : at === today ? 'today' : 'upcoming';
+}
+
+/** Applications whose follow-up is today or earlier, oldest date first. */
+export function dueFollowUps(apps: Application[], today: string = localDay()): Application[] {
+  return apps
+    .filter((a) => { const s = followUpState(a, today); return s === 'overdue' || s === 'today'; })
+    .sort((a, b) => (a.follow_up_at ?? '').localeCompare(b.follow_up_at ?? '') || a.company.localeCompare(b.company));
+}
+
+export function followUpLabel(app: Pick<Application, 'follow_up_at' | 'status'>, today: string = localDay()): string | null {
+  const s = followUpState(app, today);
+  if (!s) return null;
+  if (s === 'today') return 'Follow up today';
+  const [y, m, d] = app.follow_up_at!.split('-').map(Number);
+  const date = new Date(y, m - 1, d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  return s === 'overdue' ? `Follow-up was due ${date}` : `Follow up on ${date}`;
+}
+
 // ── links ────────────────────────────────────────────────────────────────────
 
 /** The posting URL if it is a real http(s) link (manual entries may have none). */

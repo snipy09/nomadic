@@ -112,3 +112,27 @@ describe('updates', () => {
     expect(validateDraft({ ...ok, url: 'https://acme.co/jobs/1' })).toEqual({});
   });
 });
+
+describe('follow-ups', () => {
+  const app = (over: Record<string, unknown>) => ({ id: 1, company: 'A', title: 'T', apply_url: 'u', status: 'applied', mode: 'manual', applied_at: '', ...over }) as any;
+  it('classifies overdue, today and upcoming; closed applications have none', async () => {
+    const { followUpState } = await import('../features/applications/applicationsLogic');
+    expect(followUpState(app({ follow_up_at: '2026-10-01' }), '2026-10-04')).toBe('overdue');
+    expect(followUpState(app({ follow_up_at: '2026-10-04' }), '2026-10-04')).toBe('today');
+    expect(followUpState(app({ follow_up_at: '2026-10-09' }), '2026-10-04')).toBe('upcoming');
+    expect(followUpState(app({ follow_up_at: '2026-10-01', status: 'rejected' }), '2026-10-04')).toBeNull();
+    expect(followUpState(app({}), '2026-10-04')).toBeNull();
+  });
+
+  it('due list is today or earlier, oldest first', async () => {
+    const { dueFollowUps } = await import('../features/applications/applicationsLogic');
+    const list = [app({ id: 1, follow_up_at: '2026-10-04' }), app({ id: 2, follow_up_at: '2026-09-30' }), app({ id: 3, follow_up_at: '2026-10-05' })];
+    expect(dueFollowUps(list, '2026-10-04').map((a) => a.id)).toEqual([2, 1]);
+  });
+
+  it('addDays crosses months and years', async () => {
+    const { addDays } = await import('../features/applications/applicationsLogic');
+    expect(addDays('2026-12-30', 3)).toBe('2027-01-02');
+    expect(addDays('2026-03-01', -1)).toBe('2026-02-28');
+  });
+});

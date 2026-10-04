@@ -80,6 +80,8 @@ export interface Application {
   created_at?: string;
   updated_at?: string | null;
   notes?: string;
+  /** Follow-up reminder date (YYYY-MM-DD), local to this computer. */
+  follow_up_at?: string | null;
   /** Append-only status history, oldest first. */
   history?: ApplicationStatusEvent[];
 }
@@ -237,6 +239,7 @@ export interface ElectronAPI {
     Promise<{ success: boolean; id?: number; error?: string }>;
   updateApplicationStatus: (id: number | string, status: string) => Promise<{ success: boolean; error?: string; application?: Application }>;
   updateApplicationNotes: (id: number | string, notes: string) => Promise<{ success: boolean; error?: string; application?: Application }>;
+  updateApplicationFollowUp?: (id: number | string, followUpAt: string | null) => Promise<{ success: boolean; error?: string; application?: Application }>;
   deleteApplication: (id: number | string) => Promise<{ success: boolean; error?: string }>;
   getSavedJobs: () => Promise<Job[]>;
   saveJob: (job: Job) => Promise<{ success: boolean; error?: string }>;
