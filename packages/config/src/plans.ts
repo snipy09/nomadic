@@ -29,6 +29,15 @@ export interface PlanLimits {
    * questions). Enforced by the AI proxy through migration 020 consume_ai_quota.
    */
   aiFormCallsPerDay: number;
+  /**
+   * AI Learn roadmap generations per day (Asia/Kolkata day). Enforced by the AI proxy
+   * through migration 028 consume_ai_quota; the rules planner is always free.
+   */
+  aiRoadmapPerDay: number;
+  /** AI roadmap adjustments per day. Enforced by the AI proxy (migration 028). */
+  aiRoadmapAdjustPerDay: number;
+  /** Learn projects in progress at once (Infinity = unlimited). Free plans get beginner projects only. */
+  learnProjectsActive: number;
   resumes: number;
 }
 
@@ -70,6 +79,9 @@ export const PLANS: readonly Plan[] = [
       aiFeedback: false,
       aiFeedbackPerDay: 0,
       aiFormCallsPerDay: 10,
+      aiRoadmapPerDay: 2,
+      aiRoadmapAdjustPerDay: 2,
+      learnProjectsActive: 1,
       resumes: 1,
     },
   },
@@ -96,6 +108,9 @@ export const PLANS: readonly Plan[] = [
       aiFeedback: true,
       aiFeedbackPerDay: 30,
       aiFormCallsPerDay: 40,
+      aiRoadmapPerDay: 10,
+      aiRoadmapAdjustPerDay: 15,
+      learnProjectsActive: 3,
       resumes: 5,
     },
   },
@@ -121,6 +136,9 @@ export const PLANS: readonly Plan[] = [
       aiFeedback: true,
       aiFeedbackPerDay: 100,
       aiFormCallsPerDay: 300,
+      aiRoadmapPerDay: 20,
+      aiRoadmapAdjustPerDay: 40,
+      learnProjectsActive: Infinity,
       resumes: Infinity,
     },
   },
@@ -169,17 +187,19 @@ export function planLimitsSqlRows(): string[] {
 }
 
 /**
- * The rows of `public.ai_limits()` in migration 020, rendered from PLANS.
- * Column order: (plan, ai_feedback, ai_feedback_per_day, ai_form_calls_per_day).
+ * The rows of `public.ai_limits()` (migration 028, which replaced 020's), rendered from PLANS.
+ * Column order: (plan, ai_feedback, ai_feedback_per_day, ai_form_calls_per_day,
+ * ai_roadmap_per_day, ai_roadmap_adjust_per_day).
  * AI limits are always finite (every call costs the operator money).
  */
 export function aiLimitsSqlRows(): string[] {
   return PLANS.map((p, i) => {
     const l = p.limits;
-    if (!Number.isFinite(l.aiFeedbackPerDay) || !Number.isFinite(l.aiFormCallsPerDay)) {
+    const nums = [l.aiFeedbackPerDay, l.aiFormCallsPerDay, l.aiRoadmapPerDay, l.aiRoadmapAdjustPerDay];
+    if (!nums.every(Number.isFinite)) {
       throw new Error(`AI limits must be finite (plan ${p.id})`);
     }
-    const row = `('${p.id}', ${l.aiFeedback ? 'TRUE' : 'FALSE'}, ${l.aiFeedbackPerDay}, ${l.aiFormCallsPerDay})`;
+    const row = `('${p.id}', ${l.aiFeedback ? 'TRUE' : 'FALSE'}, ${nums.join(', ')})`;
     return i < PLANS.length - 1 ? `${row},` : row;
   });
 }

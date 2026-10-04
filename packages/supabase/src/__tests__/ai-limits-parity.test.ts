@@ -25,9 +25,16 @@ describe('SQL AI limits mirror packages/config', () => {
 
   it('every plan matches field by field', () => {
     const rows = sqlRows().map((line) => {
-      const m = line.match(/^\('(\w+)',\s*(TRUE|FALSE),\s*(\d+),\s*(\d+)\),?$/);
+      const m = line.match(/^\('(\w+)',\s*(TRUE|FALSE),\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+)\),?$/);
       if (!m) throw new Error(`unparseable ai_limits row: ${line}`);
-      return { plan: m[1], aiFeedback: m[2] === 'TRUE', aiFeedbackPerDay: Number(m[3]), aiFormCallsPerDay: Number(m[4]) };
+      return {
+        plan: m[1],
+        aiFeedback: m[2] === 'TRUE',
+        aiFeedbackPerDay: Number(m[3]),
+        aiFormCallsPerDay: Number(m[4]),
+        aiRoadmapPerDay: Number(m[5]),
+        aiRoadmapAdjustPerDay: Number(m[6]),
+      };
     });
     expect(rows.map((r) => r.plan)).toEqual(PLANS.map((p) => p.id));
     for (const plan of PLANS) {
@@ -35,8 +42,25 @@ describe('SQL AI limits mirror packages/config', () => {
         aiFeedback: plan.limits.aiFeedback,
         aiFeedbackPerDay: plan.limits.aiFeedbackPerDay,
         aiFormCallsPerDay: plan.limits.aiFormCallsPerDay,
+        aiRoadmapPerDay: plan.limits.aiRoadmapPerDay,
+        aiRoadmapAdjustPerDay: plan.limits.aiRoadmapAdjustPerDay,
       });
     }
+  });
+
+  it('Learn v2 limits match the plan table (2/10/20 roadmaps, 2/15/40 adjustments, 1/3/unlimited projects)', () => {
+    expect(PLANS.map((p) => p.limits.aiRoadmapPerDay)).toEqual([2, 10, 20]);
+    expect(PLANS.map((p) => p.limits.aiRoadmapAdjustPerDay)).toEqual([2, 15, 40]);
+    expect(PLANS.map((p) => p.limits.learnProjectsActive)).toEqual([1, 3, Infinity]);
+  });
+
+  it('028 maps the roadmap kinds to their own metrics in consume and refund', () => {
+    const m028 = read('028_learn_v2_ai_limits.sql');
+    expect(m028).toMatch(/'roadmap_plan'\s+THEN 'ai_roadmap'/);
+    expect(m028).toMatch(/'roadmap_adjust'\s+THEN 'ai_roadmap_adjust'/);
+    expect(m028).toContain("'ai_roadmap', 'ai_roadmap_adjust'");
+    expect(m028).toMatch(/GRANT EXECUTE ON FUNCTION public\.ai_limits\(TEXT\) TO service_role;/);
+    expect(m028).not.toMatch(/TO (anon|authenticated)/);
   });
 
   it('plans without AI feedback have no feedback allowance', () => {

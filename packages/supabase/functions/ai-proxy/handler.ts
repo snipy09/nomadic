@@ -19,9 +19,8 @@ import {
   checkOutput,
   parseProxyRequest,
   type AiKind,
-  type FormResult,
   type ProxyErrorCode,
-  type RubricResult,
+  type ProxyResult,
 } from './core.ts';
 import { ProviderError, keyKind, type AiProvider } from './providers.ts';
 
@@ -61,7 +60,7 @@ export interface ProxyQuota {
 }
 
 export type ProxyResponseBody =
-  | { ok: true; kind: AiKind; result: RubricResult | FormResult; quota: ProxyQuota; model: string }
+  | { ok: true; kind: AiKind; result: ProxyResult; quota: ProxyQuota; model: string }
   | { ok: false; error: ProxyErrorCode; message: string; quota?: ProxyQuota };
 
 export interface ProxyResponse {
