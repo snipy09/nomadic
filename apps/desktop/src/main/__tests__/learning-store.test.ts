@@ -1,4 +1,7 @@
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+// ipc/handle imports electron; CI installs without the Electron binary.
+vi.mock('electron', () => ({ ipcMain: { handle: vi.fn() } }));
 import initSqlJs, { type Database } from 'sql.js';
 import {
   LOCAL_USER,
