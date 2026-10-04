@@ -240,9 +240,8 @@ Assistant still call AI directly); OS notification for due follow-ups (today an 
   `create_deployment`, or POST the same body to `https://api.vercel.com/v13/deployments?forceNew=1` with the Vercel
   CLI token (never print it). Poll until READY (~1 min). Smoke test: `/`, `/download`, `/terms`, `/privacy` → 200,
   unknown path → 404, `/sitemap.xml` and `/robots.txt` served.
-- Known leftovers: `apps/web/public/Nomadic-Setup-1.0.0.exe` (92 MB) is tracked and publicly reachable;
-  `public/install.ps1` points at dead JobMaxxer URLs; `public/logo.png` is old-brand art; the root README still
-  describes the old closed-alpha model. Flag these; do not delete unasked.
+- Leftovers cleaned 4 Oct 2026 (old installer, `install.ps1`, old `logo.png` removed). The 92 MB installer is still
+  in git history (`docs/SECURITY_CLEANUP.md` has the rewrite steps). Flag new leftovers; do not delete unasked.
 
 ## 11. Working with the owner
 
