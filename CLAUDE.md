@@ -93,8 +93,10 @@ Key flows:
 - **Supabase project `nomadic`**: ref `grqkiddfwoyicktpgdea`, region ap-south-1 (Mumbai), free plan, org "Nomadic".
   URL `https://grqkiddfwoyicktpgdea.supabase.co`. The anon key is public by design and is the build default in
   `apps/desktop/build-main.mjs`, scrapers and web. The service-role key is never in the app or repo.
-- **Applied migrations**: 001–012, 014–022 (013 does not exist). Security advisor: no errors; remaining notices are
-  by design (deny-all tables; session-checked SECURITY DEFINER RPCs callable by anon).
+- **Applied migrations**: 001–012, 014–022 (013 does not exist). **Not yet applied: 023** (payments never downgrade
+  an active Max; paste `baseline/apply_023.sql`) and **024** (payment history RPC; `baseline/apply_024.sql`), both
+  rehearsed on PostgreSQL 16. Security advisor: no errors; remaining notices are by design (deny-all tables;
+  session-checked SECURITY DEFINER RPCs callable by anon).
 - **Learn content seeded** from the bundle (checksums verified).
 - **Edge Functions deployed** (JWT verification on): `google-sign-in`, `send-email-code`, `ai-proxy`.
   `razorpay-webhook` exists in the repo but is not deployed yet.
@@ -127,14 +129,15 @@ and quotas, F10 data safety, F11 updates/telemetry/help, F12 admin, F14 landing 
 F13 (Outreach, Opportunity Board, Resource Vault, Assistant) stays hidden; Outreach and the Assistant still call AI
 directly and need rework or removal.
 
-Tests: ~1,030 vitest tests pass; desktop and web typecheck and build. **The app has not yet been run end to end
+Tests: ~1,080 vitest tests pass; typecheck, lint (0 errors) and desktop/web builds pass. **The app has not yet been run end to end
 as a real Electron app, and the Edge Functions have not been called live.**
 
 ## 7. What is left
 
 Owner actions:
-1. Update the GitHub Actions secrets (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) to the new project and run the
-   scraper: the live `jobs` table is empty, so the feed is empty.
+1. Fill the live `jobs` table (empty, so the feed is empty): run `scripts\scrape-laptop.cmd` on a laptop
+   (`docs/SCRAPER_LAPTOP.md`) and/or set the GitHub Actions secrets (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`).
+   The pipeline keeps only jobs open to candidates in India by default (`--region all` to keep everything).
 2. Create the admin account (SQL in `docs/DATABASE_SETUP.md`).
 3. Run the app (`npm run dev:desktop`) and test: sign-up, onboarding → roadmap, lesson, feed, apply with review,
    tracker, password reset, AI feedback.
@@ -147,11 +150,18 @@ Owner actions:
 9. After testing, turn on `require_login_ticket`.
 10. Review and publish Learn content (all drafts; 69 lessons have no resource yet); run the link checker.
 11. Rotate the Resend and Gemini keys (they were shared in a chat) and update Vault.
+12. Apply migrations 023 and 024 (paste files in `packages/supabase/baseline/`).
+13. Add the `GOOGLE_OAUTH_CLIENT_ID/SECRET` repository secrets (release.yml passes them to the build).
 
-Code follow-ups: hide-job backend; skill tagging in the scraper pipeline; feed match on Learn mastery; tracker
-reminders; resume parsing/versions; multi-step form edits and mid-form cancel in apply; server-side gating of
-company question sets; invoices; prevent a lower-amount payment from downgrading Max; event sync beyond learning;
-F13 decisions; a pre-existing type error in `packages/automation/src/__tests__/review-submit.test.ts`.
+Done in October 2026: hide job ("Not interested", local migration 5), tracker follow-up reminders (local
+migration 6), feed match uses Learn mastery, mid-form cancel in apply (AbortSignal closes the tab), company question
+sets gated in main by the server plan, payment history with receipts (024), no Max downgrade on payment (023),
+India region filter + laptop runner for the scraper, CI green.
+
+Code follow-ups: resume parsing/versions; multi-step form edits in apply; sync hidden jobs and follow-up dates to
+the account (both local only today); GST tax invoices (need a GSTIN; today receipts only); skill tagging in the
+scraper pipeline (the app tags at runtime, so optional); event sync beyond learning; F13 decisions (Outreach and the
+Assistant still call AI directly); OS notification for due follow-ups (today an in-app list).
 
 ## 8. Conventions
 
