@@ -83,3 +83,13 @@ describe('SQL payment prices mirror packages/config', () => {
     expect(webhook).toContain(`payment.amount >= ${price('max') * 100}`);
   });
 });
+
+describe('024 billing_list_payments', () => {
+  const sql = read('024_billing_history.sql');
+  it('is session-checked, returns no gateway payload, and is granted to anon', () => {
+    expect(sql).toMatch(/IF NOT public\.billing_session_ok\(p_user_id, p_session_token, p_device_fingerprint\) THEN/);
+    expect(sql).not.toMatch(/raw_payload/);
+    expect(sql).toMatch(/SECURITY DEFINER SET search_path = public, extensions/);
+    expect(sql).toMatch(/GRANT EXECUTE ON FUNCTION public\.billing_list_payments\(UUID, TEXT, TEXT\) TO anon, authenticated, service_role;/);
+  });
+});

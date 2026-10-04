@@ -305,6 +305,19 @@ export type EntitlementsResult =
   | { success: true; entitlements: Entitlements }
   | { success: false; code: EntitlementsErrorCode; error: string };
 
+/** One captured payment from the server (migration 024), newest first. */
+export interface PaymentRecord {
+  paymentId: string;
+  plan: Exclude<BillingPlanId, 'free'> | 'lifetime';
+  amountInr: number | null;
+  status: 'captured' | 'failed' | 'refunded';
+  paidAt: string | null;
+}
+
+export type PaymentHistoryResult =
+  | { success: true; payments: PaymentRecord[] }
+  | { success: false; code: EntitlementsErrorCode; error: string };
+
 export interface CheckoutResult extends SuccessResult {
   /** No checkout page is configured in this build; the dialog offers the manual route. */
   notConfigured?: boolean;
@@ -848,6 +861,7 @@ export interface IpcChannels {
   'get-entitlements': Channel<[options?: { fresh?: boolean }], EntitlementsResult>;
   /** Opens the Razorpay checkout page for a paid plan in the browser. */
   'start-checkout': Channel<[plan: Exclude<BillingPlanId, 'free'>], CheckoutResult>;
+  'get-payment-history': Channel<[], PaymentHistoryResult>;
 
   // outreach
   'verify-email': Channel<[email: string], EmailVerification>;
@@ -928,7 +942,7 @@ export const IPC_CHANNELS = [
   'get-applications', 'update-application-status', 'update-application-notes', 'delete-application', 'save-application',
   'launch-semi-auto', 'launch-autonomous', 'cancel-autonomous-apply', 'start-batch-copilot',
   'submit-all-batch-copilot',
-  'get-entitlements', 'start-checkout',
+  'get-entitlements', 'start-checkout', 'get-payment-history',
   'verify-email', 'get-hr-contacts', 'send-outreach', 'generate-ai-outreach-email',
   'ask-nomadic-assistant',
   'learning-get-state', 'learning-save-goal', 'learning-record-events', 'learning-sync',
@@ -982,6 +996,7 @@ export interface NomadicApi {
   submitAllBatchCoPilot: Invoke<'submit-all-batch-copilot'>;
   getEntitlements: Invoke<'get-entitlements'>;
   startCheckout: Invoke<'start-checkout'>;
+  getPaymentHistory: Invoke<'get-payment-history'>;
   verifyEmail: Invoke<'verify-email'>;
   getHrContacts: Invoke<'get-hr-contacts'>;
   sendOutreach: Invoke<'send-outreach'>;

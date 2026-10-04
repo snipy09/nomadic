@@ -37,6 +37,7 @@ const apiObj: NomadicApi = {
   submitAllBatchCoPilot: (overrides, ids) => invoke('submit-all-batch-copilot', overrides, ids),
   getEntitlements: (options) => invoke('get-entitlements', options),
   startCheckout: (plan) => invoke('start-checkout', plan),
+  getPaymentHistory: () => invoke('get-payment-history'),
   verifyEmail: (email) => invoke('verify-email', email),
   getHrContacts: (targetRole) => invoke('get-hr-contacts', targetRole),
   sendOutreach: (contacts) => invoke('send-outreach', contacts),

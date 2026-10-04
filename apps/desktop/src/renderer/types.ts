@@ -217,6 +217,7 @@ export interface ElectronAPI {
   getEntitlements?: (options?: { fresh?: boolean }) => Promise<EntitlementsResult>;
   /** Opens Razorpay checkout for a paid plan in the browser. */
   startCheckout?: (plan: 'pro' | 'max') => Promise<CheckoutResult>;
+  getPaymentHistory?: NomadicApi['getPaymentHistory'];
   verifyEmail: (email: string) => Promise<{ isValid: boolean; stageFailed?: number; reason?: string }>;
   getHrContacts: (targetRole?: string) => Promise<{ success: boolean; contacts: OutreachContact[]; error?: string }>;
   sendOutreach: (contacts: Array<{ email: string; name?: string; company?: string; role?: string; subject?: string; body?: string }>) =>
