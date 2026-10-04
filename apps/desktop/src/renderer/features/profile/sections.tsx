@@ -216,33 +216,66 @@ const PORTALS = [
   { name: 'Google', note: 'Needed for Google sign-in on some portals', login: 'https://accounts.google.com/', register: 'https://accounts.google.com/signup' },
 ];
 
-const openUrl = (url: string) => {
+type PortalStatus = { tone: 'info' | 'error'; text: string } | null;
+
+/**
+ * Opens a sign-in page in the same browser window and profile that applications use,
+ * so a sign-in made here is still there when a form is filled.
+ */
+async function openInApplyBrowser(url: string): Promise<PortalStatus> {
   const api = getApi();
+  if (api?.openInApplyBrowser) {
+    const res = await api.openInApplyBrowser(url).catch((err: unknown) => ({ success: false, browser: undefined, error: err instanceof Error ? err.message : String(err) }));
+    if (res.success) return { tone: 'info', text: `Opened in ${res.browser ?? 'your browser'}. Sign in there and tick “Remember me”.` };
+    return { tone: 'error', text: res.error || 'Could not open your browser.' };
+  }
   if (api?.openExternalUrl) void api.openExternalUrl(url);
   else window.open(url, '_blank', 'noopener');
-};
+  return null;
+}
 
-export const PortalsSection: React.FC = () => (
-  <Card>
-    <CardHeader title="Job portal sign-ins" description="Sign in once in Chrome with “Remember me” so applications do not stop at a login page." />
-    <CardContent>
-      <ul className="grid gap-3 sm:grid-cols-2">
-        {PORTALS.map((p) => (
-          <li key={p.name} className="flex flex-col gap-2 rounded-lg border border-line p-3">
-            <div>
-              <div className="text-body font-strong text-fg">{p.name}</div>
-              <div className="text-caption text-fg-subtle">{p.note}</div>
-            </div>
-            <div className="flex gap-2">
-              <Button size="sm" variant="secondary" rightIcon={<ExternalLink />} onClick={() => openUrl(p.login)}>Sign in</Button>
-              <Button size="sm" variant="ghost" onClick={() => openUrl(p.register)}>Register</Button>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </CardContent>
-  </Card>
-);
+export const PortalsSection: React.FC = () => {
+  const [status, setStatus] = useState<PortalStatus>(null);
+  const [opening, setOpening] = useState<string | null>(null);
+
+  const open = async (key: string, url: string) => {
+    setOpening(key);
+    setStatus(null);
+    try {
+      setStatus(await openInApplyBrowser(url));
+    } finally {
+      setOpening(null);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader
+        title="Job portal sign-ins"
+        description="Nomadic fills applications in your own Chrome or Edge, in a separate Nomadic window that keeps its own sign-ins. Sign in there once with “Remember me” so applications do not stop at a login page."
+      />
+      <CardContent>
+        <ul className="grid gap-3 sm:grid-cols-2">
+          {PORTALS.map((p) => (
+            <li key={p.name} className="flex flex-col gap-2 rounded-lg border border-line p-3">
+              <div>
+                <div className="text-body font-strong text-fg">{p.name}</div>
+                <div className="text-caption text-fg-subtle">{p.note}</div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" variant="secondary" rightIcon={<ExternalLink />} disabled={opening !== null} onClick={() => void open(`${p.name}-login`, p.login)}>Sign in</Button>
+                <Button size="sm" variant="ghost" disabled={opening !== null} onClick={() => void open(`${p.name}-register`, p.register)}>Register</Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <p role="status" aria-live="polite" className={`mt-3 text-caption ${status?.tone === 'error' ? 'text-danger' : 'text-fg-muted'}`}>
+          {opening ? 'Opening your browser…' : status?.text ?? ''}
+        </p>
+      </CardContent>
+    </Card>
+  );
+};
 
 export const AccountSection: React.FC<{ user?: AppUser | null; onLogout?: () => void; onRerunOnboarding?: () => void; onOpenUpgrade?: () => void }> = ({ user, onLogout, onRerunOnboarding, onOpenUpgrade }) => (
   <Card>

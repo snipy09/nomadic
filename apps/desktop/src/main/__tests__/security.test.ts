@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('electron', () => ({ shell: { openExternal: vi.fn() }, app: { getPath: () => '/tmp/nomadic-test' } }));
-vi.mock('@job-automator/automation', () => ({ findChromeExecutable: vi.fn(), ensureChromeForTesting: vi.fn() }));
+vi.mock('@job-automator/automation', () => ({ AutoApplyEngine: { openInBrowser: vi.fn() }, findUserBrowser: vi.fn(), ensureUserBrowser: vi.fn() }));
 
 import { buildContentSecurityPolicy, createIpcSenderGuard, isAppUrl } from '../security';
 import { updateChannelArgs } from '../ipc/schemas';

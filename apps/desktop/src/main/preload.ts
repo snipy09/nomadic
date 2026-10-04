@@ -60,6 +60,7 @@ const apiObj: NomadicApi = {
   onHeartbeatStatus: (cb) => subscribe('heartbeat-status', cb),
   onAutoApplyProgress: (cb) => subscribe('auto-apply-progress', cb),
   openExternalUrl: (url) => invoke('open-external-url', url),
+  openInApplyBrowser: (url) => invoke('open-in-apply-browser', url),
 
   // AI Generation Handlers
   askNomadicAssistant: (data) => invoke('ask-nomadic-assistant', data),

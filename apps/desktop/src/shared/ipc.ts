@@ -43,6 +43,11 @@ export interface SuccessResult {
   error?: string;
 }
 
+/** `open-in-apply-browser`: `browser` names the browser the page opened in (e.g. "Google Chrome"). */
+export interface OpenInApplyBrowserResult extends SuccessResult {
+  browser?: string;
+}
+
 /** Raw `master_profile` row (snake_case SQLite columns, secrets included). */
 export type MasterProfileRow = Record<string, unknown>;
 
@@ -832,6 +837,7 @@ export interface IpcChannels {
   'check-dependencies': Channel<[], DependencyStatus>;
   'install-dependencies': Channel<[], SuccessResult>;
   'open-external-url': Channel<[url: string], SuccessResult>;
+  'open-in-apply-browser': Channel<[url: string], OpenInApplyBrowserResult>;
 
   // profile & resumes
   'get-master-profile': Channel<[], MasterProfileRow | null>;
@@ -943,7 +949,7 @@ export type ChannelResult<C extends ChannelName> = IpcChannels[C]['result'];
 
 /** Runtime list of every invoke channel (kept in sync with `IpcChannels` by the type below). */
 export const IPC_CHANNELS = [
-  'check-dependencies', 'install-dependencies', 'open-external-url',
+  'check-dependencies', 'install-dependencies', 'open-external-url', 'open-in-apply-browser',
   'updater-get-status', 'updater-check', 'updater-download', 'updater-install', 'updater-set-channel',
   'get-update-policy', 'whats-new-get', 'whats-new-dismiss', 'telemetry-get', 'telemetry-set', 'send-feedback',
   'get-master-profile', 'save-master-profile', 'get-resumes', 'save-resume', 'delete-resume',
@@ -1045,6 +1051,7 @@ export interface NomadicApi {
   onHeartbeatStatus: Subscribe<'heartbeat-status'>;
   onAutoApplyProgress: Subscribe<'auto-apply-progress'>;
   openExternalUrl: Invoke<'open-external-url'>;
+  openInApplyBrowser: Invoke<'open-in-apply-browser'>;
 
   askNomadicAssistant: Invoke<'ask-nomadic-assistant'>;
   generateAiOutreachEmail: Invoke<'generate-ai-outreach-email'>;

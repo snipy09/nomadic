@@ -10,7 +10,7 @@ if (typeof globalThis.WebSocket === 'undefined') {
   } catch {}
 }
 import { getLocalDbHealth, initLocalDatabase } from './db.js';
-import { AutoApplyEngine, findChromeExecutable } from '@job-automator/automation';
+import { AutoApplyEngine, findUserBrowser } from '@job-automator/automation';
 import { createProxyFormAnswerClient } from './services/ai-proxy.js';
 import { registerAllIpc, setIpcSenderGuard } from './ipc/index.js';
 import { getMainWindow, log } from './services/app-context.js';
@@ -176,13 +176,11 @@ app.whenReady().then(async () => {
   initWhatsNew(currentAppVersion());
   void initUpdates().catch((err: unknown) => log(`[Updates] Init note: ${err instanceof Error ? err.message : String(err)}`));
 
-  // Background verification: check if local Chrome / Edge is present
+  // Applications open in the user's own installed browser (Chrome, Edge or Brave)
   setTimeout(() => {
     try {
-      const browser = findChromeExecutable();
-      if (browser) {
-        log(`[Auto-Setup] Chrome engine active: ${browser} ✓`);
-      }
+      const browser = findUserBrowser();
+      log(browser ? `[Browser] Applications open in ${browser.name} ✓` : '[Browser] No Chrome or Edge found; install one to apply.');
     } catch {}
   }, 1500);
 

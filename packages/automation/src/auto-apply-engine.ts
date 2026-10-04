@@ -6,6 +6,14 @@ import { EventEmitter } from 'events';
 import { injectStealthScripts, handleCloudflareTurnstile } from './stealth-evasion.js';
 import { adapterFor, runPortalAdapter, type PortalId } from './bots/portal-adapter.js';
 import { runFormEngineApply, submitReviewedApplication, toStatusEvent } from './apply-flow.js';
+import {
+  NO_USER_BROWSER_MESSAGE,
+  applyProfileDir,
+  findUserBrowser,
+  isProfileInUseError,
+  userBrowserLaunchOptions,
+  type UserBrowser,
+} from './user-browser.js';
 import { FormEngine, type AnswerLlm, type FillReport, type FormEngineEvent } from '../../form-engine/src/index.js';
 import type { MasterProfile } from '../../form-engine/src/profile.js';
 export type { MasterProfile, ResumeItem } from '../../form-engine/src/profile.js';
@@ -80,123 +88,51 @@ export type ProgressCallback = (event: AutoApplyStatusEvent | string) => void;
 export interface ExternalBrowserSession {
   context: BrowserContext;
   userDataDir: string;
-  isHeadless: boolean;
-  isCDP?: boolean;
+  browser: UserBrowser;
 }
 
 let activeSession: ExternalBrowserSession | null = null;
+let launchingSession: Promise<ExternalBrowserSession> | null = null;
+
+function nomadicDataDir(): string {
+  return path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), 'Nomadic');
+}
 
 /**
- * Option 2: Connects to Personal Google Chrome Profile / Launches Real Chrome
+ * The Nomadic window in the user's own Chrome / Edge / Brave, opened once and reused until the
+ * user closes it. Its profile persists, so portal sign-ins made there carry over to every run.
  */
 async function getOrLaunchExternalSession(): Promise<ExternalBrowserSession> {
-  if (activeSession) {
-    try {
-      activeSession.context.pages();
-      return activeSession;
-    } catch {
-      activeSession = null;
-    }
+  if (activeSession) return activeSession;
+  if (!launchingSession) {
+    launchingSession = launchUserBrowserSession().finally(() => {
+      launchingSession = null;
+    });
   }
+  return launchingSession;
+}
 
-  // 1. Try connecting to active Google Chrome CDP session (if user started Chrome with debug port 9222)
+async function launchUserBrowserSession(): Promise<ExternalBrowserSession> {
+  const browser = findUserBrowser();
+  if (!browser) throw new Error(NO_USER_BROWSER_MESSAGE);
+  const userDataDir = applyProfileDir(nomadicDataDir(), browser.kind);
+  fs.mkdirSync(userDataDir, { recursive: true });
+  let context: BrowserContext;
   try {
-    const cdpBrowser = await chromium.connectOverCDP('http://localhost:9222', { timeout: 1500 });
-    const contexts = cdpBrowser.contexts();
-    const context = contexts.length > 0 ? contexts[0] : await cdpBrowser.newContext();
-    activeSession = {
-      context,
-      userDataDir: 'localhost:9222',
-      isHeadless: false,
-      isCDP: true,
-    };
-    console.log('[Chrome Session] Connected to existing Google Chrome over CDP (Port 9222) ✓');
-    return activeSession;
-  } catch {}
-
-  // 2. Personal Google Chrome User Data Path on Windows
-  const personalChromeUserData = path.join(
-    process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'),
-    'Google',
-    'Chrome',
-    'User Data'
-  );
-
-  const nomadicUserDataDir = path.join(os.homedir(), 'AppData', 'Roaming', 'Nomadic', 'browser_session');
-  try {
-    fs.mkdirSync(nomadicUserDataDir, { recursive: true });
-  } catch {}
-
-  // 3. Attempt to launch native Chrome with Personal Profile (Default)
-  let context: BrowserContext | null = null;
-  const chromeArgs = [
-    '--disable-blink-features=AutomationControlled',
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-infobars',
-    '--window-size=1280,850',
-    '--profile-directory=Default',
-  ];
-
-  if (typeof (chromium as any).launchPersistentContext === 'function') {
-    if (fs.existsSync(personalChromeUserData)) {
-      try {
-        context = await (chromium as any).launchPersistentContext(personalChromeUserData, {
-          headless: false,
-          channel: 'chrome',
-          viewport: { width: 1280, height: 850 },
-          args: chromeArgs,
-          ignoreDefaultArgs: ['--enable-automation'],
-          timeout: 4000,
-        });
-        console.log('[Chrome Session] Attached directly to Personal Google Chrome Profile (User Data\\Default) ✓');
-      } catch {
-        console.log('[Chrome Session] Personal Chrome is currently running; launching persistent Nomadic Chrome session ✓');
-      }
+    context = await chromium.launchPersistentContext(userDataDir, userBrowserLaunchOptions(browser));
+  } catch (err) {
+    if (isProfileInUseError(err)) {
+      throw new Error(`A Nomadic window in ${browser.name} is still open from an earlier run. Close it, then try again.`, { cause: err });
     }
-
-    // 4. Fallback to Persistent Nomadic Chrome Profile (Carries saved logins and cookies across runs)
-    if (!context) {
-      try {
-        context = await (chromium as any).launchPersistentContext(nomadicUserDataDir, {
-          headless: false,
-          channel: 'chrome',
-          viewport: { width: 1280, height: 850 },
-          args: [
-            '--disable-blink-features=AutomationControlled',
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-infobars',
-            '--window-size=1280,850',
-          ],
-          ignoreDefaultArgs: ['--enable-automation'],
-        });
-      } catch {
-        try {
-          context = await (chromium as any).launchPersistentContext(nomadicUserDataDir, {
-            headless: false,
-            viewport: { width: 1280, height: 850 },
-            args: ['--disable-blink-features=AutomationControlled', '--no-sandbox'],
-            ignoreDefaultArgs: ['--enable-automation'],
-          });
-        } catch {}
-      }
-    }
+    throw new Error(`Could not open ${browser.name}: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
   }
-
-  // 5. Standard fallback if launchPersistentContext is not available
-  if (!context) {
-    const browser = await chromium.launch({ headless: false });
-    context = await browser.newContext();
-  }
-
-  activeSession = {
-    context,
-    userDataDir: nomadicUserDataDir,
-    isHeadless: false,
-  };
-
-  return activeSession;
+  const session: ExternalBrowserSession = { context, userDataDir, browser };
+  context.on('close', () => {
+    if (activeSession === session) activeSession = null;
+  });
+  activeSession = session;
+  console.log(`[Browser] Opened ${browser.name} with the Nomadic profile ✓`);
+  return session;
 }
 
 export class AutoApplyEngine {
@@ -291,6 +227,20 @@ export class AutoApplyEngine {
    */
   public static async submitReviewed(handle: ReviewHandle, overrides: Record<string, string> = {}, onProgress?: ProgressCallback): Promise<ApplyResult> {
     return submitReviewedApplication(AutoApplyEngine, handle, overrides, onProgress);
+  }
+
+  /**
+   * Opens a page in the same browser window and profile that applications are filled in (e.g. a
+   * portal sign-in page), so what the user signs in to there is available when applying.
+   */
+  public static async openInBrowser(url: string): Promise<{ browser: string }> {
+    const session = await getOrLaunchExternalSession();
+    // Reuse the empty tab of a window that was just opened; never a tab an application run may own.
+    const pages = session.context.pages();
+    const page = pages.length === 1 && pages[0].url() === 'about:blank' ? pages[0] : await session.context.newPage();
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.bringToFront().catch(() => {});
+    return { browser: session.browser.name };
   }
 
   /**

@@ -1,6 +1,6 @@
 import { handle } from './handle.js';
-import { feedbackArgs, openExternalUrlArgs, telemetrySetArgs, updateChannelArgs } from './schemas.js';
-import { openExternalUrl } from '../services/system.js';
+import { feedbackArgs, openExternalUrlArgs, openInApplyBrowserArgs, telemetrySetArgs, updateChannelArgs } from './schemas.js';
+import { openExternalUrl, openInApplyBrowser } from '../services/system.js';
 import { updates } from '../services/updates-runtime.js';
 import { dismissWhatsNew, getWhatsNew } from '../services/whats-new.js';
 import { getTelemetryState, setTelemetry } from '../services/telemetry-runtime.js';
@@ -9,6 +9,7 @@ import { sendFeedback } from '../services/feedback.js';
 /** External links, updates, what's new, crash-report consent and feedback. */
 export function registerSystemIpc(): void {
   handle('open-external-url', openExternalUrlArgs, (url) => openExternalUrl(url));
+  handle('open-in-apply-browser', openInApplyBrowserArgs, (url) => openInApplyBrowser(url));
   handle('updater-get-status', () => updates.status());
   handle('updater-check', () => updates.check());
   handle('updater-download', () => updates.download());

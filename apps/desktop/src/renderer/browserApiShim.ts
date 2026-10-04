@@ -524,6 +524,15 @@ export function createBrowserApiShim(): ElectronAPI {
       }
     },
 
+    openInApplyBrowser: async (url: string) => {
+      try {
+        window.open(url, '_blank');
+        return { success: true, browser: 'this browser' };
+      } catch (err: any) {
+        return { success: false, error: err?.message };
+      }
+    },
+
     // Auth & Admin Handlers
     // Server-authoritative: preview mode calls the SAME authenticate_user RPC
     // the desktop app uses. No hardcoded admin, no auto-provisioning.

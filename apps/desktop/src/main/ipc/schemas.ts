@@ -48,6 +48,7 @@ const freeRecord = z.record(z.string(), z.unknown());
 
 // ── system / settings ──────────────────────────────────────────────────────
 export const openExternalUrlArgs: ArgSchemas<'open-external-url'> = [url];
+export const openInApplyBrowserArgs: ArgSchemas<'open-in-apply-browser'> = [url.regex(/^https?:\/\//i)];
 export const updateChannelArgs: ArgSchemas<'updater-set-channel'> = [z.enum(['stable', 'beta'])];
 export const telemetrySetArgs: ArgSchemas<'telemetry-set'> = [z.boolean()];
 export const feedbackArgs: ArgSchemas<'send-feedback'> = [

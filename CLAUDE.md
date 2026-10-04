@@ -16,7 +16,8 @@ first jobs. One app covers the whole path:
 3. **Practice**: ~1,800 LeetCode-company problems (external links), role questions, timed mock mode, weak topics,
    AI rubric feedback on written answers (Pro/Max).
 4. **Job board**: jobs collected by the scraper pipeline, skill-based match % and top missing skills, save, filters.
-5. **Apply with review**: fills the real form in the user's Chrome, shows every field with its source and
+5. **Apply with review**: fills the real form in the user's own Chrome/Edge/Brave (a separate persistent Nomadic
+   profile; see section 9), shows every field with its source and
    confidence, the user edits what needs them and ticks "I reviewed this" per application; only then is it
    submitted. **Nothing is ever submitted without review** (product rule, also in the Terms).
 6. **Tracker**: kanban + list of applications, status history, notes, synced.
@@ -205,12 +206,22 @@ Assistant still call AI directly); OS notification for due follow-ups (today an 
 ## 9. Handoff state (4 October 2026)
 
 - Branch `main` (remote github.com/snipy09/nomadic) holds everything; there are no open feature branches to merge.
-  Last commit of the session: "fix(desktop): remember answers typed during apply review; Google button opens terms".
+  Last commit of the session: "feat(apply): fill applications in the user's own browser".
 - Untracked on purpose, never stage: `brag-output*/`, `reel*/`, `showreel/` (local marketing renders) and `.claude/`
   (local assistant settings and `launch.json`; its notes are folded into section 10).
-- Delivered build: `Nomadic-v1.0.9-portable.exe` in `C:\Users\sajal\Downloads` and `Desktop\Nomadic-v1\`
-  (built from `apps/desktop/dist-electron/Nomadic.1.0.9.exe`; fixes the blank window of 1.0.7/1.0.8 via the sandbox
-  fallback; 1.0.8 added hidden-job and follow-up account sync). Bump `apps/desktop/package.json` `version` for the next one.
+- Delivered build: `Nomadic-v1.0.10-portable.exe` in `C:\Users\sajal\Downloads` and `Desktop\Nomadic-v1\`
+  (built from `apps/desktop/dist-electron/Nomadic.1.0.10.exe`; 1.0.10 opens apply in the user's real browser; 1.0.9
+  fixed the blank window of 1.0.7/1.0.8 via the sandbox fallback; 1.0.8 added hidden-job and follow-up account sync).
+  Bump `apps/desktop/package.json` `version` for the next one.
+- Apply browser (`packages/automation/src/user-browser.ts`, v1.0.10): apply opens the user's installed Chrome (else
+  Edge, else Brave; a default of Chrome/Brave wins, Edge as the Windows default does not beat installed Chrome) via
+  Playwright `launchPersistentContext` with `executablePath`, the sandbox on and Playwright's test flags removed
+  (extensions, sync, Safe Browsing and the password manager work; no automation banner; `navigator.webdriver` false).
+  Chrome 136+ refuses automation of the user's main profile, so it uses its own profile `%APPDATA%\Nomadic\browser_session`
+  (`browser_session_edge`/`_brave` for others), kept between runs. Settings → Portal sign-ins opens pages in that same
+  window (IPC `open-in-apply-browser` → `AutoApplyEngine.openInBrowser`), so sign-ins carry into applications. One
+  session per app run; closing the window clears it and the next apply relaunches. Nothing is downloaded (Chrome for
+  Testing / Playwright Chromium are no longer used for apply). `components/DependenciesView.tsx` is dead code (unused).
   App icon (`apps/desktop/assets/icon.ico`, `logo-icon.png`, `logo.png`) is the site mark from `apps/web/public/logo-icon.svg`.
 - Google sign-in: client id/secret are baked into the build from `apps/desktop/.env`; the app opens Google with PKCE
   and a loopback listener on `http://127.0.0.1:42813/callback`; Google accepts the client. If users see "Access

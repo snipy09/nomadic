@@ -250,6 +250,8 @@ export interface ElectronAPI {
   hideJob?: (job: HideJobInput) => Promise<{ success: boolean; error?: string }>;
   unhideJob?: (applyUrl: string) => Promise<{ success: boolean; error?: string }>;
   openExternalUrl: (url: string) => Promise<{ success: boolean; error?: string }>;
+  /** Opens the page in the browser window and profile that applications are filled in. */
+  openInApplyBrowser?: (url: string) => Promise<{ success: boolean; browser?: string; error?: string }>;
 
   // AI Generation & Assistant Handlers
   askNomadicAssistant?: (data: { message: string; history?: Array<{ sender: string; text: string }> }) =>

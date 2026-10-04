@@ -39,11 +39,12 @@ import { runFastLocalNavMatcher } from './fast-nav-matcher.ts';
 import { ATS_FIELD_ALIASES } from './alias-dictionary.ts';
 import {
   findChromeExecutable,
-  ensureChromeForTesting,
+  ensureUserBrowser,
   launchExternalStealthBrowser,
   type BrowserLaunchOptions,
   type BrowserSession,
 } from './chrome-manager.ts';
+import { findUserBrowser, NO_USER_BROWSER_MESSAGE, type UserBrowser, type UserBrowserKind } from './user-browser.ts';
 
 export {
   AutoApplyEngine,
@@ -66,7 +67,11 @@ export {
   BUILTIN_GEMINI_KEYS,
   ATS_FIELD_ALIASES,
   findChromeExecutable,
-  ensureChromeForTesting,
+  ensureUserBrowser,
+  findUserBrowser,
+  NO_USER_BROWSER_MESSAGE,
+  type UserBrowser,
+  type UserBrowserKind,
   launchExternalStealthBrowser,
   capturePageVisionAndDOM,
   executeNomadicFill,
