@@ -4,7 +4,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { migrateApplicationsSchema, migrateFollowUpSchema } from './services/applications-store.js';
 import { migratePracticeSchema } from './services/practice-store.js';
-import { migrateLearningSchema } from './services/learning-store.js';
+import { migrateLearnV2Schema, migrateLearningSchema } from './services/learning-store.js';
 import { migrateHiddenJobsSchema } from './services/hidden-jobs.js';
 import { answerKey, migrateFormAnswersStore } from './services/form-answers.js';
 import { migrateLocalMetaSchema } from './services/local-owner.js';
@@ -309,6 +309,7 @@ export const LOCAL_MIGRATIONS: readonly LocalMigration[] = [
   { version: 6, name: 'application follow-up dates', up: migrateFollowUpSchema },
   { version: 7, name: 'remembered form answers reset', up: migrateFormAnswersStore },
   { version: 8, name: 'local data owner', up: migrateLocalMetaSchema },
+  { version: 9, name: 'learn v2 events and state documents', up: migrateLearnV2Schema },
 ];
 
 /** Flush in-memory DB to disk. Call after every write. */

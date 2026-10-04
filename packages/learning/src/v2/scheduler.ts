@@ -249,9 +249,11 @@ export function packTasks(input: PackInput): PackResult {
         .filter(([, q]) => q.length)
         .map(([s]) => s)
         .filter((s) => dayStreams.size < 2 || dayStreams.has(s))
+        // Deficit against where the plan should stand at the end of this day; larger shares win ties.
         .sort(
           (a, b) =>
-            share(b) * (packedTotal + used) - (packed.get(b) ?? 0) - (share(a) * (packedTotal + used) - (packed.get(a) ?? 0)) ||
+            share(b) * (packedTotal + avail) - (packed.get(b) ?? 0) - (share(a) * (packedTotal + avail) - (packed.get(a) ?? 0)) ||
+            share(b) - share(a) ||
             a.localeCompare(b)
         );
       let placed = false;
@@ -259,7 +261,7 @@ export function packTasks(input: PackInput): PackResult {
         const q = queues.get(s)!;
         const head = q[0];
         const room = avail - used;
-        let minutes = 0;
+        let minutes: number;
         if (used + head.remaining <= avail + OVERRUN_MINUTES) {
           minutes = head.remaining;
           q.shift();
@@ -363,7 +365,7 @@ export function fitRoadmap(
     ...original
       .filter((t) => !kept.has(t.id))
       .map((t) => ({ task_id: t.id, minutes: t.minutes, reason: dropped.has(t.id) ? ('optional' as const) : ('emphasis' as const) })),
-    ...overflow.map((p) => ({ task_id: p.task.id, minutes: p.task.minutes, reason: 'no_time' as const })),
+    ...overflow.map((p) => ({ task_id: p.task.id, minutes: Math.max(1, Math.round(p.remaining / pace)), reason: 'no_time' as const })),
   ];
   const schedule: Schedule = {
     roadmap_id: current.id,
@@ -483,7 +485,7 @@ export function replan(input: {
 
   const left_out: LeftOut[] = [
     ...schedule.left_out.filter((l) => l.reason !== 'no_time'),
-    ...result.overflow.map((p) => ({ task_id: p.task.id, minutes: p.task.minutes, reason: 'no_time' as const })),
+    ...result.overflow.map((p) => ({ task_id: p.task.id, minutes: Math.max(1, Math.round(p.remaining / pace)), reason: 'no_time' as const })),
   ];
   const next: Schedule = {
     ...schedule,

@@ -1,9 +1,16 @@
 import type {
   AutoApplyProgressEvent, BatchOverrides, BatchSnapshot, BatchStartOptions, BatchSubmitResult, BatchTarget, CheckoutResult, EntitlementsResult, NomadicApi,
-  LearningEventInput, LearningEventRecord, LearningGoal, LearningGoalInput, LearningState, LearningSyncResult,
+  LearningEventInput, LearningEventRecord, LearningState, LearningSyncResult,
+  LearnAcceptResult, LearnAdjustProposal, LearnAdjustResult, LearnDraft, LearnGenerateResult, LearnNoteSaveResult,
+  LearnProjectSaveResult, LearnRepoCheckRequest, LearnRepoCheckResult, SuccessResult,
 } from '../shared/ipc';
+import type { IntakeInput, ProblemNote, Roadmap, Schedule, UserProject } from '@job-automator/learning';
 
-export type { LearningEventInput, LearningEventRecord, LearningGoal, LearningGoalInput, LearningState, LearningSyncResult };
+export type {
+  LearningEventInput, LearningEventRecord, LearningState, LearningSyncResult,
+  LearnAcceptResult, LearnAdjustProposal, LearnAdjustResult, LearnDraft, LearnGenerateResult, LearnNoteSaveResult,
+  LearnProjectSaveResult, LearnRepoCheckRequest, LearnRepoCheckResult,
+};
 
 export type WorkspaceMode = 'learner_only' | 'seeker_only' | 'unified';
 export type OpportunityType = 'job' | 'internship' | 'both';
@@ -281,11 +288,17 @@ export interface ElectronAPI {
     body?: string;
     error?: string;
   }>;
-  // Learn: goal and append-only learning events (local SQLite, synced to Supabase)
+  // Learn: append-only learning events and the v2 roadmap documents (local SQLite, synced to Supabase)
   learningGetState: () => Promise<LearningState>;
-  learningSaveGoal: (goal: LearningGoalInput) => Promise<{ success: boolean; goal?: LearningGoal; error?: string }>;
   learningRecordEvents: (events: LearningEventInput[]) => Promise<{ success: boolean; events?: LearningEventRecord[]; error?: string }>;
   learningSync: () => Promise<LearningSyncResult>;
+  learnRoadmapGenerate: (intake: IntakeInput) => Promise<LearnGenerateResult>;
+  learnRoadmapAdjust: (instruction: string) => Promise<LearnAdjustResult>;
+  learnRoadmapAccept: (roadmap: Roadmap, schedule: Schedule) => Promise<LearnAcceptResult>;
+  learnScheduleSave: (schedule: Schedule) => Promise<SuccessResult>;
+  learnProjectSave: (project: UserProject) => Promise<LearnProjectSaveResult>;
+  learnProblemNoteSave: (note: ProblemNote) => Promise<LearnNoteSaveResult>;
+  learnProjectCheckRepo: (req: LearnRepoCheckRequest) => Promise<LearnRepoCheckResult>;
 
   /** Data safety (F10). Absent in browser preview. */
   getDataHealth?: () => Promise<{

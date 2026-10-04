@@ -1,4 +1,14 @@
-import { ElectronAPI, Job, Application, AppUser, DependencyStatus, ResumeRecord, type LearningEventRecord, type LearningGoal } from './types';
+import { ElectronAPI, Job, Application, AppUser, DependencyStatus, ResumeRecord, type LearnDraft, type LearningEventRecord } from './types';
+import {
+  IntakeSchema,
+  fitRoadmap,
+  planRoadmapRules,
+  type ProblemNote,
+  type Roadmap,
+  type Schedule,
+  type UserProject,
+} from '@job-automator/learning';
+import { learnIndex } from './features/learn/catalog';
 
 // In-memory / localStorage simulation for browser preview mode
 export function createBrowserApiShim(): ElectronAPI {
@@ -11,7 +21,14 @@ export function createBrowserApiShim(): ElectronAPI {
     code: 'not_configured',
     error: 'Admin tools are not available in browser preview. Use the desktop app.',
   });
-  const learningMemory: { goal: LearningGoal | null; events: LearningEventRecord[] } = { goal: null, events: [] };
+  const learningMemory: {
+    events: LearningEventRecord[];
+    roadmap: Roadmap | null;
+    schedule: Schedule | null;
+    projects: UserProject[];
+    notes: ProblemNote[];
+    draft: LearnDraft | null;
+  } = { events: [], roadmap: null, schedule: null, projects: [], notes: [], draft: null };
 
   // Read from Vite env at build time. The anon key is safe to expose in the
   // client because RLS (migration 002) restricts it to reading the public job
@@ -399,13 +416,44 @@ export function createBrowserApiShim(): ElectronAPI {
     },
 
     // Learn in browser preview: kept in memory for this tab only (no app data in localStorage).
-    learningGetState: async () => ({ goal: learningMemory.goal, events: [...learningMemory.events], pendingSync: 0 }),
-    learningSaveGoal: async (goal) => {
-      const at = new Date().toISOString();
-      const startedAt = learningMemory.goal?.track_id === goal.track_id ? learningMemory.goal.started_at : at;
-      learningMemory.goal = { ...goal, started_at: startedAt, updated_at: at };
-      return { success: true, goal: learningMemory.goal };
+    learningGetState: async () => ({
+      events: [...learningMemory.events],
+      pendingSync: 0,
+      roadmap: learningMemory.roadmap,
+      schedule: learningMemory.schedule,
+      projects: [...learningMemory.projects],
+      notes: [...learningMemory.notes],
+      draft: learningMemory.draft,
+    }),
+    // Preview: always the rules planner (no AI, no account).
+    learnRoadmapGenerate: async (input) => {
+      const parsed = IntakeSchema.safeParse(input);
+      if (!parsed.success) return { success: false, error: 'The plan details are not valid.' };
+      const at = new Date();
+      const fit = fitRoadmap(planRoadmapRules(parsed.data, learnIndex(), at, { beginnerProjectsOnly: true }), learnIndex(), { now: at });
+      learningMemory.draft = { roadmap: fit.roadmap, schedule: fit.schedule, notice: 'Built with the standard planner: AI roadmaps need the Nomadic desktop app.', created_at: at.toISOString() };
+      return { success: true, draft: learningMemory.draft, quota: null };
     },
+    learnRoadmapAdjust: async () => ({ success: false, error: 'AI roadmap changes need the Nomadic desktop app.', code: 'not_signed_in' }),
+    learnRoadmapAccept: async (roadmap, schedule) => {
+      learningMemory.roadmap = { ...roadmap, accepted_at: roadmap.accepted_at ?? new Date().toISOString() };
+      learningMemory.schedule = schedule;
+      learningMemory.draft = null;
+      return { success: true, roadmap: learningMemory.roadmap, schedule };
+    },
+    learnScheduleSave: async (schedule) => {
+      learningMemory.schedule = schedule;
+      return { success: true };
+    },
+    learnProjectSave: async (project) => {
+      learningMemory.projects = [...learningMemory.projects.filter((p) => p.project_id !== project.project_id), project];
+      return { success: true, projects: [...learningMemory.projects] };
+    },
+    learnProblemNoteSave: async (note) => {
+      learningMemory.notes = [...learningMemory.notes.filter((n) => n.ref !== note.ref), note];
+      return { success: true, notes: [...learningMemory.notes] };
+    },
+    learnProjectCheckRepo: async () => ({ success: false, error: 'The repository check needs the Nomadic desktop app.' }),
     learningRecordEvents: async (events) => {
       const known = new Set(learningMemory.events.map((e) => e.id));
       const added = events.filter((e) => !known.has(e.id)).map((e) => ({ ...e, user_id: 'local' }));

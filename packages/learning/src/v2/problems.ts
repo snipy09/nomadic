@@ -99,7 +99,10 @@ export function companyBoosts(input: {
   companies: string[];
   perCompany?: number;
   perTopic?: number;
+  /** Problem lookup (default: the catalogue's curated problems). Pass the full dataset index to boost beyond them. */
+  problems?: Map<string, ProblemInfo>;
 }): TopicBoost[] {
+  const lookup = input.problems ?? input.index.problems;
   const perCompany = input.perCompany ?? 2;
   const perTopic = input.perTopic ?? 6;
   const names = companyNames(input.dataset);
@@ -133,7 +136,7 @@ export function companyBoosts(input: {
         const slug = slugFromLink(p.link);
         if (!slug || used.has(slug)) continue;
         if (!(p.topics ?? []).some((x) => tags.has(x))) continue;
-        const info = input.index.problems.get(`lc:${slug}`);
+        const info = lookup.get(`lc:${slug}`);
         if (!info || info.paid_only === true) continue;
         used.add(slug);
         picked.push(info);

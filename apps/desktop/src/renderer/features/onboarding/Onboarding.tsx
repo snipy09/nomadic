@@ -13,9 +13,10 @@ import { APP_ANSWERS, readAppAnswers, writeAppAnswers } from '../../../shared/ap
 import { AppAnswerFields } from '../answers/AppAnswerFields';
 import { extractResumeFacts, mergeMissing } from '../answers/resumeFacts';
 import { useAnswerDrafts, useDocumentReader } from '../answers/useAnswerDrafts';
-import { GoalFields, PlanPreview, type GoalDraft } from '../learn/GoalFields';
+import { FeasibilityBar, IntakeFields } from '../learn/IntakeFields';
+import { learnIndex } from '../learn/catalog';
 import { isRoleId, skillIdsFromNames } from '../learn/content';
-import { DEFAULT_HORIZON, DEFAULT_PACE, selfReportedEvents, selfReportedMastery } from '../learn/learnLogic';
+import { defaultIntakeDraft, draftProblem, draftToIntake, feasibilityOf, todayOf, type IntakeDraft } from '../learn/learnModel';
 
 interface OnboardingProps {
   initialProfile: MasterProfile;
@@ -33,7 +34,8 @@ const chipClass = (on: boolean) =>
 
 /**
  * Five short steps from a new account to a usable profile and a learning roadmap.
- * The last step runs the deterministic planner on the role and skills picked earlier.
+ * The last step is a short roadmap intake; finishing builds the roadmap (AI with the standard
+ * planner as fallback) and Learn opens on its review.
  * Nothing is marked complete until every save succeeds.
  */
 export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentUser, onComplete }) => {
@@ -45,8 +47,10 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
   const [skillDraft, setSkillDraft] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [goal, setGoal] = useState<GoalDraft>({ role: '', pace: DEFAULT_PACE, horizon: DEFAULT_HORIZON });
-  const goalTouched = useRef(false);
+  const [intake, setIntake] = useState<IntakeDraft>(() => defaultIntakeDraft('fullstack', todayOf(new Date())));
+  const intakeTouched = useRef(false);
+  // A roadmap is built only for a role the user picked (here or on the role step), never a default.
+  const [roleSet, setRoleSet] = useState(false);
   const resumes = useResumes();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const firstRender = useRef(true);
@@ -136,9 +140,12 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
 
   // Entering the roadmap step: start from the role picked on the "Role and skills" step.
   useEffect(() => {
-    if (step !== 'roadmap' || goalTouched.current) return;
+    if (step !== 'roadmap' || intakeTouched.current) return;
     const role = roadmapRoleFor(form.targetRole);
-    setGoal((g) => ({ ...g, role: isRoleId(role) ? role : '' }));
+    if (isRoleId(role)) {
+      setIntake((d) => ({ ...d, role }));
+      setRoleSet(true);
+    }
   }, [step, form.targetRole]);
 
   const knownSkillIds = skillIdsFromNames(form.skills);
@@ -163,15 +170,11 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
     try {
       const api = getApi();
       if (!api?.saveMasterProfile) throw new Error('Profile storage is not available.');
-      // The roadmap: the goal feeds the deterministic planner; skills picked earlier are
-      // recorded as self-reported (below mastered) so they take less time but still get a check.
-      if (withRoadmap && goal.role) {
-        const saved = await api.learningSaveGoal({ track_id: goal.role, horizon_months: goal.horizon, daily_hours: goal.pace });
-        if (!saved?.success) throw new Error(saved?.error || 'Your roadmap could not be saved.');
-        if (knownSkillIds.length) {
-          const rec = await api.learningRecordEvents(selfReportedEvents(knownSkillIds, goal.role, new Date()));
-          if (!rec?.success) throw new Error(rec?.error || 'Your roadmap could not be saved.');
-        }
+      // The roadmap: a draft built from the short intake (skills picked earlier lighten their
+      // modules); Learn opens on its review, where it is accepted or changed.
+      if (withRoadmap && roleSet) {
+        const built = await api.learnRoadmapGenerate(draftToIntake({ ...intake, knownSkillIds }));
+        if (!built?.success) throw new Error(built?.error || 'Your roadmap could not be built.');
       }
       const base = docText ? { ...initialProfile, resumeText: docText.slice(0, 50_000) } : initialProfile;
       const profile = buildOnboardingProfile(form, base, resumes.resumes);
@@ -199,6 +202,10 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
     }
     // Answers are saved only when the user continues from the Answers step (skipping keeps them out).
     if (step === 'answers') set('answers', writeAppAnswers(form.answers, Object.fromEntries(APP_ANSWERS.map((d) => [d.id, appValues[d.id] ?? '']))));
+    if (isLast && roleSet && draftProblem(intake)) {
+      setSaveError(draftProblem(intake));
+      return;
+    }
     if (isLast) void finish(true);
     else goTo(stepIndex + 1);
   };
@@ -453,17 +460,21 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
               <StepHeading
                 ref={headingRef}
                 title="Your roadmap"
-                description="Built from the role and skills you picked. Choose your pace; you can change it any time in Learn without losing progress."
+                description="Your target, your time and your level. Finishing builds a day-by-day plan you review in Learn; you can change everything there."
               />
-              <GoalFields
-                value={goal}
-                onChange={(v) => { goalTouched.current = true; setGoal(v); }}
-                idPrefix="onb-goal"
+              <IntakeFields
+                compact
+                draft={intake}
+                onChange={(v) => { intakeTouched.current = true; if (v.role !== intake.role) setRoleSet(true); setIntake(v); }}
               />
-              <PlanPreview draft={goal} mastery={selfReportedMastery(knownSkillIds)} />
-              {knownSkillIds.length > 0 && goal.role && (
+              {!roleSet && (
+                <p className="text-caption text-fg-subtle">Pick a target role to build your roadmap. Without one, setup finishes without a roadmap.</p>
+              )}
+              <FeasibilityBar feasibility={feasibilityOf({ ...intake, knownSkillIds }, learnIndex())} />
+              {draftProblem(intake) && <p role="alert" className="text-caption text-danger-fg">{draftProblem(intake)}</p>}
+              {knownSkillIds.length > 0 && (
                 <p className="text-caption text-fg-subtle">
-                  Skills you said you know are shortened. A quick check in Learn marks them mastered.
+                  Modules for skills you said you know get lighter. Learn tracks your progress from there.
                 </p>
               )}
             </>

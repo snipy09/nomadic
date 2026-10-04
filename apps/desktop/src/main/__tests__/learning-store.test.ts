@@ -7,20 +7,29 @@ import {
   LOCAL_USER,
   claimLocalRows,
   countUnsynced,
-  getGoal,
+  countUnsyncedDocs,
+  deleteDoc,
+  getDoc,
   getPulledUntil,
-  goalToSync,
   insertEvents,
   listEvents,
+  markDocSynced,
   markEventsSynced,
-  markGoalSynced,
+  mergePulledDoc,
+  migrateLearnV2Schema,
   migrateLearningSchema,
-  restoreGoal,
-  saveGoal,
+  putDoc,
   setPulledUntil,
+  unsyncedDocs,
   unsyncedEvents,
 } from '../services/learning-store';
-import { learningRecordEventsArgs, learningSaveGoalArgs } from '../ipc/schemas';
+import {
+  learnProblemNoteSaveArgs,
+  learnProjectCheckRepoArgs,
+  learnRoadmapAdjustArgs,
+  learnRoadmapGenerateArgs,
+  learningRecordEventsArgs,
+} from '../ipc/schemas';
 import { IpcValidationError, validateArgs } from '../ipc/handle';
 import type { LearningEventInput } from '../../shared/ipc';
 
@@ -32,6 +41,7 @@ beforeEach(() => {
   db = new SQL.Database();
   migrateLearningSchema(db);
   migrateLearningSchema(db); // idempotent
+  migrateLearnV2Schema(db);
 });
 
 const ev = (n: number, patch: Partial<LearningEventInput> = {}): LearningEventInput => ({
@@ -74,44 +84,22 @@ describe('learning events', () => {
   });
 });
 
-describe('learning goal', () => {
-  const goal = { track_id: 'frontend', horizon_months: 3 as const, daily_hours: 2 as const };
-
-  it('changing pace keeps the start date; changing role starts a new track and archives the old one on sync', () => {
-    const a = saveGoal(db, 'u1', goal, '2026-10-01T00:00:00Z');
-    expect(goalToSync(db, 'u1')).toEqual({ goal: a, archiveTrackId: null });
-    markGoalSynced(db, 'u1', a, '2026-10-01T00:01:00Z');
-    expect(goalToSync(db, 'u1')).toBe(null);
-
-    const b = saveGoal(db, 'u1', { ...goal, daily_hours: 4 }, '2026-10-02T00:00:00Z');
-    expect(b.started_at).toBe('2026-10-01T00:00:00Z');
-    expect(goalToSync(db, 'u1')?.archiveTrackId).toBe(null);
-    markGoalSynced(db, 'u1', b, '2026-10-02T00:01:00Z');
-
-    const c = saveGoal(db, 'u1', { ...goal, track_id: 'backend' }, '2026-10-03T00:00:00Z');
-    expect(c.started_at).toBe('2026-10-03T00:00:00Z');
-    expect(goalToSync(db, 'u1')).toEqual({ goal: c, archiveTrackId: 'frontend' });
-  });
-
-  it('does not mark a goal synced if it changed during the push', () => {
-    const a = saveGoal(db, 'u1', goal, '2026-10-01T00:00:00Z');
-    saveGoal(db, 'u1', { ...goal, horizon_months: 6 }, '2026-10-01T00:00:30Z');
-    markGoalSynced(db, 'u1', a, '2026-10-01T00:01:00Z');
-    expect(goalToSync(db, 'u1')?.goal.horizon_months).toBe(6);
-  });
-
-  it('restores a cloud goal only when the device has none, and claims a pre-sign-in goal', () => {
-    const cloud = { ...goal, started_at: '2026-09-01T00:00:00Z', updated_at: '2026-09-01T00:00:00Z' };
-    expect(restoreGoal(db, 'u1', cloud, 'now')).toBe(true);
-    expect(restoreGoal(db, 'u1', { ...cloud, track_id: 'design' }, 'now')).toBe(false);
-    expect(getGoal(db, 'u1')?.track_id).toBe('frontend');
-    expect(goalToSync(db, 'u1')).toBe(null);
-
-    saveGoal(db, LOCAL_USER, { ...goal, track_id: 'devops' }, '2026-10-01T00:00:00Z');
-    expect(getGoal(db, 'u2')?.track_id).toBe('devops');
-    claimLocalRows(db, 'u2');
-    expect(getGoal(db, 'u2')?.track_id).toBe('devops');
-    expect(getGoal(db, LOCAL_USER)).toBe(null);
+describe('local migration 9 (Learn v2)', () => {
+  it('keeps existing events, accepts the v2 types and stays append-only', () => {
+    const old = new SQL.Database();
+    migrateLearningSchema(old);
+    insertEvents(old, 'u1', [ev(1)]);
+    // INSERT OR IGNORE skips rows the v1 CHECK refuses.
+    expect(insertEvents(old, 'u1', [ev(2, { type: 'task_done' as never })]).inserted).toBe(0);
+    migrateLearnV2Schema(old);
+    expect(listEvents(old, 'u1').map((e) => e.id)).toEqual([ev(1).id]);
+    insertEvents(old, 'u1', [ev(2, { type: 'task_done', item_id: 'dsa.arrays.hashing/learn' })]);
+    expect(listEvents(old, 'u1')).toHaveLength(2);
+    expect(() => old.run("UPDATE learning_events SET type = 'quiz_failed'")).toThrow(/append-only/);
+    expect(insertEvents(old, 'u1', [ev(3, { type: 'hacked' as never })]).inserted).toBe(0);
+    const idx = old.exec("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_learning_events_user_time'");
+    expect(idx[0].values).toHaveLength(1);
+    expect(old.exec("SELECT name FROM sqlite_master WHERE name = 'learning_goal'")).toEqual([]);
   });
 
   it('tracks the pull cursor per user', () => {
@@ -122,14 +110,79 @@ describe('learning goal', () => {
   });
 });
 
-describe('learning IPC validation', () => {
-  it('accepts well-formed events and goals', () => {
-    const [events] = validateArgs('learning-record-events', learningRecordEventsArgs, [[{ ...ev(1), duration_s: undefined }]]);
-    expect(events[0].duration_s).toBe(0);
-    expect(validateArgs('learning-save-goal', learningSaveGoalArgs, [{ track_id: 'frontend', horizon_months: 3, daily_hours: 2 }])[0].track_id).toBe('frontend');
+describe('Learn v2 state documents', () => {
+  it('stores, reads and deletes a document per kind', () => {
+    putDoc(db, 'u1', 'roadmap', { id: 'r1' }, '2026-10-01T00:00:00Z');
+    expect(getDoc(db, 'u1', 'roadmap')).toMatchObject({ value: { id: 'r1' }, synced_at: null });
+    putDoc(db, 'u1', 'roadmap', { id: 'r2' }, '2026-10-02T00:00:00Z');
+    expect(getDoc(db, 'u1', 'roadmap')?.value).toEqual({ id: 'r2' });
+    deleteDoc(db, 'u1', 'roadmap');
+    expect(getDoc(db, 'u1', 'roadmap')).toBe(null);
   });
 
-  it('rejects bad ids, types, sizes and goals', () => {
+  it('lists only synced kinds for upload (drafts stay local)', () => {
+    putDoc(db, 'u1', 'draft', { x: 1 }, '2026-10-01T00:00:00Z');
+    putDoc(db, 'u1', 'notes', [], '2026-10-01T00:00:00Z');
+    expect(unsyncedDocs(db, 'u1').map((d) => d.kind)).toEqual(['notes']);
+    expect(countUnsyncedDocs(db, 'u1')).toBe(1);
+  });
+
+  it('marks a document synced only if it did not change during the push', () => {
+    putDoc(db, 'u1', 'schedule', { a: 1 }, '2026-10-01T00:00:00Z');
+    putDoc(db, 'u1', 'schedule', { a: 2 }, '2026-10-01T00:00:30Z');
+    markDocSynced(db, 'u1', 'schedule', '2026-10-01T00:00:00Z', 'now');
+    expect(unsyncedDocs(db, 'u1')).toHaveLength(1);
+    markDocSynced(db, 'u1', 'schedule', '2026-10-01T00:00:30Z', 'now');
+    expect(unsyncedDocs(db, 'u1')).toHaveLength(0);
+  });
+
+  it('pulled documents win only when newer', () => {
+    putDoc(db, 'u1', 'projects', ['local'], '2026-10-02T00:00:00Z');
+    expect(mergePulledDoc(db, 'u1', 'projects', ['cloud-old'], '2026-10-01T00:00:00Z', 'now')).toBe(false);
+    expect(getDoc(db, 'u1', 'projects')?.value).toEqual(['local']);
+    expect(mergePulledDoc(db, 'u1', 'projects', ['cloud-new'], '2026-10-03T00:00:00Z', 'now')).toBe(true);
+    expect(getDoc(db, 'u1', 'projects')).toMatchObject({ value: ['cloud-new'], synced_at: 'now' });
+  });
+
+  it('claims documents made before sign-in unless the account has its own', () => {
+    putDoc(db, LOCAL_USER, 'roadmap', { id: 'local' }, '2026-10-01T00:00:00Z');
+    putDoc(db, LOCAL_USER, 'notes', ['local'], '2026-10-01T00:00:00Z');
+    putDoc(db, 'u2', 'notes', ['mine'], '2026-10-01T00:00:00Z');
+    claimLocalRows(db, 'u2');
+    expect(getDoc(db, 'u2', 'roadmap')?.value).toEqual({ id: 'local' });
+    expect(getDoc(db, 'u2', 'notes')?.value).toEqual(['mine']);
+    expect(getDoc(db, LOCAL_USER, 'notes')).toBe(null);
+  });
+
+  it('rejects an unknown kind', () => {
+    expect(() => putDoc(db, 'u1', 'secrets' as never, {}, 'x')).toThrow();
+  });
+});
+
+describe('learning IPC validation', () => {
+  it('accepts well-formed events, including the v2 types', () => {
+    const [events] = validateArgs('learning-record-events', learningRecordEventsArgs, [[{ ...ev(1), duration_s: undefined }]]);
+    expect(events[0].duration_s).toBe(0);
+    expect(validateArgs('learning-record-events', learningRecordEventsArgs, [[{ ...ev(1), type: 'task_done' }]])[0][0].type).toBe('task_done');
+  });
+
+  it('validates Learn v2 inputs', () => {
+    const intake = {
+      role: 'frontend', aim: 'campus', start_date: '2026-10-05', end_date: '2026-12-27', study_days: [1, 2, 3],
+      weekday_minutes: 60, weekend_minutes: 120, streams: ['dsa', 'dev'],
+    };
+    expect(validateArgs('learn-roadmap-generate', learnRoadmapGenerateArgs, [intake])[0]).toMatchObject({ language: 'cpp', role: 'frontend' });
+    expect(() => validateArgs('learn-roadmap-generate', learnRoadmapGenerateArgs, [{ ...intake, end_date: '2026-01-01' }])).toThrow();
+    expect(() => validateArgs('learn-roadmap-generate', learnRoadmapGenerateArgs, [{ ...intake, role: 'astronaut' }])).toThrow();
+    expect(() => validateArgs('learn-roadmap-generate', learnRoadmapGenerateArgs, [{ ...intake, note: 'x'.repeat(30_000) }])).toThrow(/too large|500/);
+    expect(validateArgs('learn-roadmap-adjust', learnRoadmapAdjustArgs, ['  more DP please '])[0]).toBe('more DP please');
+    expect(() => validateArgs('learn-roadmap-adjust', learnRoadmapAdjustArgs, ['x'.repeat(501)])).toThrow();
+    expect(() => validateArgs('learn-problem-note-save', learnProblemNoteSaveArgs, [{ ref: 'not-a-ref', updated_at: '2026-10-05T00:00:00Z' }])).toThrow();
+    expect(() => validateArgs('learn-project-check-repo', learnProjectCheckRepoArgs, [{ projectId: 'p', stageId: 's', repoUrl: 'https://evil.example/x/y' }])).toThrow();
+    expect(validateArgs('learn-project-check-repo', learnProjectCheckRepoArgs, [{ projectId: 'p', stageId: 's', repoUrl: 'https://github.com/a/b' }])[0].repoUrl).toBe('https://github.com/a/b');
+  });
+
+  it('rejects bad ids, types and sizes', () => {
     const bad = (e: unknown) => () => validateArgs('learning-record-events', learningRecordEventsArgs, [[e]]);
     expect(bad({ ...ev(1), id: 'not-a-uuid' })).toThrow(IpcValidationError);
     expect(bad({ ...ev(1), type: 'hacked' })).toThrow(/type/);
@@ -138,9 +191,5 @@ describe('learning IPC validation', () => {
     expect(bad({ ...ev(1), duration_s: -1 })).toThrow();
     expect(() => validateArgs('learning-record-events', learningRecordEventsArgs, [[]])).toThrow();
     expect(() => validateArgs('learning-record-events', learningRecordEventsArgs, [Array.from({ length: 501 }, (_, i) => ev(i))])).toThrow();
-    const goal = (g: unknown) => () => validateArgs('learning-save-goal', learningSaveGoalArgs, [g]);
-    expect(goal({ track_id: 'astronaut', horizon_months: 3, daily_hours: 2 })).toThrow();
-    expect(goal({ track_id: 'frontend', horizon_months: 2, daily_hours: 2 })).toThrow();
-    expect(goal({ track_id: 'frontend', horizon_months: 3, daily_hours: 3 })).toThrow();
   });
 });

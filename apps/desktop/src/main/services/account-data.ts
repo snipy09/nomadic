@@ -16,6 +16,7 @@ declare const __APP_VERSION__: string | undefined;
 const EXPORTED_TABLES = [
   'master_profile', 'resumes', 'local_applications', 'application_status_history', 'saved_jobs',
   'learner_progress', 'custom_roadmaps', 'cached_form_answers', 'user_activity_log', 'outreach_contacts',
+  'learning_events', 'learn_state',
 ] as const;
 const SECRET_COLUMNS = new Set(['groq_api_key', 'gemini_api_key', 'smtp_password', 'password_hash']);
 

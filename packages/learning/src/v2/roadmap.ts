@@ -287,7 +287,7 @@ export function budgetWarnings(roadmap: Roadmap, index: CatalogIndex): string[] 
   const need = totalMinutes(expandRoadmap(roadmap, index));
   if (need <= usable) return [];
   return [
-    `This plan needs about ${Math.round(need / 60)} h and you have about ${Math.round(usable / 60)} h. Optional work and some depth will be left out; the review screen lists what.`,
+    `This plan needs about ${Math.round(need / 60)} h and you have about ${Math.round(usable / 60)} h. Optional work and some depth will be left out; "Left out because of time" lists what.`,
   ];
 }
 

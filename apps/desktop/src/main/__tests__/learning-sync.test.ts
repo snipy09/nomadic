@@ -17,12 +17,13 @@ vi.mock('../services/session', () => ({
 }));
 vi.mock('../services/supabase', () => ({ getAnonSupabase: () => ({ rpc: h.rpc }) }));
 
-import { migrateLearningSchema, listEvents, countUnsynced, getGoal, getPulledUntil } from '../services/learning-store';
-import { getLearningState, recordLearningEvents, saveLearningGoal, syncLearning } from '../services/learning';
+import { migrateLearnV2Schema, migrateLearningSchema, listEvents, countUnsynced, getDoc, getPulledUntil, putDoc } from '../services/learning-store';
+import { getLearningState, recordLearningEvents, syncLearning } from '../services/learning';
+import { saveProblemNote } from '../services/learn-v2';
 
 let SQL: Awaited<ReturnType<typeof initSqlJs>>;
 interface ServerEvent extends Record<string, unknown> { id: string; received_at: string }
-let server: { events: ServerEvent[]; tracks: Array<Record<string, unknown>>; calls: string[]; clock: number; failPush: boolean };
+let server: { events: ServerEvent[]; docs: Map<string, { value: unknown; updated_at: string }>; calls: string[]; clock: number; failPush: boolean };
 
 function fakeRpc(name: string, p: Record<string, any>) {
   server.calls.push(name);
@@ -40,18 +41,14 @@ function fakeRpc(name: string, p: Record<string, any>) {
     }
     case 'learning_pull_events':
       return Promise.resolve({ data: server.events.filter((e) => e.received_at > p.p_since).map((e) => ({ ...e, user_id: p.p_user_id })), error: null });
-    case 'learning_start_track': {
-      const active = server.tracks.filter((t) => t.status === 'active' && t.track_id !== p.p_track_id);
-      if (active.length) return Promise.resolve({ data: [{ ok: false, error: 'free_tier_track_limit' }], error: null });
-      server.tracks = server.tracks.filter((t) => t.track_id !== p.p_track_id);
-      server.tracks.push({ track_id: p.p_track_id, status: 'active', horizon_months: p.p_horizon_months, daily_hours: p.p_daily_hours, started_at: '2026-09-01T00:00:00+00:00', archived_at: null });
-      return Promise.resolve({ data: [{ ok: true, error: null }], error: null });
+    case 'learning_save_state': {
+      const cur = server.docs.get(p.p_kind);
+      if (cur && cur.updated_at > p.p_updated_at) return Promise.resolve({ data: [{ ok: false, error: 'stale', updated_at: cur.updated_at }], error: null });
+      server.docs.set(p.p_kind, { value: p.p_value, updated_at: p.p_updated_at });
+      return Promise.resolve({ data: [{ ok: true, error: null, updated_at: p.p_updated_at }], error: null });
     }
-    case 'learning_archive_track':
-      server.tracks.forEach((t) => { if (t.track_id === p.p_track_id) t.status = 'archived'; });
-      return Promise.resolve({ data: true, error: null });
-    case 'learning_get_tracks':
-      return Promise.resolve({ data: server.tracks, error: null });
+    case 'learning_pull_state':
+      return Promise.resolve({ data: [...server.docs].map(([kind, d]) => ({ kind, ...d })), error: null });
   }
   return Promise.resolve({ data: null, error: { message: `unknown rpc ${name}` } });
 }
@@ -67,13 +64,13 @@ const ev = (n: number): LearningEventInput => ({
 });
 
 const signIn = () => { h.active = { userId: 'u1', sessionToken: 'tok', deviceFingerprint: 'fp' }; };
-const freshDevice = () => { h.db = new SQL.Database(); migrateLearningSchema(h.db); };
+const freshDevice = () => { h.db = new SQL.Database(); migrateLearningSchema(h.db); migrateLearnV2Schema(h.db); };
 
 beforeAll(async () => { SQL = await initSqlJs(); });
 beforeEach(() => {
   freshDevice();
   h.active = null;
-  server = { events: [], tracks: [], calls: [], clock: 0, failPush: false };
+  server = { events: [], docs: new Map(), calls: [], clock: 0, failPush: false };
   h.rpc = vi.fn(fakeRpc);
 });
 
@@ -86,25 +83,25 @@ describe('learning sync', () => {
     expect(getLearningState().pendingSync).toBe(1);
   });
 
-  it('claims pre-sign-in progress, pushes goal and events, and is identical after a reinstall', async () => {
-    saveLearningGoal({ track_id: 'frontend', horizon_months: 3, daily_hours: 2 });
+  it('claims pre-sign-in progress, pushes documents and events, and is identical after a reinstall', async () => {
+    saveProblemNote('local', { ref: 'lc:two-sum', note: 'Use a map.', resolve_later: true, updated_at: '2026-10-01T09:00:00Z' });
     recordLearningEvents([ev(1), ev(2)]);
     signIn();
     const res = await syncLearning();
-    expect(res).toMatchObject({ success: true, pushed: 2, rejected: 0 });
+    expect(res).toMatchObject({ success: true, pushed: 3, rejected: 0 });
     expect(server.events.map((e) => e.id)).toEqual([ev(1).id, ev(2).id]);
-    expect(server.tracks).toEqual([expect.objectContaining({ track_id: 'frontend', status: 'active', daily_hours: 2 })]);
+    expect(server.docs.get('notes')?.value).toEqual([expect.objectContaining({ ref: 'lc:two-sum', note: 'Use a map.' })]);
     expect(countUnsynced(h.db, 'u1')).toBe(0);
     const before = getLearningState();
 
     // Reinstall: empty database, same account.
     freshDevice();
     const restore = await syncLearning();
-    expect(restore).toMatchObject({ success: true, pulled: 2 });
+    expect(restore).toMatchObject({ success: true, pulled: 3 });
     const after = getLearningState();
     expect(after.events.map(({ id, type, item_id, duration_s, created_at }) => ({ id, type, item_id, duration_s, created_at })))
       .toEqual(before.events.map(({ id, type, item_id, duration_s, created_at }) => ({ id, type, item_id, duration_s, created_at })));
-    expect(after.goal).toMatchObject({ track_id: 'frontend', horizon_months: 3, daily_hours: 2 });
+    expect(after.notes).toEqual([expect.objectContaining({ ref: 'lc:two-sum', resolve_later: true })]);
     expect(after.pendingSync).toBe(0);
     expect(getPulledUntil(h.db, 'u1')).toBeTruthy();
 
@@ -112,15 +109,24 @@ describe('learning sync', () => {
     expect(await syncLearning()).toMatchObject({ success: true, pushed: 0, pulled: 0 });
   });
 
-  it('archives the old track before starting a new one so a free account can switch roles', async () => {
+  it('keeps the newer document on both sides', async () => {
     signIn();
-    saveLearningGoal({ track_id: 'frontend', horizon_months: 3, daily_hours: 2 });
+    server.docs.set('notes', { value: [{ ref: 'lc:3sum', note: 'cloud', resolve_later: false, updated_at: '2026-10-03T00:00:00Z' }], updated_at: '2026-10-03T00:00:00Z' });
+    putDoc(h.db, 'u1', 'notes', [{ ref: 'lc:3sum', note: 'old local', resolve_later: false, updated_at: '2026-10-01T00:00:00Z' }], '2026-10-01T00:00:00Z');
     await syncLearning();
-    saveLearningGoal({ track_id: 'backend', horizon_months: 6, daily_hours: 1 });
+    expect(getDoc(h.db, 'u1', 'notes')?.value).toEqual([expect.objectContaining({ note: 'cloud' })]);
+    putDoc(h.db, 'u1', 'notes', [{ ref: 'lc:3sum', note: 'newer local', resolve_later: false, updated_at: '2026-10-05T00:00:00Z' }], '2026-10-05T00:00:00Z');
     await syncLearning();
-    expect(server.tracks.find((t) => t.track_id === 'frontend')?.status).toBe('archived');
-    expect(server.tracks.find((t) => t.track_id === 'backend')).toMatchObject({ status: 'active', horizon_months: 6 });
-    expect(getGoal(h.db, 'u1')?.track_id).toBe('backend');
+    expect(server.docs.get('notes')?.updated_at).toBe('2026-10-05T00:00:00Z');
+  });
+
+  it('skips documents from the server that fail validation', async () => {
+    signIn();
+    server.docs.set('roadmap', { value: { id: 'nope' }, updated_at: '2026-10-03T00:00:00Z' });
+    const res = await syncLearning();
+    expect(res.success).toBe(true);
+    expect(getDoc(h.db, 'u1', 'roadmap')).toBe(null);
+    expect(getLearningState().roadmap).toBe(null);
   });
 
   it('leaves events unsynced and reports a friendly error when the push fails', async () => {

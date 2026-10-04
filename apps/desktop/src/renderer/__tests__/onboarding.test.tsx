@@ -28,7 +28,7 @@ function stubApi(overrides: Record<string, any> = {}): Record<string, any> {
     pickResumeFile: vi.fn().mockResolvedValue({ canceled: false, filePath: resume.filePath, fileName: resume.name }),
     saveResume: vi.fn(async () => { stored = [resume]; return { success: true }; }),
     saveMasterProfile: vi.fn().mockResolvedValue({ success: true }),
-    learningSaveGoal: vi.fn(async (g: any) => ({ success: true, goal: { ...g, started_at: 'x', updated_at: 'x' } })),
+    learnRoadmapGenerate: vi.fn(async (intake: any) => ({ success: true, draft: { roadmap: { intake }, schedule: {}, notice: null, created_at: 'x' } })),
     learningRecordEvents: vi.fn(async (events: any[]) => ({ success: true, events })),
     ...overrides,
   };
@@ -111,24 +111,23 @@ describe('Onboarding', () => {
     await userEvent.click(screen.getByRole('radio', { name: /^apply/i }));
     await userEvent.click(continueBtn());
 
-    // Roadmap: role carried over from step 2, defaults for pace and horizon, a live plan preview.
+    // Roadmap: a short intake with the role from step 4, default time, and a live feasibility bar.
     expect(await screen.findByRole('heading', { name: /your roadmap/i })).toBeTruthy();
     expect(progress()).toBe('7');
-    expect(screen.getByRole('radio', { name: 'Data Analyst' }).getAttribute('aria-checked')).toBe('true');
-    expect(screen.getByRole('radio', { name: /10 hours a week/i }).getAttribute('aria-checked')).toBe('true');
-    expect(screen.getByRole('radio', { name: /3 months/i }).getAttribute('aria-checked')).toBe('true');
-    const preview = screen.getByRole('region', { name: /roadmap preview/i });
-    expect(preview.textContent).toMatch(/skills? over \d+ weeks?/);
-    await userEvent.click(screen.getByRole('radio', { name: /20 hours a week/i }));
+    expect(screen.getByRole('status').textContent).toMatch(/h of study time/);
+    expect(screen.getByRole('button', { name: 'Sat' }).getAttribute('aria-pressed')).toBe('true');
+    await userEvent.click(screen.getByRole('button', { name: 'Sun' }));
+    expect(screen.getByRole('button', { name: 'Sun' }).getAttribute('aria-pressed')).toBe('false');
     expect(onComplete).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole('button', { name: /finish setup/i }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
-    expect(api.learningSaveGoal).toHaveBeenCalledWith({ track_id: 'data-analyst', horizon_months: 3, daily_hours: 4 });
-    const selfReported = api.learningRecordEvents.mock.calls[0][0];
-    expect(selfReported.length).toBeGreaterThan(0);
-    expect(selfReported.every((e: any) => e.type === 'skill_marked_known' && e.payload.source === 'onboarding' && e.payload.mastery < 0.8)).toBe(true);
-    expect(api.learningSaveGoal.mock.invocationCallOrder[0]).toBeLessThan(api.saveMasterProfile.mock.invocationCallOrder[0]);
+    expect(api.learnRoadmapGenerate).toHaveBeenCalledTimes(1);
+    const intake = api.learnRoadmapGenerate.mock.calls[0][0];
+    expect(intake).toMatchObject({ role: 'data-analyst', aim: 'campus', weekday_minutes: 60, weekend_minutes: 150 });
+    expect(intake.study_days).not.toContain(0);
+    expect(Array.isArray(intake.known_skill_ids)).toBe(true);
+    expect(api.learnRoadmapGenerate.mock.invocationCallOrder[0]).toBeLessThan(api.saveMasterProfile.mock.invocationCallOrder[0]);
     const saved = api.saveMasterProfile.mock.calls[0][0];
     expect(saved.onboarding_completed).toBe(1);
     expect(saved.firstName).toBe('Asha');
@@ -206,10 +205,10 @@ describe('Onboarding', () => {
     await skipToWorkspace();
     await userEvent.click(continueBtn());
     await screen.findByRole('heading', { name: /your roadmap/i });
-    expect(screen.getByText(/pick a role to see your roadmap/i)).toBeTruthy();
+    expect(screen.getByText(/pick a target role to build your roadmap/i)).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: /finish setup/i }));
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
-    expect(api.learningSaveGoal).not.toHaveBeenCalled();
+    expect(api.learnRoadmapGenerate).not.toHaveBeenCalled();
     const saved = api.saveMasterProfile.mock.calls[0][0];
     expect(saved.desiredTitle).toBe('');
     expect(saved.techStack).toBe('');
@@ -236,7 +235,7 @@ describe('Onboarding', () => {
   });
 
   it('does not complete or save the profile when the roadmap cannot be saved', async () => {
-    const api = stubApi({ learningSaveGoal: vi.fn().mockResolvedValue({ success: false, error: 'Database locked.' }) });
+    const api = stubApi({ learnRoadmapGenerate: vi.fn().mockResolvedValue({ success: false, error: 'Database locked.' }) });
     const onComplete = renderOnboarding();
     await userEvent.click(continueBtn());
     await skipStep(/add your links/i);

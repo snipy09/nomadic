@@ -285,10 +285,16 @@ describe('fitRoadmap', () => {
     const fit = fitRoadmap(plan({ end_date: '2026-10-08', weekday_minutes: 30, weekend_minutes: 30 }), INDEX, { now: NOW });
     expect(fit.schedule.left_out.some((l) => l.reason === 'no_time')).toBe(true);
   });
-  it('never schedules a left-out task', () => {
+  it('never schedules a left-out task, except the unplaced rest of a split one', () => {
     const fit = fitRoadmap(plan({ end_date: '2026-10-12', weekday_minutes: 30, weekend_minutes: 30 }), INDEX, { now: NOW });
-    const scheduled = new Set(fit.schedule.days.flatMap((d) => d.tasks.map((t) => t.task_id)));
-    for (const l of fit.schedule.left_out) expect(scheduled.has(l.task_id)).toBe(false);
+    const placed = new Map<string, number>();
+    for (const d of fit.schedule.days) for (const t of d.tasks) placed.set(t.task_id, (placed.get(t.task_id) ?? 0) + t.minutes);
+    const byId = new Map(fit.tasks.map((t) => [t.id, t]));
+    for (const l of fit.schedule.left_out) {
+      if (!placed.has(l.task_id)) continue;
+      expect(l.reason).toBe('no_time');
+      expect(placed.get(l.task_id)! + l.minutes).toBe(byId.get(l.task_id)!.minutes);
+    }
   });
   it('days never exceed capacity + 10', () => {
     const fit = fitRoadmap(plan(), INDEX, { now: NOW });

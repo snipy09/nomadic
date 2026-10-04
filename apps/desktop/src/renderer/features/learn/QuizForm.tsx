@@ -4,7 +4,7 @@ import { Button, Checkbox, Field, IconButton, Input, RadioGroup } from '@nomadic
 import type { GradeResult, QuizAnswer } from '@job-automator/learning';
 import type { QuizItem } from './content';
 import { InlineText } from './InlineText';
-import { gradeAll, shuffledSteps } from './learnLogic';
+import { gradeAll, shuffledSteps } from './quizLogic';
 
 interface QuizFormProps {
   items: QuizItem[];

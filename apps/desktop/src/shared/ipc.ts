@@ -26,12 +26,20 @@ export type { AnswerSource, FieldKind, FillReport, FormEngineEvent };
 
 import type {
   FillInItem,
+  IntakeInput,
   McqItem,
   OrderingItem,
   PracticeAttempt,
   PracticeDifficulty,
   PracticeEntryKind,
+  ProblemNote,
+  RepoCheck,
+  Roadmap,
+  RoadmapDiff,
   RoleFamilyId,
+  Schedule,
+  Shortfall,
+  UserProject,
 } from '@job-automator/learning';
 
 export type { PracticeAttempt };
@@ -449,10 +457,12 @@ export interface AssistantReply {
   action?: AssistantAction;
 }
 
-// ── Learn (append-only learning events + goal) ─────────────────────────────
+// ── Learn (append-only learning events + v2 roadmap, schedule, projects) ────
 
 export const LEARNING_EVENT_TYPE_LIST = [
   'lesson_viewed', 'quiz_passed', 'quiz_failed', 'problem_solved', 'review_done', 'skill_marked_known',
+  'task_done', 'task_skipped', 'task_moved', 'problem_attempted', 'stage_done', 'project_started', 'project_done',
+  'roadmap_accepted',
 ] as const;
 export type LearningEventTypeName = (typeof LEARNING_EVENT_TYPE_LIST)[number];
 
@@ -471,28 +481,82 @@ export interface LearningEventRecord {
 /** What the renderer sends; the main process stamps `user_id`. */
 export type LearningEventInput = Omit<LearningEventRecord, 'user_id'>;
 
-export interface LearningGoalInput {
-  track_id: string;
-  horizon_months: 1 | 3 | 6;
-  daily_hours: 1 | 2 | 4;
-}
-
-export interface LearningGoal extends LearningGoalInput {
-  started_at: string;
-  updated_at: string;
+/** A generated roadmap waiting for review (kept on this device until accepted). */
+export interface LearnDraft {
+  roadmap: Roadmap;
+  /** The schedule the roadmap fits into (left-out work listed in `left_out`). */
+  schedule: Schedule;
+  /** "Built with the standard planner" and why, when the AI was not used. */
+  notice: string | null;
+  created_at: string;
 }
 
 export interface LearningState {
-  goal: LearningGoal | null;
   events: LearningEventRecord[];
-  /** Local events not yet accepted by the server. */
+  /** Local events and documents not yet accepted by the server. */
   pendingSync: number;
+  roadmap: Roadmap | null;
+  schedule: Schedule | null;
+  projects: UserProject[];
+  notes: ProblemNote[];
+  draft: LearnDraft | null;
 }
 
 export interface LearningSyncResult extends SuccessResult {
   pushed: number;
   pulled: number;
   rejected: number;
+}
+
+export interface LearnGenerateResult extends SuccessResult {
+  draft?: LearnDraft;
+  quota?: AiQuota | null;
+}
+
+/** A proposed change from "Adjust": applied only when the student accepts it. */
+export interface LearnAdjustProposal {
+  roadmap: Roadmap;
+  schedule: Schedule;
+  diff: RoadmapDiff;
+  summary: string;
+  warnings: string[];
+  moved: number;
+  shortfall: Shortfall | null;
+}
+
+export interface LearnAdjustResult extends SuccessResult {
+  proposal?: LearnAdjustProposal;
+  code?: AiErrorCode;
+  quota?: AiQuota | null;
+}
+
+export interface LearnAcceptResult extends SuccessResult {
+  roadmap?: Roadmap;
+  schedule?: Schedule;
+}
+
+export interface LearnProjectSaveResult extends SuccessResult {
+  projects?: UserProject[];
+  /** Set when the plan's limits refused the change. */
+  limited?: boolean;
+}
+
+export interface LearnNoteSaveResult extends SuccessResult {
+  notes?: ProblemNote[];
+}
+
+export interface LearnRepoCheckRequest {
+  projectId: string;
+  stageId: string;
+  repoUrl: string;
+}
+
+export interface LearnRepoCheckResult extends SuccessResult {
+  passed?: boolean;
+  checks?: RepoCheck[];
+  commits?: number;
+  checkedAt?: string;
+  rateLimited?: boolean;
 }
 
 // ── Practice (F8) ───────────────────────────────────────────────────────────
@@ -943,9 +1007,15 @@ export interface IpcChannels {
 
   // learn
   'learning-get-state': Channel<[], LearningState>;
-  'learning-save-goal': Channel<[goal: LearningGoalInput], SuccessResult & { goal?: LearningGoal }>;
   'learning-record-events': Channel<[events: LearningEventInput[]], SuccessResult & { events?: LearningEventRecord[] }>;
   'learning-sync': Channel<[], LearningSyncResult>;
+  'learn-roadmap-generate': Channel<[intake: IntakeInput], LearnGenerateResult>;
+  'learn-roadmap-adjust': Channel<[instruction: string], LearnAdjustResult>;
+  'learn-roadmap-accept': Channel<[roadmap: Roadmap, schedule: Schedule], LearnAcceptResult>;
+  'learn-schedule-save': Channel<[schedule: Schedule], SuccessResult>;
+  'learn-project-save': Channel<[project: UserProject], LearnProjectSaveResult>;
+  'learn-problem-note-save': Channel<[note: ProblemNote], LearnNoteSaveResult>;
+  'learn-project-check-repo': Channel<[request: LearnRepoCheckRequest], LearnRepoCheckResult>;
 
   // practice (F8)
   'practice-get-catalog': Channel<[], PracticeCatalogResult>;
@@ -1015,7 +1085,9 @@ export const IPC_CHANNELS = [
   'get-entitlements', 'start-checkout', 'get-payment-history',
   'verify-email', 'get-hr-contacts', 'send-outreach', 'generate-ai-outreach-email',
   'ask-nomadic-assistant',
-  'learning-get-state', 'learning-save-goal', 'learning-record-events', 'learning-sync',
+  'learning-get-state', 'learning-record-events', 'learning-sync',
+  'learn-roadmap-generate', 'learn-roadmap-adjust', 'learn-roadmap-accept', 'learn-schedule-save',
+  'learn-project-save', 'learn-problem-note-save', 'learn-project-check-repo',
   'practice-get-catalog', 'practice-get-state', 'practice-record-attempt', 'ai-rubric-feedback',
   'auth-google', 'auth-login', 'auth-signup',
   'auth-request-password-reset', 'auth-confirm-password-reset', 'auth-send-verification', 'auth-confirm-verification',
@@ -1115,9 +1187,15 @@ export interface NomadicApi {
   generateAiOutreachEmail: Invoke<'generate-ai-outreach-email'>;
 
   learningGetState: Invoke<'learning-get-state'>;
-  learningSaveGoal: Invoke<'learning-save-goal'>;
   learningRecordEvents: Invoke<'learning-record-events'>;
   learningSync: Invoke<'learning-sync'>;
+  learnRoadmapGenerate: Invoke<'learn-roadmap-generate'>;
+  learnRoadmapAdjust: Invoke<'learn-roadmap-adjust'>;
+  learnRoadmapAccept: Invoke<'learn-roadmap-accept'>;
+  learnScheduleSave: Invoke<'learn-schedule-save'>;
+  learnProjectSave: Invoke<'learn-project-save'>;
+  learnProblemNoteSave: Invoke<'learn-problem-note-save'>;
+  learnProjectCheckRepo: Invoke<'learn-project-check-repo'>;
 
   updateApplicationStatus: (id: number | string, status: string) => Promise<ChannelResult<'update-application-status'>>;
   updateApplicationNotes: (id: number | string, notes: string) => Promise<ChannelResult<'update-application-notes'>>;

@@ -73,9 +73,15 @@ const apiObj: NomadicApi = {
 
   // Learn
   learningGetState: () => invoke('learning-get-state'),
-  learningSaveGoal: (goal) => invoke('learning-save-goal', goal),
   learningRecordEvents: (events) => invoke('learning-record-events', events),
   learningSync: () => invoke('learning-sync'),
+  learnRoadmapGenerate: (intake) => invoke('learn-roadmap-generate', intake),
+  learnRoadmapAdjust: (instruction) => invoke('learn-roadmap-adjust', instruction),
+  learnRoadmapAccept: (roadmap, schedule) => invoke('learn-roadmap-accept', roadmap, schedule),
+  learnScheduleSave: (schedule) => invoke('learn-schedule-save', schedule),
+  learnProjectSave: (project) => invoke('learn-project-save', project),
+  learnProblemNoteSave: (note) => invoke('learn-problem-note-save', note),
+  learnProjectCheckRepo: (req) => invoke('learn-project-check-repo', req),
 
   // Applications Management
   updateApplicationStatus: (id, status) => invoke('update-application-status', { id, status }),
