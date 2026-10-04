@@ -365,6 +365,110 @@ export async function syncRemoveSavedJob(
   }
 }
 
+type SessionArgs = { p_user_id: string; p_session_token: string; p_device_fingerprint: string };
+
+async function callOkRpc(supabase: any, fn: string, params: SessionArgs & Record<string, unknown>): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const { data, error } = await supabase.rpc(fn, params);
+    if (error) return { ok: false, error: error.message };
+    const row = Array.isArray(data) ? data[0] : data;
+    return { ok: Boolean(row?.ok), error: row?.error ?? undefined };
+  } catch (err: any) {
+    return { ok: false, error: String(err?.message ?? err) };
+  }
+}
+
+/** Hide a job ("Not interested") on the account (migration 026). */
+export function syncHideJob(
+  supabase: any,
+  userId: string,
+  sessionToken: string,
+  deviceFingerprint: string,
+  job: { apply_url: string; title?: string; company?: string }
+): Promise<{ ok: boolean; error?: string }> {
+  return callOkRpc(supabase, 'sync_hide_job', {
+    p_user_id: userId,
+    p_session_token: sessionToken,
+    p_device_fingerprint: deviceFingerprint,
+    p_apply_url: job.apply_url,
+    p_title: job.title ?? '',
+    p_company: job.company ?? '',
+  });
+}
+
+/** Show a hidden job again (migration 026). */
+export function syncUnhideJob(
+  supabase: any,
+  userId: string,
+  sessionToken: string,
+  deviceFingerprint: string,
+  applyUrl: string
+): Promise<{ ok: boolean; error?: string }> {
+  return callOkRpc(supabase, 'sync_unhide_job', {
+    p_user_id: userId,
+    p_session_token: sessionToken,
+    p_device_fingerprint: deviceFingerprint,
+    p_apply_url: applyUrl,
+  });
+}
+
+export interface CloudHiddenJob {
+  apply_url: string;
+  title: string;
+  company: string;
+  hidden_at: string;
+}
+
+/** All hidden jobs on the account, newest first (migration 026). */
+export async function syncPullHiddenJobs(
+  supabase: any,
+  userId: string,
+  sessionToken: string,
+  deviceFingerprint: string
+): Promise<{ ok: boolean; error?: string; jobs?: CloudHiddenJob[] }> {
+  try {
+    const { data, error } = await supabase.rpc('sync_pull_hidden_jobs', {
+      p_user_id: userId,
+      p_session_token: sessionToken,
+      p_device_fingerprint: deviceFingerprint,
+    });
+    if (error) return { ok: false, error: error.message };
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row?.ok) return { ok: false, error: row?.error || 'Failed to pull hidden jobs' };
+    const list: unknown[] = Array.isArray(row.hidden_jobs) ? row.hidden_jobs : [];
+    const jobs = list
+      .filter((j): j is Record<string, unknown> => Boolean(j) && typeof j === 'object')
+      .filter((j) => typeof j.apply_url === 'string' && j.apply_url.length > 0)
+      .map((j) => ({
+        apply_url: String(j.apply_url),
+        title: typeof j.title === 'string' ? j.title : '',
+        company: typeof j.company === 'string' ? j.company : '',
+        hidden_at: typeof j.hidden_at === 'string' ? j.hidden_at : '',
+      }));
+    return { ok: true, jobs };
+  } catch (err: any) {
+    return { ok: false, error: String(err?.message ?? err) };
+  }
+}
+
+/** Set or clear (null) an application's follow-up date, YYYY-MM-DD (migration 026). */
+export function syncSetApplicationFollowUp(
+  supabase: any,
+  userId: string,
+  sessionToken: string,
+  deviceFingerprint: string,
+  applyUrl: string,
+  followUpAt: string | null
+): Promise<{ ok: boolean; error?: string }> {
+  return callOkRpc(supabase, 'sync_set_application_follow_up', {
+    p_user_id: userId,
+    p_session_token: sessionToken,
+    p_device_fingerprint: deviceFingerprint,
+    p_apply_url: applyUrl,
+    p_follow_up_at: followUpAt,
+  });
+}
+
 /**
  * Push a resume record to Supabase cloud.
  */

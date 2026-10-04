@@ -234,6 +234,10 @@ export function mergeCloudApplications(db: Database, cloud: Array<Record<string,
     const notes = typeof app.notes === 'string' ? app.notes : null;
     const history = parseHistory(app.status_history);
 
+    // Servers before migration 026 do not send follow_up_at: leave the local date alone then.
+    const hasFollowUp = 'follow_up_at' in app && (app.follow_up_at === null || cloudFollowUp(app) !== null);
+    const followUpAt = cloudFollowUp(app);
+
     let id = findIdByUrl(db, applyUrl);
     if (id === null) {
       db.run(
@@ -243,19 +247,47 @@ export function mergeCloudApplications(db: Database, cloud: Array<Record<string,
       );
       id = findIdByUrl(db, applyUrl)!;
       if (!history.length) appendHistory(db, id, status, appliedAt);
+      if (hasFollowUp && followUpAt) db.run('UPDATE local_applications SET follow_up_at = ? WHERE id = ?', [followUpAt, id]);
     } else {
       const local = getApplication(db, id)!;
       const localMs = timestampMs(local.updated_at ?? local.applied_at);
       const cloudMs = timestampMs(updatedAt);
-      if (Number.isNaN(localMs) || (!Number.isNaN(cloudMs) && cloudMs > localMs)) {
+      const cloudNewer = Number.isNaN(localMs) || (!Number.isNaN(cloudMs) && cloudMs > localMs);
+      if (cloudNewer) {
         db.run(
           'UPDATE local_applications SET company = ?, title = ?, status = ?, notes = COALESCE(?, notes), updated_at = ? WHERE id = ?',
           [company, title, status, notes, updatedAt, id],
         );
+      }
+      // A date set on another computer is never dropped by an older local row that has none.
+      if (hasFollowUp && (cloudNewer || (followUpAt && !local.follow_up_at))) {
+        db.run('UPDATE local_applications SET follow_up_at = ? WHERE id = ?', [followUpAt, id]);
       }
     }
     for (const h of history) appendHistory(db, id, h.status, h.changed_at);
     merged++;
   }
   return merged;
+}
+
+function cloudFollowUp(app: Record<string, unknown>): string | null {
+  const v = app.follow_up_at;
+  return typeof v === 'string' && FOLLOW_UP_DATE.test(v.slice(0, 10)) ? v.slice(0, 10) : null;
+}
+
+/**
+ * After a merge: local follow-up dates the account does not have yet (set before sync existed,
+ * or while offline). Only for rows the server returned with the follow_up_at column (026).
+ */
+export function followUpsToPush(db: Database, cloud: Array<Record<string, unknown>>): Array<{ applyUrl: string; followUpAt: string }> {
+  const out: Array<{ applyUrl: string; followUpAt: string }> = [];
+  for (const app of cloud) {
+    if (!('follow_up_at' in app) || typeof app.apply_url !== 'string') continue;
+    const id = findIdByUrl(db, app.apply_url);
+    const local = id === null ? null : getApplication(db, id);
+    if (local?.follow_up_at && local.follow_up_at !== cloudFollowUp(app)) {
+      out.push({ applyUrl: app.apply_url, followUpAt: local.follow_up_at });
+    }
+  }
+  return out;
 }

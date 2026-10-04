@@ -4,14 +4,18 @@ import {
   syncRemoveSavedJob,
   syncPushResume,
   syncDeleteResume,
+  syncHideJob,
+  syncPullHiddenJobs,
+  syncSetApplicationFollowUp,
 } from '@job-automator/supabase';
+import { mergeCloudHiddenJobs } from './hidden-jobs.js';
 import { getDb, persistDb } from '../db.js';
 import { log } from './app-context.js';
 import { getActiveSyncSession } from './session.js';
 import { getAnonSupabase } from './supabase.js';
 import { upsertMasterProfile } from './profile.js';
 import { readSecret } from './secrets.js';
-import { mergeCloudApplications } from './applications-store.js';
+import { followUpsToPush, mergeCloudApplications } from './applications-store.js';
 import { syncLearning } from './learning.js';
 
 // ── Cloud Sync & Single-Laptop Lock Helpers ─────────────────────────────────
@@ -64,8 +68,10 @@ export async function syncPullUserDataToLocalDb(
     }
 
     // 2. Sync Applications (merge by apply URL; newer side wins, history unioned)
+    let followUpBackfill: Array<{ applyUrl: string; followUpAt: string }> = [];
     if (Array.isArray(applications)) {
       mergeCloudApplications(db, applications, new Date().toISOString());
+      followUpBackfill = followUpsToPush(db, applications);
     }
 
     // 3. Sync Saved Jobs
@@ -111,7 +117,23 @@ export async function syncPullUserDataToLocalDb(
       }
     }
 
+    // 5. Hidden jobs (026): union with the account, then upload the ones only this computer has.
+    const hidden = await syncPullHiddenJobs(supabase, userId, sessionToken, deviceFingerprint);
+    const hiddenBackfill = hidden.ok && hidden.jobs ? mergeCloudHiddenJobs(db, hidden.jobs) : [];
+    if (!hidden.ok) log(`[Cloud Sync] Hidden jobs not pulled: ${hidden.error ?? 'unknown error'}`);
+
     persistDb();
+    // Uploads use this pull's credentials: the sync session may not be marked active yet.
+    for (const job of hiddenBackfill) {
+      syncHideJob(supabase, userId, sessionToken, deviceFingerprint, { apply_url: job.applyUrl, title: job.title, company: job.company })
+        .then((res) => { if (!res.ok) log(`[Cloud Sync] Hidden job not synced: ${res.error ?? 'unknown error'}`); })
+        .catch(() => {});
+    }
+    for (const f of followUpBackfill) {
+      syncSetApplicationFollowUp(supabase, userId, sessionToken, deviceFingerprint, f.applyUrl, f.followUpAt)
+        .then((res) => { if (!res.ok) log(`[Cloud Sync] Follow-up not synced: ${res.error ?? 'unknown error'}`); })
+        .catch(() => {});
+    }
     // Learn progress (goal + events) syncs through its own session-checked RPCs.
     void syncLearning().catch(() => {});
     log(`[Cloud Sync] Pulled & synchronized profile, applications (${applications?.length || 0}), and saved jobs (${savedJobs?.length || 0}) from Supabase ✓`);

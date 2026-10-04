@@ -1,6 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import initSqlJs, { type Database } from 'sql.js';
 import {
+  followUpsToPush,
   getApplication,
   listApplications,
   mergeCloudApplications,
@@ -153,5 +154,42 @@ describe('follow-up dates (local migration 6)', () => {
     expect(setApplicationFollowUp(db, id, null, T3)!.follow_up_at).toBeNull();
     expect(() => setApplicationFollowUp(db, id, '10/10/2026', T3)).toThrow(/YYYY-MM-DD/);
     expect(setApplicationFollowUp(db, 999, '2026-10-10', T3)).toBeNull();
+  });
+});
+
+describe('follow-up dates from the account (026)', () => {
+  beforeEach(() => { migrateApplicationsSchema(db); migrateFollowUpSchema(db); });
+  const cloudRow = (extra: Record<string, unknown>) => ({ company: 'Acme', title: 'SDE', apply_url: 'https://a.co/1', status: 'applied', applied_at: T1, ...extra });
+
+  it('restores the follow-up date on a new computer', () => {
+    mergeCloudApplications(db, [cloudRow({ updated_at: T2, follow_up_at: '2026-10-20' })], T3);
+    expect(listApplications(db)[0].follow_up_at).toBe('2026-10-20');
+    expect(followUpsToPush(db, [cloudRow({ follow_up_at: '2026-10-20' })])).toEqual([]);
+  });
+
+  it('newer side wins; a newer cloud clear removes the local date', () => {
+    const id = recordApplication(db, { company: 'Acme', title: 'SDE', apply_url: 'https://a.co/1' }, T1);
+    setApplicationFollowUp(db, id, '2026-10-10', T2);
+    mergeCloudApplications(db, [cloudRow({ updated_at: T1, follow_up_at: null })], T3);
+    expect(getApplication(db, id)!.follow_up_at).toBe('2026-10-10');
+    mergeCloudApplications(db, [cloudRow({ updated_at: T3, follow_up_at: null })], T3);
+    expect(getApplication(db, id)!.follow_up_at).toBeNull();
+  });
+
+  it('ignores invalid cloud dates and rows from a server without the column', () => {
+    const id = recordApplication(db, { company: 'Acme', title: 'SDE', apply_url: 'https://a.co/1' }, T1);
+    setApplicationFollowUp(db, id, '2026-10-10', T1);
+    mergeCloudApplications(db, [cloudRow({ updated_at: T2, follow_up_at: 'soon' })], T3);
+    expect(getApplication(db, id)!.follow_up_at).toBe('2026-10-10');
+    mergeCloudApplications(db, [cloudRow({ updated_at: T3 })], T3);
+    expect(getApplication(db, id)!.follow_up_at).toBe('2026-10-10');
+  });
+
+  it('lists local dates the account does not have yet (only when the server sends the column)', () => {
+    const id = recordApplication(db, { company: 'Acme', title: 'SDE', apply_url: 'https://a.co/1' }, T1);
+    setApplicationFollowUp(db, id, '2026-10-10', T2);
+    expect(followUpsToPush(db, [cloudRow({ follow_up_at: null })])).toEqual([{ applyUrl: 'https://a.co/1', followUpAt: '2026-10-10' }]);
+    expect(followUpsToPush(db, [cloudRow({})])).toEqual([]);
+    expect(followUpsToPush(db, [cloudRow({ apply_url: 'https://other', follow_up_at: null })])).toEqual([]);
   });
 });

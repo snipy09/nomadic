@@ -9,6 +9,10 @@ import {
   syncDeleteApplication,
   syncPushSavedJob,
   syncRemoveSavedJob,
+  syncHideJob,
+  syncUnhideJob,
+  syncPullHiddenJobs,
+  syncSetApplicationFollowUp,
   syncPushResume,
   syncDeleteResume,
   handleRazorpaySuccessRpc,
@@ -281,6 +285,45 @@ describe('Supabase Package Unit Tests', () => {
 
       const remRes = await syncRemoveSavedJob(mockSupabase, 'user-1', 'tok-1', 'fp-1', 'https://supabase.com/jobs/1');
       expect(remRes.ok).toBe(true);
+    });
+  });
+
+  describe('hidden jobs and follow-ups (026)', () => {
+    const ok = () => ({ rpc: vi.fn().mockResolvedValue({ data: [{ ok: true }], error: null }) });
+
+    it('hides and unhides with the session arguments', async () => {
+      const sb = ok();
+      expect(await syncHideJob(sb, 'u', 't', 'f', { apply_url: 'https://x/1', title: 'SDE', company: 'Acme' })).toEqual({ ok: true, error: undefined });
+      expect(sb.rpc).toHaveBeenCalledWith('sync_hide_job', {
+        p_user_id: 'u', p_session_token: 't', p_device_fingerprint: 'f',
+        p_apply_url: 'https://x/1', p_title: 'SDE', p_company: 'Acme',
+      });
+      expect((await syncUnhideJob(sb, 'u', 't', 'f', 'https://x/1')).ok).toBe(true);
+      expect(sb.rpc).toHaveBeenLastCalledWith('sync_unhide_job', expect.objectContaining({ p_apply_url: 'https://x/1' }));
+    });
+
+    it('pulls hidden jobs and drops malformed rows', async () => {
+      const sb = { rpc: vi.fn().mockResolvedValue({ data: [{ ok: true, hidden_jobs: [
+        { apply_url: 'https://x/1', title: 'SDE', company: 'Acme', hidden_at: '2026-10-01T00:00:00Z' },
+        { apply_url: '' }, null, { title: 'no url' },
+      ] }], error: null }) };
+      const res = await syncPullHiddenJobs(sb, 'u', 't', 'f');
+      expect(res).toEqual({ ok: true, jobs: [{ apply_url: 'https://x/1', title: 'SDE', company: 'Acme', hidden_at: '2026-10-01T00:00:00Z' }] });
+    });
+
+    it('reports a rejected pull or a missing function', async () => {
+      const denied = { rpc: vi.fn().mockResolvedValue({ data: [{ ok: false, error: 'Unauthorized' }], error: null }) };
+      expect(await syncPullHiddenJobs(denied, 'u', 't', 'f')).toEqual({ ok: false, error: 'Unauthorized' });
+      const missing = { rpc: vi.fn().mockResolvedValue({ data: null, error: { message: 'function not found' } }) };
+      expect(await syncHideJob(missing, 'u', 't', 'f', { apply_url: 'x' })).toEqual({ ok: false, error: 'function not found' });
+    });
+
+    it('sets and clears a follow-up date', async () => {
+      const sb = ok();
+      await syncSetApplicationFollowUp(sb, 'u', 't', 'f', 'https://x/1', '2026-10-20');
+      expect(sb.rpc).toHaveBeenCalledWith('sync_set_application_follow_up', expect.objectContaining({ p_apply_url: 'https://x/1', p_follow_up_at: '2026-10-20' }));
+      await syncSetApplicationFollowUp(sb, 'u', 't', 'f', 'https://x/1', null);
+      expect(sb.rpc).toHaveBeenLastCalledWith('sync_set_application_follow_up', expect.objectContaining({ p_follow_up_at: null }));
     });
   });
 

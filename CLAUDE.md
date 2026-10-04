@@ -96,8 +96,10 @@ Key flows:
   URL `https://grqkiddfwoyicktpgdea.supabase.co`. The anon key is public by design and is the build default in
   `apps/desktop/build-main.mjs`, scrapers and web. The service-role key is never in the app or repo.
 - **Applied migrations**: 001–012, 014–024 (013 does not exist; 023 is the web waitlist; 024, no Max downgrade on
-  payment, applied 4 Oct 2026). **Not yet applied: 025** (payment history RPC;
-  `baseline/apply_025.sql`), both rehearsed on PostgreSQL 16. Security advisor: no errors; remaining notices are by design (deny-all tables;
+  payment, applied 4 Oct 2026). **Not yet applied: 025** (payment history RPC; `baseline/apply_025.sql`,
+  rehearsed on PostgreSQL 16) and **026** (account sync of hidden jobs and follow-up dates; `baseline/apply_026.sql`,
+  not rehearsed: no local PostgreSQL on this machine). Until 026 is applied the app logs the missing RPCs and keeps
+  both local. Security advisor: no errors; remaining notices are by design (deny-all tables;
   session-checked SECURITY DEFINER RPCs callable by anon).
 - **Learn content seeded** from the bundle (checksums verified).
 - **Edge Functions deployed** (JWT verification on): `google-sign-in`, `send-email-code`, `ai-proxy`.
@@ -158,7 +160,7 @@ Owner actions:
 9. (Done 4 Oct 2026) `require_login_ticket` is on.
 10. Review and publish Learn content (all drafts; 69 lessons have no resource yet); run the link checker.
 11. Rotate the Resend and Gemini keys (they were shared in a chat) and update Vault.
-12. Apply migration 025 (`packages/supabase/baseline/apply_025.sql`); 024 is done.
+12. Apply migrations 025 and 026 (`packages/supabase/baseline/apply_025.sql`, `apply_026.sql`); 024 is done.
 13. (Done) `GOOGLE_OAUTH_CLIENT_ID/SECRET` repository secrets.
 
 Done in October 2026: hide job ("Not interested", local migration 5), tracker follow-up reminders (local
@@ -172,10 +174,12 @@ without the Chromium sandbox when the GPU/renderer process cannot start (STATUS_
 forces it); a saved sign-in is handed back to the main process at launch (`features/auth/useSessionRestore.ts`) and the
 user is signed out with a notice only when the server ends the session (heartbeat `ended`), never on a network error;
 apply's AI form answers go through `ai-proxy`; the feed treats the column default `'unknown'` as unknown and sorts by
-`posted_at`.
+`posted_at`. Hidden jobs and follow-up dates sync to the account (026: `user_hidden_jobs`,
+`user_applications.follow_up_at`, RPCs `sync_hide_job`/`sync_unhide_job`/`sync_pull_hidden_jobs`/
+`sync_set_application_follow_up`); on pull, hidden jobs are a union and local-only ones are uploaded; for follow-ups
+the newer row wins, a cloud date is never dropped by a local row without one.
 
-Code follow-ups: resume parsing/versions; multi-step form edits in apply; sync hidden jobs and follow-up dates to
-the account (both local only today); GST tax invoices (need a GSTIN; today receipts only); skill tagging in the
+Code follow-ups: resume parsing/versions; multi-step form edits in apply; GST tax invoices (need a GSTIN; today receipts only); skill tagging in the
 scraper pipeline (the app tags at runtime, so optional); event sync beyond learning; F13 decisions (Outreach and the
 Assistant still call AI directly); OS notification for due follow-ups (today an in-app list).
 

@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { syncDeleteApplication, syncPushApplication } from '@job-automator/supabase';
+import { syncDeleteApplication, syncPushApplication, syncSetApplicationFollowUp } from '@job-automator/supabase';
 import {
   MANUAL_APPLICATION_KEY_PREFIX,
   type ApplicationFollowUpInput,
@@ -119,12 +119,35 @@ export function updateApplicationNotes(data: ApplicationNotesInput): { success: 
   }
 }
 
-/** Local only: follow-up dates are not synced to the account. */
+/**
+ * Follow-up dates go through their own RPC (026). The application is pushed first so the
+ * account row exists even if an earlier push failed.
+ */
+function pushFollowUpToCloud(app: ApplicationRecord): void {
+  const active = getActiveSyncSession();
+  const supabase = active ? getAnonSupabase() : null;
+  if (!active || !supabase) return;
+  syncPushApplication(supabase, active.userId, active.sessionToken, active.deviceFingerprint, {
+    company: app.company,
+    title: app.title,
+    apply_url: app.apply_url,
+    status: app.status,
+    mode: app.mode ?? undefined,
+    notes: app.notes,
+    status_history: app.history,
+    applied_at: toIso(app.applied_at),
+  })
+    .then(() => syncSetApplicationFollowUp(supabase, active.userId, active.sessionToken, active.deviceFingerprint, app.apply_url, app.follow_up_at ?? null))
+    .then((res) => { if (!res.ok) log(`[Cloud Sync] Follow-up for #${app.id} not synced: ${res.error ?? 'unknown error'}`); })
+    .catch((err) => log(`[Cloud Sync] Follow-up for #${app.id} not synced: ${errorMessage(err)}`));
+}
+
 export function updateApplicationFollowUp(data: ApplicationFollowUpInput): { success: boolean; error?: string; application?: ApplicationRecord } {
   try {
     const rec = setApplicationFollowUp(getDb(), data.id, data.followUpAt, now());
     if (!rec) return { success: false, error: 'Application not found.' };
     persistDb();
+    pushFollowUpToCloud(rec);
     return { success: true, application: rec };
   } catch (err) {
     return { success: false, error: errorMessage(err) };
