@@ -13,6 +13,20 @@ export default function Footer() {
           <p className="mt-3 max-w-sm text-ink-pale">
             A desktop app for the whole job search.
           </p>
+          <a
+            href="https://www.producthunt.com/products/nomadic?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-nomadic"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-5 inline-block"
+          >
+            <img
+              alt="Nomadic - Job search Automated | Product Hunt"
+              width={250}
+              height={54}
+              loading="lazy"
+              src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1269285&theme=neutral&t=1791112480185"
+            />
+          </a>
         </div>
 
         <nav aria-label="Footer" className="flex flex-wrap gap-x-8 gap-y-1 font-semibold">
