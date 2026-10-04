@@ -37,11 +37,14 @@ export const isRoleId = (id: string): id is RoleFamilyId => roles.has(id);
 /**
  * Whether a curated resource may be shown. Broken or retired links (failed the
  * link check or removed by an editor) are never shown. Seed resources that the
- * link checker has not visited yet ('unverified') are shown: they are curated
- * URLs already in the repo, not generated ones.
+ * link checker has not visited yet ('unverified') are shown when they are URLs
+ * that were already in the repo; Learn v2 additions ('learn-v2' source) wait
+ * until the link checker marks them active.
  */
 export function isShowableResource(r: LearningResource): boolean {
-  return (r.status === 'active' || r.status === 'unverified') && r.url.startsWith('https://');
+  if (!r.url.startsWith('https://')) return false;
+  if (r.status === 'active') return true;
+  return r.status === 'unverified' && !r.source.startsWith('learn-v2');
 }
 
 export function lessonResources(lesson: Lesson): LearningResource[] {

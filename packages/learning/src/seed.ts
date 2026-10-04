@@ -6,17 +6,21 @@
 import { PRACTICE_ITEMS } from '../scripts/seed-source/practice';
 import { RESOURCE_DEFS } from '../scripts/seed-source/resources';
 import { ROLE_DEFS } from '../scripts/seed-source/roles';
-import { SKILL_DEFS } from '../scripts/seed-source/skills';
+import { SKILL_DEFS as V1_SKILL_DEFS } from '../scripts/seed-source/skills';
+import { V2_SKILL_DEFS, buildV2Content, v2Resources } from '../scripts/seed-source/v2';
 import { ContentBundleSchema, type ContentBundle, type SkillPrerequisite } from './types';
 
-export const SEED_VERSION = '2026.10.1';
+export const SEED_VERSION = '2026.10.2';
+
+const SKILL_DEFS = [...V1_SKILL_DEFS, ...V2_SKILL_DEFS];
 
 export function buildSeedBundle(): ContentBundle {
   const prerequisites: SkillPrerequisite[] = SKILL_DEFS.flatMap((s) => [
     ...(s.hard ?? []).map((p) => ({ skill_id: s.id, prerequisite_id: p, strength: 'hard' as const })),
     ...(s.soft ?? []).map((p) => ({ skill_id: s.id, prerequisite_id: p, strength: 'soft' as const })),
   ]);
-  const resources = RESOURCE_DEFS.map((r) => ({ duration_minutes: null, ...r }));
+  const resources = [...RESOURCE_DEFS.map((r) => ({ duration_minutes: null, ...r })), ...v2Resources()];
+  const v2 = buildV2Content();
   return ContentBundleSchema.parse({
     version: SEED_VERSION,
     skills: SKILL_DEFS.map((s) => ({
@@ -57,6 +61,10 @@ export function buildSeedBundle(): ContentBundle {
       status: 'draft',
       ai_drafted: true,
     })),
-    practice_items: PRACTICE_ITEMS,
+    practice_items: [...PRACTICE_ITEMS, ...v2.practice_items],
+    modules: v2.modules,
+    topics: v2.topics,
+    projects: v2.projects,
+    problems: v2.problems,
   });
 }

@@ -204,8 +204,19 @@ export function planRoadmapRules(
   opts: { beginnerProjectsOnly?: boolean; id?: string } = {}
 ): Roadmap {
   const streams = roleShares(intake);
-  const picked = selectModules(intake, index);
-  const emphasis = new Map(picked.map((m) => [m.id, defaultEmphasis(m, intake)]));
+  const selected = selectModules(intake, index);
+  // Hard prerequisites outside the role filter still come along, at light emphasis.
+  const addedFor = new Map<string, string>();
+  for (const m of selected) {
+    for (const pre of moduleHardClosure(index, [m.id])) {
+      const pm = index.modules.get(pre)!;
+      if (selected.some((x) => x.id === pre) || addedFor.has(pre)) continue;
+      if (pm.language && pm.language !== intake.language) continue;
+      addedFor.set(pre, m.title);
+    }
+  }
+  const picked = [...selected, ...[...addedFor.keys()].map((id) => index.modules.get(id)!)].sort(compareModules);
+  const emphasis = new Map(picked.map((m) => [m.id, addedFor.has(m.id) ? ('light' as Emphasis) : defaultEmphasis(m, intake)]));
   const ordered = orderModules(
     index,
     picked.map((m) => m.id)
@@ -237,7 +248,7 @@ export function planRoadmapRules(
     emphasis: emphasis.get(id)!,
     skip_topics: [],
     why: '',
-    added_for: null,
+    added_for: addedFor.get(id) ?? null,
     custom: null,
   }));
   const roadmap: Roadmap = {
