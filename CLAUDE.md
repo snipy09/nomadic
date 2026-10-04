@@ -131,15 +131,17 @@ and quotas, F10 data safety, F11 updates/telemetry/help, F12 admin, F14 landing 
 F13 (Outreach, Opportunity Board, Resource Vault, Assistant) stays hidden; Outreach and the Assistant still call AI
 directly and need rework or removal.
 
-Tests: ~1,080 vitest tests pass; typecheck, lint (0 errors) and desktop/web builds pass. **The app has not yet been run end to end
-as a real Electron app, and the Edge Functions have not been called live.**
+Tests: ~1,090 vitest tests pass; typecheck, lint (0 errors) and desktop/web builds pass. The built Electron app has been
+smoke-tested over CDP (window, live feed via IPC, Learn, Settings, Help, Activity, Admin screens). **Real sign-up/sign-in,
+apply and AI feedback have not been run live yet, and the Edge Functions have not been called live.**
 
 ## 7. What is left
 
 Owner actions:
-1. Fill the live `jobs` table (empty, so the feed is empty): run `scripts\scrape-laptop.cmd` on a laptop
-   (`docs/SCRAPER_LAPTOP.md`) and/or set the GitHub Actions secrets (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`).
-   The pipeline keeps only jobs open to candidates in India by default (`--region all` to keep everything).
+1. Keep the live `jobs` table fresh (seeded once on 4 Oct 2026 with 328 active India-open jobs, 137 internships): run
+   `scripts\scrape-laptop.cmd` on a laptop (`docs/SCRAPER_LAPTOP.md`) and/or set the GitHub Actions secrets
+   (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`). The pipeline keeps only jobs open to candidates in India by default
+   (`--region all` to keep everything).
 2. Create the admin account (SQL in `docs/DATABASE_SETUP.md`).
 3. Run the app (`npm run dev:desktop`) and test: sign-up, onboarding → roadmap, lesson, feed, apply with review,
    tracker, password reset, AI feedback.
@@ -158,7 +160,12 @@ Owner actions:
 Done in October 2026: hide job ("Not interested", local migration 5), tracker follow-up reminders (local
 migration 6), feed match uses Learn mastery, mid-form cancel in apply (AbortSignal closes the tab), company question
 sets gated in main by the server plan, payment history with receipts (025), no Max downgrade on payment (024),
-India region filter + laptop runner for the scraper, CI green.
+India region filter + laptop runner for the scraper, CI green. v1 portable build (4 Oct): the app relaunches itself
+without the Chromium sandbox when the GPU/renderer process cannot start (STATUS_DLL_NOT_FOUND; `NOMADIC_DISABLE_SANDBOX`
+forces it); a saved sign-in is handed back to the main process at launch (`features/auth/useSessionRestore.ts`) and the
+user is signed out with a notice only when the server ends the session (heartbeat `ended`), never on a network error;
+apply's AI form answers go through `ai-proxy`; the feed treats the column default `'unknown'` as unknown and sorts by
+`posted_at`.
 
 Code follow-ups: resume parsing/versions; multi-step form edits in apply; sync hidden jobs and follow-up dates to
 the account (both local only today); GST tax invoices (need a GSTIN; today receipts only); skill tagging in the

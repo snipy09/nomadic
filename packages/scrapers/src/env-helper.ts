@@ -9,19 +9,27 @@ export interface ScraperEnv {
   isServiceRole: boolean;
 }
 
+/** The repo root .env next to this package (ESM only; bundled CJS builds have no import.meta.url). */
+function moduleRootEnv(): string[] {
+  const url = typeof import.meta === 'object' ? import.meta.url : undefined;
+  if (!url) return [];
+  return [path.resolve(path.dirname(fileURLToPath(url)), '..', '..', '..', '.env')];
+}
+
 /**
  * Loads Supabase credentials from process.env or the project's root .env file.
  */
 export function getScraperEnv(): ScraperEnv {
   let supabaseUrl = process.env.SUPABASE_URL || '';
   let supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
+  let isServiceRole = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
 
   if (!supabaseUrl || !supabaseKey) {
     // Attempt to locate root .env
     const candidatePaths = [
       path.resolve(process.cwd(), '.env'),
       path.resolve(process.cwd(), '..', '..', '.env'),
-      path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '.env'),
+      ...moduleRootEnv(),
     ];
 
     for (const envPath of candidatePaths) {
@@ -37,6 +45,7 @@ export function getScraperEnv(): ScraperEnv {
             if (key === 'SUPABASE_URL' && !supabaseUrl) supabaseUrl = val;
             if ((key === 'SUPABASE_SERVICE_ROLE_KEY' || key === 'SUPABASE_ANON_KEY') && !supabaseKey) {
               supabaseKey = val;
+              isServiceRole = key === 'SUPABASE_SERVICE_ROLE_KEY';
             }
           }
         }
@@ -52,8 +61,6 @@ export function getScraperEnv(): ScraperEnv {
   if (!supabaseKey) {
     supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdycWtpZGRmd295aWNrdHBnZGVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwNTAyNDAsImV4cCI6MjEwNjYyNjI0MH0.ZTuqnzhEbYtmOHgDLTwX8ENFBIkKmrLVo-y6O1Mvsek';
   }
-
-  const isServiceRole = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
 
   return {
     SUPABASE_URL: supabaseUrl,

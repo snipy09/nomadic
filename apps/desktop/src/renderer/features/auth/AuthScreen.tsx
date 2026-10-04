@@ -13,6 +13,8 @@ import { VerifyEmailPanel } from './VerifyEmailPanel';
 interface AuthScreenProps {
   onLoginSuccess: (user: AppUser) => void;
   onLog?: (msg: string) => void;
+  /** Why the previous session ended (e.g. signed in on another laptop), shown until the next attempt. */
+  notice?: string | null;
 }
 
 const IDS = { fullName: 'auth-full-name', email: 'auth-email', password: 'auth-password', terms: 'auth-terms' } as const;
@@ -36,7 +38,7 @@ const GoogleIcon = () => (
 );
 
 /** Sign in, create an account, or continue with Google. Terms must be accepted for every path. */
-export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog }) => {
+export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog, notice }) => {
   const [mode, setMode] = useState<AuthMode>('signin');
   const [values, setValues] = useState<AuthFormValues>({ fullName: '', email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -44,7 +46,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog })
   const [termsOpen, setTermsOpen] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(notice ?? null);
   const [conflictDevice, setConflictDevice] = useState<string | null>(null);
   // Which sign-in hit the single-laptop lock: "Continue here" retries the same method with takeover.
   const [conflictVia, setConflictVia] = useState<'password' | 'google'>('password');
@@ -80,6 +82,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog })
   useEffect(() => {
     if (formError) formErrorRef.current?.focus();
   }, [formError]);
+
+  // The sign-out notice can arrive just after this screen mounts.
+  useEffect(() => {
+    if (notice) setFormError(notice);
+  }, [notice]);
 
   const errors: AuthFieldErrors = showErrors ? validateAuth(mode, values, termsAccepted) : {};
 

@@ -56,6 +56,19 @@ if (process.env.NOMADIC_DISABLE_SANDBOX === 'true') {
   app.commandLine.appendSwitch('no-sandbox');
 } else {
   app.enableSandbox();
+  // If sandboxed child processes cannot even load (STATUS_DLL_NOT_FOUND, seen
+  // when the app is started from a restricted parent process), the window would
+  // stay blank. Relaunch once without the sandbox instead of failing silently.
+  const STATUS_DLL_NOT_FOUND = -1073741515;
+  let relaunching = false;
+  app.on('child-process-gone', (_event, details) => {
+    if (relaunching || details.exitCode !== STATUS_DLL_NOT_FOUND) return;
+    relaunching = true;
+    console.error(`[Startup] ${details.type} process could not start under the sandbox; relaunching without it.`);
+    process.env.NOMADIC_DISABLE_SANDBOX = 'true';
+    app.relaunch();
+    app.exit(0);
+  });
 }
 app.commandLine.appendSwitch('disable-gpu');
 app.commandLine.appendSwitch('disable-software-rasterizer');
@@ -80,11 +93,7 @@ if (!gotTheLock) {
       const url = commandLine.find(arg => arg.startsWith('nomadic://'));
       if (url) handleProtocolUrl(url);
     } else {
-      // Open-ended form answers go through the Nomadic AI proxy (one batched call per form);
-  // no user API key is read or needed.
-  AutoApplyEngine.llm = createProxyFormAnswerClient();
-
-  createWindow();
+      createWindow();
     }
   });
 }
@@ -137,6 +146,10 @@ app.whenReady().then(async () => {
   } catch (err: any) {
     console.error('[Secrets] Migration note:', err?.message);
   }
+
+  // Open-ended form answers go through the Nomadic AI proxy (one batched call per form);
+  // no user API key is read or needed.
+  AutoApplyEngine.llm = createProxyFormAnswerClient();
 
   createWindow();
   initWhatsNew(currentAppVersion());

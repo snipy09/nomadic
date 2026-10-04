@@ -131,7 +131,7 @@ export async function sendSessionHeartbeat(
   sessionToken: string,
   clientIp: string,
   deviceFingerprint: string
-): Promise<{ valid: boolean; reason?: string }> {
+): Promise<{ valid: boolean; reason?: string; ended?: boolean }> {
   try {
     const { data, error } = await supabase.rpc('verify_and_update_session', {
       p_user_id: userId,
@@ -147,9 +147,12 @@ export async function sendSessionHeartbeat(
 
     const rows = Array.isArray(data) ? data : data ? [data] : [];
     const resData = rows[0] as { is_valid?: boolean; reason?: string } | undefined;
+    const valid = Boolean(resData?.is_valid);
     return {
-      valid: Boolean(resData?.is_valid),
-      reason: resData?.reason ? String(resData.reason) : undefined
+      valid,
+      reason: resData?.reason ? String(resData.reason) : undefined,
+      // The server answered and rejected the session (signed in elsewhere, expired, suspended).
+      ended: !valid,
     };
   } catch (err: any) {
     console.error('Session Heartbeat Exception:', err);

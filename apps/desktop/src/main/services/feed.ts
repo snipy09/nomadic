@@ -7,11 +7,12 @@ import { getMasterProfileRow } from './profile.js';
 import { removeAndSyncJob, saveAndSyncJob } from './cloud-sync.js';
 
 /** Maps a Supabase `jobs` row to a scored feed job. */
-function mapCloudJob(j: Record<string, any>, profileKeywords: string[], fallbackCreatedAt: string): FeedJob {
+// Unknown fields stay unknown: no invented location, seniority or posting date.
+function mapCloudJob(j: Record<string, any>, profileKeywords: string[]): FeedJob {
   const rawJob = {
     title: (j['title'] as string) || '',
     company: (j['company'] as string) || '',
-    location: (j['location'] as string) || 'Remote',
+    location: (j['location'] as string) || '',
     applyUrl: (j['apply_url'] as string) || '',
     source: (j['source'] as string) || 'Cloud Feed',
     description: (j['description'] as string) || '',
@@ -20,14 +21,16 @@ function mapCloudJob(j: Record<string, any>, profileKeywords: string[], fallback
   const score = computeRelevanceScore(rawJob, profileKeywords);
   const titleLower = rawJob.title.toLowerCase();
   const locLower = rawJob.location.toLowerCase();
+  // The jobs table stores 'unknown' as the default for these columns.
+  const known = (v: unknown): string | undefined => (typeof v === 'string' && v && v !== 'unknown' ? v : undefined);
   return {
     ...rawJob,
     salary: (j['salary_range'] as string) || undefined,
     score,
-    employmentType: j['employment_type'] || (titleLower.includes('intern') ? 'internship' : 'job'),
-    workplaceType: j['workplace_type'] || (locLower.includes('remote') ? 'remote' : 'hybrid'),
-    experienceLevel: j['experience_level'] || (titleLower.includes('senior') ? 'senior' : titleLower.includes('intern') ? 'entry' : 'mid'),
-    createdAt: (j['created_at'] as string) || fallbackCreatedAt,
+    employmentType: known(j['employment_type']) || (titleLower.includes('intern') ? 'internship' : undefined),
+    workplaceType: known(j['workplace_type']) || (j['remote'] || locLower.includes('remote') ? 'remote' : undefined),
+    experienceLevel: known(j['seniority']),
+    createdAt: (j['posted_at'] as string) || (j['first_seen'] as string) || (j['created_at'] as string) || undefined,
   };
 }
 
@@ -84,6 +87,7 @@ export async function getCloudFeedPage(
     }
 
     const { data: dbJobs, count, error } = await query
+      .order('posted_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
       .range(from, to);
 
@@ -91,12 +95,8 @@ export async function getCloudFeedPage(
       return { success: false, jobs: [], totalCount: 0 };
     }
 
-    const nowTime = Date.now();
     const profileKeywords = extractProfileKeywords(profileData);
-
-    const jobs = dbJobs.map((j, idx) =>
-      mapCloudJob(j, profileKeywords, new Date(nowTime - (from + idx) * 60000).toISOString())
-    );
+    const jobs = dbJobs.map((j) => mapCloudJob(j, profileKeywords));
 
     return { success: true, jobs, totalCount: count ?? jobs.length };
   } catch (err: any) {
@@ -111,8 +111,6 @@ export async function getCloudFeed(): Promise<{ success: boolean; jobs: FeedJob[
   try {
     const profileData: Record<string, unknown> = getMasterProfileRow() ?? {};
 
-    const nowTime = Date.now();
-
     let cloudJobs: FeedJob[] = [];
     try {
       const supabase = getAnonSupabase();
@@ -126,9 +124,7 @@ export async function getCloudFeed(): Promise<{ success: boolean; jobs: FeedJob[
 
         if (!error && dbJobs && Array.isArray(dbJobs) && dbJobs.length > 0) {
           const profileKeywords = extractProfileKeywords(profileData);
-          cloudJobs = dbJobs.map((j, idx) =>
-            mapCloudJob(j, profileKeywords, new Date(nowTime - idx * 60000).toISOString())
-          );
+          cloudJobs = dbJobs.map((j) => mapCloudJob(j, profileKeywords));
           log(`[Cloud Sync] Loaded ${cloudJobs.length} active opportunities from Supabase (scored against candidate profile).`);
         }
       }

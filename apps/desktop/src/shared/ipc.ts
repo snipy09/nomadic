@@ -57,6 +57,8 @@ export interface HeartbeatStatus {
   valid: boolean;
   reason?: string;
   ip?: string;
+  /** True when the server rejected the session; false/absent for network errors. */
+  ended?: boolean;
 }
 
 export interface ResumeRecord {

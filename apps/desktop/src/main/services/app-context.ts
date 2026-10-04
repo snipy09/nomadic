@@ -17,7 +17,12 @@ export function setMainWindow(win: BrowserWindow | null): void {
 
 /** Typed `webContents.send` for main -> renderer push events. */
 export function sendToRenderer<E extends EventName>(event: E, payload: IpcEvents[E]): void {
-  mainWindow?.webContents.send(event, payload);
+  if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) return;
+  try {
+    mainWindow.webContents.send(event, payload);
+  } catch {
+    // The renderer is reloading or gone; events are best effort.
+  }
 }
 
 const RECENT_LOG_LINES = 200;

@@ -18,6 +18,7 @@ import { ApplicationsView } from './features/applications/ApplicationsView';
 import { ProfileView } from './features/profile/ProfileView';
 import { AdminView } from './features/admin/AdminView';
 import { AuthScreen } from './features/auth/AuthScreen';
+import { useSessionRestore } from './features/auth/useSessionRestore';
 import { HelpView } from './features/help/HelpView';
 import { UpdateRequiredScreen } from './features/updates/UpdateRequiredScreen';
 import { WhatsNewDialog } from './features/updates/WhatsNewDialog';
@@ -214,6 +215,8 @@ export default function App() {
     }
   };
 
+  const [signedOutNotice, setSignedOutNotice] = useState<string | null>(null);
+
   const handleLogout = () => {
     queryClient.removeQueries({ queryKey: ENTITLEMENTS_KEY });
     setCurrentUser(null);
@@ -229,6 +232,17 @@ export default function App() {
     setActiveTab('learner-roadmaps');
     addLog('[Auth] Signed out successfully.');
   };
+
+  const sessionReady = useSessionRestore(
+    currentUser,
+    (reason) => {
+      if (!useAppStore.getState().currentUser) return;
+      addLog(`[Auth] Session ended: ${reason || 'no reason given'}`);
+      setSignedOutNotice(`You were signed out${reason ? ` (${reason})` : ''}. Sign in again to continue.`);
+      handleLogout();
+    },
+    setHeartbeat,
+  );
 
   const handleSaveProfile = async (updatedProfile?: MasterProfile): Promise<boolean> => {
     const api = getApi();
@@ -290,8 +304,10 @@ export default function App() {
   if (!currentUser) {
     return (
       <AuthScreen
+        notice={signedOutNotice}
         onLoginSuccess={(u) => {
           setWantsLogin(false);
+          setSignedOutNotice(null);
           handleLoginSuccess(u);
         }}
         onLog={addLog}
@@ -299,18 +315,13 @@ export default function App() {
     );
   }
 
-  // 2. Wait until initial profile and data check finishes
-  if (!onboardingLoaded) {
+  // 2. Wait until the profile is loaded and a saved session has been handed back to the main process
+  if (!onboardingLoaded || !sessionReady) {
     return (
-      <div className="min-h-screen bg-[#0A0A0C] flex flex-col items-center justify-center text-slate-400 font-sans p-4 select-none">
+      <div className="min-h-screen bg-canvas flex flex-col items-center justify-center p-4 select-none" role="status">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center">
-            <Loader2 className="w-5 h-5 text-emerald-400 animate-spin" />
-          </div>
-          <div className="text-center">
-            <p className="text-xs font-semibold text-slate-200">Loading your Nomadic workspace...</p>
-            <p className="text-[11px] text-slate-500 font-mono mt-0.5">Synchronizing local career database</p>
-          </div>
+          <Loader2 className="size-5 text-fg-muted animate-spin" aria-hidden="true" />
+          <p className="text-body font-strong text-fg">Loading your Nomadic workspace…</p>
         </div>
       </div>
     );

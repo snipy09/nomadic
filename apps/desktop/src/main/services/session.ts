@@ -75,9 +75,11 @@ export function startHeartbeatLoop(userId: string, sessionToken: string, deviceF
         valid: result.valid,
         reason: result.reason,
         ip: clientIp,
+        ended: Boolean(result.ended),
       });
 
-      if (!result.valid) {
+      // A network error is not a server verdict: keep the session and try again next beat.
+      if (!result.valid && result.ended) {
         log(`[Heartbeat] Session terminated: ${result.reason}. Single-device lock enforcement.`);
         if (heartbeatInterval) {
           clearInterval(heartbeatInterval);
