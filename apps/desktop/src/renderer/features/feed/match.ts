@@ -36,6 +36,16 @@ export function profileMastery(profile: Pick<MasterProfile, 'techStack'> & { ski
   return Object.fromEntries(tagSkills(text, catalogue.skills).map((id) => [id, 1]));
 }
 
+/**
+ * Profile skills (declared, mastery 1) combined with Learn progress (0..1 per skill from lessons,
+ * quizzes and placement): the higher value wins, so finishing lessons raises the match.
+ */
+export function combinedMastery(profile: MasteryMap, learned: MasteryMap): MasteryMap {
+  const out: MasteryMap = { ...profile };
+  for (const [id, m] of Object.entries(learned)) if (m > 0 && m > (out[id] ?? 0)) out[id] = m;
+  return out;
+}
+
 /** Best role family for a target title, by example titles; undefined when nothing fits. */
 export function inferRole(title?: string): RoleFamilyId | undefined {
   const t = (title ?? '').toLowerCase().trim();

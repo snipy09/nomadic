@@ -143,4 +143,15 @@ describe('FeedView', () => {
     expect(await screen.findByText(/could not hide this job/i)).toBeTruthy();
     expect(screen.getByText('Frontend Developer')).toBeTruthy();
   });
+
+  it('uses Learn progress for the match when the profile lists no skills', async () => {
+    const events = [
+      { id: 'e1', type: 'skill_marked_known', skill_id: 'react', payload: { source: 'placement', mastery: 0.9 }, created_at: '2026-10-01T00:00:00Z' },
+    ];
+    mockApi({ learningGetState: vi.fn().mockResolvedValue({ goal: null, events, pendingSync: 0 }) });
+    render(<QueryWrapper seed={entitlements()}><UIProvider><FeedView profile={{ ...profile, techStack: '' }} onLog={() => {}} currentUser={{ tier: 'pro' } as any} /></UIProvider></QueryWrapper>);
+    await screen.findByText('Frontend Developer');
+    await waitFor(() => expect(screen.queryByText(/add skills to your profile/i)).toBeNull());
+    expect(screen.getAllByText(/% match/).length).toBeGreaterThan(0);
+  });
 });

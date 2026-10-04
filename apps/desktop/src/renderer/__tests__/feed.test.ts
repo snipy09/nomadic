@@ -63,3 +63,11 @@ describe('withoutHidden', () => {
     expect(withoutHidden(list, [])).toBe(list);
   });
 });
+
+describe('combinedMastery', () => {
+  it('takes the higher of profile and Learn mastery and ignores zero progress', async () => {
+    const { combinedMastery } = await import('../features/feed/match');
+    expect(combinedMastery({ react: 1, sql: 1 }, { react: 0.4, python: 0.9, git: 0 })).toEqual({ react: 1, sql: 1, python: 0.9 });
+    expect(combinedMastery({}, {})).toEqual({});
+  });
+});

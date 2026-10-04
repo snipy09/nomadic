@@ -10,7 +10,8 @@ import { useApplyRunner } from '../apply/useApplyRunner';
 import { feedLimit } from '../billing/billingLogic';
 import { useEntitlements } from '../billing/useEntitlements';
 import { filterAndSort, pageRange, withoutHidden, type FeedTab, type LocationFilter, type ScoredJob, type SortKey } from './feedLogic';
-import { inferRole, matchJob, profileMastery } from './match';
+import { combinedMastery, inferRole, matchJob, profileMastery } from './match';
+import { useLearnedMastery } from './useLearnedMastery';
 import { useFeed } from './useFeed';
 import { JobCard } from './JobCard';
 import { JobDrawer } from './JobDrawer';
@@ -63,7 +64,9 @@ export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, on
   const feed = useFeed({ page, pageSize, search, tab, source: 'all' });
   const apply = useApplyRunner({ profile, currentUser, onLog, onOpenUpgrade, onUpdateProfile, onSubmitted: () => setSelected(new Set()) });
 
-  const mastery = useMemo(() => profileMastery(profile), [profile.techStack]); // eslint-disable-line react-hooks/exhaustive-deps
+  const learned = useLearnedMastery();
+  const declared = useMemo(() => profileMastery(profile), [profile.techStack]); // eslint-disable-line react-hooks/exhaustive-deps
+  const mastery = useMemo(() => combinedMastery(declared, learned), [declared, learned]);
   const role = useMemo(() => inferRole(profile.desiredTitle), [profile.desiredTitle]);
   const hiddenUrls = useMemo(() => feed.hidden.map((h) => h.applyUrl), [feed.hidden]);
   const hiddenPool = useMemo<Job[]>(() => feed.hidden.map((h) => ({ title: h.title, company: h.company, applyUrl: h.applyUrl, createdAt: h.hiddenAt })), [feed.hidden]);
@@ -122,7 +125,7 @@ export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, on
 
       {!hasProfileSkills && (
         <Card variant="sunken" padding="sm" className="text-caption text-fg-muted">
-          Add skills to your profile in Settings to see how well each job matches you.
+          Add skills to your profile in Settings, or finish lessons in Learn, to see how well each job matches you.
         </Card>
       )}
 
