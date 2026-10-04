@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import nodemailer, { type Transporter } from 'nodemailer';
 
 export interface SmtpConfig {
   host: string;
@@ -17,10 +17,12 @@ export interface OutreachEmail {
 }
 
 export class LocalOutreachSender {
-  private transporter: nodemailer.Transporter;
+  private transporter: Transporter;
+  private from: string;
 
   constructor(config: SmtpConfig) {
     this.transporter = nodemailer.createTransport(config);
+    this.from = config.auth.user;
   }
 
   /**
@@ -33,7 +35,7 @@ export class LocalOutreachSender {
       const email = emails[i];
       try {
         await this.transporter.sendMail({
-          from: this.transporter.options.from || (this.transporter as any).options?.auth?.user,
+          from: this.from,
           to: email.to,
           subject: email.subject,
           text: email.bodyText
