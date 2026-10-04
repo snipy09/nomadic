@@ -1,3 +1,5 @@
+-- Nomadic: migration 023 (payment plan changes). Paste into Supabase SQL Editor and Run.
+BEGIN;
 -- 023: plan changes on payment keep the value already paid for.
 --
 -- Before: handle_razorpay_payment_success set subscription_tier from the latest payment and extended the
@@ -100,3 +102,5 @@ END;
 $$;
 REVOKE EXECUTE ON FUNCTION public.handle_razorpay_payment_success(UUID, TEXT, TEXT, TEXT, TEXT, TEXT, JSONB) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.handle_razorpay_payment_success(UUID, TEXT, TEXT, TEXT, TEXT, TEXT, JSONB) TO service_role;
+INSERT INTO public.schema_migrations (filename, checksum) VALUES ('023_payment_plan_changes.sql', '3c0045a2a8e4430762db0da24dd67b3875201769d80d9113593e65449982896f') ON CONFLICT (filename) DO NOTHING;
+COMMIT;
