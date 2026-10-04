@@ -41,6 +41,70 @@ export function formatRunTable(report: PipelineReport): string {
   return [line(header), line(widths.map((w) => '-'.repeat(w))), ...rows.map(line)].join('\n');
 }
 
+/** Plain-text summary written after every run (opens in Notepad). */
+export function formatRunSummary(report: PipelineReport, opts: { maxNew?: number; region?: string } = {}): string {
+  const t = report.totals;
+  const secs = Math.max(0, Math.round((Date.parse(report.finishedAt) - Date.parse(report.startedAt)) / 1000));
+  const local = (iso: string) => new Date(iso).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+  const failed = report.sources.filter((s) => s.status === 'error' || s.alert);
+  const lines = [
+    'NOMADIC SCRAPE SUMMARY',
+    '======================',
+    `Run:        ${report.runId}`,
+    `Started:    ${local(report.startedAt)} IST (took ${Math.floor(secs / 60)}m ${secs % 60}s)`,
+    `Mode:       ${report.published ? 'published to Supabase' : 'dry run (nothing written)'}${opts.region ? `, region ${opts.region}` : ''}`,
+    '',
+    `New jobs added:        ${t.newJobs}${opts.maxNew ? ` (limit ${opts.maxNew} per run)` : ''}`,
+    `Existing jobs updated: ${t.refreshed}`,
+    `Left for next run:     ${t.deferred}`,
+    `Duplicates skipped:    ${t.duplicates}`,
+    `Dead/closed links:     ${t.linkFailed}`,
+    `Expired (no longer listed or dead): ${t.expired + t.legacyExpired}`,
+    `Fetched in total:      ${t.fetched} (${t.valid} valid)`,
+    '',
+    'BY SOURCE',
+    formatRunTableWithNew(report),
+    '',
+    failed.length
+      ? `PROBLEMS\n${failed.map((s) => `- ${s.source}: ${s.error ?? s.alert}`).join('\n')}`
+      : 'PROBLEMS\n- none',
+  ];
+  const warnings = report.sources.flatMap((s) => s.warnings.map((w) => `- ${s.source}: ${w}`));
+  if (warnings.length) lines.push('', 'WARNINGS', ...warnings);
+  if (report.newJobs.length) {
+    lines.push('', `NEW JOBS (${report.newJobs.length})`);
+    report.newJobs.forEach((j, i) =>
+      lines.push(`${String(i + 1).padStart(3)}. ${j.title} | ${j.company} | ${j.location || (j.remote ? 'Remote' : '-')} | ${j.source}`, `     ${j.applyUrl}`)
+    );
+  }
+  return lines.join('\n') + '\n';
+}
+
+function formatRunTableWithNew(report: PipelineReport): string {
+  const header = ['source', 'status', 'fetched', 'new', 'next run', 'dupes', 'link fail', 'expired'];
+  const rows = report.sources.map((s) => [
+    s.source,
+    s.status,
+    String(s.fetched),
+    String(s.newJobs),
+    String(s.deferred),
+    String(s.duplicates),
+    String(s.linkFailed),
+    String(s.expired),
+  ]);
+  const widths = header.map((h, i) => Math.max(h.length, ...rows.map((r) => r[i].length)));
+  const line = (cells: string[]) => cells.map((c, i) => c.padEnd(widths[i])).join('  ');
+  return [line(header), line(widths.map((w) => '-'.repeat(w))), ...rows.map(line)].join('\n');
+}
+
+/** One CSV line per run for a running history. */
+export const SUMMARY_CSV_HEADER = 'started_at,run_id,published,new,updated,next_run,duplicates,link_failed,expired,fetched,problems';
+export function formatSummaryCsvRow(report: PipelineReport): string {
+  const t = report.totals;
+  const problems = report.sources.filter((s) => s.status === 'error' || s.alert).map((s) => s.source).join(' ');
+  return [report.startedAt, report.runId, report.published, t.newJobs, t.refreshed, t.deferred, t.duplicates, t.linkFailed, t.expired + t.legacyExpired, t.fetched, problems].join(',');
+}
+
 function benchRow(s: SourceStats): string {
   const checked = s.linkOk + s.linkFailed + s.linkUnknown;
   return [

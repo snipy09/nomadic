@@ -145,7 +145,9 @@ screens). The owner has signed in on the packaged v1.0.6 app and run apply up to
 
 Owner actions:
 1. Keep the live `jobs` table fresh (seeded once on 4 Oct 2026 with 328 active India-open jobs, 137 internships): run
-   `scripts\scrape-laptop.cmd` on a laptop (`docs/SCRAPER_LAPTOP.md`) and/or set the GitHub Actions secrets
+   `Desktop\Nomadic-Scraper\Run scraper.cmd` (`scripts/scrape-desktop.ps1`: `--max-new 100` new jobs per run,
+   duplicates of published jobs skipped, a summary in `reports\` per run; first run asks for the service role key,
+   which no `.env` on this laptop had on 4 Oct 2026) or `scripts\scrape-laptop.cmd` (`docs/SCRAPER_LAPTOP.md`) and/or set the GitHub Actions secrets
    (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`). The pipeline keeps only jobs open to candidates in India by default
    (`--region all` to keep everything).
 2. Create the admin account (SQL in `docs/DATABASE_SETUP.md`).
@@ -167,7 +169,9 @@ Owner actions:
 Done in October 2026: hide job ("Not interested", local migration 5), tracker follow-up reminders (local
 migration 6), feed match uses Learn mastery, mid-form cancel in apply (AbortSignal closes the tab), company question
 sets gated in main by the server plan, payment history with receipts (025), no Max downgrade on payment (024),
-India region filter + laptop runner for the scraper, CI green. Answers typed during apply review are remembered
+India region filter + laptop runner for the scraper, CI green. The Ashby source skips boards whose
+hosted pages are off (e.g. Cursor: the posting API still returns jobs.ashbyhq.com links that render "Page not found"
+with HTTP 200), detected by Ashby's `ApiOrganizationFromHostedJobsPageName` query returning `organization: null`. Answers typed during apply review are remembered
 locally (by question fingerprint and label, `services/form-answers.ts`, local migration 7 cleared the old store) and
 pre-filled on later forms; model-written answers are never stored. They are listed, edited and forgotten on the
 Answers page (v1.0.12), which also holds the common application answers drafted during onboarding. "Continue with Google" opens the terms first if

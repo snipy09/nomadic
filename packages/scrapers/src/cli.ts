@@ -5,18 +5,26 @@
  *   scrape run   [--sources a,b] [--tiers 1,2] [--include-tier3] [--publish]
  *                [--no-link-check] [--limit-per-source N] [--json report.json] [--fail-on-alert]
  *                [--region india|all]   (default india, or SCRAPER_REGION)
+ *                [--max-new N]          at most N jobs not yet published per run (known jobs are still refreshed)
+ *                [--summary-dir DIR]    write a plain-text summary per run plus history.csv to DIR
  *   scrape bench [--sources a,b] [--include-tier3] [--out results/baseline.md]
  *   scrape runs  [--limit 20] [--source greenhouse]
  *   scrape sources
  *
  * Publishing needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment.
  */
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { appendFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { parseArgs } from 'util';
 import { createClient } from '@supabase/supabase-js';
-import { formatBenchMarkdown, formatRunTable } from './pipeline/report.js';
+import {
+  SUMMARY_CSV_HEADER,
+  formatBenchMarkdown,
+  formatRunSummary,
+  formatRunTable,
+  formatSummaryCsvRow,
+} from './pipeline/report.js';
 import { parseRegion } from './pipeline/region.js';
 import { runPipeline } from './pipeline/run.js';
 import { SupabaseJobStore, getRecentScrapeRuns } from './pipeline/store.js';
@@ -68,6 +76,8 @@ async function main(argv: string[]): Promise<number> {
       'no-link-check': { type: 'boolean', default: false },
       'limit-per-source': { type: 'string' },
       region: { type: 'string' },
+      'max-new': { type: 'string' },
+      'summary-dir': { type: 'string' },
       json: { type: 'string' },
       out: { type: 'string' },
       'fail-on-alert': { type: 'boolean', default: false },
@@ -127,8 +137,16 @@ async function main(argv: string[]): Promise<number> {
     `[scrape ${command}] sources: ${sources.map((s) => `${s.id}(t${s.tier})`).join(', ')}${publish ? ' — publishing' : ' — dry run'} — region ${region}`
   );
 
+  const maxNew = values['max-new'] ? Number(values['max-new']) : undefined;
+  if (maxNew !== undefined && (!Number.isInteger(maxNew) || maxNew < 1)) {
+    console.error('--max-new must be a positive whole number.');
+    return 2;
+  }
+  if (maxNew && !publish) console.log('note: --max-new only applies when publishing (it compares against Supabase).');
+
   const report = await runPipeline({
     sources,
+    maxNew,
     publish,
     store,
     linkCheck: isBench ? true : !values['no-link-check'],
@@ -141,7 +159,8 @@ async function main(argv: string[]): Promise<number> {
   console.log('\n' + formatRunTable(report));
   const t = report.totals;
   console.log(
-    `\nunique live jobs: ${t.unique} | outside region: ${report.sources.reduce((n, s) => n + s.outOfRegion, 0)} | duplicates: ${t.duplicates} | failed links: ${t.linkFailed} | upserted: ${t.upserted} | expired: ${t.expired} | legacy rows expired: ${t.legacyExpired}`
+    `\nnew jobs: ${t.newJobs} | updated: ${t.refreshed} | left for next run: ${t.deferred}` +
+      `\nunique live jobs: ${t.unique} | outside region: ${report.sources.reduce((n, s) => n + s.outOfRegion, 0)} | duplicates: ${t.duplicates} | failed links: ${t.linkFailed} | upserted: ${t.upserted} | expired: ${t.expired} | legacy rows expired: ${t.legacyExpired}`
   );
   if (client) {
     // Expire jobs no source has listed for 14 days; delete rows expired for 30 days.
@@ -155,9 +174,29 @@ async function main(argv: string[]): Promise<number> {
   if (values.json) {
     const path = resolve(values.json);
     mkdirSync(dirname(path), { recursive: true });
-    const { jobs, ...summary } = report;
-    writeFileSync(path, JSON.stringify({ ...summary, sampleJobs: jobs.slice(0, 20) }, null, 2));
+    const { jobs, newJobs, ...summary } = report;
+    writeFileSync(
+      path,
+      JSON.stringify(
+        { ...summary, sampleJobs: jobs.slice(0, 20), newJobIds: newJobs.map((j) => `${j.source}:${j.sourceJobId}`) },
+        null,
+        2
+      )
+    );
     console.log(`report written to ${path}`);
+  }
+
+  if (values['summary-dir'] && !isBench) {
+    const dir = resolve(values['summary-dir']);
+    mkdirSync(dir, { recursive: true });
+    const stamp = report.startedAt.slice(0, 19).replace(/[:T]/g, '-');
+    const summary = formatRunSummary(report, { maxNew, region });
+    writeFileSync(resolve(dir, `scrape-${stamp}.txt`), summary);
+    writeFileSync(resolve(dir, 'latest-summary.txt'), summary);
+    const history = resolve(dir, 'history.csv');
+    if (!existsSync(history)) writeFileSync(history, SUMMARY_CSV_HEADER + '\n');
+    appendFileSync(history, formatSummaryCsvRow(report) + '\n');
+    console.log(`summary written to ${resolve(dir, `scrape-${stamp}.txt`)}`);
   }
 
   if (isBench) {

@@ -8,7 +8,7 @@ import { isFailedLink, validateLinks } from './link-validate.js';
 import { canonicalizeUrl, dedupeKeyFor } from './normalize.js';
 import { isIndiaEligible, type Region } from './region.js';
 import { scoreJob } from './score.js';
-import { toJobRow, type JobStore, type ScrapeRunRow } from './store.js';
+import { rowKey, toJobRow, type JobStore, type ScrapeRunRow } from './store.js';
 
 /**
  * fetch -> normalize (zod) -> classify -> dedupe -> link-validate -> score -> upsert -> expire
@@ -34,6 +34,10 @@ export interface SourceStats {
   linkFailed: number;
   linkUnknown: number;
   closed: number;
+  /** Jobs not yet in the store that this run adds. */
+  newJobs: number;
+  /** New jobs left for a later run by `maxNew`. */
+  deferred: number;
   upserted: number;
   expired: number;
   previousFetched: number | null;
@@ -53,6 +57,9 @@ export interface PipelineReport {
     unique: number;
     duplicates: number;
     linkFailed: number;
+    newJobs: number;
+    refreshed: number;
+    deferred: number;
     upserted: number;
     expired: number;
     legacyExpired: number;
@@ -60,6 +67,8 @@ export interface PipelineReport {
   alerts: string[];
   /** Jobs that survived every stage (also what gets upserted when publishing). */
   jobs: PipelineJob[];
+  /** The subset of `jobs` that was not in the store before this run (empty without a store). */
+  newJobs: PipelineJob[];
 }
 
 export interface PipelineOptions {
@@ -76,6 +85,11 @@ export interface PipelineOptions {
   sourceTimeoutMs?: number;
   /** Max jobs kept per source after validation (0 = unlimited). */
   limitPerSource?: number;
+  /**
+   * Max jobs added per run that the store does not have yet, best score first (0/undefined = unlimited).
+   * Jobs already in the store are always refreshed, so expiry of unseen jobs is unaffected.
+   */
+  maxNew?: number;
   /** 'india' keeps only jobs open to candidates in India (see region.ts). Default 'all'. */
   region?: Region;
   now?: () => Date;
@@ -128,6 +142,8 @@ function emptyStats(source: SourceDefinition): SourceStats {
     linkFailed: 0,
     linkUnknown: 0,
     closed: 0,
+    newJobs: 0,
+    deferred: 0,
     upserted: 0,
     expired: 0,
     previousFetched: null,
@@ -250,6 +266,36 @@ export async function runPipeline(options: PipelineOptions = {}): Promise<Pipeli
   }
   live.sort((a, b) => b.score - a.score);
 
+  // ── 3b. Against what is already published: other-source copies are duplicates; cap new jobs ──
+  let output = live;
+  const newJobs: PipelineJob[] = [];
+  if (store) {
+    const index = await store.getActiveIndex();
+    output = [];
+    for (const job of live) {
+      const stats = statsBySource.get(job.source)!;
+      const key = rowKey(job.source, job.sourceJobId);
+      if (index.ids.has(key)) {
+        output.push(job);
+        continue;
+      }
+      const holder = index.byDedupeKey.get(job.dedupeKey) ?? index.byUrl.get(job.canonicalUrl);
+      if (holder && holder !== key) {
+        stats.duplicates++;
+        continue;
+      }
+      if (options.maxNew && newJobs.length >= options.maxNew) {
+        stats.deferred++;
+        continue;
+      }
+      stats.newJobs++;
+      newJobs.push(job);
+      output.push(job);
+    }
+    const deferred = sum0(statsBySource, (s) => s.deferred);
+    if (deferred) log(`new jobs capped at ${options.maxNew}: ${deferred} more left for the next run`);
+  }
+
   // ── 4. Alerts vs. previous run ───────────────────────────────────────────
   const previous = store ? await store.getPreviousFetchCounts(sources.map((s) => s.id)).catch(() => ({})) : {};
   const alerts: string[] = [];
@@ -266,7 +312,7 @@ export async function runPipeline(options: PipelineOptions = {}): Promise<Pipeli
     const seenAt = startedAt;
     for (const source of sources) {
       const stats = statsBySource.get(source.id)!;
-      const rows = live
+      const rows = output
         .filter((j) => j.source === source.id)
         .map((j) => toJobRow(j, labels.get(j.source)!, seenAt, linkCheckedAt));
       try {
@@ -336,14 +382,24 @@ export async function runPipeline(options: PipelineOptions = {}): Promise<Pipeli
     totals: {
       fetched: sum((s) => s.fetched),
       valid: sum((s) => s.valid),
-      unique: live.length,
+      unique: output.length,
       duplicates: sum((s) => s.duplicates),
       linkFailed: sum((s) => s.linkFailed),
+      newJobs: newJobs.length,
+      refreshed: store ? output.length - newJobs.length : 0,
+      deferred: sum((s) => s.deferred),
       upserted: sum((s) => s.upserted),
       expired: sum((s) => s.expired),
       legacyExpired,
     },
     alerts,
-    jobs: live,
+    jobs: output,
+    newJobs,
   };
+}
+
+function sum0(stats: Map<string, SourceStats>, pick: (s: SourceStats) => number): number {
+  let n = 0;
+  for (const s of stats.values()) n += pick(s);
+  return n;
 }

@@ -77,6 +77,28 @@ export interface JobStore {
   /** Latest successful run's `fetched` count per source, for drop alerts. */
   getPreviousFetchCounts(sources: string[]): Promise<Record<string, number>>;
   getRecentScrapeRuns(options?: RecentRunsOptions): Promise<ScrapeRunRow[]>;
+  /** Active jobs already published, for cross-run duplicate checks and the new-job cap. */
+  getActiveIndex(): Promise<ActiveIndex>;
+}
+
+/** Keys are `${source_key}|${source_id}`; dedupe keys and canonical URLs map to the row that holds them. */
+export interface ActiveIndex {
+  ids: Set<string>;
+  byDedupeKey: Map<string, string>;
+  byUrl: Map<string, string>;
+}
+
+export const rowKey = (sourceKey: string, sourceId: string) => `${sourceKey}|${sourceId}`;
+
+function buildIndex(rows: { source_key: string; source_id: string; dedupe_key?: string | null; canonical_url?: string | null }[]): ActiveIndex {
+  const index: ActiveIndex = { ids: new Set(), byDedupeKey: new Map(), byUrl: new Map() };
+  for (const row of rows) {
+    const key = rowKey(row.source_key, row.source_id);
+    index.ids.add(key);
+    if (row.dedupe_key && !index.byDedupeKey.has(row.dedupe_key)) index.byDedupeKey.set(row.dedupe_key, key);
+    if (row.canonical_url && !index.byUrl.has(row.canonical_url)) index.byUrl.set(row.canonical_url, key);
+  }
+  return index;
 }
 
 export interface RecentRunsOptions {
@@ -223,6 +245,10 @@ export class MemoryJobStore implements JobStore {
       .slice(0, options.limit ?? 50);
   }
 
+  async getActiveIndex(): Promise<ActiveIndex> {
+    return buildIndex(this.activeJobs());
+  }
+
   /** Feed view: what the app would show. */
   activeJobs(): StoredJob[] {
     return [...this.jobs.values()].filter((job) => job.status === 'active');
@@ -319,6 +345,24 @@ export class SupabaseJobStore implements JobStore {
 
   async getRecentScrapeRuns(options: RecentRunsOptions = {}): Promise<ScrapeRunRow[]> {
     return getRecentScrapeRuns(this.client, options);
+  }
+
+  async getActiveIndex(): Promise<ActiveIndex> {
+    const rows: { source_key: string; source_id: string; dedupe_key: string | null; canonical_url: string | null }[] = [];
+    const PAGE = 1000;
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await this.client
+        .from('jobs')
+        .select('source_key, source_id, dedupe_key, canonical_url')
+        .eq('status', 'active')
+        .not('source_id', 'is', null)
+        .order('id', { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) throw new Error(`active jobs read failed: ${error.message}`);
+      rows.push(...((data ?? []) as typeof rows));
+      if (!data || data.length < PAGE) break;
+    }
+    return buildIndex(rows);
   }
 }
 

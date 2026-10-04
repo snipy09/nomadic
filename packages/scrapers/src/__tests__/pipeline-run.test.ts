@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { JobCandidate, SourceId } from '../job-schema.js';
-import { formatBenchMarkdown, formatRunTable } from '../pipeline/report.js';
+import { SUMMARY_CSV_HEADER, formatBenchMarkdown, formatRunSummary, formatRunTable, formatSummaryCsvRow } from '../pipeline/report.js';
 import { computeAlert, expirySkipReason, runPipeline } from '../pipeline/run.js';
 import { MemoryJobStore } from '../pipeline/store.js';
 import type { SourceDefinition } from '../sources/registry.js';
@@ -333,5 +333,47 @@ describe('computeAlert', () => {
     expect(computeAlert(50, 100, 'ok')).toBeNull();
     expect(computeAlert(10, null, 'ok')).toBeNull();
     expect(computeAlert(10, 0, 'ok')).toBeNull();
+  });
+});
+
+describe('runPipeline: new-job cap and duplicates against the store', () => {
+  it('adds at most maxNew new jobs per run, keeps refreshing known ones, and adds the rest next run', async () => {
+    const store = new MemoryJobStore();
+    const now = clock();
+    const ids = Array.from({ length: 5 }, (_, i) => `n${i}`);
+    const sources = [fakeSource('lever', 1, () => ids.map((id) => candidate('lever', id)))];
+    const first = await runPipeline({ sources, store, publish: true, fetch: noNetwork, now, maxNew: 3 });
+    expect(first.totals).toMatchObject({ newJobs: 3, deferred: 2, refreshed: 0, upserted: 3 });
+    expect(store.activeJobs()).toHaveLength(3);
+    const second = await runPipeline({ sources, store, publish: true, fetch: noNetwork, now, maxNew: 3 });
+    expect(second.totals).toMatchObject({ newJobs: 2, deferred: 0, refreshed: 3, expired: 0 });
+    expect(store.activeJobs()).toHaveLength(5);
+    expect(second.newJobs.map((j) => j.sourceJobId).sort()).toEqual(
+      ids.filter((id) => !first.newJobs.some((j) => j.sourceJobId === id)).sort()
+    );
+  });
+
+  it('skips a job another source already published (same company, title and location)', async () => {
+    const store = new MemoryJobStore();
+    const now = clock();
+    await runPipeline({ sources: [fakeSource('lever', 1, () => [candidate('lever', 'x', { title: 'Data Engineer' })])], store, publish: true, fetch: noNetwork, now });
+    const report = await runPipeline({
+      sources: [fakeSource('greenhouse', 1, () => [candidate('greenhouse', 'y', { title: 'Data Engineer', applyUrl: 'https://boards.greenhouse.io/acme/jobs/9' })])],
+      store,
+      publish: true,
+      fetch: noNetwork,
+      now,
+    });
+    expect(report.totals).toMatchObject({ newJobs: 0, duplicates: 1 });
+    expect(store.activeJobs()).toHaveLength(1);
+  });
+
+  it('formats a summary with the new jobs listed', async () => {
+    const store = new MemoryJobStore();
+    const report = await runPipeline({ sources: [fakeSource('lever', 1, () => [candidate('lever', 's1')])], store, publish: true, fetch: noNetwork, now: clock(), maxNew: 100 });
+    const text = formatRunSummary(report, { maxNew: 100, region: 'india' });
+    expect(text).toContain('New jobs added:        1 (limit 100 per run)');
+    expect(text).toContain('https://jobs.lever.co/acme/s1');
+    expect(formatSummaryCsvRow(report).split(',')).toHaveLength(SUMMARY_CSV_HEADER.split(',').length);
   });
 });

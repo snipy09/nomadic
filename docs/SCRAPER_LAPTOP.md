@@ -15,6 +15,16 @@ no longer lists are expired, and a row per source goes to `scrape_runs` (Admin â
    the app.
 3. Try a dry run first (nothing is written): `npx tsx packages/scrapers/src/cli.ts run` after `npm ci --ignore-scripts`.
 
+## Desktop launcher (100 new jobs per run, summary after every run)
+
+`Desktop\Nomadic-Scraper` (next to the `Nomadic` repo folder) holds double-click launchers for
+`scripts\scrape-desktop.ps1`: `Run scraper.cmd`, `Schedule every 6 hours.cmd`, `Remove schedule.cmd`. Each run
+publishes with `--max-new 100`: at most 100 jobs that are not in Supabase yet are added (best score first, the rest
+next run), jobs already there are refreshed (so expiry works as before), and a job another source already published
+(same company + title + location, or same apply URL) is skipped as a duplicate. The first interactive run asks for
+the service role key (hidden input) and saves it to `.env`. Summaries go to `reports\` (`latest-summary.txt`,
+`scrape-<time>.txt`, `history.csv`, `errors.log`); the CLI flags are `--max-new N` and `--summary-dir DIR`.
+
 ## Run it
 
 - Double-click `scripts\scrape-laptop.cmd`, or run it from a terminal. It installs dependencies the first time,
