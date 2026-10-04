@@ -237,8 +237,8 @@ Assistant still call AI directly); OS notification for due follow-ups (today an 
 
 ## 9. Handoff state (4 October 2026)
 
-- Branch `main` (remote github.com/snipy09/nomadic) holds everything; there are no open feature branches to merge.
-  Last commit of the session: "feat(apply): fill applications in the user's own browser".
+- Branch `main` (remote github.com/snipy09/nomadic) holds everything once Learn v2 is merged (it was built on
+  `claude/learn-v2-handoff-046pu4`, a fast-forward of `main`); there are no other open feature branches.
 - Untracked on purpose, never stage: `brag-output*/`, `reel*/`, `showreel/` (local marketing renders) and `.claude/`
   (local assistant settings and `launch.json`; its notes are folded into section 10).
 - Delivered build: `Nomadic-v1.0.13-portable.exe` in `C:\Users\sajal\Downloads` and `Desktop\Nomadic-v1\`
