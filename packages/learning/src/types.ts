@@ -7,34 +7,14 @@
  * parses without a mapping layer.
  */
 import { z } from 'zod';
+import { ContentStatusSchema, RoleFamilyIdSchema, SlugSchema, UuidSchema } from './primitives';
+import { LearnModuleSchema, LearnTopicSchema, ProblemInfoSchema, ProjectSchema } from './v2/types';
+
+export * from './primitives';
 
 // ── Shared enums ────────────────────────────────────────────────────────────
 
-export const ROLE_FAMILY_IDS = [
-  'frontend',
-  'backend',
-  'fullstack',
-  'data-analyst',
-  'data-ml',
-  'product-manager',
-  'design',
-  'devops',
-] as const;
-export const RoleFamilyIdSchema = z.enum(ROLE_FAMILY_IDS);
-export type RoleFamilyId = z.infer<typeof RoleFamilyIdSchema>;
-
-/** Kebab-case identifier used for skills, lessons, items and resources. */
-export const SlugSchema = z
-  .string()
-  .min(1)
-  .max(120)
-  .regex(/^[a-z0-9]+(?:[-:.][a-z0-9]+)*$/, 'must be a lowercase kebab-case slug');
-
 export const SkillLevelSchema = z.number().int().min(1).max(5);
-
-/** Editorial lifecycle for content rows (lessons, practice items). */
-export const ContentStatusSchema = z.enum(['draft', 'review', 'published', 'archived']);
-export type ContentStatus = z.infer<typeof ContentStatusSchema>;
 
 // ── Skills graph ────────────────────────────────────────────────────────────
 
@@ -252,13 +232,18 @@ export const LEARNING_EVENT_TYPES = [
   'problem_solved',
   'review_done',
   'skill_marked_known',
+  // Learn v2
+  'task_done',
+  'task_skipped',
+  'task_moved',
+  'problem_attempted',
+  'stage_done',
+  'project_started',
+  'project_done',
+  'roadmap_accepted',
 ] as const;
 export const LearningEventTypeSchema = z.enum(LEARNING_EVENT_TYPES);
 export type LearningEventType = z.infer<typeof LearningEventTypeSchema>;
-
-export const UuidSchema = z
-  .string()
-  .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, 'must be a UUID');
 
 /**
  * Known payload keys (all optional; payload is open for forward compatibility):
@@ -268,6 +253,12 @@ export const UuidSchema = z
  * - score: 0-1 grading score
  * - mastery: 0-1 floor for skill_marked_known (placement result)
  * - source: 'app' | 'legacy_import' | 'placement'
+ * Learn v2:
+ * - planned_minutes: minutes the schedule planned for a task (pace factor)
+ * - undone: true unticks an earlier task_done
+ * - topic_id / module_id / stream / task_kind: where a task belongs
+ * - project_id / stage_id / skill_ids: project evidence (project_done raises mastery)
+ * - hint: true when a problem needed a hint (problem_attempted)
  */
 export const LearningEventPayloadSchema = z
   .object({
@@ -318,6 +309,11 @@ export const ContentBundleSchema = z.object({
   resources: z.array(LearningResourceSchema),
   lessons: z.array(LessonSchema),
   practice_items: z.array(PracticeItemSchema),
+  // Learn v2 catalogue
+  modules: z.array(LearnModuleSchema).default([]),
+  topics: z.array(LearnTopicSchema).default([]),
+  projects: z.array(ProjectSchema).default([]),
+  problems: z.array(ProblemInfoSchema).default([]),
 });
 export type ContentBundle = z.infer<typeof ContentBundleSchema>;
 

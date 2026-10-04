@@ -4,7 +4,7 @@
  * stored, synced or produced by the model is a zod schema here.
  */
 import { z } from 'zod';
-import { ContentStatusSchema, RoleFamilyIdSchema, SlugSchema, UuidSchema } from '../types';
+import { ContentStatusSchema, RoleFamilyIdSchema, SlugSchema, UuidSchema } from '../primitives';
 
 // ── Enums ───────────────────────────────────────────────────────────────────
 
@@ -280,7 +280,16 @@ export const RoadmapSchema = z.object({
     .max(4)
     .default([]),
   /** Extra problems from the student's target companies, per topic. */
-  boosts: z.array(z.object({ topic_id: SlugSchema, problems: z.array(ProblemInfoSchema).max(6) })).default([]),
+  boosts: z
+    .array(
+      z.object({
+        topic_id: SlugSchema,
+        problems: z.array(ProblemInfoSchema).max(6),
+        /** Company display name per problem ref ("On Amazon's list"). */
+        companies: z.record(z.string(), z.string()).default({}),
+      })
+    )
+    .default([]),
   warnings: z.array(z.string().max(300)).max(30).default([]),
   created_at: IsoSchema,
   accepted_at: IsoSchema.nullable().default(null),
