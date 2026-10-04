@@ -205,8 +205,8 @@ Assistant still call AI directly); OS notification for due follow-ups (today an 
   Last commit of the session: "fix(desktop): remember answers typed during apply review; Google button opens terms".
 - Untracked on purpose, never stage: `brag-output*/`, `reel*/`, `showreel/` (local marketing renders) and `.claude/`
   (local assistant settings and `launch.json`; its notes are folded into section 10).
-- Delivered build: `Nomadic-v1.0.7-portable.exe` in `C:\Users\sajal\Downloads` and `Desktop\Nomadic-v1\`
-  (built from `apps/desktop/dist-electron/Nomadic.1.0.7.exe`). Bump `apps/desktop/package.json` `version` for the next one.
+- Delivered build: `Nomadic-v1.0.8-portable.exe` in `C:\Users\sajal\Downloads` and `Desktop\Nomadic-v1\`
+  (built from `apps/desktop/dist-electron/Nomadic.1.0.8.exe`; adds hidden-job and follow-up account sync). Bump `apps/desktop/package.json` `version` for the next one.
   App icon (`apps/desktop/assets/icon.ico`, `logo-icon.png`, `logo.png`) is the site mark from `apps/web/public/logo-icon.svg`.
 - Google sign-in: client id/secret are baked into the build from `apps/desktop/.env`; the app opens Google with PKCE
   and a loopback listener on `http://127.0.0.1:42813/callback`; Google accepts the client. If users see "Access
