@@ -171,8 +171,10 @@ they are not accepted, then continues. Sandbox fallback (`main/sandbox-fallback.
 child (GPU, utility or renderer; `child-process-gone` and `render-process-gone`) exits with STATUS_DLL_NOT_FOUND, the
 app writes `%APPDATA%\Nomadic\sandbox-fallback.json` for this app version and restarts without the sandbox; later
 launches of that version skip the sandbox at once, and a new version tries it again. The portable build restarts
-through `PORTABLE_EXECUTABLE_FILE` after a ~3 s pause (its launcher deletes the fixed-name temp folder on exit);
-`NOMADIC_DISABLE_SANDBOX=true` forces it off. 1.0.7/1.0.8 showed a blank window on such machines. A saved sign-in is handed back to the main process at launch (`features/auth/useSessionRestore.ts`) and the
+by starting `PORTABLE_EXECUTABLE_FILE` with TEMP/TMP set to `%TEMP%\NomadicRestart`: its NSIS launcher extracts to
+`$TEMP\<fixed name>` and empties that folder before extracting and after exit, so two launchers sharing `%TEMP%`
+delete each other's files. `NOMADIC_DISABLE_SANDBOX=true` forces it off. 1.0.7/1.0.8 showed a blank window on such
+machines. A saved sign-in is handed back to the main process at launch (`features/auth/useSessionRestore.ts`) and the
 user is signed out with a notice only when the server ends the session (heartbeat `ended`), never on a network error;
 apply's AI form answers go through `ai-proxy`; the feed treats the column default `'unknown'` as unknown and sorts by
 `posted_at`. Hidden jobs and follow-up dates sync to the account (026: `user_hidden_jobs`,

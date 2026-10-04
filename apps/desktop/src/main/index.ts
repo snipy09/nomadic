@@ -1,6 +1,7 @@
 import { app, BrowserWindow, safeStorage, session as electronSession } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import { spawn } from 'child_process';
 import WebSocket from 'ws';
 
 if (typeof globalThis.WebSocket === 'undefined') {
@@ -24,6 +25,13 @@ import {
   type SecurityOptions,
 } from './security.js';
 import { createWindow } from './window.js';
+import {
+  isSandboxStartupFailure,
+  planRelaunch,
+  readSandboxFallback,
+  shouldRunWithoutSandbox,
+  writeSandboxFallback,
+} from './sandbox-fallback.js';
 import { initAppSettings } from './services/app-settings.js';
 import { initCrashReporting } from './services/telemetry-runtime.js';
 import { currentAppVersion, initUpdates } from './services/updates-runtime.js';
@@ -50,25 +58,38 @@ process.on('unhandledRejection', (reason) => {
 
 // ── Safe Chromium Flags for 100% Windows Hardware Compatibility ────────
 app.disableHardwareAcceleration();
-// The Chromium sandbox stays ON. NOMADIC_DISABLE_SANDBOX=true is an escape
-// hatch for machines where the OS sandbox cannot start (e.g. some VMs).
-if (process.env.NOMADIC_DISABLE_SANDBOX === 'true') {
+// The Chromium sandbox stays ON. It is off only with NOMADIC_DISABLE_SANDBOX=true
+// (escape hatch) or after sandboxed processes failed to start on this machine for
+// this app version (see sandbox-fallback.ts).
+if (shouldRunWithoutSandbox(process.env, readSandboxFallback(nomadicUserData), app.getVersion())) {
   app.commandLine.appendSwitch('no-sandbox');
 } else {
   app.enableSandbox();
-  // If sandboxed child processes cannot even load (STATUS_DLL_NOT_FOUND, seen
-  // when the app is started from a restricted parent process), the window would
-  // stay blank. Relaunch once without the sandbox instead of failing silently.
-  const STATUS_DLL_NOT_FOUND = -1073741515;
+  // Renderer failures arrive as 'render-process-gone', other children as 'child-process-gone'.
   let relaunching = false;
-  app.on('child-process-gone', (_event, details) => {
-    if (relaunching || details.exitCode !== STATUS_DLL_NOT_FOUND) return;
+  const onProcessGone = (kind: string, exitCode: number) => {
+    if (relaunching || !isSandboxStartupFailure(exitCode)) return;
     relaunching = true;
-    console.error(`[Startup] ${details.type} process could not start under the sandbox; relaunching without it.`);
+    console.error(`[Startup] ${kind} process could not start under the sandbox; relaunching without it.`);
+    writeSandboxFallback(nomadicUserData, app.getVersion());
     process.env.NOMADIC_DISABLE_SANDBOX = 'true';
-    app.relaunch();
+    const plan = planRelaunch(process.env, app.getPath('temp'));
+    app.releaseSingleInstanceLock();
+    if (plan.kind === 'portable') {
+      let env = plan.env;
+      try {
+        fs.mkdirSync(plan.tempDir, { recursive: true });
+      } catch {
+        env = process.env;
+      }
+      spawn(plan.file, [], { detached: true, stdio: 'ignore', env }).unref();
+    } else {
+      app.relaunch(plan.options);
+    }
     app.exit(0);
-  });
+  };
+  app.on('child-process-gone', (_event, details) => onProcessGone(details.type, details.exitCode));
+  app.on('render-process-gone', (_event, _contents, details) => onProcessGone('Renderer', details.exitCode));
 }
 app.commandLine.appendSwitch('disable-gpu');
 app.commandLine.appendSwitch('disable-software-rasterizer');
