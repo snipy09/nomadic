@@ -4,6 +4,7 @@ import {
   Badge, Button, Card, CardContent, CardHeader, EmptyState, Field, IconButton, Input, RadioGroup, Skeleton, Switch, VStack,
 } from '@nomadic/ui';
 import { getApi, type AppUser } from '../../types';
+import { PaymentHistory } from '../billing/PaymentHistory';
 import { PlanStatus } from '../billing/PlanStatus';
 import { EmailVerificationNotice } from '../auth/EmailVerificationNotice';
 import type { FieldErrors, ProfileForm } from './profileForm';
@@ -257,6 +258,7 @@ export const AccountSection: React.FC<{ user?: AppUser | null; onLogout?: () => 
             </dd>
           </div>
           <div><dt className="mb-1 text-caption text-fg-subtle">Plan</dt><dd><PlanStatus onUpgrade={onOpenUpgrade} /></dd></div>
+          <div><dt className="mb-1 text-caption text-fg-subtle">Payments</dt><dd><PaymentHistory email={user?.email} /></dd></div>
         </dl>
         <p className="text-caption text-fg-subtle">
           Your profile and resumes are stored on this computer and synced to your Nomadic account so they follow you to a new install.

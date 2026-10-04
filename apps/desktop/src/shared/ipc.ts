@@ -118,6 +118,20 @@ export interface SavedJob {
   description?: string;
 }
 
+/** A job the user marked "Not interested"; hidden from the feed until restored. */
+export interface HiddenJob {
+  applyUrl: string;
+  title: string;
+  company: string;
+  hiddenAt: string;
+}
+
+export interface HideJobInput {
+  applyUrl: string;
+  title?: string;
+  company?: string;
+}
+
 export interface SaveJobInput {
   title?: string;
   company?: string;
@@ -157,6 +171,8 @@ export interface ApplicationRecord {
   applied_at: string;
   updated_at: string | null;
   notes: string;
+  /** Follow-up reminder date (YYYY-MM-DD) kept on this computer; null when none. */
+  follow_up_at: string | null;
   history: ApplicationStatusEvent[];
 }
 
@@ -176,6 +192,12 @@ export interface ApplicationInput {
 export interface ApplicationNotesInput {
   id: number | string;
   notes: string;
+}
+
+export interface ApplicationFollowUpInput {
+  id: number | string;
+  /** YYYY-MM-DD, or null to clear. */
+  followUpAt: string | null;
 }
 
 export interface AutonomousApplyResult {
@@ -289,6 +311,19 @@ export type EntitlementsErrorCode = 'signed_out' | 'unauthorized' | 'offline';
 
 export type EntitlementsResult =
   | { success: true; entitlements: Entitlements }
+  | { success: false; code: EntitlementsErrorCode; error: string };
+
+/** One captured payment from the server (migration 025), newest first. */
+export interface PaymentRecord {
+  paymentId: string;
+  plan: Exclude<BillingPlanId, 'free'> | 'lifetime';
+  amountInr: number | null;
+  status: 'captured' | 'failed' | 'refunded';
+  paidAt: string | null;
+}
+
+export type PaymentHistoryResult =
+  | { success: true; payments: PaymentRecord[] }
   | { success: false; code: EntitlementsErrorCode; error: string };
 
 export interface CheckoutResult extends SuccessResult {
@@ -445,8 +480,13 @@ export interface PracticeEntry {
 export interface PracticeCatalog {
   version: string;
   entries: PracticeEntry[];
-  /** Companies in the company sets dataset, by name. */
+  /** Companies in the company sets dataset, by name. Empty when `companyLocked`. */
   companies: Array<{ name: string; problemCount: number }>;
+  /**
+   * True when the signed-in plan (from the server) does not include company question sets: the main
+   * process then removes every company name and frequency before the catalog reaches the renderer.
+   */
+  companyLocked?: boolean;
 }
 
 export type PracticeCatalogResult = { success: true; catalog: PracticeCatalog } | { success: false; error: string };
@@ -807,11 +847,15 @@ export interface IpcChannels {
   'get-saved-jobs': Channel<[], SavedJob[]>;
   'save-job': Channel<[job: SaveJobInput], SuccessResult>;
   'remove-saved-job': Channel<[applyUrl: string], SuccessResult>;
+  'get-hidden-jobs': Channel<[], HiddenJob[]>;
+  'hide-job': Channel<[job: HideJobInput], SuccessResult>;
+  'unhide-job': Channel<[applyUrl: string], SuccessResult>;
 
   // applications & auto-apply
   'get-applications': Channel<[], ApplicationRecord[]>;
   'update-application-status': Channel<[data: IdStatusInput], SuccessResult & { application?: ApplicationRecord }>;
   'update-application-notes': Channel<[data: ApplicationNotesInput], SuccessResult & { application?: ApplicationRecord }>;
+  'update-application-follow-up': Channel<[data: ApplicationFollowUpInput], SuccessResult & { application?: ApplicationRecord }>;
   'delete-application': Channel<[id: number | string], SuccessResult>;
   'save-application': Channel<[app: ApplicationInput], SuccessResult & { id?: number }>;
   'launch-semi-auto': Channel<[jobUrls: string[]], SuccessResult>;
@@ -826,6 +870,7 @@ export interface IpcChannels {
   'get-entitlements': Channel<[options?: { fresh?: boolean }], EntitlementsResult>;
   /** Opens the Razorpay checkout page for a paid plan in the browser. */
   'start-checkout': Channel<[plan: Exclude<BillingPlanId, 'free'>], CheckoutResult>;
+  'get-payment-history': Channel<[], PaymentHistoryResult>;
 
   // outreach
   'verify-email': Channel<[email: string], EmailVerification>;
@@ -902,10 +947,11 @@ export const IPC_CHANNELS = [
   'get-master-profile', 'save-master-profile', 'get-resumes', 'save-resume', 'delete-resume',
   'set-default-resume', 'pick-resume-file',
   'run-scrapers', 'get-cloud-feed-page', 'get-cloud-feed', 'get-saved-jobs', 'save-job', 'remove-saved-job',
-  'get-applications', 'update-application-status', 'update-application-notes', 'delete-application', 'save-application',
+  'get-hidden-jobs', 'hide-job', 'unhide-job',
+  'get-applications', 'update-application-status', 'update-application-notes', 'update-application-follow-up', 'delete-application', 'save-application',
   'launch-semi-auto', 'launch-autonomous', 'cancel-autonomous-apply', 'start-batch-copilot',
   'submit-all-batch-copilot',
-  'get-entitlements', 'start-checkout',
+  'get-entitlements', 'start-checkout', 'get-payment-history',
   'verify-email', 'get-hr-contacts', 'send-outreach', 'generate-ai-outreach-email',
   'ask-nomadic-assistant',
   'learning-get-state', 'learning-save-goal', 'learning-record-events', 'learning-sync',
@@ -959,6 +1005,7 @@ export interface NomadicApi {
   submitAllBatchCoPilot: Invoke<'submit-all-batch-copilot'>;
   getEntitlements: Invoke<'get-entitlements'>;
   startCheckout: Invoke<'start-checkout'>;
+  getPaymentHistory: Invoke<'get-payment-history'>;
   verifyEmail: Invoke<'verify-email'>;
   getHrContacts: Invoke<'get-hr-contacts'>;
   sendOutreach: Invoke<'send-outreach'>;
@@ -967,6 +1014,9 @@ export interface NomadicApi {
   getSavedJobs: Invoke<'get-saved-jobs'>;
   saveJob: Invoke<'save-job'>;
   removeSavedJob: Invoke<'remove-saved-job'>;
+  getHiddenJobs: Invoke<'get-hidden-jobs'>;
+  hideJob: Invoke<'hide-job'>;
+  unhideJob: Invoke<'unhide-job'>;
   checkDependencies: Invoke<'check-dependencies'>;
   installDependencies: Invoke<'install-dependencies'>;
   startHeartbeat: (userId: string, sessionToken: string, deviceFingerprint: string) => Promise<ChannelResult<'start-heartbeat'>>;
@@ -1004,6 +1054,7 @@ export interface NomadicApi {
 
   updateApplicationStatus: (id: number | string, status: string) => Promise<ChannelResult<'update-application-status'>>;
   updateApplicationNotes: (id: number | string, notes: string) => Promise<ChannelResult<'update-application-notes'>>;
+  updateApplicationFollowUp: (id: number | string, followUpAt: string | null) => Promise<ChannelResult<'update-application-follow-up'>>;
   deleteApplication: Invoke<'delete-application'>;
 
   practiceGetCatalog: Invoke<'practice-get-catalog'>;

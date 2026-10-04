@@ -14,7 +14,7 @@ function setup(writeOk = true) {
   const notice: FieldOutcome = { field: fieldOf('Notice'), status: 'needs_user', attempts: 1, reason: 'no answer', answer: { fieldId: 'Notice', status: 'needs_user', reason: 'no answer', fingerprint: 'q_notice' } };
   const cv: FieldOutcome = { field: fieldOf('Resume', { kind: 'file' }), status: 'filled', attempts: 1, answer: { fieldId: 'Resume', status: 'answered', value: 'cv.pdf', source: 'profile', fingerprint: 'q_cv' } };
   const report = makeReport([email, notice, cv]);
-  const write = vi.fn(async (_page: unknown, field: FormField) => (writeOk ? { fieldId: field.id, ok: true } : { fieldId: field.id, ok: false, error: 'element not found' }));
+  const write = vi.fn(async (_page: unknown, field: FormField, _answer?: unknown) => (writeOk ? { fieldId: field.id, ok: true } : { fieldId: field.id, ok: false, error: 'element not found' }));
   const engine = {
     writers: new Map([['text', { kinds: ['text'], write }], ['file', { kinds: ['file'], write }]]) as any,
     emit: vi.fn(),

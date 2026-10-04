@@ -37,6 +37,7 @@ const apiObj: NomadicApi = {
   submitAllBatchCoPilot: (overrides, ids) => invoke('submit-all-batch-copilot', overrides, ids),
   getEntitlements: (options) => invoke('get-entitlements', options),
   startCheckout: (plan) => invoke('start-checkout', plan),
+  getPaymentHistory: () => invoke('get-payment-history'),
   verifyEmail: (email) => invoke('verify-email', email),
   getHrContacts: (targetRole) => invoke('get-hr-contacts', targetRole),
   sendOutreach: (contacts) => invoke('send-outreach', contacts),
@@ -45,6 +46,9 @@ const apiObj: NomadicApi = {
   getSavedJobs: () => invoke('get-saved-jobs'),
   saveJob: (job) => invoke('save-job', job),
   removeSavedJob: (applyUrl) => invoke('remove-saved-job', applyUrl),
+  getHiddenJobs: () => invoke('get-hidden-jobs'),
+  hideJob: (job) => invoke('hide-job', job),
+  unhideJob: (applyUrl) => invoke('unhide-job', applyUrl),
   checkDependencies: () => invoke('check-dependencies'),
   installDependencies: () => invoke('install-dependencies'),
   startHeartbeat: (userId, sessionToken, deviceFingerprint) =>
@@ -70,6 +74,7 @@ const apiObj: NomadicApi = {
   // Applications Management
   updateApplicationStatus: (id, status) => invoke('update-application-status', { id, status }),
   updateApplicationNotes: (id, notes) => invoke('update-application-notes', { id, notes }),
+  updateApplicationFollowUp: (id, followUpAt) => invoke('update-application-follow-up', { id, followUpAt }),
   deleteApplication: (id) => invoke('delete-application', id),
 
   // Interview Evaluation

@@ -66,3 +66,30 @@ describe('SQL plan limits mirror packages/config', () => {
     }
   });
 });
+
+describe('SQL payment prices mirror packages/config', () => {
+  const latestPayment = readdirSync(dir).filter((f) => f.endsWith('.sql')).sort()
+    .filter((f) => read(f).includes('FUNCTION public.handle_razorpay_payment_success')).pop()!;
+  const sql = read(latestPayment);
+  const price = (id: 'pro' | 'max') => PLANS.find((p) => p.id === id)!.priceInr;
+
+  it('handle_razorpay_payment_success uses the config prices for Pro and Max', () => {
+    expect(sql).toMatch(new RegExp(`c_price_pro CONSTANT NUMERIC := ${price('pro')};`));
+    expect(sql).toMatch(new RegExp(`c_price_max CONSTANT NUMERIC := ${price('max')};`));
+  });
+
+  it('the webhook treats the Max price (in paise) as the Max threshold', () => {
+    const webhook = readFileSync(path.join(dir, '../functions/razorpay-webhook/index.ts'), 'utf8');
+    expect(webhook).toContain(`payment.amount >= ${price('max') * 100}`);
+  });
+});
+
+describe('025 billing_list_payments', () => {
+  const sql = read('025_billing_history.sql');
+  it('is session-checked, returns no gateway payload, and is granted to anon', () => {
+    expect(sql).toMatch(/IF NOT public\.billing_session_ok\(p_user_id, p_session_token, p_device_fingerprint\) THEN/);
+    expect(sql).not.toMatch(/raw_payload/);
+    expect(sql).toMatch(/SECURITY DEFINER SET search_path = public, extensions/);
+    expect(sql).toMatch(/GRANT EXECUTE ON FUNCTION public\.billing_list_payments\(UUID, TEXT, TEXT\) TO anon, authenticated, service_role;/);
+  });
+});

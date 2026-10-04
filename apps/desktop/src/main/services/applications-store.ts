@@ -46,6 +46,13 @@ export function migrateApplicationsSchema(db: Database): void {
   `);
 }
 
+/** Local migration 6: an optional follow-up date (YYYY-MM-DD, local to this computer) per application. */
+export function migrateFollowUpSchema(db: Database): void {
+  try { db.run('ALTER TABLE local_applications ADD COLUMN follow_up_at TEXT'); } catch { /* exists */ }
+}
+
+export const FOLLOW_UP_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
 function rows(db: Database, sql: string, params: SqlValue[] = []): Record<string, SqlValue>[] {
   const res = db.exec(sql, params);
   if (!res.length) return [];
@@ -66,6 +73,7 @@ function toRecord(r: Record<string, SqlValue>, history: ApplicationStatusEvent[]
     applied_at: text(r.applied_at),
     updated_at: r.updated_at === null || r.updated_at === undefined ? null : String(r.updated_at),
     notes: text(r.notes),
+    follow_up_at: typeof r.follow_up_at === 'string' && FOLLOW_UP_DATE.test(r.follow_up_at) ? r.follow_up_at : null,
     history,
   };
 }
@@ -160,6 +168,15 @@ export function setApplicationNotes(db: Database, id: number | string, notes: st
   const before = getApplication(db, id);
   if (!before) return null;
   db.run('UPDATE local_applications SET notes = ?, updated_at = ? WHERE id = ?', [notes, now, before.id]);
+  return getApplication(db, before.id);
+}
+
+/** Sets or clears (null) the follow-up date. Null when the row does not exist; throws on a malformed date. */
+export function setApplicationFollowUp(db: Database, id: number | string, followUpAt: string | null, now: string): ApplicationRecord | null {
+  if (followUpAt !== null && !FOLLOW_UP_DATE.test(followUpAt)) throw new Error('Follow-up date must be YYYY-MM-DD.');
+  const before = getApplication(db, id);
+  if (!before) return null;
+  db.run('UPDATE local_applications SET follow_up_at = ?, updated_at = ? WHERE id = ?', [followUpAt, now, before.id]);
   return getApplication(db, before.id);
 }
 

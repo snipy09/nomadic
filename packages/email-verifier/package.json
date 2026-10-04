@@ -5,9 +5,9 @@
   "main": "src/index.ts",
   "dependencies": {
     "@job-automator/automation": "file:../automation",
-    "nodemailer": "^6.9.9"
+    "nodemailer": "^10.0.14"
   },
   "devDependencies": {
-    "@types/nodemailer": "^6.4.14"
+    "@types/nodemailer": "^8.0.2"
   }
 }

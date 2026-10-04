@@ -5,6 +5,8 @@ import {
   listApplications,
   mergeCloudApplications,
   migrateApplicationsSchema,
+  migrateFollowUpSchema,
+  setApplicationFollowUp,
   recordApplication,
   removeApplication,
   setApplicationNotes,
@@ -137,5 +139,19 @@ describe('timestamps', () => {
     expect(toIso('2026-10-01 10:00:00')).toBe(T1);
     expect(Number.isNaN(timestampMs('nope'))).toBe(true);
     expect(toIso('nope')).toBe('nope');
+  });
+});
+
+describe('follow-up dates (local migration 6)', () => {
+  it('sets, clears and validates; the migration is idempotent', () => {
+    migrateApplicationsSchema(db);
+    migrateFollowUpSchema(db);
+    migrateFollowUpSchema(db);
+    const id = recordApplication(db, { company: 'Acme', title: 'SDE', apply_url: 'https://a.co/1' }, T1);
+    expect(getApplication(db, id)!.follow_up_at).toBeNull();
+    expect(setApplicationFollowUp(db, id, '2026-10-10', T2)!.follow_up_at).toBe('2026-10-10');
+    expect(setApplicationFollowUp(db, id, null, T3)!.follow_up_at).toBeNull();
+    expect(() => setApplicationFollowUp(db, id, '10/10/2026', T3)).toThrow(/YYYY-MM-DD/);
+    expect(setApplicationFollowUp(db, 999, '2026-10-10', T3)).toBeNull();
   });
 });

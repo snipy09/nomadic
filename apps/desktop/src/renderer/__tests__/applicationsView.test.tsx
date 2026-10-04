@@ -163,4 +163,31 @@ describe('ApplicationsView', () => {
     expect(saved).toMatchObject({ company: 'Zeta', title: 'ML Intern', status: 'applied', mode: 'manual' });
     expect(saved.apply_url).toBeUndefined();
   });
+
+  it('lists due follow-ups at the top and clears one with Done', async () => {
+    const { localDay, addDays } = await import('../features/applications/applicationsLogic');
+    const today = localDay();
+    const data = rows().map((r) => (r.id === 1 ? { ...r, follow_up_at: addDays(today, -2) } : r.id === 2 ? { ...r, follow_up_at: addDays(today, 5) } : r));
+    const updateApplicationFollowUp = vi.fn().mockImplementation(async (id: number) => ({ success: true, application: { ...data.find((r) => r.id === id), follow_up_at: null } }));
+    mockApi({ getApplications: vi.fn().mockResolvedValue(data), updateApplicationFollowUp });
+    renderView();
+    const region = await screen.findByRole('region', { name: /follow-ups due/i });
+    expect(within(region).getByText('1 follow-up due')).toBeTruthy();
+    expect(within(region).getByText(/Frontend Developer at Acme/)).toBeTruthy();
+    expect(within(region).queryByText(/Data Analyst/)).toBeNull();
+    await userEvent.click(within(region).getByRole('button', { name: /mark follow-up done for frontend developer/i }));
+    await waitFor(() => expect(updateApplicationFollowUp).toHaveBeenCalledWith(1, null));
+    await waitFor(() => expect(screen.queryByRole('region', { name: /follow-ups due/i })).toBeNull());
+  });
+
+  it('sets a follow-up from the drawer and rolls back on failure', async () => {
+    const updateApplicationFollowUp = vi.fn().mockResolvedValue({ success: false, error: 'disk' });
+    mockApi({ updateApplicationFollowUp });
+    renderView();
+    await userEvent.click(await screen.findByRole('button', { name: /frontend developer/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /in a week/i }));
+    await waitFor(() => expect(updateApplicationFollowUp).toHaveBeenCalledWith(1, expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)));
+    expect(await screen.findByText(/follow-up date was not saved/i)).toBeTruthy();
+    expect(screen.queryByText(/Follow up on/)).toBeNull();
+  });
 });

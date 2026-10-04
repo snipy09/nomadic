@@ -1,7 +1,7 @@
 import type { Job } from '../../types';
 import type { JobMatch } from './match';
 
-export type FeedTab = 'all' | 'jobs' | 'internships' | 'internshala' | 'remote' | 'saved' | 'high_match';
+export type FeedTab = 'all' | 'jobs' | 'internships' | 'internshala' | 'remote' | 'saved' | 'high_match' | 'hidden';
 export type SortKey = 'latest' | 'best_match' | 'company';
 export type LocationFilter = 'all' | 'remote' | 'india';
 export interface ScoredJob extends Job { match: JobMatch | null }
@@ -24,6 +24,12 @@ export function dedupeJobs(list: Job[]): Job[] {
     out.push(j);
   }
   return out;
+}
+
+/** Jobs the user did not mark "Not interested", compared by apply URL without its query string. */
+export function withoutHidden<T extends Pick<Job, 'applyUrl'>>(jobs: T[], hiddenUrls: Iterable<string>): T[] {
+  const hidden = new Set([...hiddenUrls].map(cleanUrl));
+  return hidden.size ? jobs.filter((j) => !hidden.has(cleanUrl(j.applyUrl))) : jobs;
 }
 
 export const isRemote = (j: Job) => j.workplaceType === 'remote' || (j.location ?? '').toLowerCase().includes('remote');

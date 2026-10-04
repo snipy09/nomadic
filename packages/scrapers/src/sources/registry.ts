@@ -32,6 +32,8 @@ export interface SourceDefinition {
   tier: Tier;
   /** Official APIs list only open jobs, so their links need no HTTP liveness check. */
   officialApi: boolean;
+  /** Lists only jobs in India, so the region filter does not apply. */
+  indiaOnly?: boolean;
   fetchCandidates(ctx: SourceContext): Promise<JobCandidate[]>;
 }
 
@@ -111,6 +113,7 @@ export const SOURCES: SourceDefinition[] = [
     label: 'Internshala',
     tier: 1,
     officialApi: false,
+    indiaOnly: true,
     fetchCandidates: async () => (await scrapeInternshalaListings()).map(internshalaToCandidate),
   },
   // ── Tier 2 ────────────────────────────────────────────────────────────────
@@ -144,6 +147,7 @@ export const SOURCES: SourceDefinition[] = [
     label: 'Naukri',
     tier: 3,
     officialApi: false,
+    indiaOnly: true,
     fetchCandidates: async (ctx) =>
       (await scrapeNaukriIndia()).map((j) => rawJobToCandidate(j, 'naukri', { now: ctx.now })),
   },
@@ -152,6 +156,7 @@ export const SOURCES: SourceDefinition[] = [
     label: 'Indeed',
     tier: 3,
     officialApi: false,
+    indiaOnly: true,
     fetchCandidates: async (ctx) =>
       (await scrapeIndeedIndia()).map((j) => rawJobToCandidate(j, 'indeed', { now: ctx.now })),
   },

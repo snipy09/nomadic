@@ -80,6 +80,8 @@ export interface Application {
   created_at?: string;
   updated_at?: string | null;
   notes?: string;
+  /** Follow-up reminder date (YYYY-MM-DD), local to this computer. */
+  follow_up_at?: string | null;
   /** Append-only status history, oldest first. */
   history?: ApplicationStatusEvent[];
 }
@@ -174,9 +176,11 @@ export interface AppUser {
 
 
 export type {
+  HiddenJob, HideJobInput,
   FeedbackInput, FeedbackKind, FeedbackResult, TelemetryState, UpdateChannel, UpdatePolicyResult, UpdaterInfo, UpdaterStatus, WhatsNewInfo,
 } from '../shared/ipc';
 import type {
+  HiddenJob, HideJobInput,
   FeedbackInput, FeedbackResult, TelemetryState, UpdateChannel, UpdatePolicyResult, UpdaterInfo, UpdaterStatus, WhatsNewInfo,
 } from '../shared/ipc';
 
@@ -215,6 +219,7 @@ export interface ElectronAPI {
   getEntitlements?: (options?: { fresh?: boolean }) => Promise<EntitlementsResult>;
   /** Opens Razorpay checkout for a paid plan in the browser. */
   startCheckout?: (plan: 'pro' | 'max') => Promise<CheckoutResult>;
+  getPaymentHistory?: NomadicApi['getPaymentHistory'];
   verifyEmail: (email: string) => Promise<{ isValid: boolean; stageFailed?: number; reason?: string }>;
   getHrContacts: (targetRole?: string) => Promise<{ success: boolean; contacts: OutreachContact[]; error?: string }>;
   sendOutreach: (contacts: Array<{ email: string; name?: string; company?: string; role?: string; subject?: string; body?: string }>) =>
@@ -234,10 +239,14 @@ export interface ElectronAPI {
     Promise<{ success: boolean; id?: number; error?: string }>;
   updateApplicationStatus: (id: number | string, status: string) => Promise<{ success: boolean; error?: string; application?: Application }>;
   updateApplicationNotes: (id: number | string, notes: string) => Promise<{ success: boolean; error?: string; application?: Application }>;
+  updateApplicationFollowUp?: (id: number | string, followUpAt: string | null) => Promise<{ success: boolean; error?: string; application?: Application }>;
   deleteApplication: (id: number | string) => Promise<{ success: boolean; error?: string }>;
   getSavedJobs: () => Promise<Job[]>;
   saveJob: (job: Job) => Promise<{ success: boolean; error?: string }>;
   removeSavedJob: (applyUrl: string) => Promise<{ success: boolean; error?: string }>;
+  getHiddenJobs?: () => Promise<HiddenJob[]>;
+  hideJob?: (job: HideJobInput) => Promise<{ success: boolean; error?: string }>;
+  unhideJob?: (applyUrl: string) => Promise<{ success: boolean; error?: string }>;
   openExternalUrl: (url: string) => Promise<{ success: boolean; error?: string }>;
 
   // AI Generation & Assistant Handlers

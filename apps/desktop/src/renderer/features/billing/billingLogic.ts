@@ -1,5 +1,5 @@
-import { getPlan, limitOrNull, normalizeTier, tierRank, type PlanId } from '@nomadic/config';
-import type { Entitlements } from '../../../shared/ipc';
+import { LEGAL_ENTITY, SUPPORT_EMAIL, formatPrice, getPlan, limitOrNull, normalizeTier, tierRank, type PlanId } from '@nomadic/config';
+import type { Entitlements, PaymentRecord } from '../../../shared/ipc';
 
 /** What the renderer knows about the plan: 'unknown' means the server could not be asked. */
 export type EntitlementsStatus = 'loading' | 'ready' | 'unknown';
@@ -59,3 +59,18 @@ export function renewalLine(ent: Entitlements, now: Date = new Date()): string {
 }
 
 export const planRank = (p: PlanId): number => tierRank(p);
+
+/** Plain-text receipt for one payment (copied to the clipboard; not a GST tax invoice). */
+export function receiptText(p: PaymentRecord, email: string | undefined, entity = LEGAL_ENTITY, support = SUPPORT_EMAIL): string {
+  const plan = p.plan === 'lifetime' ? 'Lifetime' : getPlan(p.plan).name;
+  return [
+    `${entity} payment receipt`,
+    `Payment ID: ${p.paymentId}`,
+    `Date: ${formatDate(p.paidAt) ?? 'unknown'}`,
+    `Account: ${email || 'unknown'}`,
+    `Plan: ${plan} (30 days)`,
+    `Amount: ${p.amountInr === null ? 'unknown' : formatPrice(p.amountInr)}`,
+    `Status: ${p.status === 'captured' ? 'Paid' : p.status === 'refunded' ? 'Refunded' : 'Failed'}`,
+    `Paid through Razorpay. Questions: ${support}`,
+  ].join('\n');
+}

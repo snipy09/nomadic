@@ -2,9 +2,10 @@ import initSqlJs, { Database } from 'sql.js';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { migrateApplicationsSchema } from './services/applications-store.js';
+import { migrateApplicationsSchema, migrateFollowUpSchema } from './services/applications-store.js';
 import { migratePracticeSchema } from './services/practice-store.js';
 import { migrateLearningSchema } from './services/learning-store.js';
+import { migrateHiddenJobsSchema } from './services/hidden-jobs.js';
 import type { LocalDbHealth } from '../shared/ipc.js';
 import { getUserVersion, latestVersion, runLocalMigrations, type LocalMigration, type MigrationOutcome } from './local-db/migrations.js';
 import { backupsDir, createBackup, openOrRecover, writeFileAtomic } from './local-db/safety.js';
@@ -302,6 +303,8 @@ export const LOCAL_MIGRATIONS: readonly LocalMigration[] = [
   { version: 2, name: 'applications tracker history and notes', up: migrateApplicationsSchema },
   { version: 3, name: 'practice attempts cache', up: migratePracticeSchema },
   { version: 4, name: 'learning goal and events', up: migrateLearningSchema },
+  { version: 5, name: 'hidden jobs', up: migrateHiddenJobsSchema },
+  { version: 6, name: 'application follow-up dates', up: migrateFollowUpSchema },
 ];
 
 /** Flush in-memory DB to disk. Call after every write. */

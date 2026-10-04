@@ -73,7 +73,7 @@ Legend: ✅ fixed and verified · ⚠️ mitigated, follow-up needed · ☐ open
 `authenticate_user`, `register_device_session`, `verify_and_update_session`, `sync_pull_user_data`,
 `sync_push_user_profile`, `sync_push_application`, `sync_push_saved_job`, `sync_remove_saved_job`,
 `sync_push_resume`, `sync_delete_resume`, `sync_delete_application` (010), `learning_start_track`, `learning_archive_track`,
-`learning_record_events`, `learning_pull_events`, `account_export_data` and `account_delete` (022), `learning_get_tracks` (012), `get_entitlements` (011), `consume_apply_quota` (011), `register_user` (009), and the admin RPCs (014; each re-checks the
+`learning_record_events`, `learning_pull_events`, `account_export_data` and `account_delete` (022), `billing_list_payments` (025), `learning_get_tracks` (012), `get_entitlements` (011), `consume_apply_quota` (011), `register_user` (009), and the admin RPCs (014; each re-checks the
 session and the admin role): `admin_list_users`, `admin_set_user_plan`, `admin_set_user_status`, `admin_list_audit`,
 `admin_scrape_health`, `admin_list_content`, `admin_update_lesson`, `admin_set_resource_status`,
 `admin_content_history`, and the email-code RPCs (019): `confirm_password_reset` (code-checked, generic errors),

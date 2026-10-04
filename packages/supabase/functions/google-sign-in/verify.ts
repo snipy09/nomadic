@@ -86,7 +86,7 @@ async function verifyRs256(jwk: RsaJwk, signingInput: string, signature: Uint8Ar
     false,
     ['verify'],
   );
-  return crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, signature, new TextEncoder().encode(signingInput));
+  return crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, signature as BufferSource, new TextEncoder().encode(signingInput));
 }
 
 function findKey(jwks: Jwks | undefined, kid: string): RsaJwk | undefined {
