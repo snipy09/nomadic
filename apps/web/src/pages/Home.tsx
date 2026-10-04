@@ -2,6 +2,7 @@ import { CSSProperties } from 'react';
 import Nav from '../components/Nav';
 import Footer from '../components/Footer';
 import ComingSoon from '../components/ComingSoon';
+import EmailSignup from '../components/EmailSignup';
 import HeroDemo from '../components/HeroDemo';
 import RouteSection from '../components/RouteSection';
 import Roadmap from '../components/Roadmap';
@@ -42,6 +43,7 @@ function Hero() {
             <p className="mt-4 max-w-md text-white/85">
               For Windows first, macOS after the beta. Public downloads are not open yet.
             </p>
+            <EmailSignup source="hero" className="mt-8" />
             <a
               href="#learn"
               onClick={(event) => {
@@ -115,8 +117,11 @@ function FinalCall() {
         </Reveal>
         <Reveal kind="up" delay={160}>
           <p className="mt-6 max-w-xl text-lg text-white/90 sm:text-xl">
-            Public downloads are not open yet. The download page will carry the installer the day it is ready.
+            Public downloads are not open yet. Leave your email and we will tell you the day the installer is ready.
           </p>
+        </Reveal>
+        <Reveal kind="up" delay={220}>
+          <EmailSignup source="final" className="mt-10" />
         </Reveal>
         <Reveal kind="up" delay={280} className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3">
           <ComingSoon tone="dark" size="lg" />

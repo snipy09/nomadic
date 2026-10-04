@@ -216,6 +216,17 @@ export const DATA_HANDLING: DataHandlingRow[] = [
   },
 ];
 
+export const SIGNUP = {
+  label: 'Get an email when the download opens',
+  placeholder: 'you@example.com',
+  button: 'Notify me',
+  sending: 'Adding you',
+  done: 'You are on the list. We will email you once, when the download opens.',
+  invalid: 'Enter a full email address, like you@example.com.',
+  failed: 'That did not go through. Check your connection and try again.',
+  note: 'One email when it launches. No spam, and we never share your address.',
+};
+
 export const FAQS: { q: string; a: string }[] = [
   {
     q: 'What is Nomadic?',
@@ -227,7 +238,7 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Can I download it yet?',
-    a: 'Not yet. Public downloads are coming soon, and the download page will carry the installer when it is ready.',
+    a: 'Not yet. Public downloads are coming soon. Leave your email on the home page and we will write once, the day the installer is ready.',
   },
   {
     q: 'Which operating systems does it run on?',

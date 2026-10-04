@@ -9,7 +9,7 @@
 import { CURRENCY, PLANS } from './plans';
 
 export const LEGAL_VERSION = '2026-10-03';
-export const LEGAL_UPDATED = '3 October 2026';
+export const LEGAL_UPDATED = '4 October 2026';
 /** Operator as it should appear on invoices and in notices. Change once the business is registered. */
 export const LEGAL_ENTITY = 'Nomadic';
 export const SUPPORT_EMAIL = 'support@nomadic.app';
@@ -182,6 +182,13 @@ export const PRIVACY: LegalDoc = {
       paragraphs: [
         'We keep your account data while your account is open. If you ask us to delete your account, we delete your account data from our servers within 30 days, except records we must keep by law (such as payment records for tax purposes). Data stored on your own computer is removed when you uninstall the app and delete its data folder.',
         'Security logs such as sign-in attempts are kept for a limited period, typically up to 90 days.',
+      ],
+    },
+    {
+      title: 'Launch email list',
+      paragraphs: [
+        'If you leave your email address on the website to hear when the download opens, we store that address, the page section you used and the time, in our Supabase database in Mumbai. We use it only to email you about the launch, and we do not share it.',
+        'You can ask us to remove it at any time by writing to ' + SUPPORT_EMAIL + '. We delete the list once launch emails have been sent, or within 12 months, whichever comes first.',
       ],
     },
     {
