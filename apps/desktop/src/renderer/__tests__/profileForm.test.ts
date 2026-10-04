@@ -44,6 +44,23 @@ describe('toMasterProfile', () => {
   });
 });
 
+describe('profile facts kept in the answers map', () => {
+  const base = { firstName: 'A', lastName: 'B', email: 'x@y.zz', customAnswers: { q: 'a' } } as any;
+  it('saves location, country, preferred name, portfolio and years, and reads them back', () => {
+    const f = { ...toForm(base, null), location: 'Pune, Maharashtra', country: 'India', preferredName: 'Ash', portfolio: 'ash.dev', yearsOfExperience: 0 };
+    const out = toMasterProfile(f, base);
+    expect(out.customAnswers).toMatchObject({ q: 'a', __profile_location: 'Pune, Maharashtra', __profile_country: 'India', __profile_preferred_name: 'Ash', __profile_portfolio: 'ash.dev', __profile_years: '0' });
+    const back = toForm({ customAnswers: out.customAnswers } as any, null);
+    expect([back.location, back.country, back.preferredName, back.portfolio, back.yearsOfExperience]).toEqual(['Pune, Maharashtra', 'India', 'Ash', 'ash.dev', 0]);
+    expect(back.answers).toEqual({ q: 'a' });
+  });
+  it('drops cleared values instead of storing empty strings', () => {
+    const saved = toMasterProfile({ ...toForm(base, null), country: 'India' }, base);
+    const cleared = toMasterProfile({ ...toForm(saved, null), country: '' }, saved);
+    expect(cleared.customAnswers).not.toHaveProperty('__profile_country');
+  });
+});
+
 describe('validate and completeness', () => {
   it('flags bad email, links and experience', () => {
     const f = { ...toForm(null, null), fullName: 'A', email: 'nope', linkedin: 'example.com/in/a', github: 'github.com/a', yearsOfExperience: 99 };

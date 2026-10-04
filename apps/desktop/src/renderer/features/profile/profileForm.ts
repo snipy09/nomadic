@@ -1,11 +1,14 @@
 import type { AppUser, MasterProfile, OpportunityType, WorkspaceMode } from '../../types';
+import { mergeProfileExtras, splitProfileExtras } from '../../../shared/profileExtras';
 
 /** Editable view of the profile. `null` / '' means "the user has not told us": nothing is ever invented. */
 export interface ProfileForm {
   fullName: string;
+  preferredName: string;
   email: string;
   phone: string;
   location: string;
+  country: string;
   linkedin: string;
   github: string;
   portfolio: string;
@@ -44,18 +47,21 @@ export function toForm(
 ): ProfileForm {
   const p: Record<string, any> = profile ?? {};
   const joined = `${asString(p.firstName)} ${asString(p.lastName)}`.trim();
-  const answers = { ...(p.customAnswers ?? {}) } as Record<string, string>;
+  const { extras, answers } = splitProfileExtras(p.customAnswers);
   const authorized = answers[AUTHORIZED_KEY];
   delete answers[AUTHORIZED_KEY];
-  const years = typeof p.yearsOfExperience === 'number' && p.yearsOfExperience >= 0 ? p.yearsOfExperience : null;
+  const storedYears = extras.yearsOfExperience !== undefined ? Number(extras.yearsOfExperience) : p.yearsOfExperience;
+  const years = typeof storedYears === 'number' && Number.isFinite(storedYears) && storedYears >= 0 ? storedYears : null;
   return {
     fullName: joined || asString(p.fullName) || asString(user?.fullName),
+    preferredName: extras.preferredName ?? asString(p.preferredName),
     email: asString(p.email) || asString(user?.email),
     phone: asString(p.phone),
-    location: asString(p.location),
+    location: extras.location ?? asString(p.location),
+    country: extras.country ?? asString(p.country),
     linkedin: asString(p.linkedin),
     github: asString(p.github),
-    portfolio: asString(p.portfolio),
+    portfolio: extras.portfolio ?? asString(p.portfolio),
     targetRole: asString(p.desiredTitle),
     yearsOfExperience: years,
     skills: parseSkills(p.skills ?? p.techStack),
@@ -85,7 +91,18 @@ export function toMasterProfile(form: ProfileForm, base: Partial<MasterProfile> 
     desiredSalary: form.expectedSalary.trim(),
     noticePeriod: form.noticePeriod.trim(),
     sponsorship: form.requiresSponsorship ? 'Yes' : 'No',
-    customAnswers: { ...form.answers, [AUTHORIZED_KEY]: form.workAuthorized ? 'Yes' : 'No' },
+    preferredName: form.preferredName.trim(),
+    location: form.location.trim(),
+    country: form.country.trim(),
+    portfolio: form.portfolio.trim(),
+    yearsOfExperience: form.yearsOfExperience ?? undefined,
+    customAnswers: mergeProfileExtras({ ...form.answers, [AUTHORIZED_KEY]: form.workAuthorized ? 'Yes' : 'No' }, {
+      preferredName: form.preferredName,
+      location: form.location,
+      country: form.country,
+      portfolio: form.portfolio,
+      yearsOfExperience: form.yearsOfExperience === null ? '' : String(form.yearsOfExperience),
+    }),
     workspaceMode: form.workspaceMode,
     targetOpportunityType: form.targetOpportunityType,
     askBeforeSubmit: true, // Apply always waits for the user's review.

@@ -32,6 +32,21 @@ describe('ProfileAnswerer', () => {
     expect(llmCalls).toBe(0);
   });
 
+  it('uses the first name when a form asks for a preferred name the profile does not have', async () => {
+    const { answers } = await answerAll([mk('What name would you prefer to be called?')], { ...sampleProfile(), preferredName: undefined });
+    expect(answers[0]).toMatchObject({ status: 'answered', value: 'Jordan', source: 'derived' });
+    const own = await answerAll([mk('Preferred name')], { ...sampleProfile(), preferredName: 'Jo' });
+    expect(own.answers[0]).toMatchObject({ value: 'Jo', source: 'profile' });
+  });
+
+  it('never puts cover letter text into a cover letter upload slot', async () => {
+    const field = mk('Cover Letter', { kind: 'file' });
+    const { answers } = await answerAll([field], { ...sampleProfile(), coverLetter: 'Dear team' });
+    expect(answers[0].status).toBe('skip');
+    const req = await answerAll([{ ...field, required: true }], { ...sampleProfile(), coverLetter: 'Dear team' });
+    expect(req.answers[0].status).toBe('needs_user');
+  });
+
   it('returns needs_user for required questions the profile cannot answer', async () => {
     const { answers } = await answerAll([mk('Have you worked here before?', { kind: 'radio', options: yn, required: true }), mk('Who referred you?', { required: true })]);
     for (const a of answers) expect(a.status).toBe('needs_user');

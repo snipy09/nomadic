@@ -154,6 +154,12 @@ function scanFrame(opts: { includeHidden: boolean }): RawField[] {
         .filter((n): n is HTMLElement => !!n && n !== el && !(n.tagName === 'BUTTON' && n === el)).map((n) => textWithoutControls(n)).filter(Boolean).join(' ');
       if (t) { parts.push(t); requiredMark = /\*/.test(t); }
     }
+    // File inputs: the <label for> is often just the "Attach" button; the upload group names the field.
+    const group = !parts.length && (el as HTMLInputElement).type === 'file' ? el.closest('[role="group"][aria-labelledby]') : null;
+    if (group) {
+      const t = (group.getAttribute('aria-labelledby') || '').split(/\s+/).map((gid) => root.querySelector(`[id=${q(gid)}]`)).filter((n): n is Element => !!n).map((n) => textWithoutControls(n)).filter(Boolean).join(' ');
+      if (t) { parts.push(t); requiredMark = /\*/.test(t) || group.getAttribute('aria-required') === 'true'; }
+    }
     const id = el.getAttribute('id');
     if (!parts.length && id) {
       const l = root.querySelector(`label[for=${q(id)}]`);
@@ -244,6 +250,8 @@ function scanFrame(opts: { includeHidden: boolean }): RawField[] {
       const tag = el.tagName;
       const type = (input.type || '').toLowerCase();
       if ((el as HTMLElement).closest('[role="listbox"], .select__menu, .wd-popup, #nomadic-auto-apply-overlay')) continue;
+      // Validation proxies (e.g. react-select's hidden "required" input on Greenhouse boards): not a field of their own.
+      if (tag === 'INPUT' && el.getAttribute('aria-hidden') === 'true' && el.getAttribute('tabindex') === '-1' && !['file', 'radio', 'checkbox'].includes(type) && !input.name) continue;
 
       const visibleSelf = isShown(el);
       const usable = visibleSelf || (ancestorsShown(el.parentElement || el) && (type === 'file' || type === 'radio' || type === 'checkbox' || tag === 'SELECT') && isShown(fieldContainer(el, root) || el.parentElement));

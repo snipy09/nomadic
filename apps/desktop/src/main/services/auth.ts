@@ -9,6 +9,19 @@ import { session, resolvePublicIp, startHeartbeatLoop } from './session.js';
 import { getAnonSupabase } from './supabase.js';
 import { syncPullUserDataToLocalDb } from './cloud-sync.js';
 import { isOnboardingCompleted, seedProfileIdentity } from './profile.js';
+import { claimLocalDataFor } from './local-owner.js';
+
+/** Clears the previous account's cached data when a different account signs in on this computer. */
+export function claimLocalData(userId: string, email?: string): void {
+  try {
+    if (claimLocalDataFor(getDb(), userId, email)) {
+      persistDb();
+      log('[Auth] A different account signed in: cleared the previous account\'s data on this computer.');
+    }
+  } catch (err: unknown) {
+    log(`[Auth] Could not check the local data owner: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
 
 // ── Authentication & Licensing ────────────────────────────────────────────
 // Login is SERVER-AUTHORITATIVE. The desktop app asks Supabase (via the
@@ -250,6 +263,7 @@ export async function startServerSession(
 
   session.userId = user.id;
   session.sessionToken = sessionToken;
+  claimLocalData(user.id, user.email);
 
   cacheValidatedUser(user, opts.offlineCredentialHash);
   log(`[Auth] Authenticated via ${opts.source}: ${user.email} (${user.tier.toUpperCase()}) on [${deviceName}]`);
@@ -322,6 +336,7 @@ export async function loginWithCredentials(credentials: AuthCredentials): Promis
       const offlineSessionToken = crypto.randomUUID();
       session.userId = offline.id;
       session.sessionToken = offlineSessionToken;
+      claimLocalData(offline.id, offline.email);
 
       const hasCompleted = isOnboardingCompleted();
 
@@ -422,6 +437,7 @@ export async function signupLocalAccount(credentials: AuthCredentials): Promise<
 
     session.userId = appUser.id;
     session.sessionToken = sessionToken;
+    claimLocalData(appUser.id, appUser.email);
     cacheValidatedUser(appUser, hashLogin(email, password));
     startHeartbeatLoop(appUser.id, sessionToken, deviceFingerprint);
 

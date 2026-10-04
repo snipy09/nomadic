@@ -183,7 +183,10 @@ apply's AI form answers go through `ai-proxy`; the feed treats the column defaul
 `sync_set_application_follow_up`); on pull, hidden jobs are a union and local-only ones are uploaded; for follow-ups
 the newer row wins, a cloud date is never dropped by a local row without one.
 
-Code follow-ups: resume parsing/versions; multi-step form edits in apply; GST tax invoices (need a GSTIN; today receipts only); skill tagging in the
+Code follow-ups: `packages/automation/src/ai-pilot-engine.ts` is unused (only its test) and holds invented
+placeholder defaults: remove it; form-engine DOM tests and `npm run bench:forms` need
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE` set to an installed Chrome on this laptop (else they skip/fail to launch);
+resume parsing/versions; multi-step form edits in apply; GST tax invoices (need a GSTIN; today receipts only); skill tagging in the
 scraper pipeline (the app tags at runtime, so optional); event sync beyond learning; F13 decisions (Outreach and the
 Assistant still call AI directly); OS notification for due follow-ups (today an in-app list).
 
@@ -209,8 +212,14 @@ Assistant still call AI directly); OS notification for due follow-ups (today an 
   Last commit of the session: "feat(apply): fill applications in the user's own browser".
 - Untracked on purpose, never stage: `brag-output*/`, `reel*/`, `showreel/` (local marketing renders) and `.claude/`
   (local assistant settings and `launch.json`; its notes are folded into section 10).
-- Delivered build: `Nomadic-v1.0.10-portable.exe` in `C:\Users\sajal\Downloads` and `Desktop\Nomadic-v1\`
-  (built from `apps/desktop/dist-electron/Nomadic.1.0.10.exe`; 1.0.10 opens apply in the user's real browser; 1.0.9
+- Delivered build: `Nomadic-v1.0.11-portable.exe` in `C:\Users\sajal\Downloads` and `Desktop\Nomadic-v1\`
+  (built from `apps/desktop/dist-electron/Nomadic.1.0.11.exe`; 1.0.11 fixes new Greenhouse boards (phantom
+  "Unlabelled field" inputs behind react-select, preferred name, country questions, yes/no questions no longer read as
+  profile facts, upload groups named by their group label, uploads that swap the input for the file name), saves
+  Location/Country/Preferred name/Portfolio/Years in `custom_answers_json` under reserved `__profile_*` keys
+  (`shared/profileExtras.ts`, no schema change), and clears the previous account's local data when a different account
+  signs in on the same computer so onboarding shows (`services/local-owner.ts`, local migration 8 `local_meta`);
+  1.0.10 opens apply in the user's real browser; 1.0.9
   fixed the blank window of 1.0.7/1.0.8 via the sandbox fallback; 1.0.8 added hidden-job and follow-up account sync).
   Bump `apps/desktop/package.json` `version` for the next one.
 - Apply browser (`packages/automation/src/user-browser.ts`, v1.0.10): apply opens the user's installed Chrome (else

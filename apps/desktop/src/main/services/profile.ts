@@ -5,6 +5,7 @@ import { log } from './app-context.js';
 import { getActiveSyncSession } from './session.js';
 import { getAnonSupabase } from './supabase.js';
 import { overlaySecrets, readSecret, writeSecret } from './secrets.js';
+import { splitProfileExtras } from '../../shared/profileExtras.js';
 
 /**
  * Reads the `master_profile` row as a column -> value map with secrets
@@ -264,7 +265,19 @@ export function buildAutomationProfile(opts: { logCachedAnswers: boolean }): Mas
   const profileRaw = getMasterProfileRow();
   if (!profileRaw) return null;
 
+  let stored: Record<string, unknown> | null = null;
+  try { stored = JSON.parse(String(profileRaw['custom_answers_json'] ?? 'null')); } catch {}
+  const { extras, answers } = splitProfileExtras(stored && typeof stored === 'object' ? stored : null);
+  const years = extras.yearsOfExperience !== undefined ? Number(extras.yearsOfExperience) : NaN;
+  const location = extras.location ?? '';
+
   return {
+    preferredName: extras.preferredName,
+    location: location || undefined,
+    city: location ? location.split(',')[0].trim() || undefined : undefined,
+    country: extras.country,
+    portfolio: extras.portfolio,
+    yearsOfExperience: Number.isFinite(years) && years >= 0 ? years : undefined,
     firstName:    String(profileRaw['first_name'] ?? ''),
     lastName:     String(profileRaw['last_name'] ?? ''),
     email:        String(profileRaw['email'] ?? ''),
@@ -279,9 +292,7 @@ export function buildAutomationProfile(opts: { logCachedAnswers: boolean }): Mas
     desiredTitle: String(profileRaw['desired_title'] ?? ''),
     techStack:    String(profileRaw['tech_stack'] ?? ''),
     resumes:      readResumesForAutomation(),
-    customAnswers: (() => {
-      try { return JSON.parse(String(profileRaw['custom_answers_json'] ?? 'null')); } catch { return undefined; }
-    })(),
+    customAnswers: stored ? answers : undefined,
     // Only answers the candidate wrote during review are remembered (see form-answers.ts); model-written
     // answers are company-specific and are drafted fresh for every form.
     cachedAnswers: readCachedFormAnswers(opts.logCachedAnswers),

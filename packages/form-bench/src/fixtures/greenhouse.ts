@@ -268,7 +268,7 @@ export function greenhouseFixtures(p: Profile): Fixture[] {
     const f = new GhReactForm()
       .text('First Name', 'first_name', p.firstName, { required: true })
       .text('Last Name', 'last_name', p.lastName, { required: true })
-      .text('Preferred First Name', 'preferred_name', '@empty', { category: 'trap' })
+      .text('Preferred First Name', 'preferred_name', 'Jordan', { category: 'profile' })
       .text('Email', 'email', p.email, { required: true, type: 'email' })
       .text('Phone', 'phone', p.phone, { type: 'tel' })
       .resume()

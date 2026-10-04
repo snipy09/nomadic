@@ -35,6 +35,12 @@ export interface MasterProfile {
   emailSignature?: string;
   syncFrequency?: string;
   customAnswers: Record<string, string>;
+  // Stored inside customAnswers (shared/profileExtras.ts); mirrored here for convenience.
+  preferredName?: string;
+  location?: string;
+  country?: string;
+  portfolio?: string;
+  yearsOfExperience?: number;
   onboardingCompleted?: boolean;
   workplaceType?: 'remote' | 'hybrid' | 'onsite';
   experienceLevel?: 'entry' | 'mid' | 'senior';

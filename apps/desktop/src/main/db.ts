@@ -7,6 +7,7 @@ import { migratePracticeSchema } from './services/practice-store.js';
 import { migrateLearningSchema } from './services/learning-store.js';
 import { migrateHiddenJobsSchema } from './services/hidden-jobs.js';
 import { answerKey, migrateFormAnswersStore } from './services/form-answers.js';
+import { migrateLocalMetaSchema } from './services/local-owner.js';
 import type { LocalDbHealth } from '../shared/ipc.js';
 import { getUserVersion, latestVersion, runLocalMigrations, type LocalMigration, type MigrationOutcome } from './local-db/migrations.js';
 import { backupsDir, createBackup, openOrRecover, writeFileAtomic } from './local-db/safety.js';
@@ -307,6 +308,7 @@ export const LOCAL_MIGRATIONS: readonly LocalMigration[] = [
   { version: 5, name: 'hidden jobs', up: migrateHiddenJobsSchema },
   { version: 6, name: 'application follow-up dates', up: migrateFollowUpSchema },
   { version: 7, name: 'remembered form answers reset', up: migrateFormAnswersStore },
+  { version: 8, name: 'local data owner', up: migrateLocalMetaSchema },
 ];
 
 /** Flush in-memory DB to disk. Call after every write. */

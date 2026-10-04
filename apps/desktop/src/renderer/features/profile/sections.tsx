@@ -30,8 +30,14 @@ export const PersonalSection: React.FC<FormProps> = ({ form, errors, set }) => (
         <Field label="Phone" error={errors.phone}>
           <Input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} autoComplete="tel" />
         </Field>
+        <Field label="Preferred name" hint="Optional. Forms that ask get your first name otherwise.">
+          <Input value={form.preferredName} onChange={(e) => set('preferredName', e.target.value)} autoComplete="nickname" />
+        </Field>
         <Field label="Location" hint="City, state">
           <Input value={form.location} onChange={(e) => set('location', e.target.value)} />
+        </Field>
+        <Field label="Country" hint="Country you live in, e.g. India">
+          <Input value={form.country} onChange={(e) => set('country', e.target.value)} autoComplete="country-name" />
         </Field>
         <Field label="LinkedIn" error={errors.linkedin}>
           <Input value={form.linkedin} onChange={(e) => set('linkedin', e.target.value)} placeholder="linkedin.com/in/…" />

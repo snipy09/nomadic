@@ -201,6 +201,8 @@ export class ProfileAnswerer implements Answerer {
         return file ? this.ok(field, file, 'profile') : this.unknown(field, 'No resume file in your profile');
       }
       case 'cover_letter':
+        // An upload slot needs a file; the profile only holds cover letter text.
+        if (field.kind === 'file') return this.unknown(field, 'No cover letter file in your profile');
         if (p.coverLetter) return this.ok(field, p.coverLetter, 'profile');
         return 'llm';
       case 'open_ended': return 'llm';
@@ -217,7 +219,9 @@ export class ProfileAnswerer implements Answerer {
       case 'fullName': return text(profileFullName(p), 'Name');
       case 'firstName': return text(p.firstName, 'First name');
       case 'lastName': return text(p.lastName, 'Last name');
-      case 'preferredName': return text(p.preferredName, 'Preferred name');
+      case 'preferredName':
+        if (p.preferredName?.trim()) return text(p.preferredName, 'Preferred name');
+        return p.firstName?.trim() ? this.ok(field, p.firstName.trim(), 'derived') : missing('Preferred name');
       case 'email': return text(p.email, 'Email');
       case 'phone': {
         if (!p.phone) return missing('Phone');

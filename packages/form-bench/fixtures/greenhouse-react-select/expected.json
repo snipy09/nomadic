@@ -21,10 +21,10 @@
       "required": true
     },
     "Preferred First Name": {
-      "expected": "@empty",
+      "expected": "Jordan",
       "selector": "[id=\"preferred_name\"]",
       "read": "value",
-      "category": "trap",
+      "category": "profile",
       "required": false
     },
     "Email": {

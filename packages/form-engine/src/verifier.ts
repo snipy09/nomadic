@@ -7,6 +7,7 @@ import type { Page } from 'playwright';
 import type { FieldOutcome, FormField, Verifier, VerifyIssue } from './contracts.js';
 import { norm, prepareFrame, resolveField } from './dom.js';
 import { readFieldValue, valuesMatch } from './writers/common.js';
+import { fileAttached } from './writers/file.js';
 
 async function fieldError(page: Page, field: FormField): Promise<string> {
   const h = await resolveField(page, field);
@@ -63,7 +64,10 @@ export class DomVerifier implements Verifier {
     const issues: VerifyIssue[] = [];
     for (const o of outcomes) {
       const f = o.field;
-      if (o.status === 'filled') {
+      if (o.status === 'filled' && f.kind === 'file') {
+        const path = o.answer?.status === 'answered' ? o.answer.value : '';
+        if (!(await fileAttached(page, f, path))) issues.push({ fieldId: f.id, kind: 'value_mismatch', message: 'file is no longer attached' });
+      } else if (o.status === 'filled') {
         const actual = await readFieldValue(page, f);
         const expected = o.write?.actual ?? (o.answer?.status === 'answered' ? o.answer.value : '');
         if (!sameValue(f, actual, expected)) {

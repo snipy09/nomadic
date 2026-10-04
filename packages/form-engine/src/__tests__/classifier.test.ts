@@ -32,6 +32,22 @@ describe('RuleClassifier', () => {
     expect(cls(mk(label))).toBe(expected);
   });
 
+  it.each([
+    ['What name would you prefer to be called?', 'profile:preferredName'],
+    ['Is there a name you prefer to go by?', 'profile:preferredName'],
+    ['Please choose the country in which you are located', 'profile:country'],
+    ['What is your current country of residence?', 'profile:country'],
+  ])('Greenhouse custom question %s -> %s', (label, expected) => {
+    expect(cls(mk(label, { kind: 'combobox' }))).toBe(expected);
+  });
+
+  it('does not treat yes/no questions as profile facts', () => {
+    const agreements = 'Are you subject to any employment agreements (non-compete, non-solicitation) with your current employer?';
+    expect(cls(mk(agreements, { kind: 'combobox', options: yn }))).not.toBe('profile:currentCompany');
+    expect(cls(mk('Do you currently live in a country where GitLab can employ you?', { kind: 'select', options: yn }))).not.toBe('profile:country');
+    expect(cls(mk('Current employer'))).toBe('profile:currentCompany');
+  });
+
   it('classifies eligibility and logistics choice questions', () => {
     expect(cls(mk('Will you now or in the future require sponsorship for employment visa status?', { kind: 'select', options: yn }))).toBe('sponsorship');
     expect(cls(mk('Are you legally authorized to work in the United States?', { kind: 'radio', options: yn }))).toBe('work_authorization');

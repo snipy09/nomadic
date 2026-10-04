@@ -125,6 +125,23 @@ describe.skipIf(!browser)('field writers (DOM)', () => {
     expect((await new FileWriter().write(page, await fieldByLabel(page, 'Resume'), ans('/nope.pdf'))).ok).toBe(false);
   });
 
+  it('FileWriter: Greenhouse upload groups are named by the group and may swap the input for the file name', async () => {
+    const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'fe-')), 'my-cv.pdf');
+    fs.writeFileSync(file, '%PDF-1.4\n');
+    const group = (id: string, name: string) => `<div role="group" aria-labelledby="upload-label-${id}" aria-required="true" class="file-upload"><div id="upload-label-${id}">${name}<span>*</span></div>
+      <div class="file-upload__wrapper"><label for="${id}" class="button">Attach</label><input id="${id}" class="visually-hidden" type="file"></div></div>`;
+    const page = await newPage(browser!, `${group('resume', 'Resume/CV')}${group('cover_letter', 'Cover Letter')}
+      <script>document.getElementById('resume').addEventListener('change', (e) => { const w = e.target.parentElement; w.innerHTML = '<p>' + e.target.files[0].name + '</p>'; });</script>`);
+    const resume = await fieldByLabel(page, 'Resume/CV');
+    expect(resume.required).toBe(true);
+    const res = await new FileWriter().write(page, resume, ans(file));
+    expect(res).toMatchObject({ ok: true, actual: '@file' });
+    expect(await page.locator('#resume').count()).toBe(0);
+    // The file name now on the page does not make the untouched cover letter input count as attached.
+    const { fileAttached } = await import('../writers/file.js');
+    expect(await fileAttached(page, await fieldByLabel(page, 'Cover Letter'), file)).toBe(false);
+  });
+
   it('RichTextWriter: contenteditable editor', async () => {
     const page = await newPage(browser!, '<div id="l">Cover letter</div><div id="e" contenteditable="true" role="textbox" aria-labelledby="l"></div>');
     const res = await new RichTextWriter().write(page, await fieldByLabel(page, 'Cover letter'), ans('I build data products.'));

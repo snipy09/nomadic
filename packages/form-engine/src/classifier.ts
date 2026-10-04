@@ -61,7 +61,7 @@ const RULES: Rule[] = [
   // profile facts
   { name: 'phone-type', test: (c) => has(/device type|phone type|type of phone/, c.l), result: { questionType: 'unknown' } },
   { name: 'country-code', test: (c) => has(/country code|dial(ing)? code|phone code|calling code/, c.l) || (c.field.kind === 'select' && c.options.length > 1 && c.options.filter((o) => /^\+\d/.test(o)).length >= c.options.length - 1), result: { questionType: 'profile', profileKey: 'phoneCountryCode' } },
-  { name: 'preferred-name', test: (c) => has(/preferred (first )?name|nick ?name/, c.l), result: { questionType: 'profile', profileKey: 'preferredName' } },
+  { name: 'preferred-name', test: (c) => has(/preferred (first )?name|nick ?name|name (you|you'?d|you would) (prefer|like to be called|go by)|prefer(red)? to be (called|addressed)|\bgo by\b/, c.l), result: { questionType: 'profile', profileKey: 'preferredName' } },
   { name: 'first-name', test: (c) => has(/first name|given name|forename/, c.l), result: { questionType: 'profile', profileKey: 'firstName' } },
   { name: 'last-name', test: (c) => has(/last name|family name|surname/, c.l), result: { questionType: 'profile', profileKey: 'lastName' } },
   { name: 'full-name', test: (c) => has(/^(full |legal |full legal |your |candidate |applicant )?name$|^full name|^legal name/, c.l), result: { questionType: 'profile', profileKey: 'fullName' } },
@@ -94,6 +94,11 @@ const RULES: Rule[] = [
   { name: 'cover-letter', test: (c) => isLong(c.field) && has(/cover letter|why should (you|we) (be hired|hire)|additional information|anything else (you('d)? like|you want) to share/, c.t + ' ' + norm(c.field.placeholder)), result: { questionType: 'cover_letter' } },
 ];
 
+// "Are you subject to agreements with your current employer?" is a yes/no question, not the
+// current-company fact; profile-fact rules never answer such questions.
+const YES_NO_QUESTION = /^(are|do|did|have|has|will|would|is|can|could|were|was) (you|your)\b/;
+const FACT_RULES = new Set(['preferred-name', 'first-name', 'last-name', 'full-name', 'email', 'linkedin', 'github', 'twitter', 'portfolio', 'phone', 'salary', 'years', 'notice', 'start-date', 'gpa', 'graduation', 'degree', 'field-of-study', 'university', 'company', 'title', 'city', 'postal', 'address', 'state', 'country', 'location', 'pronouns']);
+
 function attrRule(field: FormField): Result | undefined {
   const key = aliasKeyForAttrs([field.name, field.domId, field.autocomplete]);
   if (!key) return undefined;
@@ -111,7 +116,9 @@ export class RuleClassifier implements FieldClassifier {
     const l = norm(field.label);
     const t = norm([field.label, field.description, ...options].filter(Boolean).join(' '));
     const ctx: Ctx = { field, l, t, options };
+    const yesNo = YES_NO_QUESTION.test(l);
     for (const rule of RULES) {
+      if (yesNo && FACT_RULES.has(rule.name)) continue;
       if (rule.test(ctx)) {
         const r = typeof rule.result === 'function' ? rule.result(ctx) : rule.result;
         return { fieldId: field.id, ...r, rule: rule.name, confidence: 0.9 };
