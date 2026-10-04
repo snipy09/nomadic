@@ -99,3 +99,35 @@ describe('launchAutonomous gate', () => {
     expect(res).toMatchObject({ applied: 1, error: 'Account suspended' });
   });
 });
+
+describe('cancel while a form is being filled', () => {
+  it('aborts the running fill through its signal and stops the batch', async () => {
+    const { cancelAutonomousApply } = await import('../services/apply');
+    const seen: AbortSignal[] = [];
+    submitApplication.mockImplementation(async (url: string, _p: unknown, _cb: unknown, opts: { signal: AbortSignal; onReadyForReview?: (h: unknown) => void }) => {
+      seen.push(opts.signal);
+      if (url.endsWith('/2')) {
+        // The user presses Cancel while form 2 is open; the engine reports a cancelled run.
+        cancelAutonomousApply();
+        expect(opts.signal.aborted).toBe(true);
+        return { url, cancelled: true, success: false, submitted: false, prefilled: false, captchaDetected: false };
+      }
+      opts.onReadyForReview?.({});
+      return { url, prefilled: true, fieldsFilledCount: 2 };
+    });
+    const res = await startBatchCopilot(targets);
+    expect(res.cancelled).toBe(true);
+    expect(res.snapshots!.map((s) => s.applyUrl)).toEqual(['https://jobs.example/1']);
+    expect(submitApplication).toHaveBeenCalledTimes(2);
+    expect(seen.every((s) => s === seen[0])).toBe(true);
+  });
+
+  it('a new run gets a fresh, unaborted signal', async () => {
+    const { cancelAutonomousApply } = await import('../services/apply');
+    cancelAutonomousApply();
+    let signal: AbortSignal | undefined;
+    submitApplication.mockImplementation(async (_u: string, _p: unknown, _cb: unknown, opts: { signal: AbortSignal }) => { signal = opts.signal; return { prefilled: false }; });
+    await startBatchCopilot([targets[0]]);
+    expect(signal?.aborted).toBe(false);
+  });
+});

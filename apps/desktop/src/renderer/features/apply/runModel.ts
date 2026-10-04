@@ -159,7 +159,7 @@ export function runReducer(state: RunState, action: RunAction): RunState {
         const snap = byUrl.get(a.url);
         if (snap) return withSnapshot(a, snap);
         if (a.snapshot) return a;
-        const error = action.cancelled ? 'Stopped before this form was opened.' : action.error || 'This form could not be prepared.';
+        const error = action.cancelled ? 'Stopped before this form was finished. Nothing was submitted.' : action.error || 'This form could not be prepared.';
         return { ...a, phase: 'filled' as const, error, waitingOnUser: undefined };
       });
       return { stage: 'review', apps };

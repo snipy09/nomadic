@@ -23,6 +23,8 @@ export interface ApplyResult {
   needsUser?: Array<{ label: string; reason: string; required: boolean }>;
   /** New engine: full fill report. */
   report?: FillReport;
+  /** Stopped through `signal`: the tab was closed and nothing was submitted. */
+  cancelled?: boolean;
 }
 
 export interface SubmitApplicationOptions {
@@ -40,6 +42,11 @@ export interface SubmitApplicationOptions {
    * that `AutoApplyEngine.submitReviewed` can submit after the candidate reviews it.
    */
   onReadyForReview?: (handle: ReviewHandle) => void;
+  /**
+   * Stops the run: the tab being filled is closed at once (pending browser calls fail), the result is
+   * `cancelled`, and nothing is submitted or held for review after the signal fires.
+   */
+  signal?: AbortSignal;
 }
 
 /** A filled form held open in the browser, waiting for the candidate's review. */
