@@ -69,11 +69,20 @@ export async function launchSemiAuto(jobUrls: string[]): Promise<{ success: bool
 
 // ── Autonomous Auto-Apply (External Chrome Engine) ──────────────────────────
 let isAutoApplyCanceled = false;
+/** Aborts the form being filled right now (its tab is closed); replaced at the start of every run. */
+let fillAbort: AbortController | null = null;
+
+function newFillSignal(): AbortSignal {
+  fillAbort?.abort();
+  fillAbort = new AbortController();
+  return fillAbort.signal;
+}
 
 export function cancelAutonomousApply(): { success: boolean } {
   log('[Autonomous Auto-Apply] Cancellation requested by user.');
   isAutoApplyCanceled = true;
   batchRunSeq++;
+  fillAbort?.abort();
   return { success: true };
 }
 
@@ -87,6 +96,7 @@ export function chunkIntoBatches<T>(items: T[], batchSize: number): T[][] {
 
 export async function launchAutonomous(jobUrls: string[]): Promise<AutonomousApplyResult> {
   isAutoApplyCanceled = false;
+  const signal = newFillSignal();
   log(`[Autonomous Auto-Apply] Starting automated submission for ${jobUrls.length} positions in external Chrome...`);
   try {
     const profile = buildAutomationProfile({ logCachedAnswers: true });
@@ -174,7 +184,11 @@ export async function launchAutonomous(jobUrls: string[]): Promise<AutonomousApp
               }
               log(`[Auto-Apply Status] [${eventPayload.colorState.toUpperCase()}] ${eventPayload.message}`);
             }
-          });
+          }, { signal });
+          if (result.cancelled) {
+            log(`[Auto-Apply] Stopped while filling ${jobCompany}; nothing was submitted.`);
+            break;
+          }
           if (result.captchaDetected) {
             log(`[Auto-Apply] CAPTCHA challenge at ${url} — left open for candidate.`);
             logAndSyncApplication({
@@ -274,6 +288,7 @@ export async function startBatchCopilot(
 ): Promise<{ success: boolean; snapshots?: BatchSnapshot[]; cancelled?: boolean; error?: string }> {
   const seq = ++batchRunSeq;
   isAutoApplyCanceled = false;
+  const signal = newFillSignal();
   const unique = [...new Map((targets || []).map((t) => [t.url, t])).values()];
   if (!options.keep) heldApplications.clear();
   for (const [id, held] of heldApplications) {
@@ -303,8 +318,12 @@ export async function startBatchCopilot(
           else if (!ev.report) sendBatchProgress(target.url, ev);
           else log(`[Apply] ${ev.message}`);
         },
-        { autoSubmit: false, jobTitle: target.title, company: target.company, onReadyForReview: (h) => { handle = h; } }
+        { autoSubmit: false, jobTitle: target.title, company: target.company, onReadyForReview: (h) => { handle = h; }, signal }
       );
+      if (result.cancelled || signal.aborted) {
+        log(`[Apply] Stopped while filling ${target.company}; its tab was closed and nothing was submitted.`);
+        return { success: true, snapshots, cancelled: true };
+      }
       snapshot = toSnapshot(id, target, result, Boolean(handle), outcomeKey);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);

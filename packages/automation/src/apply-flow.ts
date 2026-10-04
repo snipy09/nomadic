@@ -40,12 +40,21 @@ export async function runFormEngineApply(
 ): Promise<ApplyResult> {
   const fail = (error: string, extra: Partial<ApplyResult> = {}): ApplyResult => ({ url, success: false, submitted: false, prefilled: false, captchaDetected: false, fieldsFilledCount: 0, error, ...extra });
   if (!url || !url.trim()) return { ...fail('Invalid URL'), url: '' };
+  const { signal } = options;
+  const cancelled = (): ApplyResult => fail('Stopped by you before this form was finished. Nothing was submitted.', { cancelled: true });
+  if (signal?.aborted) return cancelled();
+  let page: Page | null = null;
+  // Closing the tab makes every pending Playwright call on it throw, which ends the run at once.
+  const onAbort = () => { void page?.close().catch(() => {}); };
+  signal?.addEventListener('abort', onAbort, { once: true });
   try {
-    let page: Page = await context.newPage();
+    page = await context.newPage();
+    if (signal?.aborted) { onAbort(); return cancelled(); }
     await injectStealthScripts(page);
     await enableFastRouteInterception(page);
     page.on('popup', async (popup) => {
       try {
+        if (signal?.aborted) { await popup.close().catch(() => {}); return; }
         await injectStealthScripts(popup);
         await popup.waitForLoadState('domcontentloaded').catch(() => {});
         page = popup;
@@ -124,6 +133,9 @@ export async function runFormEngineApply(
       return fail('No application form inputs found on page', { report });
     }
 
+    // Last check before anything irreversible: a cancelled run never submits or holds the form.
+    if (signal?.aborted) { onAbort(); return cancelled(); }
+
     if (options.autoSubmit !== false && report.readyToSubmit) {
       const outcome = await engine.submit(page, report);
       const confirmed = outcome.confirmed || (await Engine.isPageConfirmedSubmission(page, report.filled));
@@ -147,8 +159,11 @@ export async function runFormEngineApply(
     });
     return { ...base, success: report.filled > 0, submitted: false, prefilled: report.filled > 0 };
   } catch (err: any) {
+    if (signal?.aborted) return cancelled();
     onProgress?.({ phase: 'cancelled', message: `Notice: ${err?.message}`, colorState: 'grey' });
     return fail(err?.message || String(err));
+  } finally {
+    signal?.removeEventListener('abort', onAbort);
   }
 }
 
