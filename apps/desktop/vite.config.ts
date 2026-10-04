@@ -19,6 +19,12 @@ export default defineConfig({
   root: path.join(__dirname, 'src/renderer'),
   // React Fast Refresh is on by default in @vitejs/plugin-react v4 (the old `fastRefresh` option was removed).
   plugins: [react(), cspMeta],
+  // Same env names build-main.mjs reads, so the Google button shows only when the main build can use it.
+  define: {
+    'import.meta.env.VITE_GOOGLE_SIGN_IN': JSON.stringify(
+      process.env.GOOGLE_OAUTH_CLIENT_ID || process.env.GOOGLE_CLIENT_ID ? 'on' : 'off'
+    ),
+  },
   css: {
     devSourcemap: true,
     postcss: {

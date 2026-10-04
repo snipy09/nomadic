@@ -116,6 +116,22 @@ describe('password login', () => {
     expect(res.error).toBe('Incorrect email or password.');
     expect(registerCalls().length).toBe(0);
   });
+
+  it('does not sign in when the server refuses to register the device', async () => {
+    rpc.mockImplementation(async (name: string) => {
+      if (name === 'authenticate_user') return { data: [authRow()], error: null };
+      if (name === 'register_device_session') {
+        return { data: [{ ok: false, conflict: false, reason: 'Sign in again to register this device.' }], error: null };
+      }
+      return { data: null, error: null };
+    });
+
+    const res = await loginWithCredentials({ email: 'a@b.co', password: 'secret12' });
+
+    expect(res.success).toBe(false);
+    expect(res.conflict).toBeFalsy();
+    expect(res.error).toBe('Could not start your session. Sign in again.');
+  });
 });
 
 describe('sign-up', () => {

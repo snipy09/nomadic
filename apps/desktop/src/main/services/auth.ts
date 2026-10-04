@@ -242,6 +242,11 @@ export async function startServerSession(
       error: devReg.reason || 'Account is currently active on another device.',
     };
   }
+  // Without a registered device the heartbeat would end the session moments later.
+  if (!devReg.ok && !devReg.conflict) {
+    log(`[Auth] Device registration failed: ${devReg.reason ?? 'unknown'}`);
+    return { success: false, error: 'Could not start your session. Sign in again.' };
+  }
 
   session.userId = user.id;
   session.sessionToken = sessionToken;

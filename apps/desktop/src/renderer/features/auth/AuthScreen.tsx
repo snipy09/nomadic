@@ -21,6 +21,9 @@ const readTerms = () => {
   try { return prefs.getTermsAccepted(); } catch { return false; }
 };
 
+/** Set by vite.config.ts; hidden only when the build is known to have no Google client id. */
+const GOOGLE_SIGN_IN = ((import.meta as any).env?.VITE_GOOGLE_SIGN_IN as string | undefined) !== 'off';
+
 interface OAuthPayload { success?: boolean; user?: AppUser; conflict?: boolean; activeDevice?: string; error?: string }
 
 const GoogleIcon = () => (
@@ -344,6 +347,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog })
             </form>
           )}
 
+          {GOOGLE_SIGN_IN && (
+          <>
           <div className="flex items-center gap-3 text-caption text-fg-subtle" aria-hidden="true">
             <span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" />
           </div>
@@ -363,6 +368,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog })
             <Button variant="secondary" fullWidth leftIcon={<GoogleIcon />} onClick={() => void startGoogle()} disabled={submitting}>
               Continue with Google
             </Button>
+          )}
+          </>
           )}
           </>
           )}
