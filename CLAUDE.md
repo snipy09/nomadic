@@ -95,11 +95,10 @@ Key flows:
 - **Supabase project `nomadic`**: ref `grqkiddfwoyicktpgdea`, region ap-south-1 (Mumbai), free plan, org "Nomadic".
   URL `https://grqkiddfwoyicktpgdea.supabase.co`. The anon key is public by design and is the build default in
   `apps/desktop/build-main.mjs`, scrapers and web. The service-role key is never in the app or repo.
-- **Applied migrations**: 001–012, 014–024 (013 does not exist; 023 is the web waitlist; 024, no Max downgrade on
-  payment, applied 4 Oct 2026). **Not yet applied: 025** (payment history RPC; `baseline/apply_025.sql`,
-  rehearsed on PostgreSQL 16) and **026** (account sync of hidden jobs and follow-up dates; `baseline/apply_026.sql`,
-  not rehearsed: no local PostgreSQL on this machine). Until 026 is applied the app logs the missing RPCs and keeps
-  both local. Security advisor: no errors; remaining notices are by design (deny-all tables;
+- **Applied migrations**: 001–012, 014–024, 026 (013 does not exist; 023 is the web waitlist; 024, no Max downgrade
+  on payment, and 026, account sync of hidden jobs and follow-up dates, applied 4 Oct 2026). **Not yet applied: 025**
+  (payment history RPC; `baseline/apply_025.sql`, rehearsed on PostgreSQL 16; a probe of `billing_list_payments`
+  still returns PGRST202). Security advisor: no errors; remaining notices are by design (deny-all tables;
   session-checked SECURITY DEFINER RPCs callable by anon).
 - **Learn content seeded** from the bundle (checksums verified).
 - **Edge Functions deployed** (JWT verification on): `google-sign-in`, `send-email-code`, `ai-proxy`.
@@ -160,7 +159,7 @@ Owner actions:
 9. (Done 4 Oct 2026) `require_login_ticket` is on.
 10. Review and publish Learn content (all drafts; 69 lessons have no resource yet); run the link checker.
 11. Rotate the Resend and Gemini keys (they were shared in a chat) and update Vault.
-12. Apply migrations 025 and 026 (`packages/supabase/baseline/apply_025.sql`, `apply_026.sql`); 024 is done.
+12. Apply migration 025 (`packages/supabase/baseline/apply_025.sql`); 024 and 026 are done.
 13. (Done) `GOOGLE_OAUTH_CLIENT_ID/SECRET` repository secrets.
 
 Done in October 2026: hide job ("Not interested", local migration 5), tracker follow-up reminders (local
@@ -169,9 +168,12 @@ sets gated in main by the server plan, payment history with receipts (025), no M
 India region filter + laptop runner for the scraper, CI green. Answers typed during apply review are remembered
 locally (by question fingerprint and label, `services/form-answers.ts`, local migration 7 cleared the old store) and
 pre-filled on later forms; model-written answers are never stored. "Continue with Google" opens the terms first if
-they are not accepted, then continues. v1 portable build (4 Oct): the app relaunches itself
-without the Chromium sandbox when the GPU/renderer process cannot start (STATUS_DLL_NOT_FOUND; `NOMADIC_DISABLE_SANDBOX`
-forces it); a saved sign-in is handed back to the main process at launch (`features/auth/useSessionRestore.ts`) and the
+they are not accepted, then continues. Sandbox fallback (`main/sandbox-fallback.ts`, v1.0.9): when any sandboxed
+child (GPU, utility or renderer; `child-process-gone` and `render-process-gone`) exits with STATUS_DLL_NOT_FOUND, the
+app writes `%APPDATA%\Nomadic\sandbox-fallback.json` for this app version and restarts without the sandbox; later
+launches of that version skip the sandbox at once, and a new version tries it again. The portable build restarts
+through `PORTABLE_EXECUTABLE_FILE` after a ~3 s pause (its launcher deletes the fixed-name temp folder on exit);
+`NOMADIC_DISABLE_SANDBOX=true` forces it off. 1.0.7/1.0.8 showed a blank window on such machines. A saved sign-in is handed back to the main process at launch (`features/auth/useSessionRestore.ts`) and the
 user is signed out with a notice only when the server ends the session (heartbeat `ended`), never on a network error;
 apply's AI form answers go through `ai-proxy`; the feed treats the column default `'unknown'` as unknown and sorts by
 `posted_at`. Hidden jobs and follow-up dates sync to the account (026: `user_hidden_jobs`,
@@ -205,8 +207,9 @@ Assistant still call AI directly); OS notification for due follow-ups (today an 
   Last commit of the session: "fix(desktop): remember answers typed during apply review; Google button opens terms".
 - Untracked on purpose, never stage: `brag-output*/`, `reel*/`, `showreel/` (local marketing renders) and `.claude/`
   (local assistant settings and `launch.json`; its notes are folded into section 10).
-- Delivered build: `Nomadic-v1.0.8-portable.exe` in `C:\Users\sajal\Downloads` and `Desktop\Nomadic-v1\`
-  (built from `apps/desktop/dist-electron/Nomadic.1.0.8.exe`; adds hidden-job and follow-up account sync). Bump `apps/desktop/package.json` `version` for the next one.
+- Delivered build: `Nomadic-v1.0.9-portable.exe` in `C:\Users\sajal\Downloads` and `Desktop\Nomadic-v1\`
+  (built from `apps/desktop/dist-electron/Nomadic.1.0.9.exe`; fixes the blank window of 1.0.7/1.0.8 via the sandbox
+  fallback; 1.0.8 added hidden-job and follow-up account sync). Bump `apps/desktop/package.json` `version` for the next one.
   App icon (`apps/desktop/assets/icon.ico`, `logo-icon.png`, `logo.png`) is the site mark from `apps/web/public/logo-icon.svg`.
 - Google sign-in: client id/secret are baked into the build from `apps/desktop/.env`; the app opens Google with PKCE
   and a loopback listener on `http://127.0.0.1:42813/callback`; Google accepts the client. If users see "Access
