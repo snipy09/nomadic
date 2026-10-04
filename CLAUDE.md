@@ -151,7 +151,8 @@ Owner actions:
 4. Google OAuth: done (Vault, repo secrets, local `.env`). If the consent screen is in "Testing", add testers or
    publish it, or only listed Google accounts can sign in.
 5. Verify a sending domain in Resend; store `email_from` in Vault.
-6. Razorpay Payment Pages for Pro/Max → `RAZORPAY_CHECKOUT_URL_PRO/MAX`; deploy `razorpay-webhook` with its secret.
+6. Razorpay: account under verification (4 Oct 2026); owner adds it once approved. Then Payment Pages for Pro/Max →
+   `RAZORPAY_CHECKOUT_URL_PRO/MAX`; deploy `razorpay-webhook` with its secret. Not a blocker for other work.
 7. Code-signing certificate for releases; Sentry DSN if crash reports are wanted.
 8. Lawyer review of the legal text; real `support@` and `grievance@` mailboxes; registered business name.
 9. (Done 4 Oct 2026) `require_login_ticket` is on.
