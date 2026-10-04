@@ -107,13 +107,13 @@ Key flows:
 - **Supabase project `nomadic`**: ref `grqkiddfwoyicktpgdea`, region ap-south-1 (Mumbai), free plan, org "Nomadic".
   URL `https://grqkiddfwoyicktpgdea.supabase.co`. The anon key is public by design and is the build default in
   `apps/desktop/build-main.mjs`, scrapers and web. The service-role key is never in the app or repo.
-- **Applied migrations**: 001–012, 014–027 (013 does not exist; 023 is the web waitlist; 024 no Max downgrade on
+- **Applied migrations**: 001–012, 014–029 (028 Learn v2 state and 029 AI roadmap quotas pasted by the owner on
+  5 Oct 2026, verified; Learn v2 content seed pasted too: 109 skills, 109 lessons, 240 practice items, 55 resources) (013 does not exist; 023 is the web waitlist; 024 no Max downgrade on
   payment, 025 payment history, 026 account sync of hidden jobs and follow-up dates, 027 outreach directory and
   outreach AI quota, all applied by 5 Oct 2026). The legacy `public.hr_contacts` still exists live and is
   dropped by an owner paste (`DROP TABLE public.hr_contacts;`).
-  **Written, rehearsed locally, NOT applied yet**: 028 (Learn v2 state documents + v2 event types) and 029 (AI
-  roadmap quotas; recreates `ai_limits` with roadmap columns and keeps the outreach metrics of 027). Paste files
-  `baseline/apply_028.sql`, `apply_029.sql`. Next free number is 030. Security advisor: no errors; remaining notices are by design (deny-all tables;
+  028 = Learn v2 state documents + v2 event types; 029 = AI roadmap quotas (`ai_limits` with roadmap columns,
+  outreach metrics of 027 kept). Next free number is 030. Security advisor: no errors; remaining notices are by design (deny-all tables;
   session-checked SECURITY DEFINER RPCs callable by anon).
 - **Learn content seeded** from the bundle (checksums verified).
 - **Edge Functions deployed** (JWT verification on): `google-sign-in`, `send-email-code`, `ai-proxy` (kinds
@@ -162,13 +162,11 @@ screens). The owner has signed in on the packaged v1.0.6 app and run apply up to
 ## 7. What is left
 
 Owner actions:
-0. **Learn v2 go-live** (merged into `main` with 1.1.0):
-   paste `packages/supabase/baseline/apply_028.sql` then `apply_029.sql` in the SQL editor (029 drops and recreates
-   `ai_limits`) (the `ai-proxy` Edge Function with the roadmap kinds was deployed 5 Oct 2026); paste the regenerated `baseline/content_seed.sql` (adds the 7
-   new skills, lessons, 95 quiz items, 26 resources); on the laptop run `npm run check-paid-only -w
+0. **Learn v2 go-live** (merged into `main` with 1.1.0): 028, 029, the content seed and the ai-proxy redeploy are
+   done (5 Oct 2026). Left: on the laptop run `npm run check-paid-only -w
    @job-automator/learning`, `npm run build-problems`, `npm run check-links -w @job-automator/learning --
    --write-seed` and `npm run build-seed` (the build container could not reach leetcode.com or the resource sites,
-   so paid-only flags are a hand list and the 26 new resources stay hidden until link-checked), then package 1.0.14.
+   so paid-only flags are a hand list and the 26 new resources stay hidden until link-checked), then regenerate and re-paste `baseline/content_seed.sql` and package the next version.
 1. Keep the live `jobs` table fresh (seeded once on 4 Oct 2026 with 328 active India-open jobs, 137 internships): run
    `Desktop\Nomadic-Scraper\Run scraper.cmd` (`scripts/scrape-desktop.ps1`: `--max-new 100` new jobs per run,
    duplicates of published jobs skipped, a summary in `reports\` per run; first run asks for the service role key,
