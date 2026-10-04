@@ -95,10 +95,9 @@ Key flows:
 - **Supabase project `nomadic`**: ref `grqkiddfwoyicktpgdea`, region ap-south-1 (Mumbai), free plan, org "Nomadic".
   URL `https://grqkiddfwoyicktpgdea.supabase.co`. The anon key is public by design and is the build default in
   `apps/desktop/build-main.mjs`, scrapers and web. The service-role key is never in the app or repo.
-- **Applied migrations**: 001–012, 014–024, 026 (013 does not exist; 023 is the web waitlist; 024, no Max downgrade
-  on payment, and 026, account sync of hidden jobs and follow-up dates, applied 4 Oct 2026). **Not yet applied: 025**
-  (payment history RPC; `baseline/apply_025.sql`, rehearsed on PostgreSQL 16; a probe of `billing_list_payments`
-  still returns PGRST202). Security advisor: no errors; remaining notices are by design (deny-all tables;
+- **Applied migrations**: 001–012, 014–026 (013 does not exist; 023 is the web waitlist; 024 no Max downgrade on
+  payment, 025 payment history, 026 account sync of hidden jobs and follow-up dates, all applied 4 Oct 2026; next
+  is 027). Security advisor: no errors; remaining notices are by design (deny-all tables;
   session-checked SECURITY DEFINER RPCs callable by anon).
 - **Learn content seeded** from the bundle (checksums verified).
 - **Edge Functions deployed** (JWT verification on): `google-sign-in`, `send-email-code`, `ai-proxy`.
@@ -159,7 +158,7 @@ Owner actions:
 9. (Done 4 Oct 2026) `require_login_ticket` is on.
 10. Review and publish Learn content (all drafts; 69 lessons have no resource yet); run the link checker.
 11. Rotate the Resend and Gemini keys (they were shared in a chat) and update Vault.
-12. Apply migration 025 (`packages/supabase/baseline/apply_025.sql`); 024 and 026 are done.
+12. (Done 4 Oct 2026) Migrations 024, 025 and 026 applied.
 13. (Done) `GOOGLE_OAUTH_CLIENT_ID/SECRET` repository secrets.
 
 Done in October 2026: hide job ("Not interested", local migration 5), tracker follow-up reminders (local
@@ -218,7 +217,7 @@ Assistant still call AI directly); OS notification for due follow-ups (today an 
 - Apply review: answers the user types are remembered in local SQLite `cached_form_answers` (fingerprint `q_<16 hex>`
   and label keys; `services/form-answers.ts`; matched in `packages/form-engine/src/answerer.ts` `lookupUserAnswer`).
   Messages such as "* Please try again." in the review list come from the portal's own page, not from Nomadic.
-- Next most useful work: owner actions in section 7 (consent screen, migrations 024/025, Resend domain, key rotation),
+- Next most useful work: owner actions in section 7 (consent screen, Resend domain, key rotation),
   then a live end-to-end pass (Google sign-in, reviewed submit, AI feedback), then the code follow-ups in section 7.
 
 ## 10. Build, package, test and deploy
