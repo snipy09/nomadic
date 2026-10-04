@@ -116,6 +116,23 @@ describe('official API adapters', () => {
     expect(normalizeAshbyJob({ id: 'x', title: 'Designer', employmentType: 'Contract' }, board).salaryMin).toBeNull();
   });
 
+  it('Ashby: skips a board whose hosted job pages are off', async () => {
+    const fetch = vi.fn(async (url: string) =>
+      url.includes('non-user-graphql')
+        ? json({ data: { organization: null } })
+        : json({ jobs: [{ id: 'u1', title: 'Engineer', jobUrl: 'https://jobs.ashbyhq.com/acme/u1' }] })
+    );
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(await fetchAshbyBoard(fetch, board)).toEqual([]);
+    warn.mockRestore();
+    fetch.mockImplementation(async (url: string) =>
+      url.includes('non-user-graphql')
+        ? json({ data: { organization: { name: 'Acme' } } })
+        : json({ jobs: [{ id: 'u1', title: 'Engineer', jobUrl: 'https://jobs.ashbyhq.com/acme/u1' }] })
+    );
+    expect(await fetchAshbyBoard(fetch, board)).toHaveLength(1);
+  });
+
   it('Remotive: parses salary text and job_type', async () => {
     const fetch = vi
       .fn()

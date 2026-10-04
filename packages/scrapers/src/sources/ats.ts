@@ -180,15 +180,46 @@ export function normalizeAshbyJob(item: any, board: BoardConfig, now = new Date(
   };
 }
 
+/**
+ * Whether the company's hosted Ashby pages (jobs.ashbyhq.com/<board>/...) are switched on. Some companies
+ * (e.g. Cursor) turn them off and list jobs on their own site, while the posting API keeps returning
+ * jobUrls on jobs.ashbyhq.com that render "Page not found" (with HTTP 200, so the link check passes).
+ * Ashby's page itself asks this GraphQL query and gets organization null. Any error counts as enabled.
+ */
+export async function ashbyHostedPageEnabled(fetchImpl: FetchLike, boardId: string): Promise<boolean> {
+  try {
+    const res = await fetchImpl('https://jobs.ashbyhq.com/api/non-user-graphql?op=ApiOrganizationFromHostedJobsPageName', {
+      method: 'POST',
+      headers: { ...JSON_HEADERS, 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(10000),
+      body: JSON.stringify({
+        operationName: 'ApiOrganizationFromHostedJobsPageName',
+        variables: { organizationHostedJobsPageName: boardId, searchContext: 'JobPosting' },
+        query:
+          'query ApiOrganizationFromHostedJobsPageName($organizationHostedJobsPageName: String!, $searchContext: OrganizationSearchContext) { organization: organizationFromHostedJobsPageName(organizationHostedJobsPageName: $organizationHostedJobsPageName, searchContext: $searchContext) { name } }',
+      }),
+    });
+    if (!res.ok) return true;
+    const body: any = await res.json();
+    return !(body && body.data && 'organization' in body.data && body.data.organization === null);
+  } catch {
+    return true;
+  }
+}
+
 export async function fetchAshbyBoard(fetchImpl: FetchLike, board: BoardConfig): Promise<JobCandidate[]> {
   const data = await getJson(
     fetchImpl,
     `https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(board.boardId)}?includeCompensation=true`
   );
   const jobs = Array.isArray(data?.jobs) ? data.jobs : [];
-  return jobs
-    .filter((item: any) => item?.id && item?.isListed !== false)
-    .map((item: any) => normalizeAshbyJob(item, board));
+  const listed = jobs.filter((item: any) => item?.id && item?.isListed !== false);
+  // No jobs rather than a failed board: the board's old rows then expire as unseen.
+  if (listed.length && !(await ashbyHostedPageEnabled(fetchImpl, board.boardId))) {
+    console.warn(`[ashby] ${board.name}: hosted job pages are off (links show "Page not found"); skipping ${listed.length} jobs`);
+    return [];
+  }
+  return listed.map((item: any) => normalizeAshbyJob(item, board));
 }
 
 // ── Remotive: https://remotive.com/api-documentation ───────────────────────
