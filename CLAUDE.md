@@ -1,7 +1,9 @@
 # Nomadic: complete project context
 
 Read this first. It is the single source of context for anyone (person or AI assistant) working on this repo.
-Last full update: 3 October 2026. Keep it current when something important changes.
+Last full update: 4 October 2026. Keep it current when something important changes.
+New session or new assistant account? Read sections 9–11 at the end first (handoff state, how to build and test,
+how the owner wants work done).
 
 ## 1. What Nomadic is
 
@@ -131,9 +133,10 @@ and quotas, F10 data safety, F11 updates/telemetry/help, F12 admin, F14 landing 
 F13 (Outreach, Opportunity Board, Resource Vault, Assistant) stays hidden; Outreach and the Assistant still call AI
 directly and need rework or removal.
 
-Tests: ~1,090 vitest tests pass; typecheck, lint (0 errors) and desktop/web builds pass. The built Electron app has been
-smoke-tested over CDP (window, live feed via IPC, Learn, Settings, Help, Activity, Admin screens). **Real sign-up/sign-in,
-apply and AI feedback have not been run live yet, and the Edge Functions have not been called live.**
+Tests: ~1,084 vitest tests pass (105 files); typecheck, lint (0 errors, ~200 warnings) and desktop/web builds pass.
+The built Electron app has been smoke-tested over CDP (window, live feed via IPC, Learn, Settings, Help, Activity, Admin
+screens). The owner has signed in on the packaged v1.0.6 app and run apply up to the review screen on a real Lever form
+(4 Oct 2026). **Not yet verified live: Google sign-in end to end, an actual reviewed submission, AI feedback.**
 
 ## 7. What is left
 
@@ -190,3 +193,66 @@ Assistant still call AI directly); OS notification for due follow-ups (today an 
 - Before pushing: `npx tsc --noEmit -p apps/desktop`, `npm test`, `cd apps/desktop && npx vite build && node
   build-main.mjs`.
 - Do not put secrets in code, commits or docs. Do not add model identifiers to commits or code.
+
+## 9. Handoff state (4 October 2026)
+
+- Branch `main` (remote github.com/snipy09/nomadic) holds everything; there are no open feature branches to merge.
+  Last commit of the session: "fix(desktop): remember answers typed during apply review; Google button opens terms".
+- Untracked on purpose, never stage: `brag-output*/`, `reel*/`, `showreel/` (local marketing renders) and `.claude/`
+  (local assistant settings and `launch.json`; its notes are folded into section 10).
+- Delivered build: `Nomadic-v1.0.6-portable.exe` in `C:\Users\sajal\Downloads` and `Desktop\Nomadic-v1\`
+  (built from `apps/desktop/dist-electron/Nomadic.1.0.6.exe`). Bump `apps/desktop/package.json` `version` for the next one.
+- Google sign-in: client id/secret are baked into the build from `apps/desktop/.env`; the app opens Google with PKCE
+  and a loopback listener on `http://127.0.0.1:42813/callback`; Google accepts the client. If users see "Access
+  blocked", the OAuth consent screen is still in Testing (owner action 4). Errors from the callback are shown on the
+  sign-in screen as "Google sign-in did not finish: …".
+- Apply review: answers the user types are remembered in local SQLite `cached_form_answers` (fingerprint `q_<16 hex>`
+  and label keys; `services/form-answers.ts`; matched in `packages/form-engine/src/answerer.ts` `lookupUserAnswer`).
+  Messages such as "* Please try again." in the review list come from the portal's own page, not from Nomadic.
+- Next most useful work: owner actions in section 7 (consent screen, migrations 024/025, Resend domain, key rotation),
+  then a live end-to-end pass (Google sign-in, reviewed submit, AI feedback), then the code follow-ups in section 7.
+
+## 10. Build, package, test and deploy
+
+- Desktop dev: `npm run dev:desktop`. Package Windows: `cd apps/desktop; npm run package:win` (about 10 minutes;
+  outputs `dist-electron/Nomadic.<ver>.exe` portable, `Nomadic.Setup.<ver>.exe`, and `win-unpacked/NomadicOS.exe`).
+  Kill running `NomadicOS` processes first or the files stay locked.
+- Smoke test the packaged app without a person: start `win-unpacked/NomadicOS.exe --remote-debugging-port=9333` with
+  env `NOMADIC_DISABLE_SANDBOX=true`, then `chromium.connectOverCDP('http://127.0.0.1:9333')` from the repo's
+  `playwright-core`, find the page whose URL contains `index.html`, read `document.body.innerText`, subscribe to
+  `window.api.onLog` for main-process logs. It uses the owner's real local profile and session: read only, do not sign
+  in, sign up or submit applications from scripts.
+- Marketing site `apps/web` (Vite 5, React 18, Tailwind 3.4): dev `npm run dev --workspace apps/web -- --port 5174`;
+  check `npx tsc --noEmit` and `npm run build` in `apps/web` (client build + SSR build + `scripts/prerender.mjs`, which
+  writes `dist/{index,download,terms,privacy,404}.html` and `sitemap.xml`; never add a `public/sitemap.xml`).
+  Copy and sample data live in `src/content.ts` (fictional companies only); titles/indexing in `src/seo.ts` (must not
+  import `src/jsonld.ts`). A new page needs a `PAGES` entry, a route in `src/App.tsx`, and prerender coverage.
+  Design: Archivo variable font, ultramarine `#2338E0`, ink `#0A0F2C`, fog, marigold; no pills, no blur, 4px radius.
+  Downloads are NOT public: every download CTA is `ComingSoon`; do not reintroduce a registration or alpha flow.
+  Launch email list: `components/EmailSignup.tsx` → RPC `join_waitlist` (`src/waitlist.ts`, migration 023); read
+  signups with SQL in the Supabase dashboard. `src/supabase.ts` is unused and points at an old project.
+  Motion: `Reveal`/`CountUp`/`anim-*`, gated by `html.js`, off under `prefers-reduced-motion`; the preloader is inline
+  in `index.html` (once per session). Logo: `components/Logo.tsx`, SVG sources in `public/logo*.svg`.
+- Web deploy (Vercel project `nomadic-app`, live at https://nomadicai.vercel.app): no auto-deploy. Push to `main`, then
+  create a deployment from git source (github snipy09/nomadic ref main, framework vite, rootDirectory `apps/web`,
+  buildCommand `npm run build`, outputDirectory `dist`, `forceNew: "1"`, no `teamId`) via the Vercel MCP
+  `create_deployment`, or POST the same body to `https://api.vercel.com/v13/deployments?forceNew=1` with the Vercel
+  CLI token (never print it). Poll until READY (~1 min). Smoke test: `/`, `/download`, `/terms`, `/privacy` → 200,
+  unknown path → 404, `/sitemap.xml` and `/robots.txt` served.
+- Known leftovers: `apps/web/public/Nomadic-Setup-1.0.0.exe` (92 MB) is tracked and publicly reachable;
+  `public/install.ps1` points at dead JobMaxxer URLs; `public/logo.png` is old-brand art; the root README still
+  describes the old closed-alpha model. Flag these; do not delete unasked.
+
+## 11. Working with the owner
+
+- Instructions are short and informal ("fix it", "finish everything"). Finish end to end: code, tests, build,
+  package or deploy, verify, push to `main`. Do not stop at a plan or ask onboarding questions; pick sensible defaults.
+- Reports are concise: what changed, what was verified, what the owner must do. For routine web deploys, two or three
+  lines (live URL, pass/fail).
+- Anything made for the owner (builds, images, docs, exports) is also copied to `C:\Users\sajal\OneDrive\Desktop` in
+  a named subfolder (e.g. `Desktop\Nomadic-v1`, `Desktop\Nomadic-Logo`); builds also go to `Downloads`.
+- Do not delete or publish things unasked; flag them. Do not sign in, sign up or submit forms against the live
+  backend; the owner tests accounts. Do not print secrets from `.env`, Vault or tokens.
+- Windows + PowerShell 5.1: no `&&`; write commit messages to a file with
+  `[IO.File]::WriteAllText(path, text, (New-Object System.Text.UTF8Encoding($false)))` and `git commit -F path`
+  (`Set-Content -Encoding utf8` adds a BOM). `git push` prints to stderr even on success.
