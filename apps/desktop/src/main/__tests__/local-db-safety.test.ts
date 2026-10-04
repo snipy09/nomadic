@@ -7,7 +7,9 @@ import { getUserVersion, runLocalMigrations, type LocalMigration } from '../loca
 import {
   BACKUPS_KEPT, checkIntegrity, createBackup, listBackups, openOrRecover, writeFileAtomic,
 } from '../local-db/safety';
-import { LOCAL_MIGRATIONS, getDb, getLocalDbHealth, initLocalDatabase, persistDb, wipeLocalData } from '../db';
+import {
+  LOCAL_MIGRATIONS, getCachedFormAnswerDb, getDb, getLocalDbHealth, initLocalDatabase, persistDb, saveCachedFormAnswerDb, wipeLocalData,
+} from '../db';
 
 let SQL: SqlJsStatic;
 let dir: string;
@@ -142,6 +144,16 @@ describe('initLocalDatabase', () => {
     expect(h.schemaVersion).toBe(LOCAL_MIGRATIONS.length);
     expect(tableNames(getDb())).toEqual(expect.arrayContaining(['master_profile', 'local_applications', 'application_status_history']));
     expect(listBackups(path.join(dir, 'job_automator_local.db'))).toEqual([]);
+  });
+
+  it('remembers review answers under the intact fingerprint and the label', async () => {
+    await initLocalDatabase(dir);
+    saveCachedFormAnswerDb('q_0123456789abcdef', 'Acme Labs');
+    saveCachedFormAnswerDb('Current company*', 'Acme Labs');
+    expect(getCachedFormAnswerDb('q_0123456789abcdef')).toBe('Acme Labs');
+    expect(getCachedFormAnswerDb('current company')).toBe('Acme Labs');
+    const keys = getDb().exec('SELECT question_key FROM cached_form_answers ORDER BY question_key')[0].values.map((r) => r[0]);
+    expect(keys).toEqual(['current company', 'q_0123456789abcdef']);
   });
 
   it('upgrades a database from an older build, backing it up first and keeping its data', async () => {

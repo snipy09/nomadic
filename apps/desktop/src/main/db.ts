@@ -6,6 +6,7 @@ import { migrateApplicationsSchema, migrateFollowUpSchema } from './services/app
 import { migratePracticeSchema } from './services/practice-store.js';
 import { migrateLearningSchema } from './services/learning-store.js';
 import { migrateHiddenJobsSchema } from './services/hidden-jobs.js';
+import { answerKey, migrateFormAnswersStore } from './services/form-answers.js';
 import type { LocalDbHealth } from '../shared/ipc.js';
 import { getUserVersion, latestVersion, runLocalMigrations, type LocalMigration, type MigrationOutcome } from './local-db/migrations.js';
 import { backupsDir, createBackup, openOrRecover, writeFileAtomic } from './local-db/safety.js';
@@ -305,6 +306,7 @@ export const LOCAL_MIGRATIONS: readonly LocalMigration[] = [
   { version: 4, name: 'learning goal and events', up: migrateLearningSchema },
   { version: 5, name: 'hidden jobs', up: migrateHiddenJobsSchema },
   { version: 6, name: 'application follow-up dates', up: migrateFollowUpSchema },
+  { version: 7, name: 'remembered form answers reset', up: migrateFormAnswersStore },
 ];
 
 /** Flush in-memory DB to disk. Call after every write. */
@@ -356,7 +358,7 @@ export function logUserActivityDb(activityType: string, details?: string): void 
 export function getCachedFormAnswerDb(questionText: string): string | null {
   try {
     const database = getDb();
-    const cleanKey = questionText.toLowerCase().trim().replace(/[^a-z0-9]/g, ' ').slice(0, 100);
+    const cleanKey = answerKey(questionText);
     const res = database.exec('SELECT answer_text FROM cached_form_answers WHERE question_key = ? LIMIT 1', [cleanKey]);
     if (res.length && res[0].values.length) {
       return String(res[0].values[0][0]);
@@ -368,7 +370,8 @@ export function getCachedFormAnswerDb(questionText: string): string | null {
 export function saveCachedFormAnswerDb(questionText: string, answerText: string): void {
   try {
     const database = getDb();
-    const cleanKey = questionText.toLowerCase().trim().replace(/[^a-z0-9]/g, ' ').slice(0, 100);
+    const cleanKey = answerKey(questionText);
+    if (!cleanKey) return;
     database.run(`
       INSERT INTO cached_form_answers (question_key, answer_text)
       VALUES (?, ?)

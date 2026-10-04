@@ -3,19 +3,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // F9: reviewed applications are counted by the server (consume_apply_quota)
 // right before each one is sent; a refusal stops the run and nothing further is submitted.
 
-const { submitApplication, submitReviewed, consumeApplyQuota, getEntitlements } = vi.hoisted(() => ({
+const { submitApplication, submitReviewed, consumeApplyQuota, getEntitlements, saveCachedFormAnswerDb } = vi.hoisted(() => ({
   submitApplication: vi.fn(),
   submitReviewed: vi.fn(),
   consumeApplyQuota: vi.fn(),
   getEntitlements: vi.fn(),
+  saveCachedFormAnswerDb: vi.fn(),
 }));
 
 vi.mock('electron', () => ({ app: { getPath: () => '/tmp/nomadic-test' } }));
 vi.mock('@job-automator/automation', () => ({
   AutoApplyEngine: { submitApplication, submitReviewed, prefillParallelTabs: vi.fn() },
-  outcomeKey: (o: unknown) => String(o),
+  outcomeKey: (o: { key?: string }) => o.key ?? String(o),
 }));
-vi.mock('../db.js', () => ({ getDb: () => ({ exec: () => [], run: vi.fn() }), persistDb: vi.fn(), saveCachedFormAnswerDb: vi.fn() }));
+vi.mock('../db.js', () => ({ getDb: () => ({ exec: () => [], run: vi.fn() }), persistDb: vi.fn(), saveCachedFormAnswerDb }));
 vi.mock('../services/app-context.js', () => ({ log: vi.fn(), getMainWindow: () => null }));
 vi.mock('../services/cloud-sync.js', () => ({ logAndSyncApplication: vi.fn() }));
 vi.mock('../services/profile.js', () => ({
@@ -66,6 +67,25 @@ describe('submitAllBatchCopilot quota', () => {
     expect(consumeApplyQuota).toHaveBeenCalledTimes(1);
     expect(res.applied).toBe(0);
     expect(res.results!.every((r) => !r.submitted && /nothing was submitted/i.test(r.error ?? ''))).toBe(true);
+  });
+});
+
+describe('answers typed during review', () => {
+  it('are remembered by question fingerprint and by label for the next forms', async () => {
+    saveCachedFormAnswerDb.mockReset();
+    const field = (label: string, kind = 'text') => ({ id: label, kind, label, required: true, selector: '#x', frameIndex: 0, visible: true });
+    const fields = [
+      { key: 'q_company', field: field('Current company*'), status: 'needs_user', attempts: 1 },
+      { key: 'q_why', field: field('Why us?', 'textarea'), status: 'needs_user', attempts: 1 },
+    ];
+    submitApplication.mockImplementation(async (_u: string, _p: unknown, _cb: unknown, opts: { onReadyForReview?: (h: unknown) => void }) => {
+      opts.onReadyForReview?.({ report: { fields } });
+      return { prefilled: true, fieldsFilledCount: 1 };
+    });
+    const [id] = (await startBatchCopilot([targets[0]])).snapshots!.map((s) => s.id);
+    consumeApplyQuota.mockResolvedValue({ ok: true });
+    await submitAllBatchCopilot({ [id]: { q_company: 'Acme Labs', q_why: 'A long company-specific answer' } }, [id]);
+    expect(saveCachedFormAnswerDb.mock.calls).toEqual([['q_company', 'Acme Labs'], ['Current company*', 'Acme Labs']]);
   });
 });
 

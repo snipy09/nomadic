@@ -52,6 +52,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog, n
   const [conflictVia, setConflictVia] = useState<'password' | 'google'>('password');
   const [googleWaiting, setGoogleWaiting] = useState(false);
   const [termsPrompt, setTermsPrompt] = useState(false);
+  // "Continue with Google" opened the terms; accepting them goes on to Google.
+  const [googleAfterTerms, setGoogleAfterTerms] = useState(false);
   // 'forgot': password reset flow; 'verify': optional email verification right after sign-up.
   const [view, setView] = useState<'form' | 'forgot' | 'verify'>('form');
   const [pendingUser, setPendingUser] = useState<AppUser | null>(null);
@@ -162,11 +164,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog, n
     }
   };
 
-  const startGoogle = async (forceTakeover = false) => {
-    if (!termsAccepted) {
+  const startGoogle = async (forceTakeover = false, termsOk = termsAccepted) => {
+    if (!termsOk) {
+      // Show the terms right away; accepting them continues to Google (the button never looks dead).
       setTermsPrompt(true);
       setFormError(null);
-      document.getElementById(IDS.terms)?.focus();
+      setGoogleAfterTerms(true);
+      setTermsOpen(true);
       return;
     }
     setFormError(null);
@@ -366,6 +370,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog, n
                 <Spinner size="sm" label={null} />
                 <span>Finish signing in with Google in your browser.</span>
               </div>
+              <p className="text-caption text-fg-muted">
+                Nothing opened? Choose “Open browser again”. If Google says access is blocked, cancel and sign in with
+                email and password for now.
+              </p>
               <div className="flex justify-end gap-2">
                 <Button size="sm" variant="ghost" onClick={() => setGoogleWaiting(false)}>Cancel</Button>
                 <Button size="sm" variant="secondary" onClick={() => void startGoogle()}>Open browser again</Button>
@@ -387,7 +395,18 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog, n
         </p>
       </div>
 
-      <TermsDialog open={termsOpen} onOpenChange={setTermsOpen} accepted={termsAccepted} onAccept={() => acceptTerms(true)} />
+      <TermsDialog
+        open={termsOpen}
+        onOpenChange={(open) => {
+          setTermsOpen(open);
+          if (!open) setGoogleAfterTerms(false);
+        }}
+        accepted={termsAccepted}
+        onAccept={() => {
+          acceptTerms(true);
+          if (googleAfterTerms) void startGoogle(false, true);
+        }}
+      />
     </main>
   );
 };

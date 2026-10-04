@@ -68,13 +68,20 @@ export function splitPhone(phone: string): { code?: string; national: string } {
   return { national: p };
 }
 
+/** Label comparison that ignores case, punctuation and required markers ("Current company*" = "current company"). */
+function labelKey(s: string): string {
+  return norm(s).replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
 function lookupUserAnswer(field: FormField, fp: string, profile: MasterProfile, cache?: AnswerCache): { value: string; source: 'custom' | 'cache' } | null {
-  const l = norm(field.label);
+  const l = labelKey(field.label);
   for (const [src, map] of [['custom', profile.customAnswers], ['cache', profile.cachedAnswers]] as const) {
     if (!map) continue;
+    // The exact question (same label, kind and options) wins over a label match from another form.
+    if (map[fp]) return { value: map[fp], source: src };
+    if (!l) continue;
     for (const [k, v] of Object.entries(map)) {
-      if (!v) continue;
-      if (k === fp || norm(k) === l) return { value: v, source: src };
+      if (v && labelKey(k) === l) return { value: v, source: src };
     }
   }
   const c = cache?.get(fp);

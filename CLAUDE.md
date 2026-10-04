@@ -160,7 +160,10 @@ Owner actions:
 Done in October 2026: hide job ("Not interested", local migration 5), tracker follow-up reminders (local
 migration 6), feed match uses Learn mastery, mid-form cancel in apply (AbortSignal closes the tab), company question
 sets gated in main by the server plan, payment history with receipts (025), no Max downgrade on payment (024),
-India region filter + laptop runner for the scraper, CI green. v1 portable build (4 Oct): the app relaunches itself
+India region filter + laptop runner for the scraper, CI green. Answers typed during apply review are remembered
+locally (by question fingerprint and label, `services/form-answers.ts`, local migration 7 cleared the old store) and
+pre-filled on later forms; model-written answers are never stored. "Continue with Google" opens the terms first if
+they are not accepted, then continues. v1 portable build (4 Oct): the app relaunches itself
 without the Chromium sandbox when the GPU/renderer process cannot start (STATUS_DLL_NOT_FOUND; `NOMADIC_DISABLE_SANDBOX`
 forces it); a saved sign-in is handed back to the main process at launch (`features/auth/useSessionRestore.ts`) and the
 user is signed out with a notice only when the server ends the session (heartbeat `ended`), never on a network error;

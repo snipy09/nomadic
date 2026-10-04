@@ -124,11 +124,6 @@ describe('AuthScreen', () => {
 
   it('signs in with Google once the browser flow reports back', async () => {
     const { api, onLoginSuccess, emitOAuth } = setup();
-    await userEvent.click(screen.getByRole('button', { name: /continue with google/i }));
-    expect(await screen.findByText(/accept the terms/i)).toBeTruthy();
-    expect(screen.queryByText(/enter your email/i)).toBe(null);
-    expect(api.authGoogle).not.toHaveBeenCalled();
-
     await userEvent.click(screen.getByRole('checkbox', { name: /terms of service/i }));
     await userEvent.click(screen.getByRole('button', { name: /continue with google/i }));
     expect(await screen.findByText(/finish signing in with google/i)).toBeTruthy();
@@ -136,6 +131,29 @@ describe('AuthScreen', () => {
 
     emitOAuth({ success: true, user });
     expect(onLoginSuccess).toHaveBeenCalledWith(user);
+  });
+
+  it('opens the terms when Google is chosen first, and continues to Google once they are accepted', async () => {
+    const { api } = setup();
+    await userEvent.click(screen.getByRole('button', { name: /continue with google/i }));
+    expect(await screen.findByRole('dialog')).toBeTruthy();
+    expect(screen.queryByText(/enter your email/i)).toBe(null);
+    expect(api.authGoogle).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: /accept terms and privacy policy/i }));
+    expect(await screen.findByText(/finish signing in with google/i)).toBeTruthy();
+    expect(api.authGoogle).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem('nomadic_terms_accepted')).toBe(LEGAL_VERSION);
+  });
+
+  it('does not start Google when the terms dialog is closed without accepting', async () => {
+    const { api } = setup();
+    await userEvent.click(screen.getByRole('button', { name: /continue with google/i }));
+    await screen.findByRole('dialog');
+    await userEvent.click(screen.getAllByRole('button', { name: /^close$/i })[0]);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBe(null));
+    expect(api.authGoogle).not.toHaveBeenCalled();
+    expect(screen.getByText(/accept the terms/i)).toBeTruthy();
   });
 
   it('reports a failed Google sign-in and lets the user retry', async () => {

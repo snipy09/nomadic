@@ -11,6 +11,7 @@ import type {
   BatchTarget,
 } from '../../shared/ipc.js';
 import { toSnapshot } from './batch-review.js';
+import { rememberedAnswers } from './form-answers.js';
 import { getDb, persistDb, saveCachedFormAnswerDb } from '../db.js';
 import { getMainWindow, log } from './app-context.js';
 import { logAndSyncApplication } from './cloud-sync.js';
@@ -348,13 +349,17 @@ export async function submitAllBatchCopilot(
   try {
     getDb();
     if (overrides) {
-      // Remember what the candidate wrote, keyed by question fingerprint, for future forms.
+      // Remember what the candidate wrote (by question fingerprint and by label) so later forms are pre-filled.
+      let remembered = 0;
       for (const id of chosen) {
-        for (const [k, v] of Object.entries(overrides[id] || {})) {
-          if (v && v.trim().length > 0) saveCachedFormAnswerDb(k, v);
+        const outcomes = heldApplications.get(id)?.handle?.report?.fields ?? [];
+        for (const [q, v] of rememberedAnswers(overrides[id], outcomes, outcomeKey)) {
+          saveCachedFormAnswerDb(q, v);
+          remembered++;
         }
       }
       persistDb();
+      if (remembered) log('[Apply] Your answers were saved; matching questions on the next forms are pre-filled for review.');
     }
 
     const results: BatchSubmitItemResult[] = [];

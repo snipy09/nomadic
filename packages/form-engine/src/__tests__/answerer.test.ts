@@ -44,6 +44,21 @@ describe('ProfileAnswerer', () => {
     expect(byId(answers, 'How did you hear about this job?')).toMatchObject({ value: 'LinkedIn' });
   });
 
+  it('reuses an answer saved under a label regardless of case, punctuation and the required marker', async () => {
+    const p = { ...sampleProfile(), cachedAnswers: { 'current company': 'Acme Labs', 'total years of experience': '3' } };
+    const { answers } = await answerAll([mk('Current company*'), mk('Total Years of Experience: ✱')], p);
+    expect(byId(answers, 'Current company*')).toMatchObject({ status: 'answered', value: 'Acme Labs', source: 'cache' });
+    expect(byId(answers, 'Total Years of Experience: ✱')).toMatchObject({ value: '3', source: 'cache' });
+  });
+
+  it('prefers the answer saved for the exact question over a label match', async () => {
+    const field = mk('Notice period', { kind: 'select', options: [{ label: '30 days' }, { label: '60 days' }] });
+    const fp = questionFingerprint(field);
+    const p = { ...sampleProfile(), cachedAnswers: { 'notice period': 'Immediately', [fp]: '30 days' } };
+    const { answers } = await answerAll([field], p);
+    expect(byId(answers, 'Notice period')).toMatchObject({ value: '30 days', source: 'cache' });
+  });
+
   it('derives yes/no eligibility answers from typed profile fields', async () => {
     const { answers } = await answerAll([
       mk('Will you require visa sponsorship?', { kind: 'radio', options: yn }),

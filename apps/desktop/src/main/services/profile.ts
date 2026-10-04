@@ -1,6 +1,6 @@
 import { syncPushUserProfile } from '@job-automator/supabase';
 import type { MasterProfile } from '@job-automator/automation';
-import { getDb, persistDb, saveCachedFormAnswerDb } from '../db.js';
+import { getDb, persistDb } from '../db.js';
 import { log } from './app-context.js';
 import { getActiveSyncSession } from './session.js';
 import { getAnonSupabase } from './supabase.js';
@@ -240,7 +240,7 @@ function readResumesForAutomation(): AutomationResume[] {
   return resumesList;
 }
 
-function readCachedFormAnswers(): Record<string, string> {
+function readCachedFormAnswers(logCount: boolean): Record<string, string> {
   const db = getDb();
   const cachedAnswersMap: Record<string, string> = {};
   try {
@@ -251,6 +251,8 @@ function readCachedFormAnswers(): Record<string, string> {
       });
     }
   } catch {}
+  const n = Object.keys(cachedAnswersMap).length;
+  if (logCount && n) log(`[Apply] Using ${n} saved answer(s) from earlier reviews.`);
   return cachedAnswersMap;
 }
 
@@ -280,12 +282,8 @@ export function buildAutomationProfile(opts: { logCachedAnswers: boolean }): Mas
     customAnswers: (() => {
       try { return JSON.parse(String(profileRaw['custom_answers_json'] ?? 'null')); } catch { return undefined; }
     })(),
-    cachedAnswers: readCachedFormAnswers(),
-    onAnswerResolved: (q: string, a: string) => {
-      saveCachedFormAnswerDb(q, a);
-      if (opts.logCachedAnswers) {
-        log(`[Answer Cache] Cached response for question: "${q.slice(0, 40)}..."`);
-      }
-    },
+    // Only answers the candidate wrote during review are remembered (see form-answers.ts); model-written
+    // answers are company-specific and are drafted fresh for every form.
+    cachedAnswers: readCachedFormAnswers(opts.logCachedAnswers),
   };
 }
