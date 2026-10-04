@@ -24,7 +24,23 @@ describe('match (shared skill ids)', () => {
   });
   it('infers role families from titles', () => {
     expect(inferRole('Frontend Developer Intern')).toBe('frontend');
+    expect(inferRole('Frontend Development Internship')).toBe('frontend');
+    expect(inferRole('Full stack development internship in Bangalore')).toBe('fullstack');
+    expect(inferRole('Backend Software Engineer')).toBe('backend');
+    expect(inferRole('Building Maintenance Engineer')).toBeUndefined();
+    expect(inferRole('Business Development Intern')).toBeUndefined();
     expect(inferRole('')).toBeUndefined();
+  });
+  it('estimates from the title role when the listing names no skills', () => {
+    const mastery = profileMastery({ techStack: 'JavaScript, React' });
+    const listed = matchJob(job({ title: 'Frontend Developer', description: 'React and TypeScript' }), mastery)!;
+    expect(listed.estimated).toBeUndefined();
+    const est = matchJob(job({ title: 'Frontend Development Internship', description: '' }), mastery)!;
+    expect(est.estimated).toBe(true);
+    expect(est.score).toBeGreaterThan(0);
+    expect(est.matched.length).toBeGreaterThan(0);
+    expect(matchJob(job({ title: 'Business Development Intern', description: '' }), mastery)).toBeNull();
+    expect(matchJob(job({ title: 'Frontend Development Internship', description: '' }), {})).toBeNull();
   });
 });
 

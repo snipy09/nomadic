@@ -45,6 +45,9 @@ export function JobDrawer({ job, saved, onClose, onToggleSave, onApply, onCopied
               </div>
               {job.match ? (
                 <>
+                  {job.match.estimated && (
+                    <p className="text-caption text-fg-subtle">This listing names no skills, so the match is estimated from the core skills of the role in its title.</p>
+                  )}
                   {job.match.matched.length > 0 && (
                     <div className="flex flex-wrap gap-1.5" aria-label="Skills you have">
                       {job.match.matched.map((s) => <Badge key={s} tone="success" size="sm">{s}</Badge>)}
@@ -55,7 +58,7 @@ export function JobDrawer({ job, saved, onClose, onToggleSave, onApply, onCopied
                   )}
                 </>
               ) : (
-                <p className="text-caption text-fg-subtle">Add skills to your profile, or this posting lists no recognisable skills.</p>
+                <p className="text-caption text-fg-subtle">Add skills to your profile, or this posting names no recognisable skills or role.</p>
               )}
             </section>
             <section aria-labelledby="desc-h">

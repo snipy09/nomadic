@@ -114,7 +114,14 @@ export async function runFormEngineApply(
         if (ev.type !== 'status' || ev.phase === 'done') onProgress?.(toStatusEvent(ev));
       },
     });
-    const { report } = await runPortalAdapter(page, profile, adapter, { engine, ctx: { jobTitle: options.jobTitle || profile.desiredTitle, company: options.company } });
+    const ctx = { jobTitle: options.jobTitle || profile.desiredTitle, company: options.company };
+    let { report } = await runPortalAdapter(page, profile, adapter, { engine, ctx });
+    // A form still loading (or a navigation mid-read) reads as zero fields: settle and read once more.
+    if (report.fields.length === 0 && !report.walls.length && !signal?.aborted) {
+      await page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(1500).catch(() => {});
+      report = await engine.fill(page, profile, ctx);
+    }
     const needsUser = report.fields
       .filter((o) => o.status === 'needs_user' || o.status === 'failed')
       .map((o) => ({ label: o.field.label, reason: o.reason || 'needs input', required: o.field.required }));

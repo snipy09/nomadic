@@ -48,20 +48,25 @@ export function CompanyMonogram({ company, size = 'md' }: { company: string; siz
   );
 }
 
+const NO_MATCH_HINT = 'No skills to compare: add skills to your profile, or this listing names no skills or known role';
+const ESTIMATED_HINT = 'This listing names no skills; estimated from the core skills of the role in its title';
+
 export function MatchBadge({ job }: { job: ScoredJob }) {
-  if (!job.match) return <Badge tone="neutral" size="sm" title="Add skills to your profile to see a match">No match data</Badge>;
+  if (!job.match) return <Badge tone="neutral" size="sm" title={NO_MATCH_HINT}>No match data</Badge>;
   const tone = job.match.score >= HIGH_MATCH ? 'success' : job.match.score >= 40 ? 'accent' : 'neutral';
-  return <Badge tone={tone} size="sm">{job.match.score}% match</Badge>;
+  const est = job.match.estimated;
+  return <Badge tone={tone} size="sm" title={est ? ESTIMATED_HINT : undefined}>{est ? '~' : ''}{job.match.score}% match</Badge>;
 }
 
 function MatchRing({ job }: { job: ScoredJob }) {
-  if (!job.match) return <span className="text-caption text-fg-subtle" title="Add skills to your profile to see a match">No match data</span>;
+  if (!job.match) return <span className="text-caption text-fg-subtle" title={NO_MATCH_HINT}>No match data</span>;
   const score = job.match.score;
+  const est = job.match.estimated;
   const tone = score >= HIGH_MATCH ? 'success' : score >= 40 ? 'accent' : 'warning';
   return (
-    <div className="flex flex-col items-center gap-0.5">
-      <ProgressRing value={score} size={44} thickness={4} tone={tone} showValue label={`${score}% match`} />
-      <span className="text-caption text-fg-subtle">match</span>
+    <div className="flex flex-col items-center gap-0.5" title={est ? ESTIMATED_HINT : undefined}>
+      <ProgressRing value={score} size={44} thickness={4} tone={tone} showValue label={`${est ? 'Estimated ' : ''}${score}% match`} />
+      <span className="text-caption text-fg-subtle">{est ? 'est. match' : 'match'}</span>
     </div>
   );
 }

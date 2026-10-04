@@ -215,8 +215,12 @@ Assistant still call AI directly); OS notification for due follow-ups (today an 
   Last commit of the session: "feat(apply): fill applications in the user's own browser".
 - Untracked on purpose, never stage: `brag-output*/`, `reel*/`, `showreel/` (local marketing renders) and `.claude/`
   (local assistant settings and `launch.json`; its notes are folded into section 10).
-- Delivered build: `Nomadic-v1.0.12-portable.exe` in `C:\Users\sajal\Downloads` and `Desktop\Nomadic-v1\`
-  (built from `apps/desktop/dist-electron/Nomadic.1.0.12.exe`; 1.0.12 adds the AI onboarding (seven steps: about →
+- Delivered build: `Nomadic-v1.0.13-portable.exe` in `C:\Users\sajal\Downloads` and `Desktop\Nomadic-v1\`
+  (built from `apps/desktop/dist-electron/Nomadic.1.0.13.exe`; 1.0.13: a listing that names no skills is scored
+  against the core skills (weight ≥ 0.8) of the role family in its title and shown as an estimate (`~N%`, "est.
+  match"; `JobMatch.estimated`, `features/feed/match.ts`); `inferRole` matches whole stemmed words; the Internshala
+  scraper no longer writes filler descriptions (empty instead); the Internshala adapter waits for the
+  `/application/form/` page and apply reads the form once more before "No Application Form Found". 1.0.12 adds the AI onboarding (seven steps: about →
   links → resume → target → answers → workspace → roadmap; resume/LinkedIn PDF text read locally by
   `services/document-text.ts` with unpdf, external in `build-main.mjs`; drafts for common application questions via
   `services/profile-drafts.ts` → ai-proxy `form_answers`, never auto-saved), the **Answers** page (sidebar tab

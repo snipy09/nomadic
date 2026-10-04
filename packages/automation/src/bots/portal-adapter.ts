@@ -97,16 +97,32 @@ export const leverAdapter: PortalAdapter = {
   },
 };
 
+/** Any visible question control (radio and select inputs may be styled, so their labels count too). */
+const ANY_CONTROL = ['form textarea', 'form select', 'form input[type="radio"] + label', 'form label:has(input[type="radio"])', 'form input[type="text"]', 'form input[type="number"]', 'form input[type="file"]', '.select2-container', '.chosen-container'];
+
+/** Wait until the page settles on a form (after a click that navigates or opens a modal). */
+async function waitForForm(page: Page, timeoutMs = 12000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    await page.waitForLoadState('domcontentloaded', { timeout: 3000 }).catch(() => {});
+    if (await anyVisible(page, ANY_CONTROL).catch(() => false)) return;
+    await page.waitForTimeout(400).catch(() => {});
+  }
+}
+
 export const internshalaAdapter: PortalAdapter = {
   id: 'internshala',
   matches: (u) => /internshala\.com/i.test(u),
   async prepare(page) {
+    const onForm = () => /\/application\/form\//i.test(page.url());
     const modalOpen = () => anyVisible(page, ['#easy_apply_modal form', '#application_modal form', '.modal.show form', '#application-form', '#cover_letter']);
-    if (!(await modalOpen())) {
+    if (!onForm() && !(await modalOpen())) {
       await clickFirstVisible(page, ['#easy_apply_button', '#apply_now_button', 'button:has-text("Apply now")', 'a:has-text("Apply now")', '.buttons_container .btn-primary'], 600);
     }
     // Some postings show a resume step first.
     await clickFirstVisible(page, ['#proceed_to_application', 'button:has-text("Proceed to application")', 'a:has-text("Proceed to application")'], 600);
+    // "Apply now" often navigates to /application/form/...: read only once that page has its questions.
+    await waitForForm(page);
   },
 };
 
