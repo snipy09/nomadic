@@ -12,6 +12,15 @@ const DEFAULT_SUPABASE_ANON_KEY =
 
 const isWatch = process.argv.includes('--watch');
 
+// Local builds read apps/desktop/.env (gitignored); real environment variables win.
+const envFile = path.join(__dirname, '.env');
+if (fs.existsSync(envFile)) {
+  for (const line of fs.readFileSync(envFile, 'utf-8').split(/\r?\n/)) {
+    const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^(['"])(.*)\1$/, '$2');
+  }
+}
+
 async function build() {
   console.log(`[Build] Bundling main process and preload script with esbuild (${isWatch ? 'watch mode' : 'single build'})...`);
 

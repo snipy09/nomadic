@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import tailwindcss from 'tailwindcss';
@@ -14,6 +14,9 @@ const cspMeta = {
   ],
 };
 
+// apps/desktop/.env (gitignored) plus the real environment, which wins.
+const env = { ...loadEnv('', __dirname, ''), ...process.env };
+
 export default defineConfig({
   base: './',
   root: path.join(__dirname, 'src/renderer'),
@@ -22,7 +25,7 @@ export default defineConfig({
   // Same env names build-main.mjs reads, so the Google button shows only when the main build can use it.
   define: {
     'import.meta.env.VITE_GOOGLE_SIGN_IN': JSON.stringify(
-      process.env.GOOGLE_OAUTH_CLIENT_ID || process.env.GOOGLE_CLIENT_ID ? 'on' : 'off'
+      env.GOOGLE_OAUTH_CLIENT_ID || env.GOOGLE_CLIENT_ID ? 'on' : 'off'
     ),
   },
   css: {

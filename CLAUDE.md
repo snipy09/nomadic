@@ -100,7 +100,9 @@ Key flows:
 - **Learn content seeded** from the bundle (checksums verified).
 - **Edge Functions deployed** (JWT verification on): `google-sign-in`, `send-email-code`, `ai-proxy`.
   `razorpay-webhook` exists in the repo but is not deployed yet.
-- **Vault secrets**: `resend_api_key`, `gemini_api_key` (set). Missing: `google_oauth_client_id`, `email_from`.
+- **Vault secrets**: `resend_api_key`, `gemini_api_key`, `google_oauth_client_id` (set). Missing: `email_from`.
+- **Google OAuth**: "Desktop app" client created; id/secret are in GitHub repo secrets and in the gitignored
+  `apps/desktop/.env` (read by `build-main.mjs` and `vite.config.ts`; real env vars win). `require_login_ticket` is on.
   Read only by service_role via `public.server_secret(name)` (allow-listed names) / `private.get_vault_secret`.
 - A leftover schema `zz_unused` holds empty tables from the first setup attempt; safe to drop (needs a paste in the
   SQL editor because it is a DROP).
@@ -141,17 +143,17 @@ Owner actions:
 2. Create the admin account (SQL in `docs/DATABASE_SETUP.md`).
 3. Run the app (`npm run dev:desktop`) and test: sign-up, onboarding → roadmap, lesson, feed, apply with review,
    tracker, password reset, AI feedback.
-4. Google OAuth "Desktop app" client (no billing needed): put the client id in Vault (`google_oauth_client_id`) and
-   `GOOGLE_OAUTH_CLIENT_ID/SECRET` in the build env.
+4. Google OAuth: done (Vault, repo secrets, local `.env`). If the consent screen is in "Testing", add testers or
+   publish it, or only listed Google accounts can sign in.
 5. Verify a sending domain in Resend; store `email_from` in Vault.
 6. Razorpay Payment Pages for Pro/Max → `RAZORPAY_CHECKOUT_URL_PRO/MAX`; deploy `razorpay-webhook` with its secret.
 7. Code-signing certificate for releases; Sentry DSN if crash reports are wanted.
 8. Lawyer review of the legal text; real `support@` and `grievance@` mailboxes; registered business name.
-9. After testing, turn on `require_login_ticket`.
+9. (Done 4 Oct 2026) `require_login_ticket` is on.
 10. Review and publish Learn content (all drafts; 69 lessons have no resource yet); run the link checker.
 11. Rotate the Resend and Gemini keys (they were shared in a chat) and update Vault.
 12. Apply migrations 024 and 025 (paste files in `packages/supabase/baseline/`).
-13. Add the `GOOGLE_OAUTH_CLIENT_ID/SECRET` repository secrets (release.yml passes them to the build).
+13. (Done) `GOOGLE_OAUTH_CLIENT_ID/SECRET` repository secrets.
 
 Done in October 2026: hide job ("Not interested", local migration 5), tracker follow-up reminders (local
 migration 6), feed match uses Learn mastery, mid-form cancel in apply (AbortSignal closes the tab), company question
