@@ -3,6 +3,7 @@ import { GraduationCap } from 'lucide-react';
 import { Button, EmptyState, Skeleton, Tabs, TabsList, TabsTrigger } from '@nomadic/ui';
 import { learnTierFor } from '@job-automator/learning';
 import type { AppUser } from '../../types';
+import { ActivityHeatmap } from './ActivityHeatmap';
 import { GoalSetup } from './GoalSetup';
 import { lessonById, roleById } from './content';
 import { asEvents, buildPath, buildToday } from './learnLogic';
@@ -156,6 +157,7 @@ export function LearnView({ currentUser, suggestedRole, onOpenUpgrade, onLog }: 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 pb-16">
       {header}
+      {(screen?.name === 'today' || screen?.name === 'path') &&<ActivityHeatmap events={events} streak={today?.streak} />}
       {body}
     </div>
   );

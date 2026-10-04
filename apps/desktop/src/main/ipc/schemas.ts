@@ -91,6 +91,22 @@ const resumeInput = z
   .passthrough();
 export const saveResumeArgs: ArgSchemas<'save-resume'> = [resumeInput];
 export const resumeIdArgs: ArgSchemas<'delete-resume'> = [numericId];
+export const documentTextArgs: ArgSchemas<'read-document-text'> = [z.object({ resumeId: opt(numericId) })];
+export const draftAnswersArgs: ArgSchemas<'draft-profile-answers'> = [
+  z.object({
+    ids: z.array(str(64)).min(1).max(30),
+    candidate: z.object({
+      name: opt(str(200)),
+      desiredTitle: opt(str(300)),
+      skills: opt(str(MEDIUM)),
+      location: opt(str(300)),
+      documentText: opt(str(MEDIUM * 5)),
+    }),
+  }),
+];
+export const rememberedAnswerUpdateArgs: ArgSchemas<'remembered-answers-update'> = [
+  z.object({ key: z.string().trim().min(1).max(200), answer: z.string().max(200).nullable() }),
+];
 
 // ── feed & saved jobs ──────────────────────────────────────────────────────
 const cloudFeedPageOptions = z

@@ -99,6 +99,8 @@ export const MasterProfileSchema = z.object({
   // Answer memory
   customAnswers: z.record(z.string()).optional(),
   cachedAnswers: z.record(z.string()).optional(),
+  /** Answers to COMMON_QUESTIONS by id (commonQuestions.ts), reused wherever a form asks them. */
+  commonAnswers: z.record(z.string()).optional(),
   onAnswerResolved: z
     .custom<(question: string, answer: string) => void>((v) => v === undefined || typeof v === 'function')
     .optional(),

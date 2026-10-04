@@ -32,6 +32,19 @@ describe('ProfileAnswerer', () => {
     expect(llmCalls).toBe(0);
   });
 
+  it('reuses a common answer wherever a form asks the same open question in other words', async () => {
+    const profile = { ...sampleProfile(), commonAnswers: { about_you: 'Final-year CSE student who builds web apps.' } };
+    const { answers, llmCalls } = await answerAll([
+      mk('Tell us a little about yourself *', { kind: 'textarea', required: true }),
+      mk('Please introduce yourself', { kind: 'textarea' }),
+      mk('About you', { kind: 'select', options: yn }),
+    ], profile);
+    expect(answers[0]).toMatchObject({ status: 'answered', value: 'Final-year CSE student who builds web apps.', source: 'custom' });
+    expect(val(answers[1])).toBe('Final-year CSE student who builds web apps.');
+    expect(answers[2].source).not.toBe('custom');
+    expect(llmCalls).toBe(0);
+  });
+
   it('uses the first name when a form asks for a preferred name the profile does not have', async () => {
     const { answers } = await answerAll([mk('What name would you prefer to be called?')], { ...sampleProfile(), preferredName: undefined });
     expect(answers[0]).toMatchObject({ status: 'answered', value: 'Jordan', source: 'derived' });

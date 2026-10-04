@@ -149,9 +149,13 @@ export const PreferencesSection: React.FC<FormProps> = ({ form, set }) => (
   </Card>
 );
 
-export const AnswersSection: React.FC<FormProps> = ({ form, set }) => (
+export const AnswersSection: React.FC<FormProps & { onOpenAnswers?: () => void }> = ({ form, set, onOpenAnswers }) => (
   <Card>
-    <CardHeader title="Application answers" description="Answers to questions almost every application asks." />
+    <CardHeader
+      title="Application answers"
+      description="Work authorisation is here. Education, notice period, relocation, your own questions and answers remembered from applications are on the Answers page."
+      actions={onOpenAnswers ? <Button size="sm" variant="secondary" onClick={onOpenAnswers}>Open Answers</Button> : undefined}
+    />
     <CardContent>
       <VStack gap={4}>
         <Switch

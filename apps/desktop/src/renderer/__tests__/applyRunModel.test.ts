@@ -6,6 +6,9 @@ import {
   buildOverrides,
   canSubmit,
   finishedCount,
+  focusApp,
+  nextToReview,
+  runStep,
   reviewedIds,
   runReducer,
   startRun,
@@ -170,5 +173,20 @@ describe('apply run model', () => {
     s = runReducer(s, { type: 'cancel' });
     expect(s.stage).toBe('cancelled');
     expect(runReducer(s, { type: 'edit', url: 'https://a.co/1', key: 'q_email', value: 'x' })).toBe(s);
+  });
+
+  it('follows the run: the form being filled, then the first that needs the candidate', () => {
+    let s = startRun(targets);
+    s = runReducer(s, {
+      type: 'progress',
+      event: { log: '', url: 'https://b.co/2', statusEvent: { phase: 'filling', message: 'x', colorState: 'green' } },
+    });
+    expect(focusApp(s)?.url).toBe('https://b.co/2');
+    const r = reviewState([snap('https://a.co/1'), snap('https://b.co/2', { fields: [field({ status: 'needs_user', value: '' })] })]);
+    expect(focusApp(r)?.url).toBe('https://b.co/2');
+    expect(nextToReview(r, 'https://b.co/2')?.url).toBe('https://a.co/1');
+    const approved = runReducer(r, { type: 'approve', url: 'https://a.co/1', approved: true });
+    expect(nextToReview(approved, 'https://b.co/2')).toBeUndefined();
+    expect([runStep('filling'), runStep('review'), runStep('submitting'), runStep('done')]).toEqual([0, 1, 2, 3]);
   });
 });

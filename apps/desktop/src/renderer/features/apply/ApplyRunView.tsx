@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Send } from 'lucide-react';
+import { Check, Send } from 'lucide-react';
 import { Button, Drawer, DrawerContent, ProgressRing, cn, focusRing } from '@nomadic/ui';
 import { ApplicationPanel, StatusBadge } from './ApplicationPanel';
-import { canSubmit, countByStatus, finishedCount, reviewedIds, type RunState } from './runModel';
+import { canSubmit, countByStatus, finishedCount, focusApp, nextToReview, reviewedIds, runStep, type RunState } from './runModel';
 
 export interface ApplyRunViewProps {
   open: boolean;
@@ -36,10 +36,48 @@ function headline(state: RunState): { title: string; description: string } {
 }
 
 /** Live apply run: per-application progress, review with inline edits, and submit of the reviewed subset only. */
+const STEPS = ['Fill forms', 'Review', 'Submit', 'Done'];
+
+function RunStepper({ stage }: { stage: RunState['stage'] }) {
+  const at = runStep(stage);
+  return (
+    <ol aria-label="Apply steps" className="flex items-center gap-2 border-b border-line bg-surface-sunken px-5 py-2.5">
+      {STEPS.map((s, i) => {
+        const state = i < at || (i === at && at === 3) ? 'done' : i === at ? 'current' : 'todo';
+        return (
+          <li key={s} aria-current={state === 'current' ? 'step' : undefined} className="flex items-center gap-2">
+            <span
+              className={cn(
+                'flex size-5 items-center justify-center rounded-full text-[11px] font-strong transition-colors duration-normal',
+                state === 'done' && 'bg-success-subtle text-success-fg',
+                state === 'current' && 'bg-accent text-accent-fg',
+                state === 'todo' && 'border border-line-strong text-fg-subtle',
+              )}
+              aria-hidden="true"
+            >
+              {state === 'done' ? <Check className="size-3" /> : i + 1}
+            </span>
+            <span className={cn('text-caption', state === 'current' ? 'font-strong text-fg' : state === 'done' ? 'text-fg-muted' : 'text-fg-subtle')}>{s}</span>
+            {i < STEPS.length - 1 && <span className={cn('h-px w-6 sm:w-10', i < at ? 'bg-success' : 'bg-line-strong')} aria-hidden="true" />}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 export function ApplyRunView({ open, state, onEdit, onApprove, onSkip, onRetry, onSubmit, onCancel, onClose, quotaNote }: ApplyRunViewProps) {
+  // null = follow the run (the form being filled, then the next one to review).
   const [selected, setSelected] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const current = state.apps.find((a) => a.url === selected) ?? state.apps[0];
+  const current = state.apps.find((a) => a.url === selected) ?? focusApp(state);
+  const approve = (url: string, approved: boolean) => {
+    onApprove(url, approved);
+    if (approved) {
+      const next = nextToReview(state, url);
+      if (next) setSelected(next.url);
+    }
+  };
   const { title, description } = headline(state);
   const total = state.apps.length;
   const finished = finishedCount(state);
@@ -51,6 +89,11 @@ export function ApplyRunView({ open, state, onEdit, onApprove, onSkip, onRetry, 
   useEffect(() => {
     if (selected && !state.apps.some((a) => a.url === selected)) setSelected(null);
   }, [state.apps, selected]);
+
+  // A new stage starts by following the run again.
+  useEffect(() => {
+    if (state.stage === 'review' || state.stage === 'filling') setSelected(null);
+  }, [state.stage]);
 
   // Arrow keys move between applications in the list.
   const onListKey = (e: React.KeyboardEvent) => {
@@ -118,7 +161,9 @@ export function ApplyRunView({ open, state, onEdit, onApprove, onSkip, onRetry, 
           )
         }
       >
-        <div className="grid h-full min-h-0 grid-cols-[minmax(180px,220px)_1fr]">
+        <div className="flex h-full min-h-0 flex-col">
+        <RunStepper stage={state.stage} />
+        <div className="grid min-h-0 flex-1 grid-cols-[minmax(180px,220px)_1fr]">
           <nav aria-label="Applications in this run" className="min-h-0 overflow-y-auto border-r border-line p-2">
             <div ref={listRef} className="flex flex-col gap-1" onKeyDown={onListKey}>
               {state.apps.map((a) => {
@@ -153,12 +198,13 @@ export function ApplyRunView({ open, state, onEdit, onApprove, onSkip, onRetry, 
                 app={current}
                 stage={state.stage}
                 onEdit={(k, v) => onEdit(current.url, k, v)}
-                onApprove={(v) => onApprove(current.url, v)}
+                onApprove={(v) => approve(current.url, v)}
                 onSkip={(v) => onSkip(current.url, v)}
                 onRetry={() => onRetry(current.url)}
               />
             )}
           </div>
+        </div>
         </div>
       </DrawerContent>
     </Drawer>

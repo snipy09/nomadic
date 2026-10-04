@@ -6,6 +6,7 @@ import { getActiveSyncSession } from './session.js';
 import { getAnonSupabase } from './supabase.js';
 import { overlaySecrets, readSecret, writeSecret } from './secrets.js';
 import { splitProfileExtras } from '../../shared/profileExtras.js';
+import { isReservedAnswerKey, toAutomationFacts } from '../../shared/applicationAnswers.js';
 
 /**
  * Reads the `master_profile` row as a column -> value map with secrets
@@ -270,8 +271,15 @@ export function buildAutomationProfile(opts: { logCachedAnswers: boolean }): Mas
   const { extras, answers } = splitProfileExtras(stored && typeof stored === 'object' ? stored : null);
   const years = extras.yearsOfExperience !== undefined ? Number(extras.yearsOfExperience) : NaN;
   const location = extras.location ?? '';
+  // Answers given once in onboarding or on the Answers page (education, preferences, "about you").
+  const { howHeard, ...facts } = toAutomationFacts(answers);
+  const custom = Object.fromEntries(Object.entries(answers).filter(([k]) => !isReservedAnswerKey(k)));
+  if (howHeard && !Object.keys(custom).some((k) => /hear about|how did you (hear|find|learn)/i.test(k))) {
+    custom['How did you hear about us?'] = howHeard;
+  }
 
   return {
+    ...facts,
     preferredName: extras.preferredName,
     location: location || undefined,
     city: location ? location.split(',')[0].trim() || undefined : undefined,
@@ -292,7 +300,7 @@ export function buildAutomationProfile(opts: { logCachedAnswers: boolean }): Mas
     desiredTitle: String(profileRaw['desired_title'] ?? ''),
     techStack:    String(profileRaw['tech_stack'] ?? ''),
     resumes:      readResumesForAutomation(),
-    customAnswers: stored ? answers : undefined,
+    customAnswers: stored ? custom : undefined,
     // Only answers the candidate wrote during review are remembered (see form-answers.ts); model-written
     // answers are company-specific and are drafted fresh for every form.
     cachedAnswers: readCachedFormAnswers(opts.logCachedAnswers),

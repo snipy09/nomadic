@@ -163,6 +163,12 @@ export function createBrowserApiShim(): ElectronAPI {
       };
     },
 
+    readDocumentText: async () => ({ success: false, error: 'Reading documents works in the desktop app only.' }),
+    draftProfileAnswers: async () => ({ success: false, code: 'unavailable' as const, error: 'AI drafts work in the desktop app only.' }),
+    listRememberedAnswers: async () => [],
+    updateRememberedAnswer: async () => ({ success: false, error: 'Not available in the browser preview.' }),
+    clearRememberedAnswers: async () => ({ success: true }),
+
     runScrapers: async () => {
       emitLog('[Scrapers] Querying live opportunity pipeline...');
       const jobs = await fetchLiveDatabaseJobs();

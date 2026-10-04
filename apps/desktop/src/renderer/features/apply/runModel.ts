@@ -279,6 +279,30 @@ export function finishedCount(state: RunState): number {
   return state.apps.filter((a) => a.phase !== 'queued' && a.phase !== 'filling').length;
 }
 
+/** The application to show when the candidate has not picked one: the form being filled, then the first that needs them. */
+export function focusApp(state: RunState): RunApp | undefined {
+  const { apps } = state;
+  if (state.stage === 'filling') return apps.find((a) => a.phase === 'filling') ?? apps.find((a) => a.phase === 'queued') ?? apps[apps.length - 1];
+  if (state.stage === 'review') {
+    return apps.find((a) => !a.approved && !a.skipped && appStatus(a) === 'needs_you')
+      ?? apps.find((a) => !a.approved && !a.skipped && appStatus(a) === 'ready')
+      ?? apps[0];
+  }
+  return apps[0];
+}
+
+/** After reviewing `url`, the next application (in list order, wrapping) still waiting for review. */
+export function nextToReview(state: RunState, url: string): RunApp | undefined {
+  const i = state.apps.findIndex((a) => a.url === url);
+  const order = [...state.apps.slice(i + 1), ...state.apps.slice(0, Math.max(0, i))];
+  return order.find((a) => !a.approved && !a.skipped && ['ready', 'needs_you'].includes(appStatus(a)));
+}
+
+/** Step of the run for the stepper: 0 fill, 1 review, 2 submit, 3 done. */
+export function runStep(stage: RunStage): number {
+  return stage === 'filling' ? 0 : stage === 'review' ? 1 : stage === 'submitting' ? 2 : 3;
+}
+
 export function countByStatus(state: RunState): Record<AppStatus, number> {
   const counts = { queued: 0, filling: 0, ready: 0, needs_you: 0, failed: 0, skipped: 0, submitting: 0, submitted: 0, not_submitted: 0 } as Record<AppStatus, number>;
   for (const a of state.apps) counts[appStatus(a)]++;

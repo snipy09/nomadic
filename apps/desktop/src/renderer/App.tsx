@@ -4,7 +4,7 @@ import {
   TabType, ThemeMode, MasterProfile, HeartbeatStatus, AppUser, getApi, PersonaTrack, WorkspaceMode
 } from './types';
 import { Onboarding } from './features/onboarding/Onboarding';
-import { AppShell, useTheme } from '@nomadic/ui';
+import { AppShell, Button, EmptyState, useTheme } from '@nomadic/ui';
 import { TopBar } from './components/TopBar';
 import { Sidebar } from './components/Sidebar';
 import { LearnView } from './features/learn/LearnView';
@@ -20,6 +20,7 @@ import { AdminView } from './features/admin/AdminView';
 import { AuthScreen } from './features/auth/AuthScreen';
 import { useSessionRestore } from './features/auth/useSessionRestore';
 import { HelpView } from './features/help/HelpView';
+import { AnswersView } from './features/answers/AnswersView';
 import { UpdateRequiredScreen } from './features/updates/UpdateRequiredScreen';
 import { WhatsNewDialog } from './features/updates/WhatsNewDialog';
 import { useUpdatePolicy } from './features/updates/useUpdater';
@@ -471,34 +472,33 @@ export default function App() {
             )}
 
             {activeTab === 'logs' && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-base font-extrabold text-slate-950 dark:text-white">Live Activity Stream</h2>
-                    <p className="text-xs text-slate-500">Real-time automation logs and scraper activity.</p>
+                    <h1 className="text-heading font-strong text-fg">Activity</h1>
+                    <p className="text-body text-fg-muted">What Nomadic did during this session: applications, sync and learning.</p>
                   </div>
-                  <button
-                    onClick={() => setLogs([])}
-                    className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
-                  >
-                    Clear Logs
-                  </button>
+                  <Button size="sm" variant="secondary" disabled={logs.length === 0} onClick={() => setLogs([])}>
+                    Clear
+                  </Button>
                 </div>
-                <div className="bg-slate-950 text-slate-300 font-mono text-xs p-4 rounded-2xl border border-slate-800 space-y-1.5 max-h-[600px] overflow-y-auto">
-                  {logs.length === 0 ? (
-                    <div className="text-slate-600">No activity logged yet. Start scraping or exploring roadmaps.</div>
-                  ) : (
-                    logs.map((lg, i) => (
-                      <div key={i} className="leading-relaxed border-b border-slate-900 pb-1">
-                        {lg}
-                      </div>
-                    ))
-                  )}
-                </div>
+                {logs.length === 0 ? (
+                  <EmptyState bordered title="No activity yet" description="Apply to a job or open a lesson and the steps show up here." />
+                ) : (
+                  <ol className="max-h-[600px] overflow-y-auto rounded-md border border-line bg-surface font-mono text-caption text-fg-muted">
+                    {logs.map((lg, i) => (
+                      <li key={i} className="border-b border-line px-4 py-2 leading-relaxed last:border-b-0">{lg}</li>
+                    ))}
+                  </ol>
+                )}
               </div>
             )}
 
             {activeTab === 'help' && <HelpView />}
+
+            {activeTab === 'answers' && (
+              <AnswersView profile={profile} onSaveProfile={handleSaveProfile} saving={savingProfile} onLog={addLog} />
+            )}
 
             {(activeTab === 'profile' || activeTab === 'settings') && (
               <ProfileView
@@ -519,7 +519,7 @@ export default function App() {
             )}
 
             {/* Safe Fallback: if activeTab does not match any known route, render FeedView */}
-            {!['learner-roadmaps', 'learner-resources', 'learner-interview-prep', 'opportunities', 'feed', 'outreach', 'applications', 'logs', 'profile', 'settings'].includes(activeTab) && !Boolean(activeTab && activeTab.startsWith('admin')) && (
+            {!['learner-roadmaps', 'learner-resources', 'learner-interview-prep', 'opportunities', 'feed', 'outreach', 'applications', 'logs', 'help', 'answers', 'profile', 'settings'].includes(activeTab) && !Boolean(activeTab && activeTab.startsWith('admin')) && (
               <FeedView
                 profile={profile}
                 onUpdateProfile={setProfile}

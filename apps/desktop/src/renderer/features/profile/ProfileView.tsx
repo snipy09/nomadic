@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, ArrowDownToLine, BookOpen, CheckCircle2, Database, FileText, Globe, Save, Settings2, ShieldCheck, User } from 'lucide-react';
-import { Badge, Button, NavItem, NavSection, ProgressRing, useToast } from '@nomadic/ui';
+import { Badge, Button, NavItem, NavScope, NavSection, ProgressRing, useToast } from '@nomadic/ui';
 import { prefs } from '../../store/preferences';
 import type { AppUser, MasterProfile, TabType } from '../../types';
 import { completeness, toForm, toMasterProfile, validate, type ProfileForm } from './profileForm';
@@ -37,7 +37,7 @@ interface ProfileViewProps {
 
 const fromSaved = () => ({ workspaceMode: prefs.getWorkspaceMode(), opportunityType: prefs.getOppType() });
 
-export const ProfileView: React.FC<ProfileViewProps> = ({ profile, onSaveProfile, onLog, currentUser, onLogout, onRerunOnboarding, onOpenUpgrade }) => {
+export const ProfileView: React.FC<ProfileViewProps> = ({ profile, onSaveProfile, onLog, currentUser, onLogout, onRerunOnboarding, onOpenUpgrade, onNavigateTab }) => {
   const { toast } = useToast();
   const [section, setSection] = useState<Section>('profile');
   const [form, setForm] = useState<ProfileForm>(() => toForm(profile, currentUser, fromSaved()));
@@ -103,18 +103,20 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile, onSaveProfile
       </header>
       <div className="flex min-h-0 flex-1">
         <nav aria-label="Settings sections" className="w-52 shrink-0 overflow-y-auto border-r border-line bg-surface p-2">
-          <NavSection>
-            {NAV.map((n) => (
-              <NavItem key={n.id} label={n.label} icon={n.icon} active={section === n.id} onClick={() => setSection(n.id)} />
-            ))}
-          </NavSection>
+          <NavScope>
+            <NavSection>
+              {NAV.map((n) => (
+                <NavItem key={n.id} label={n.label} icon={n.icon} active={section === n.id} onClick={() => setSection(n.id)} />
+              ))}
+            </NavSection>
+          </NavScope>
         </nav>
         <div className="min-w-0 flex-1 overflow-y-auto p-6">
           <div className="mx-auto flex max-w-3xl flex-col gap-4">
             {section === 'profile' && (<><PersonalSection {...props} /><TargetingSection {...props} /></>)}
             {section === 'preferences' && <PreferencesSection {...props} />}
             {section === 'resumes' && <ResumesSection state={resumes} targetRole={form.targetRole} />}
-            {section === 'answers' && <AnswersSection {...props} />}
+            {section === 'answers' && <AnswersSection {...props} onOpenAnswers={onNavigateTab ? () => onNavigateTab('answers') : undefined} />}
             {section === 'portals' && <PortalsSection />}
             {section === 'account' && <AccountSection user={currentUser} onLogout={onLogout} onRerunOnboarding={onRerunOnboarding} onOpenUpgrade={onOpenUpgrade} />}
             {section === 'data' && (<><CrashReportsCard /><DataSafetyPanel accountEmail={currentUser?.email} onAccountDeleted={() => onLogout?.()} /></>)}

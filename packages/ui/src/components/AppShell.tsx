@@ -20,6 +20,13 @@ export interface AppShellProps extends Omit<React.HTMLAttributes<HTMLDivElement>
 const ShellContext = React.createContext<{ collapsed: boolean }>({ collapsed: false });
 export const useAppShell = () => React.useContext(ShellContext);
 
+const EXPANDED = { collapsed: false };
+
+/** Keeps NavItems inside page content (e.g. a settings sub-nav) labelled when the main sidebar is collapsed. */
+export function NavScope({ children }: { children: React.ReactNode }) {
+  return <ShellContext.Provider value={EXPANDED}>{children}</ShellContext.Provider>;
+}
+
 /**
  * Desktop app frame: sidebar + top bar + scrolling main region, with a skip link
  * and landmark roles. Fills its parent; give the parent a height (e.g. h-screen).

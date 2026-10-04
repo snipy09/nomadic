@@ -1,7 +1,7 @@
 # Nomadic: complete project context
 
 Read this first. It is the single source of context for anyone (person or AI assistant) working on this repo.
-Last full update: 4 October 2026. Keep it current when something important changes.
+Last full update: 4 October 2026 (v1.0.12). Keep it current when something important changes.
 New session or new assistant account? Read sections 9–11 at the end first (handoff state, how to build and test,
 how the owner wants work done).
 
@@ -134,7 +134,9 @@ and quotas, F10 data safety, F11 updates/telemetry/help, F12 admin, F14 landing 
 F13 (Outreach, Opportunity Board, Resource Vault, Assistant) stays hidden; Outreach and the Assistant still call AI
 directly and need rework or removal.
 
-Tests: ~1,084 vitest tests pass (105 files); typecheck, lint (0 errors, ~200 warnings) and desktop/web builds pass.
+Tests: 1,172 vitest tests pass (113 files; run with `--maxWorkers=2 --testTimeout=30000` on this laptop, the default
+parallelism times out component tests, and the three Chrome DOM suites can time out closing Chrome in `afterAll`);
+typecheck, lint (0 errors, ~190 warnings) and desktop/web builds pass.
 The built Electron app has been smoke-tested over CDP (window, live feed via IPC, Learn, Settings, Help, Activity, Admin
 screens). The owner has signed in on the packaged v1.0.6 app and run apply up to the review screen on a real Lever form
 (4 Oct 2026). **Not yet verified live: Google sign-in end to end, an actual reviewed submission, AI feedback.**
@@ -167,7 +169,8 @@ migration 6), feed match uses Learn mastery, mid-form cancel in apply (AbortSign
 sets gated in main by the server plan, payment history with receipts (025), no Max downgrade on payment (024),
 India region filter + laptop runner for the scraper, CI green. Answers typed during apply review are remembered
 locally (by question fingerprint and label, `services/form-answers.ts`, local migration 7 cleared the old store) and
-pre-filled on later forms; model-written answers are never stored. "Continue with Google" opens the terms first if
+pre-filled on later forms; model-written answers are never stored. They are listed, edited and forgotten on the
+Answers page (v1.0.12), which also holds the common application answers drafted during onboarding. "Continue with Google" opens the terms first if
 they are not accepted, then continues. Sandbox fallback (`main/sandbox-fallback.ts`, v1.0.9): when any sandboxed
 child (GPU, utility or renderer; `child-process-gone` and `render-process-gone`) exits with STATUS_DLL_NOT_FOUND, the
 app writes `%APPDATA%\Nomadic\sandbox-fallback.json` for this app version and restarts without the sandbox; later
@@ -212,8 +215,16 @@ Assistant still call AI directly); OS notification for due follow-ups (today an 
   Last commit of the session: "feat(apply): fill applications in the user's own browser".
 - Untracked on purpose, never stage: `brag-output*/`, `reel*/`, `showreel/` (local marketing renders) and `.claude/`
   (local assistant settings and `launch.json`; its notes are folded into section 10).
-- Delivered build: `Nomadic-v1.0.11-portable.exe` in `C:\Users\sajal\Downloads` and `Desktop\Nomadic-v1\`
-  (built from `apps/desktop/dist-electron/Nomadic.1.0.11.exe`; 1.0.11 fixes new Greenhouse boards (phantom
+- Delivered build: `Nomadic-v1.0.12-portable.exe` in `C:\Users\sajal\Downloads` and `Desktop\Nomadic-v1\`
+  (built from `apps/desktop/dist-electron/Nomadic.1.0.12.exe`; 1.0.12 adds the AI onboarding (seven steps: about →
+  links → resume → target → answers → workspace → roadmap; resume/LinkedIn PDF text read locally by
+  `services/document-text.ts` with unpdf, external in `build-main.mjs`; drafts for common application questions via
+  `services/profile-drafts.ts` → ai-proxy `form_answers`, never auto-saved), the **Answers** page (sidebar tab
+  `answers`, `renderer/features/answers/`: common questions from `shared/applicationAnswers.ts` stored in
+  `customAnswers` under `__app_<id>` keys, the user's own Q&A, and remembered apply answers that can be edited,
+  forgotten or cleared), 5 IPC channels (`readDocumentText`, `draftProfileAnswers`, `listRememberedAnswers`,
+  `updateRememberedAnswer`, `clearRememberedAnswers`), the Learn activity heatmap, the job board redesign, the logo
+  inside the collapsible sidebar, and apply polish; 1.0.11 fixes new Greenhouse boards (phantom
   "Unlabelled field" inputs behind react-select, preferred name, country questions, yes/no questions no longer read as
   profile facts, upload groups named by their group label, uploads that swap the input for the file name), saves
   Location/Country/Preferred name/Portfolio/Years in `custom_answers_json` under reserved `__profile_*` keys

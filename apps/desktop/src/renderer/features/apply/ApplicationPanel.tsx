@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, CheckCircle2, RotateCcw } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronRight, RotateCcw } from 'lucide-react';
 import { Badge, Button, Checkbox, Spinner, cn } from '@nomadic/ui';
 import { FieldRow } from './FieldRow';
 import {
@@ -27,30 +27,43 @@ export function StatusBadge({ app }: { app: RunApp }) {
   return <Badge tone={meta.tone} dot>{meta.label}</Badge>;
 }
 
+const RECENT = 5;
+
+/** Calm progress while a form fills: one status line, counts, and only the latest few fields. */
 function LiveProgress({ app }: { app: RunApp }) {
+  const filled = app.live.filter((f) => f.state === 'filled').length;
+  const needs = app.live.length - filled;
+  const recent = app.live.slice(-RECENT).reverse();
+  const earlier = app.live.length - recent.length;
   return (
-    <section aria-label="Filling progress" className="flex flex-col gap-3">
-      <div className="flex items-center gap-2 text-body text-fg-muted" role="status" aria-live="polite">
+    <section aria-label="Filling progress" className="flex flex-col gap-3 rounded-lg border border-line bg-surface-sunken p-4">
+      <div className="flex items-center gap-2 text-body text-fg" role="status" aria-live="polite">
         <Spinner size="sm" label={null} />
-        <span>{app.phase === 'queued' ? 'Waiting for the previous form to finish' : app.activity || 'Opening the application form'}</span>
+        <span className="min-w-0 truncate">{app.phase === 'queued' ? 'Waiting for the previous form to finish' : app.activity || 'Opening the application form'}</span>
       </div>
+      {app.live.length > 0 && (
+        <p className="text-caption text-fg-muted">
+          <span className="font-strong text-success-fg">{filled} filled</span>
+          {needs > 0 && <> · <span className="font-strong text-warning-fg">{needs} for you to answer in review</span></>}
+        </p>
+      )}
       {app.waitingOnUser && (
         <p className="rounded-md border border-warning/50 bg-warning-subtle/40 px-3 py-2 text-body text-fg">
           The portal needs you in the browser window: {app.waitingOnUser}
         </p>
       )}
-      {app.live.length > 0 && (
+      {recent.length > 0 && (
         <ul className="flex flex-col gap-1" aria-label="Fields filled so far">
-          {app.live.map((f) => (
-            <li key={f.key} className="flex items-baseline gap-2 text-caption">
-              <span className={cn('shrink-0', f.state === 'filled' ? 'text-success-fg' : 'text-warning-fg')}>
-                {f.state === 'filled' ? 'Filled' : f.state === 'needs_user' ? 'Needs you' : 'Could not fill'}
-              </span>
+          {recent.map((f, i) => (
+            <li key={f.key} className={cn('flex items-baseline gap-2 text-caption transition-opacity', i > 0 && 'opacity-70')}>
+              <span className={cn('size-1.5 shrink-0 translate-y-[-1px] rounded-full', f.state === 'filled' ? 'bg-success' : 'bg-warning')} aria-hidden="true" />
+              <span className="sr-only">{f.state === 'filled' ? 'Filled' : f.state === 'needs_user' ? 'Needs you' : 'Could not fill'}</span>
               <span className="min-w-0 truncate text-fg">{f.label}</span>
               {f.state === 'filled' && f.value && <span className="min-w-0 truncate text-fg-muted">{f.value}</span>}
-              {f.source && <span className="shrink-0 text-fg-subtle">{SOURCE_LABEL[f.source]}</span>}
+              {f.source && <span className="ml-auto shrink-0 text-fg-subtle">{SOURCE_LABEL[f.source]}</span>}
             </li>
           ))}
+          {earlier > 0 && <li className="text-caption text-fg-subtle">and {earlier} earlier</li>}
         </ul>
       )}
     </section>
@@ -136,8 +149,12 @@ export function ApplicationPanel({ app, stage, onEdit, onApprove, onSkip, onRetr
       )}
 
       {rest.length > 0 && (
-        <section aria-label="Filled fields" className="flex flex-col gap-2">
-          <h4 className="text-caption font-strong text-fg">Filled by Nomadic ({rest.length})</h4>
+        <details open aria-label="Filled fields" className="group/filled flex flex-col gap-2">
+          <summary className="mb-2 flex cursor-pointer list-none items-center gap-1.5 rounded text-caption font-strong text-fg outline-none focus-visible:ring-2 focus-visible:ring-accent">
+            <ChevronRight className="size-3.5 transition-transform duration-fast group-open/filled:rotate-90" aria-hidden="true" />
+            Filled by Nomadic ({rest.length})
+            <span className="font-normal text-fg-subtle">· check each answer</span>
+          </summary>
           <ul className="flex flex-col gap-2">
             {rest.map((f, i) => (
               <FieldRow
@@ -151,7 +168,7 @@ export function ApplicationPanel({ app, stage, onEdit, onApprove, onSkip, onRetr
               />
             ))}
           </ul>
-        </section>
+        </details>
       )}
 
       {reviewing && app.snapshot && (

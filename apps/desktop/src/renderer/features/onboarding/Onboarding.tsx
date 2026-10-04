@@ -1,14 +1,18 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { AlertCircle, ArrowLeft, ArrowRight, Check, X } from 'lucide-react';
-import { Badge, Button, Card, Field, Input, NomadicMark, RadioGroup } from '@nomadic/ui';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { AlertCircle, ArrowLeft, ArrowRight, Check, FileText, Github, Globe, Linkedin, RefreshCw, Sparkles, X } from 'lucide-react';
+import { Badge, Button, Card, Field, Input, NomadicMark, RadioGroup, Spinner } from '@nomadic/ui';
 import { getApi, type AppUser, type MasterProfile } from '../../types';
 import { prefs } from '../../store/preferences';
 import { toForm, type ProfileForm } from '../profile/profileForm';
 import { useResumes } from '../profile/useResumes';
 import { ResumesSection } from '../profile/sections';
 import {
-  ROLE_OPTIONS, SKIPPABLE, STEPS, buildOnboardingProfile, roadmapRoleFor, stepErrors, suggestedSkills, toggleSkill, type StepId,
+  ROLE_OPTIONS, SKIPPABLE, STEPS, applyResumeFacts, buildOnboardingProfile, roadmapRoleFor, stepErrors, suggestedSkills, toggleSkill, type StepId,
 } from './onboardingLogic';
+import { APP_ANSWERS, readAppAnswers, writeAppAnswers } from '../../../shared/applicationAnswers';
+import { AppAnswerFields } from '../answers/AppAnswerFields';
+import { extractResumeFacts, mergeMissing } from '../answers/resumeFacts';
+import { useAnswerDrafts, useDocumentReader } from '../answers/useAnswerDrafts';
 import { GoalFields, PlanPreview, type GoalDraft } from '../learn/GoalFields';
 import { isRoleId, skillIdsFromNames } from '../learn/content';
 import { DEFAULT_HORIZON, DEFAULT_PACE, selfReportedEvents, selfReportedMastery } from '../learn/learnLogic';
@@ -46,10 +50,83 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
   const resumes = useResumes();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const firstRender = useRef(true);
+  // Documents read on this computer: resume and an optional LinkedIn "Save to PDF" export.
+  const [docs, setDocs] = useState<{ resume?: { text: string; name?: string; id: number }; linkedin?: { text: string; name?: string } }>({});
+  const [found, setFound] = useState<string | null>(null);
+  const [appValues, setAppValues] = useState<Record<string, string>>(() => readAppAnswers(initialProfile.customAnswers as Record<string, string>));
+  const [drafted, setDrafted] = useState<Set<string>>(new Set());
+  const draftedOnce = useRef(false);
+  const reader = useDocumentReader();
+  const drafts = useAnswerDrafts();
 
   const step: StepId = STEPS[stepIndex].id;
   const isLast = stepIndex === STEPS.length - 1;
   const errors = showErrors ? stepErrors(step, form) : {};
+  const docText = [docs.resume?.text, docs.linkedin?.text].filter(Boolean).join('\n\n');
+  const defaultResume = resumes.resumes.find((r) => r.isDefault) ?? resumes.resumes[0];
+
+  const absorb = useCallback((text: string, source: string) => {
+    const facts = extractResumeFacts(text);
+    setForm((f) => applyResumeFacts(f, facts));
+    const ids = Object.keys(facts.answers);
+    setAppValues((v) => {
+      const next = mergeMissing(v, facts.answers);
+      setDrafted((d) => new Set([...d, ...ids.filter((id) => !v[id]?.trim())]));
+      return next;
+    });
+    const bits = [
+      [facts.linkedin, facts.github, facts.portfolio].filter(Boolean).length && `${[facts.linkedin, facts.github, facts.portfolio].filter(Boolean).length} link(s)`,
+      facts.phone && 'your phone',
+      facts.skills.length && `${facts.skills.length} skill(s)`,
+      ids.length && `${ids.length} education or work detail(s)`,
+    ].filter(Boolean);
+    setFound(bits.length ? `From your ${source}: ${bits.join(', ')}. Check them on the next steps.` : `Read your ${source}. Nothing to fill in automatically; Nomadic AI will use it on the Answers step.`);
+  }, []);
+
+  const readResume = useCallback(async (id: number) => {
+    const res = await reader.read(id);
+    if (!res) return;
+    setDocs((d) => ({ ...d, resume: { text: res.text, name: res.fileName, id } }));
+    absorb(res.text, 'resume');
+  }, [reader, absorb]);
+
+  const readLinkedIn = async () => {
+    const res = await reader.read();
+    if (!res) return;
+    setDocs((d) => ({ ...d, linkedin: { text: res.text, name: res.fileName } }));
+    absorb(res.text, 'LinkedIn PDF');
+  };
+
+  // A newly added default resume is read straight away (on this computer, no AI).
+  const defaultResumeId = defaultResume?.id;
+  useEffect(() => {
+    if (step !== 'resume' || defaultResumeId === undefined || docs.resume?.id === defaultResumeId) return;
+    if (!getApi()?.readDocumentText) return;
+    void readResume(defaultResumeId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, defaultResumeId]);
+
+  const runDrafts = useCallback(async () => {
+    const ids = APP_ANSWERS.filter((d) => d.aiDraft && !appValues[d.id]?.trim()).map((d) => d.id);
+    const got = await drafts.draft(ids, {
+      name: form.fullName, desiredTitle: form.targetRole, skills: form.skills.join(', '), location: form.location, documentText: docText,
+    });
+    if (!got) return;
+    setAppValues((v) => mergeMissing(v, got));
+    setDrafted((d) => new Set([...d, ...Object.keys(got)]));
+  }, [appValues, drafts, form.fullName, form.targetRole, form.skills, form.location, docText]);
+
+  // Entering the Answers step with a document read: Nomadic AI drafts the empty answers once.
+  useEffect(() => {
+    if (step !== 'answers' || draftedOnce.current || !docText || !getApi()?.draftProfileAnswers) return;
+    draftedOnce.current = true;
+    void runDrafts();
+  }, [step, docText, runDrafts]);
+
+  const setAnswer = (id: string, value: string) => {
+    setAppValues((v) => ({ ...v, [id]: value }));
+    setDrafted((d) => { if (!d.has(id)) return d; const n = new Set(d); n.delete(id); return n; });
+  };
 
   // Move focus to the new step's heading so keyboard and screen-reader users land on it.
   useEffect(() => {
@@ -96,7 +173,8 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
           if (!rec?.success) throw new Error(rec?.error || 'Your roadmap could not be saved.');
         }
       }
-      const profile = buildOnboardingProfile(form, initialProfile, resumes.resumes);
+      const base = docText ? { ...initialProfile, resumeText: docText.slice(0, 50_000) } : initialProfile;
+      const profile = buildOnboardingProfile(form, base, resumes.resumes);
       const res = await api.saveMasterProfile({
         ...profile,
         customAnswersJson: JSON.stringify(profile.customAnswers || {}),
@@ -119,6 +197,8 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
       document.getElementById(`onb-${first}`)?.focus();
       return;
     }
+    // Answers are saved only when the user continues from the Answers step (skipping keeps them out).
+    if (step === 'answers') set('answers', writeAppAnswers(form.answers, Object.fromEntries(APP_ANSWERS.map((d) => [d.id, appValues[d.id] ?? '']))));
     if (isLast) void finish(true);
     else goTo(stepIndex + 1);
   };
@@ -127,7 +207,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
 
   return (
     <main className="flex min-h-screen items-start justify-center overflow-y-auto bg-canvas p-4 text-fg sm:items-center">
-      <Card variant="raised" className="w-full max-w-xl">
+      <Card variant="raised" className={`w-full ${step === 'answers' ? 'max-w-3xl' : 'max-w-xl'}`}>
         <header className="flex flex-col gap-3 border-b border-line px-6 pb-4 pt-5">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -180,6 +260,61 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
                   <Input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} autoComplete="tel" />
                 </Field>
               </div>
+            </>
+          )}
+
+          {step === 'links' && (
+            <>
+              <StepHeading
+                ref={headingRef}
+                title="Add your links"
+                description="These links help improve your chances of getting hired: recruiters open them to see your work, and many forms ask for them. Nomadic adds them to every application."
+              />
+              <div className="flex flex-col gap-4">
+                <Field label="LinkedIn profile" error={errors.linkedin} id="onb-linkedin" hint="Most recruiters check LinkedIn first.">
+                  <Input value={form.linkedin} onChange={(e) => set('linkedin', e.target.value)} leftIcon={<Linkedin />} placeholder="linkedin.com/in/your-name" autoFocus />
+                </Field>
+                <Field label="GitHub" error={errors.github} id="onb-github" hint="Shows the code behind your projects.">
+                  <Input value={form.github} onChange={(e) => set('github', e.target.value)} leftIcon={<Github />} placeholder="github.com/your-name" />
+                </Field>
+                <Field label="Portfolio or website" error={errors.portfolio} id="onb-portfolio" hint="Optional: a personal site, Behance, Kaggle or a project demo.">
+                  <Input value={form.portfolio} onChange={(e) => set('portfolio', e.target.value)} leftIcon={<Globe />} placeholder="your-name.dev" />
+                </Field>
+              </div>
+            </>
+          )}
+
+          {step === 'answers' && (
+            <>
+              <StepHeading
+                ref={headingRef}
+                title="Answers for applications"
+                description="Most forms ask these. Answer once and Nomadic fills them on every application. Change them any time on the Answers page."
+              />
+              {drafts.busy ? (
+                <div role="status" className="flex items-center gap-2 rounded-md border border-line bg-surface-sunken px-3 py-2 text-body text-fg-muted">
+                  <Spinner size="sm" /> Nomadic AI is reading your resume and drafting answers…
+                </div>
+              ) : drafts.error ? (
+                <div role="alert" className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning-subtle px-3 py-2 text-body text-warning-fg">
+                  <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                  <span className="flex-1">{drafts.error} You can type the answers yourself.</span>
+                  {docText && <Button size="sm" variant="ghost" leftIcon={<RefreshCw />} onClick={() => void runDrafts()}>Try again</Button>}
+                </div>
+              ) : drafted.size > 0 ? (
+                <p className="flex items-center gap-2 text-caption text-fg-muted">
+                  <Sparkles className="size-3.5 text-accent" aria-hidden="true" />
+                  Answers marked "Draft" came from your resume. Check each one; nothing is used until you continue.
+                </p>
+              ) : !docText ? (
+                <p className="text-caption text-fg-muted">Add your resume on the Resume step and Nomadic AI drafts these for you.</p>
+              ) : null}
+              <AppAnswerFields values={appValues} onChange={setAnswer} drafted={drafted} idPrefix="onb-ans" />
+              {docText && !drafts.busy && (
+                <div>
+                  <Button size="sm" variant="secondary" leftIcon={<Sparkles />} onClick={() => void runDrafts()}>Draft empty answers with AI</Button>
+                </div>
+              )}
             </>
           )}
 
@@ -262,6 +397,37 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
             <>
               <StepHeading ref={headingRef} title="Add your resume" description="Nomadic attaches your default resume when you apply. You can skip this and add one later in Profile." />
               <ResumesSection state={resumes} targetRole={form.targetRole} />
+              <div className="flex flex-col gap-3 rounded-md border border-line bg-surface-sunken p-4">
+                <div className="flex items-start gap-2">
+                  <Sparkles className="mt-0.5 size-4 shrink-0 text-accent" aria-hidden="true" />
+                  <p className="text-body text-fg-muted">
+                    Nomadic reads your resume and your LinkedIn PDF on this computer to fill your profile and draft answers. On LinkedIn, open your profile, choose More, then Save to PDF.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    leftIcon={<FileText />}
+                    disabled={!defaultResume}
+                    loading={reader.reading && !docs.linkedin}
+                    onClick={() => defaultResume && void readResume(defaultResume.id)}
+                  >
+                    {docs.resume ? 'Read resume again' : 'Read my resume'}
+                  </Button>
+                  <Button size="sm" variant="secondary" leftIcon={<Linkedin />} onClick={() => void readLinkedIn()} disabled={reader.reading}>
+                    {docs.linkedin ? 'Replace LinkedIn PDF' : 'Add LinkedIn PDF'}
+                  </Button>
+                </div>
+                {(docs.resume || docs.linkedin) && (
+                  <ul className="flex flex-wrap gap-1.5" aria-label="Documents read">
+                    {docs.resume && <li><Badge tone="success" className="gap-1"><Check className="size-3" aria-hidden="true" />{docs.resume.name ?? 'Resume'}</Badge></li>}
+                    {docs.linkedin && <li><Badge tone="success" className="gap-1"><Check className="size-3" aria-hidden="true" />{docs.linkedin.name ?? 'LinkedIn PDF'}</Badge></li>}
+                  </ul>
+                )}
+                {found && <p role="status" className="text-caption text-fg-muted">{found}</p>}
+                {reader.error && <p role="alert" className="text-caption text-danger-fg">{reader.error}</p>}
+              </div>
             </>
           )}
 

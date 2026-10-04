@@ -1,9 +1,9 @@
 import React from 'react';
 import {
   PanelLeftClose, PanelLeft, BookOpen, MessageSquare, Settings as SettingsIcon, LifeBuoy,
-  Briefcase, Mail, LayoutGrid, Shield, Compass, Target, TrendingUp,
+  Briefcase, Mail, LayoutGrid, Shield, Compass, Target, TrendingUp, MessageSquareText,
 } from 'lucide-react';
-import { NavItem, NavSection, IconButton, Badge, useAppShell } from '@nomadic/ui';
+import { NavItem, NavSection, IconButton, Badge, NomadicLogo, NomadicMark, useAppShell } from '@nomadic/ui';
 import { TabType, AppUser, PersonaTrack } from '../types';
 import { getTierDisplayName } from '../utils/tier-utils';
 import { isTabEnabled } from '../features';
@@ -56,6 +56,7 @@ export const NAV: Record<PersonaTrack, SectionDef[]> = {
         { id: 'opportunities', label: 'Opportunities', icon: Target },
         { id: 'outreach', label: 'Outreach', icon: Mail },
         { id: 'applications', label: 'Tracking', icon: LayoutGrid },
+        { id: 'answers', label: 'Answers', icon: MessageSquareText },
       ],
     },
     SYSTEM,
@@ -76,9 +77,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab, curren
   const sections = getNavSections(activeTrack, currentUser?.role === 'admin');
   const tier = getTierDisplayName(currentUser?.tier || currentUser?.subscription_tier);
 
+  const home: TabType = activeTrack === 'learner' ? 'learner-roadmaps' : 'feed';
+
   return (
-    <div className="flex h-full min-h-0 flex-col justify-between">
-      <div className="flex flex-col gap-1 overflow-y-auto p-2">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className={`flex h-12 shrink-0 items-center border-b border-line ${collapsed ? 'justify-center' : 'px-4'}`}>
+        <button
+          type="button"
+          onClick={() => onSelectTab(home)}
+          aria-label="Nomadic home"
+          className="flex items-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          {collapsed
+            ? <NomadicMark title={null} className="h-6" />
+            : <NomadicLogo title={null} className="h-5" />}
+        </button>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-2">
         {sections.map((section) => (
           <NavSection key={section.title} title={section.title}>
             {section.items.map(({ id, label, icon: Icon }) => (

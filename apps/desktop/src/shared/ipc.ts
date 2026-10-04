@@ -89,6 +89,53 @@ export interface PickResumeFileResult {
   fileName?: string;
 }
 
+/** Reads a saved resume (`resumeId`) or, without one, a PDF/TXT the user picks (e.g. a LinkedIn "Save to PDF"). */
+export interface DocumentTextInput {
+  resumeId?: number;
+}
+
+export interface DocumentTextResult {
+  success: boolean;
+  text?: string;
+  fileName?: string;
+  canceled?: boolean;
+  error?: string;
+}
+
+/** Facts the AI may draft from; nothing else about the candidate is sent. */
+export interface DraftAnswersInput {
+  /** Ids from `APP_ANSWERS` (shared/applicationAnswers.ts) that allow AI drafts. */
+  ids: string[];
+  candidate: {
+    name?: string;
+    desiredTitle?: string;
+    skills?: string;
+    location?: string;
+    /** Resume and LinkedIn text. */
+    documentText?: string;
+  };
+}
+
+export interface DraftAnswersResult {
+  success: boolean;
+  /** Drafts by id; ids the AI could not answer from the facts are left out. */
+  answers?: Record<string, string>;
+  code?: AiErrorCode;
+  error?: string;
+}
+
+export interface RememberedAnswer {
+  key: string;
+  answer: string;
+  createdAt: string;
+}
+
+export interface RememberedAnswerUpdate {
+  key: string;
+  /** null forgets the answer. */
+  answer: string | null;
+}
+
 export interface FeedJob {
   title: string;
   company: string;
@@ -847,6 +894,11 @@ export interface IpcChannels {
   'delete-resume': Channel<[id: number], SuccessResult>;
   'set-default-resume': Channel<[id: number], SuccessResult>;
   'pick-resume-file': Channel<[], PickResumeFileResult>;
+  'read-document-text': Channel<[input: DocumentTextInput], DocumentTextResult>;
+  'draft-profile-answers': Channel<[input: DraftAnswersInput], DraftAnswersResult>;
+  'remembered-answers-list': Channel<[], RememberedAnswer[]>;
+  'remembered-answers-update': Channel<[input: RememberedAnswerUpdate], SuccessResult>;
+  'remembered-answers-clear': Channel<[], SuccessResult>;
 
   // feed & saved jobs
   'run-scrapers': Channel<[], { success: boolean; jobs: FeedJob[]; error?: string }>;
@@ -953,7 +1005,8 @@ export const IPC_CHANNELS = [
   'updater-get-status', 'updater-check', 'updater-download', 'updater-install', 'updater-set-channel',
   'get-update-policy', 'whats-new-get', 'whats-new-dismiss', 'telemetry-get', 'telemetry-set', 'send-feedback',
   'get-master-profile', 'save-master-profile', 'get-resumes', 'save-resume', 'delete-resume',
-  'set-default-resume', 'pick-resume-file',
+  'set-default-resume', 'pick-resume-file', 'read-document-text', 'draft-profile-answers',
+  'remembered-answers-list', 'remembered-answers-update', 'remembered-answers-clear',
   'run-scrapers', 'get-cloud-feed-page', 'get-cloud-feed', 'get-saved-jobs', 'save-job', 'remove-saved-job',
   'get-hidden-jobs', 'hide-job', 'unhide-job',
   'get-applications', 'update-application-status', 'update-application-notes', 'update-application-follow-up', 'delete-application', 'save-application',
@@ -1003,6 +1056,11 @@ export interface NomadicApi {
   deleteResume: Invoke<'delete-resume'>;
   setDefaultResume: Invoke<'set-default-resume'>;
   pickResumeFile: Invoke<'pick-resume-file'>;
+  readDocumentText: Invoke<'read-document-text'>;
+  draftProfileAnswers: Invoke<'draft-profile-answers'>;
+  listRememberedAnswers: Invoke<'remembered-answers-list'>;
+  updateRememberedAnswer: Invoke<'remembered-answers-update'>;
+  clearRememberedAnswers: Invoke<'remembered-answers-clear'>;
   runScrapers: Invoke<'run-scrapers'>;
   getCloudFeed: Invoke<'get-cloud-feed'>;
   getCloudFeedPage: Invoke<'get-cloud-feed-page'>;

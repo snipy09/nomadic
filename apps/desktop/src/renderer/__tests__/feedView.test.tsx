@@ -42,7 +42,7 @@ describe('FeedView', () => {
     mockApi();
     renderFeed();
     expect(await screen.findByText('Frontend Developer')).toBeTruthy();
-    expect(screen.getAllByText(/% match/).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('progressbar', { name: /% match/ }).length).toBeGreaterThan(0);
   });
 
   it('shows an error state with retry when the feed fails', async () => {
@@ -152,6 +152,6 @@ describe('FeedView', () => {
     render(<QueryWrapper seed={entitlements()}><UIProvider><FeedView profile={{ ...profile, techStack: '' }} onLog={() => {}} currentUser={{ tier: 'pro' } as any} /></UIProvider></QueryWrapper>);
     await screen.findByText('Frontend Developer');
     await waitFor(() => expect(screen.queryByText(/add skills to your profile/i)).toBeNull());
-    expect(screen.getAllByText(/% match/).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('progressbar', { name: /% match/ }).length).toBeGreaterThan(0);
   });
 });

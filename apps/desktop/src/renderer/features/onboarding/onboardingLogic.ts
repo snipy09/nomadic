@@ -10,8 +10,10 @@ import { toMasterProfile, validate, type FieldErrors, type ProfileForm } from '.
 
 export const STEPS = [
   { id: 'about', label: 'About you' },
-  { id: 'target', label: 'Role and skills' },
+  { id: 'links', label: 'Links' },
   { id: 'resume', label: 'Resume' },
+  { id: 'target', label: 'Role and skills' },
+  { id: 'answers', label: 'Answers' },
   { id: 'workspace', label: 'Workspace' },
   { id: 'roadmap', label: 'Your roadmap' },
 ] as const;
@@ -19,15 +21,38 @@ export const STEPS = [
 export type StepId = (typeof STEPS)[number]['id'];
 
 /** Steps the user may skip: nothing on them is required to get value from the app. Skipping the last step finishes setup. */
-export const SKIPPABLE: ReadonlySet<StepId> = new Set<StepId>(['target', 'resume', 'roadmap']);
+export const SKIPPABLE: ReadonlySet<StepId> = new Set<StepId>(['links', 'target', 'resume', 'answers', 'roadmap']);
 
 const STEP_FIELDS: Record<StepId, Array<keyof FieldErrors>> = {
   about: ['fullName', 'email', 'phone'],
+  links: ['linkedin', 'github', 'portfolio'],
   target: [],
   resume: [],
+  answers: [],
   workspace: [],
   roadmap: [],
 };
+
+const MAX_RESUME_SKILLS = 15;
+
+/**
+ * The form with what a resume or LinkedIn export showed filled into empty slots only
+ * (what the user typed always wins). Skills found are added after the user's own, up to 15.
+ */
+export function applyResumeFacts(
+  form: ProfileForm,
+  facts: { phone?: string; linkedin?: string; github?: string; portfolio?: string; skills: string[] },
+): ProfileForm {
+  const next = { ...form };
+  if (!next.phone.trim() && facts.phone) next.phone = facts.phone;
+  if (!next.linkedin.trim() && facts.linkedin) next.linkedin = facts.linkedin;
+  if (!next.github.trim() && facts.github) next.github = facts.github;
+  if (!next.portfolio.trim() && facts.portfolio) next.portfolio = facts.portfolio;
+  const have = new Set(next.skills.map((s) => s.toLowerCase()));
+  const added = facts.skills.filter((s) => !have.has(s.toLowerCase())).slice(0, Math.max(0, MAX_RESUME_SKILLS - next.skills.length));
+  if (added.length) next.skills = [...next.skills, ...added];
+  return next;
+}
 
 /** Validation errors for the fields shown on one step. */
 export function stepErrors(step: StepId, form: ProfileForm): FieldErrors {

@@ -70,8 +70,8 @@ describe('password reset helpers', () => {
 });
 
 describe('onboarding steps', () => {
-  it('has five steps in order, ending on the roadmap', () => {
-    expect(STEPS.map((s) => s.id)).toEqual(['about', 'target', 'resume', 'workspace', 'roadmap']);
+  it('has seven steps in order, ending on the roadmap', () => {
+    expect(STEPS.map((s) => s.id)).toEqual(['about', 'links', 'resume', 'target', 'answers', 'workspace', 'roadmap']);
   });
 
   it('carries the picked role into the roadmap step', () => {

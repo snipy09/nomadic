@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Briefcase, ChevronLeft, ChevronRight, RefreshCw, Search, X } from 'lucide-react';
+import { Bookmark, Briefcase, ChevronLeft, ChevronRight, RefreshCw, Search, Sparkles, X } from 'lucide-react';
 import {
   Badge, Button, Card, EmptyState, IconButton, Input, Select, Skeleton, Tabs, TabsList, TabsTrigger, useToast,
 } from '@nomadic/ui';
@@ -9,7 +9,7 @@ import { prefs } from '../../store/preferences';
 import { useApplyRunner } from '../apply/useApplyRunner';
 import { feedLimit } from '../billing/billingLogic';
 import { useEntitlements } from '../billing/useEntitlements';
-import { filterAndSort, pageRange, withoutHidden, type FeedTab, type LocationFilter, type ScoredJob, type SortKey } from './feedLogic';
+import { HIGH_MATCH, filterAndSort, pageRange, withoutHidden, type FeedTab, type LocationFilter, type ScoredJob, type SortKey } from './feedLogic';
 import { combinedMastery, inferRole, matchJob, profileMastery } from './match';
 import { useLearnedMastery } from './useLearnedMastery';
 import { useFeed } from './useFeed';
@@ -85,6 +85,7 @@ export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, on
   const shown = limited ? visible.slice(0, limit) : localTab ? visible.slice((page - 1) * pageSize, page * pageSize) : visible;
   const totalPages = limited ? 1 : Math.max(1, Math.ceil((localTab ? visible.length : feed.total) / pageSize));
   const hasProfileSkills = Object.keys(mastery).length > 0;
+  const strongCount = useMemo(() => shown.filter((j) => (j.match?.score ?? 0) >= HIGH_MATCH).length, [shown]);
 
   const toggleSave = useCallback(async (job: Job) => {
     const was = feed.isSaved(job);
@@ -113,15 +114,31 @@ export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, on
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-4 pb-24">
-      <header className="flex flex-wrap items-center gap-3">
+      <header className="flex flex-wrap items-end gap-3">
         <div className="mr-auto">
-          <h1 className="text-title font-strong text-fg">Job board</h1>
-          <p className="text-caption text-fg-subtle">
-            {feed.loading ? 'Loading…' : `${localTab ? visible.length : feed.total} openings`}{role ? ` · matched for ${role.replace('-', ' ')}` : ''}
+          <h1 className="text-headline font-strong text-fg">Job board</h1>
+          <p className="text-body text-fg-muted">
+            {role ? `Openings matched to your ${role.replace('-', ' ')} skills.` : 'Openings for students and freshers in India.'}
           </p>
         </div>
         <Button variant="secondary" size="sm" leftIcon={<RefreshCw />} loading={feed.loading} onClick={feed.refresh}>Refresh</Button>
       </header>
+
+      <dl className="grid grid-cols-3 gap-3" aria-label="Board summary">
+        {[
+          { label: 'Openings', value: feed.loading ? '…' : String(localTab ? visible.length : feed.total), icon: <Briefcase /> },
+          { label: `Strong matches on this page`, value: hasProfileSkills ? String(strongCount) : '–', icon: <Sparkles /> },
+          { label: 'Saved', value: String(feed.saved.length), icon: <Bookmark /> },
+        ].map((s) => (
+          <div key={s.label} className="flex items-center gap-3 rounded-lg border border-line bg-surface px-4 py-3">
+            <span className="flex size-9 items-center justify-center rounded-md bg-accent-subtle text-accent-subtle-fg [&_svg]:size-4" aria-hidden="true">{s.icon}</span>
+            <div className="flex min-w-0 flex-col-reverse">
+              <dt className="truncate text-caption text-fg-subtle">{s.label}</dt>
+              <dd className="text-title font-strong tabular-nums text-fg">{s.value}</dd>
+            </div>
+          </div>
+        ))}
+      </dl>
 
       {!hasProfileSkills && (
         <Card variant="sunken" padding="sm" className="text-caption text-fg-muted">
@@ -129,7 +146,7 @@ export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, on
         </Card>
       )}
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface p-2">
         <Input
           wrapperClassName="min-w-[240px] flex-1"
           leftIcon={<Search />}
@@ -153,7 +170,7 @@ export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, on
         />
       </div>
 
-      <Tabs variant="segmented" value={tab} onValueChange={(v) => setTab(v as FeedTab)}>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as FeedTab)}>
         <TabsList aria-label="Job filters" className="flex-wrap">
           {TABS.map((t) => <TabsTrigger key={t.id} value={t.id} count={t.id === 'saved' ? feed.saved.length : t.id === 'hidden' ? feed.hidden.length : undefined}>{t.label}</TabsTrigger>)}
         </TabsList>

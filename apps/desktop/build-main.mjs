@@ -116,6 +116,7 @@ async function build() {
       'playwright-core',
       'chromium-bidi',
       'chromium-bidi/*',
+      'unpdf',
     ],
     alias: {
       '@job-automator/automation': path.join(__dirname, '../../packages/automation/src/index.ts'),

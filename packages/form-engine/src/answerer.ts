@@ -19,6 +19,7 @@ import type { AnswerLlm, FormAnswerRequest } from './llm.js';
 import { GroqClient, isFormAnswerClient } from './llm.js';
 import { ensureResumeFile } from './resume-pdf.js';
 import { norm } from './dom.js';
+import { matchCommonQuestion } from './commonQuestions.js';
 
 export interface AnswerCache {
   get(fingerprint: string): string | undefined;
@@ -83,6 +84,12 @@ function lookupUserAnswer(field: FormField, fp: string, profile: MasterProfile, 
     for (const [k, v] of Object.entries(map)) {
       if (v && labelKey(k) === l) return { value: v, source: src };
     }
+  }
+  // The same question in other words ("Introduce yourself" = "Tell us about yourself").
+  if ((field.kind === 'text' || field.kind === 'textarea') && profile.commonAnswers) {
+    const q = matchCommonQuestion(field.label);
+    const v = q && profile.commonAnswers[q.id]?.trim();
+    if (v) return { value: v, source: 'custom' };
   }
   const c = cache?.get(fp);
   if (c) return { value: c, source: 'cache' };

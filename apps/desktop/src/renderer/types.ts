@@ -139,6 +139,7 @@ export type TabType =
   | 'home'
   | 'feed'
   | 'applications'
+  | 'answers'
   | 'outreach'
   | 'profile'
   | 'opportunities'
@@ -203,6 +204,11 @@ export interface ElectronAPI {
   deleteResume: (id: number) => Promise<{ success: boolean; error?: string }>;
   setDefaultResume: (id: number) => Promise<{ success: boolean; error?: string }>;
   pickResumeFile: () => Promise<{ canceled: boolean; filePath?: string; fileName?: string }>;
+  readDocumentText?: NomadicApi['readDocumentText'];
+  draftProfileAnswers?: NomadicApi['draftProfileAnswers'];
+  listRememberedAnswers?: NomadicApi['listRememberedAnswers'];
+  updateRememberedAnswer?: NomadicApi['updateRememberedAnswer'];
+  clearRememberedAnswers?: NomadicApi['clearRememberedAnswers'];
   runScrapers: () => Promise<{ success: boolean; jobs: Job[]; error?: string }>;
   getCloudFeed: (userId: string) => Promise<{ success: boolean; jobs: Job[]; error?: string }>;
   getCloudFeedPage?: (options?: { page?: number; pageSize?: number; search?: string; filterTab?: string; source?: string }) => Promise<{ success: boolean; jobs: Job[]; totalCount?: number; error?: string }>;

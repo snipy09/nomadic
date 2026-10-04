@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import initSqlJs from 'sql.js';
 import type { FieldOutcome, FormField } from '@job-automator/form-engine';
-import { answerKey, rememberedAnswers } from '../services/form-answers';
+import { answerKey, clearRememberedAnswers, listRememberedAnswers, rememberedAnswers, updateRememberedAnswer } from '../services/form-answers';
 
 const outcome = (label: string, extra: Partial<FormField> = {}): FieldOutcome => ({
   field: { id: label, kind: 'text', label, required: true, selector: '#x', frameIndex: 0, visible: true, ...extra },
@@ -47,5 +48,36 @@ describe('rememberedAnswers', () => {
   it('ignores fields the candidate did not answer', () => {
     expect(rememberedAnswers(undefined, [outcome('Current company')], key)).toEqual([]);
     expect(rememberedAnswers({}, [outcome('Current company')], key)).toEqual([]);
+  });
+});
+
+describe('remembered answers on the Answers page', () => {
+  let SQL: Awaited<ReturnType<typeof initSqlJs>>;
+  beforeAll(async () => { SQL = await initSqlJs(); });
+  const seed = () => {
+    const db = new SQL.Database();
+    db.run('CREATE TABLE cached_form_answers (id INTEGER PRIMARY KEY AUTOINCREMENT, question_key TEXT NOT NULL UNIQUE, answer_text TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)');
+    for (const [k, v] of [['q_0123456789abcdef', 'Acme'], ['current company', 'Acme'], ['notice period', '30 days'], ['q_fedcba9876543210', '30 days']]) {
+      db.run('INSERT INTO cached_form_answers (question_key, answer_text) VALUES (?, ?)', [k, v]);
+    }
+    return db;
+  };
+  const keys = (db: import('sql.js').Database) => db.exec('SELECT question_key FROM cached_form_answers ORDER BY question_key')[0]?.values.map((v) => v[0]) ?? [];
+
+  it('lists label rows only', () => {
+    expect(listRememberedAnswers(seed()).map((r) => [r.key, r.answer]).sort()).toEqual([['current company', 'Acme'], ['notice period', '30 days']]);
+  });
+
+  it('edits and forgets an answer together with the fingerprint rows holding it', () => {
+    const db = seed();
+    expect(updateRememberedAnswer(db, 'Current company', 'Beta Labs')).toBe(true);
+    expect(keys(db)).toEqual(['current company', 'notice period', 'q_fedcba9876543210']);
+    expect(listRememberedAnswers(db).find((r) => r.key === 'current company')?.answer).toBe('Beta Labs');
+    expect(updateRememberedAnswer(db, 'notice period', null)).toBe(true);
+    expect(keys(db)).toEqual(['current company']);
+    expect(updateRememberedAnswer(db, 'missing', 'x')).toBe(false);
+    expect(updateRememberedAnswer(db, 'q_0123456789abcdef', 'x')).toBe(false);
+    clearRememberedAnswers(db);
+    expect(keys(db)).toEqual([]);
   });
 });
