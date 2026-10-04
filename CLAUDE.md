@@ -1,7 +1,7 @@
 # Nomadic: complete project context
 
 Read this first. It is the single source of context for anyone (person or AI assistant) working on this repo.
-Last full update: 4 October 2026 (v1.0.12). Keep it current when something important changes.
+Last full update: 4 October 2026 (v1.0.14, Learn v2). Keep it current when something important changes.
 New session or new assistant account? Read sections 9–11 at the end first (handoff state, how to build and test,
 how the owner wants work done).
 
@@ -11,8 +11,11 @@ A **Windows desktop app** (Electron) for **Indian engineering students** looking
 first jobs. One app covers the whole path:
 
 1. **Onboarding** (4–5 short steps) ends with a **personal learning roadmap** (core feature).
-2. **Learn**: My Path (skills ordered by prerequisites, fitted to weekly hours and horizon), lessons with curated
-   links and quiz checks, "I already know this" placement, Today queue with SM-2 spaced repetition, streaks.
+2. **Learn (v2)**: intake (role, aim, dates, weekday/weekend minutes, study days, days off, level, DSA language,
+   target companies) → a roadmap of modules → topics → tasks, picked by AI from the reviewed catalogue (rules
+   planner as fallback) and fitted into dated days by a deterministic scheduler (buffer, revision and OA-mock days,
+   re-plan, pace factor). Today/Week/Roadmap/Topic/Progress screens, named LeetCode problems per topic, quizzes
+   with SM-2 reviews, and a Project Library with guided, stage-by-stage builds and a public GitHub repo check.
 3. **Practice**: ~1,800 LeetCode-company problems (external links), role questions, timed mock mode, weak topics,
    AI rubric feedback on written answers (Pro/Max).
 4. **Job board**: jobs collected by the scraper pipeline, skill-based match % and top missing skills, save, filters.
@@ -69,9 +72,12 @@ packages/ui          @nomadic/ui design system: tokens, Tailwind preset, AppShel
                      (bg-surface, text-fg, text-fg-muted, border-line, text-body, text-caption, font-strong); never
                      hardcoded slate/zinc colours or `dark:` variants.
 packages/config      plans.ts (prices/limits), features.ts (flags), legal.ts (terms/privacy/refunds), tiers.ts
-packages/learning    @job-automator/learning: types (zod), graph, planner, sm2, today, readiness/jobMatch, tagSkills,
-                     practiceAttempts/weakTopics, seed/bundle.json (8 roles, 102 skills, 207 weights, 29 resources,
-                     102 lessons, 145 practice items; all AI-drafted, status draft), scripts/seed-sql.mjs
+packages/learning    @job-automator/learning: types (zod), graph, sm2, readiness/jobMatch, tagSkills,
+                     practiceAttempts/weakTopics, v1 planner (unused by the app now), and src/v2 (Learn v2 engine:
+                     catalog, problems, expand, scheduler, roadmap, intake, projects, progressV2). seed/bundle.json
+                     (SEED_VERSION 2026.10.2): 109 skills, 55 resources, 109 lessons, 240 practice items, 54 modules,
+                     206 topics, 337 problems, 12 projects; all AI-drafted, status draft. Content sources in
+                     scripts/seed-source/v2; scripts build-problems, check-paid-only, check-links --write-seed
 packages/form-engine FormReader, classifier, answerer (one batched LLM call via a FormAnswerClient), writers, verifier
 packages/automation  AutoApplyEngine: fill with autoSubmit off, onReadyForReview, submitReviewed; ATS adapters
 packages/scrapers    Pipeline: fetch, normalise (zod Job schema), dedupe, validate links, classify, publish
@@ -87,7 +93,12 @@ Key flows:
 - **Apply**: renderer `features/apply/useApplyRunner` → `startBatchCoPilot` (fills forms one at a time, streams
   per-field events) → `ApplyRunView` (review, edit, tick) → `submitAllBatchCoPilot(overrides, ids)`; the server
   quota (`consume_apply_quota`) is consumed right before each submission.
-- **Matching**: `features/feed/match.ts` tags job text and profile skills against the same skill catalogue as Learn.
+- **Matching**: `features/feed/match.ts` tags job text and profile skills against the same skill catalogue as Learn;
+  mastery is the higher of v1 mastery and Learn v2 progress (`masteryFromProgress`).
+- **Learn v2**: renderer intake → `learnRoadmapGenerate` (main `services/learn-v2.ts`: compact catalogue → ai-proxy
+  `roadmap_plan` → `normaliseAiRoadmap`, else `planRoadmapRules`; `fitRoadmap` → draft in local `learn_state`) →
+  Review → `learnRoadmapAccept`. Day actions (re-plan, skip today, do more, move, pace) run the engine in the
+  renderer and save via `learnScheduleSave`. Roadmap, schedule, projects and notes sync through migration 027.
 - **AI**: desktop main `services/ai-proxy.ts` → `{SUPABASE_URL}/functions/v1/ai-proxy` (anon key as bearer + device
   session in body) → `consume_ai_quota` → Gemini (`gemini-2.5-flash`, JSON schema) → output checks → refund on failure.
 
@@ -97,11 +108,14 @@ Key flows:
   URL `https://grqkiddfwoyicktpgdea.supabase.co`. The anon key is public by design and is the build default in
   `apps/desktop/build-main.mjs`, scrapers and web. The service-role key is never in the app or repo.
 - **Applied migrations**: 001–012, 014–026 (013 does not exist; 023 is the web waitlist; 024 no Max downgrade on
-  payment, 025 payment history, 026 account sync of hidden jobs and follow-up dates, all applied 4 Oct 2026; next
-  is 027). Security advisor: no errors; remaining notices are by design (deny-all tables;
+  payment, 025 payment history, 026 account sync of hidden jobs and follow-up dates, all applied 4 Oct 2026).
+  **Written, rehearsed locally, NOT applied yet**: 027 (Learn v2 state documents + v2 event types) and 028 (AI
+  roadmap quotas; recreates `ai_limits` with roadmap columns). Paste files `baseline/apply_027.sql`,
+  `apply_028.sql`. Next free number is 029 (outreach's planned AI metric must extend 028's `ai_limits`). Security advisor: no errors; remaining notices are by design (deny-all tables;
   session-checked SECURITY DEFINER RPCs callable by anon).
 - **Learn content seeded** from the bundle (checksums verified).
-- **Edge Functions deployed** (JWT verification on): `google-sign-in`, `send-email-code`, `ai-proxy`.
+- **Edge Functions deployed** (JWT verification on): `google-sign-in`, `send-email-code`, `ai-proxy` (the deployed
+  ai-proxy predates the `roadmap_plan` / `roadmap_adjust` kinds in the repo: redeploy it after 028).
   `razorpay-webhook` exists in the repo but is not deployed yet.
 - **Vault secrets**: `resend_api_key`, `gemini_api_key`, `google_oauth_client_id` (set). Missing: `email_from`.
 - **Google OAuth**: "Desktop app" client created; id/secret are in GitHub repo secrets and in the gitignored
@@ -121,6 +135,7 @@ Key flows:
 - Clients call only allow-listed RPCs, each re-checking `session_token + user_id + device_fingerprint + is_active`.
   New client RPCs must be granted explicitly in a migration and added to the allow-list.
 - Service-role-only: `server_secret`, `consume_ai_quota`, `refund_ai_quota`, `request_email_code`, `google_sign_in`.
+- Learn v2 client RPCs (027): `learning_save_state`, `learning_pull_state` (session-checked, 512 KB per document).
 - Roles/tiers come only from the server (email-based admin grants were removed). Admin actions are server-checked
   RPCs with an append-only audit log.
 - Passwords: bcrypt of a client pre-hash; login rate limits; generic credential errors; one active device.
@@ -129,12 +144,12 @@ Key flows:
 ## 6. Status by feature (details: `docs/FEATURES.md`)
 
 Built and merged: F1 shell, F2 accounts + onboarding + password reset/verification + Google sign-in (server side),
-F3 feed + matching, F4 apply with review, F5 tracker, F6 profile, F7 Learn + roadmap, F8 Practice, F9 entitlements
+F3 feed + matching, F4 apply with review, F5 tracker, F6 profile, F7 Learn v2 (roadmap, day plan, projects), F8 Practice, F9 entitlements
 and quotas, F10 data safety, F11 updates/telemetry/help, F12 admin, F14 landing (Lighthouse mobile 97/100/100/100).
 F13 (Outreach, Opportunity Board, Resource Vault, Assistant) stays hidden; Outreach and the Assistant still call AI
 directly and need rework or removal.
 
-Tests: 1,172 vitest tests pass (113 files; run with `--maxWorkers=2 --testTimeout=30000` on this laptop, the default
+Tests: 1,629 vitest tests pass (121 files, 4 Oct 2026, Learn v2; run with `--maxWorkers=2 --testTimeout=30000` on this laptop, the default
 parallelism times out component tests, and the three Chrome DOM suites can time out closing Chrome in `afterAll`);
 typecheck, lint (0 errors, ~190 warnings) and desktop/web builds pass.
 The built Electron app has been smoke-tested over CDP (window, live feed via IPC, Learn, Settings, Help, Activity, Admin
@@ -144,6 +159,13 @@ screens). The owner has signed in on the packaged v1.0.6 app and run apply up to
 ## 7. What is left
 
 Owner actions:
+0. **Learn v2 go-live** (built 4 Oct 2026 on branch `claude/learn-v2-handoff-046pu4`, not on `main` yet): merge it;
+   paste `packages/supabase/baseline/apply_027.sql` then `apply_028.sql` in the SQL editor (028 drops and recreates
+   `ai_limits`); redeploy the `ai-proxy` Edge Function; paste the regenerated `baseline/content_seed.sql` (adds the 7
+   new skills, lessons, 95 quiz items, 26 resources); on the laptop run `npm run check-paid-only -w
+   @job-automator/learning`, `npm run build-problems`, `npm run check-links -w @job-automator/learning --
+   --write-seed` and `npm run build-seed` (the build container could not reach leetcode.com or the resource sites,
+   so paid-only flags are a hand list and the 26 new resources stay hidden until link-checked), then package 1.0.14.
 1. Keep the live `jobs` table fresh (seeded once on 4 Oct 2026 with 328 active India-open jobs, 137 internships): run
    `Desktop\Nomadic-Scraper\Run scraper.cmd` (`scripts/scrape-desktop.ps1`: `--max-new 100` new jobs per run,
    duplicates of published jobs skipped, a summary in `reports\` per run; first run asks for the service role key,
@@ -258,10 +280,15 @@ Assistant still call AI directly); OS notification for due follow-ups (today an 
 - Apply review: answers the user types are remembered in local SQLite `cached_form_answers` (fingerprint `q_<16 hex>`
   and label keys; `services/form-answers.ts`; matched in `packages/form-engine/src/answerer.ts` `lookupUserAnswer`).
   Messages such as "* Please try again." in the review list come from the portal's own page, not from Nomadic.
-- **In progress: Learn v2** (owner approved "make it", 4 Oct 2026). Plan: `docs/LEARN_V2_PLAN.md`; handoff with the
-  final engine design, build order and git cautions: `docs/LEARN_V2_HANDOFF.md`. Done so far: the v2 zod model
-  `packages/learning/src/v2/types.ts` only. Continue from "Build order" step 1 in the handoff.
-- Next most useful work after Learn v2: owner actions in section 7 (consent screen, Resend domain, key rotation),
+- **Learn v2: built** (4 Oct 2026, branch `claude/learn-v2-handoff-046pu4`, version 1.0.14, not packaged: the
+  build ran in a Linux container). Plan `docs/LEARN_V2_PLAN.md`; what was built and what is left:
+  `docs/LEARN_V2_HANDOFF.md` ("Status"). Engine `packages/learning/src/v2`; main `services/learn-v2.ts`,
+  `services/github-check.ts`, local migration 9 (`learn_state`, widened `learning_events`); renderer
+  `features/learn/` (LearnView router, IntakeFields, ReviewScreen + AdjustPanel, Today, Week, Roadmap, Topic,
+  Progress, `learnModel.ts`, `quizLogic.ts`, `catalog.ts`) and `features/projects/`. v1 PathScreen, GoalSetup,
+  GoalFields, LessonScreen and learnLogic are deleted; the v1 goal RPCs (007/012) are unused but still deployed.
+  Go-live steps: owner action 0 in section 7.
+- Next most useful work: owner action 0 (Learn v2 go-live), then owner actions in section 7 (consent screen, Resend domain, key rotation),
   then a live end-to-end pass (Google sign-in, reviewed submit, AI feedback), then the code follow-ups in section 7.
 
 ## 10. Build, package, test and deploy

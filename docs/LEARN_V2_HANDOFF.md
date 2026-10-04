@@ -1,5 +1,42 @@
 # Learn v2: handoff (4 October 2026)
 
+## Status: built (end of 4 October 2026)
+
+Everything in "Build order" below is built on branch `claude/learn-v2-handoff-046pu4` (commits "Learn v2 engine",
+"Learn v2 content", "Learn v2 server side", "Learn v2 in the desktop app"), version 1.0.14. The build ran in a
+Linux cloud container, which changes what could be done there:
+
+| Step | State |
+|---|---|
+| 1 Engine | Done: `packages/learning/src/v2` as designed below. 364 engine and content tests (`test/v2-*.test.ts`). |
+| 2 Core types | Done. Shared primitive schemas moved to `src/primitives.ts` (v1 and v2 types import them, no cycle). |
+| 3 Content | Done, real counts: 54 modules (18 DSA + 3 language, 5 core CS, 3 aptitude, 2 interview, 23 dev), 206 topics, 337 problems (322 DSA + 15 SQL; all slugs checked against the dataset), 95 new quiz items, 7 new skills (each with a lesson and items), 12 projects (55 stages, 179 steps), 26 new resources. SEED_VERSION 2026.10.2. |
+| 4 ai-proxy | Code and tests done (`roadmap_plan`, `roadmap_adjust`). **Not redeployed**: the session's Supabase connector cannot see the Nomadic project. |
+| 5 Supabase | 027 (`user_learn_state`, `learning_save_state` / `learning_pull_state`, widened event CHECK, export) and 028 (roadmap metrics, `ai_limits` with roadmap columns) written and rehearsed on local PostgreSQL 16 (`scripts/rehearse-027-028.sql`). **Not applied** (no access): paste `baseline/apply_027.sql`, then `apply_028.sql`. The outreach work's planned AI metric was not in this checkout, so 028 does not include it; outreach must add its column in a later migration (029+). |
+| 6 Config | Done: `aiRoadmapPerDay` 2/10/20, `aiRoadmapAdjustPerDay` 2/15/40, `learnProjectsActive` 1/3/unlimited; parity tests extended. |
+| 7 Desktop main | Done: local migration 9, `services/learn-v2.ts`, `services/github-check.ts`, 7 new IPC channels (94 total), goal channel removed, sync of the 4 documents. |
+| 8 Renderer | Done: Intake + feasibility, Generating, Review (edit, regenerate with a note), Adjust, Today, Week, Roadmap tree, Topic, Progress, Projects (library, guided build, finish kit), onboarding intake. v1 screens and `learnLogic` deleted; `LessonScreen` deleted too (the Topic page replaces it). |
+| 9 Release | Typecheck, 1,629 tests, lint (0 errors) and desktop/web builds pass. The built Electron app was run headless (Xvfb) and every Learn v2 IPC path exercised over CDP on a fresh profile; the UI was clicked through in the browser preview at 1024 px. **Not done here**: `package:win` (Windows-only), copying to Downloads/Desktop, merging to `main`. |
+
+Decisions made during the build:
+- New resources were added as `unverified` with source `learn-v2 …`; the app hides those until
+  `check-links --write-seed` marks them active (the container could not reach the sites). Repo-sourced v1 resources
+  keep showing while unverified, as before.
+- Paid-only flags come from a hand list of well-known Premium problems (`seed-source/v2/paid-only.ts`) until
+  `npm run check-paid-only -w @job-automator/learning` (LeetCode GraphQL) writes `paid-only.json`; then run
+  `build-problems` and `build-seed`.
+- Company boosts can pick any dataset problem (not only curated ones); their paid-only flag is "not checked".
+- The rules planner adds missing hard prerequisites at light emphasis (as the AI normaliser does).
+- A split task whose rest does not fit lists the remaining minutes as `no_time`.
+- Drafts (unaccepted roadmaps) stay on the device (`learn_state` kind `draft`); only the 4 accepted documents sync.
+- Supabase content tables for modules/topics/projects were not added (deferred, see below); the bundle is the source.
+
+Still deferred (as planned): content tables in Supabase and admin editors for modules, topics and projects; AI
+`project_generate` / `project_review`; starter repos; the 600-item aptitude bank; pulling published content from
+the server; dropping the v1 goal RPCs.
+
+---
+
 Read this with `docs/LEARN_V2_PLAN.md` (the approved plan). The owner replied "make it" without answering the 11
 decisions in plan §19, so every **recommended default** applies:
 
