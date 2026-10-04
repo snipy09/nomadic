@@ -9,7 +9,7 @@ import { prefs } from '../../store/preferences';
 import { useApplyRunner } from '../apply/useApplyRunner';
 import { feedLimit } from '../billing/billingLogic';
 import { useEntitlements } from '../billing/useEntitlements';
-import { filterAndSort, pageRange, type FeedTab, type LocationFilter, type ScoredJob, type SortKey } from './feedLogic';
+import { filterAndSort, pageRange, withoutHidden, type FeedTab, type LocationFilter, type ScoredJob, type SortKey } from './feedLogic';
 import { inferRole, matchJob, profileMastery } from './match';
 import { useFeed } from './useFeed';
 import { JobCard } from './JobCard';
@@ -32,6 +32,7 @@ const TABS: Array<{ id: FeedTab; label: string }> = [
   { id: 'remote', label: 'Remote' },
   { id: 'high_match', label: 'High match' },
   { id: 'saved', label: 'Saved' },
+  { id: 'hidden', label: 'Hidden' },
 ];
 
 const initialTab = (): FeedTab => {
@@ -64,16 +65,22 @@ export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, on
 
   const mastery = useMemo(() => profileMastery(profile), [profile.techStack]); // eslint-disable-line react-hooks/exhaustive-deps
   const role = useMemo(() => inferRole(profile.desiredTitle), [profile.desiredTitle]);
-  const pool: Job[] = tab === 'saved' ? feed.saved : feed.jobs;
+  const hiddenUrls = useMemo(() => feed.hidden.map((h) => h.applyUrl), [feed.hidden]);
+  const hiddenPool = useMemo<Job[]>(() => feed.hidden.map((h) => ({ title: h.title, company: h.company, applyUrl: h.applyUrl, createdAt: h.hiddenAt })), [feed.hidden]);
+  const pool: Job[] = useMemo(
+    () => (tab === 'hidden' ? hiddenPool : withoutHidden(tab === 'saved' ? feed.saved : feed.jobs, hiddenUrls)),
+    [tab, hiddenPool, feed.saved, feed.jobs, hiddenUrls],
+  );
+  const localTab = tab === 'saved' || tab === 'hidden';
   const scored = useMemo<ScoredJob[]>(() => pool.map((j) => ({ ...j, match: matchJob(j, mastery, role) })), [pool, mastery, role]);
   const visible = useMemo(() => filterAndSort(scored, { search, tab, location, sort }), [scored, search, tab, location, sort]);
 
   // Listing limit comes from the server; unknown (offline) falls back to Free. Saved jobs are never limited.
   const ent = useEntitlements();
   const limit = feedLimit(ent.status, ent.entitlements);
-  const limited = limit !== null && tab !== 'saved';
-  const shown = limited ? visible.slice(0, limit) : tab === 'saved' ? visible.slice((page - 1) * pageSize, page * pageSize) : visible;
-  const totalPages = limited ? 1 : Math.max(1, Math.ceil((tab === 'saved' ? visible.length : feed.total) / pageSize));
+  const limited = limit !== null && !localTab;
+  const shown = limited ? visible.slice(0, limit) : localTab ? visible.slice((page - 1) * pageSize, page * pageSize) : visible;
+  const totalPages = limited ? 1 : Math.max(1, Math.ceil((localTab ? visible.length : feed.total) / pageSize));
   const hasProfileSkills = Object.keys(mastery).length > 0;
 
   const toggleSave = useCallback(async (job: Job) => {
@@ -82,6 +89,20 @@ export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, on
     if (!ok) toast({ title: 'Could not update saved jobs', tone: 'danger' });
     else onLog(`[Saved] ${was ? 'Removed' : 'Saved'} ${job.title} at ${job.company}`);
   }, [feed, onLog, toast]);
+
+  const toggleHidden = useCallback(async (job: Job) => {
+    if (tab === 'hidden') {
+      if (!(await feed.unhide(job.applyUrl))) toast({ title: 'Could not show this job again', tone: 'danger' });
+      return;
+    }
+    setSelected((s) => { if (!s.has(job.applyUrl)) return s; const n = new Set(s); n.delete(job.applyUrl); return n; });
+    if (!(await feed.hide(job))) {
+      toast({ title: 'Could not hide this job', tone: 'danger' });
+      return;
+    }
+    onLog(`[Feed] Hid ${job.title} at ${job.company}`);
+    toast({ title: 'Job hidden', description: 'Find it under the Hidden tab.', action: { label: 'Undo', onClick: () => void feed.unhide(job.applyUrl) } });
+  }, [tab, feed, onLog, toast]);
 
   const toggleSelect = (url: string) => setSelected((s) => { const n = new Set(s); if (n.has(url)) n.delete(url); else n.add(url); return n; });
   const applyTo = (jobs: Job[]) => apply.start(jobs.map((j) => ({ url: j.applyUrl, company: j.company, title: j.title })));
@@ -93,7 +114,7 @@ export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, on
         <div className="mr-auto">
           <h1 className="text-title font-strong text-fg">Job board</h1>
           <p className="text-caption text-fg-subtle">
-            {feed.loading ? 'Loading…' : `${tab === 'saved' ? visible.length : feed.total} openings`}{role ? ` · matched for ${role.replace('-', ' ')}` : ''}
+            {feed.loading ? 'Loading…' : `${localTab ? visible.length : feed.total} openings`}{role ? ` · matched for ${role.replace('-', ' ')}` : ''}
           </p>
         </div>
         <Button variant="secondary" size="sm" leftIcon={<RefreshCw />} loading={feed.loading} onClick={feed.refresh}>Refresh</Button>
@@ -131,7 +152,7 @@ export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, on
 
       <Tabs variant="segmented" value={tab} onValueChange={(v) => setTab(v as FeedTab)}>
         <TabsList aria-label="Job filters" className="flex-wrap">
-          {TABS.map((t) => <TabsTrigger key={t.id} value={t.id} count={t.id === 'saved' ? feed.saved.length : undefined}>{t.label}</TabsTrigger>)}
+          {TABS.map((t) => <TabsTrigger key={t.id} value={t.id} count={t.id === 'saved' ? feed.saved.length : t.id === 'hidden' ? feed.hidden.length : undefined}>{t.label}</TabsTrigger>)}
         </TabsList>
       </Tabs>
 
@@ -145,9 +166,9 @@ export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, on
         <EmptyState
           bordered
           icon={<Briefcase />}
-          title={tab === 'saved' ? 'No saved jobs yet' : 'No jobs match these filters'}
-          description={tab === 'saved' ? 'Save jobs from the board to come back to them.' : 'Try a different search, location or tab.'}
-          actions={tab !== 'saved' ? <Button variant="secondary" onClick={() => { setSearchText(''); setLocation('all'); setTab('all'); }}>Clear filters</Button> : undefined}
+          title={tab === 'saved' ? 'No saved jobs yet' : tab === 'hidden' ? 'No hidden jobs' : 'No jobs match these filters'}
+          description={tab === 'saved' ? 'Save jobs from the board to come back to them.' : tab === 'hidden' ? 'Jobs you mark "Not interested" go here, and you can show them again.' : 'Try a different search, location or tab.'}
+          actions={!localTab ? <Button variant="secondary" onClick={() => { setSearchText(''); setLocation('all'); setTab('all'); }}>Clear filters</Button> : undefined}
         />
       ) : (
         <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3" aria-label="Jobs">
@@ -159,6 +180,8 @@ export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, on
                 selected={selected.has(job.applyUrl)}
                 onToggleSelect={() => toggleSelect(job.applyUrl)}
                 onToggleSave={() => void toggleSave(job)}
+                hidden={tab === 'hidden'}
+                onToggleHidden={() => void toggleHidden(job)}
                 onOpen={() => setViewing(job)}
                 onApply={() => void applyTo([job])}
                 applyDisabled={apply.busy}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dedupeJobs, filterAndSort, pageRange, postedLabel, type ScoredJob } from '../features/feed/feedLogic';
+import { dedupeJobs, filterAndSort, pageRange, postedLabel, withoutHidden, type ScoredJob } from '../features/feed/feedLogic';
 import { inferRole, jobSkills, matchJob, profileMastery } from '../features/feed/match';
 
 const job = (o: Partial<ScoredJob>): ScoredJob => ({ title: 'Engineer', company: 'Acme', applyUrl: `https://x.co/${Math.random()}`, match: null, ...o });
@@ -53,5 +53,13 @@ describe('feed logic', () => {
     expect(postedLabel('2026-10-03T01:00:00Z', now)).toBe('Today');
     expect(postedLabel('2026-09-28T12:00:00Z', now)).toBe('5d ago');
     expect(postedLabel(undefined, now)).toBeNull();
+  });
+});
+
+describe('withoutHidden', () => {
+  it('drops hidden jobs by apply URL, ignoring query strings and case', () => {
+    const list = [{ applyUrl: 'https://a.co/1?ref=x' }, { applyUrl: 'https://b.co/2' }];
+    expect(withoutHidden(list, ['HTTPS://a.co/1'])).toEqual([{ applyUrl: 'https://b.co/2' }]);
+    expect(withoutHidden(list, [])).toBe(list);
   });
 });

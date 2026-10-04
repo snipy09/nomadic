@@ -114,4 +114,33 @@ describe('FeedView', () => {
     expect(onOpenUpgrade).toHaveBeenCalledWith('More applications per day');
     expect(api.startBatchCoPilot).not.toHaveBeenCalled();
   });
+
+  it('hides a job ("Not interested"), lists it under Hidden and shows it again', async () => {
+    // Stateful like the real local store: the Hidden tab reloads the list.
+    let stored: Array<{ applyUrl: string; title: string; company: string; hiddenAt: string }> = [];
+    const hideJob = vi.fn(async (j: { applyUrl: string; title: string; company: string }) => { stored = [{ ...j, hiddenAt: '2026-10-04T00:00:00Z' }]; return { success: true }; });
+    const unhideJob = vi.fn(async (_url: string) => { stored = []; return { success: true }; });
+    mockApi({ getHiddenJobs: vi.fn(async () => stored), hideJob, unhideJob });
+    renderFeed();
+    await screen.findByText('Frontend Developer');
+    await userEvent.click(screen.getAllByRole('button', { name: /not interested/i })[0]);
+    await waitFor(() => expect(hideJob).toHaveBeenCalledWith({ applyUrl: 'https://acme.co/1', title: 'Frontend Developer', company: 'Acme' }));
+    await waitFor(() => expect(screen.queryByText('Frontend Developer')).toBeNull());
+    expect(screen.getByText('Data Analyst')).toBeTruthy();
+
+    await userEvent.click(screen.getByRole('tab', { name: /hidden/i }));
+    expect(await screen.findByText('Frontend Developer')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: /show this job again/i }));
+    await waitFor(() => expect(unhideJob).toHaveBeenCalledWith('https://acme.co/1'));
+    expect(await screen.findByText('No hidden jobs')).toBeTruthy();
+  });
+
+  it('keeps the job visible and reports an error when hiding fails', async () => {
+    mockApi({ getHiddenJobs: vi.fn().mockResolvedValue([]), hideJob: vi.fn().mockResolvedValue({ success: false, error: 'disk' }) });
+    renderFeed();
+    await screen.findByText('Frontend Developer');
+    await userEvent.click(screen.getAllByRole('button', { name: /not interested/i })[0]);
+    expect(await screen.findByText(/could not hide this job/i)).toBeTruthy();
+    expect(screen.getByText('Frontend Developer')).toBeTruthy();
+  });
 });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bookmark, BookmarkCheck, Building2, Clock, MapPin } from 'lucide-react';
+import { Bookmark, BookmarkCheck, Building2, Clock, Eye, EyeOff, MapPin } from 'lucide-react';
 import { Badge, Button, Card, Checkbox, IconButton, cn } from '@nomadic/ui';
 import { HIGH_MATCH, postedLabel, type ScoredJob } from './feedLogic';
 
@@ -9,6 +9,9 @@ interface JobCardProps {
   selected: boolean;
   onToggleSelect: () => void;
   onToggleSave: () => void;
+  /** Marked "Not interested": the card offers "Show again" instead. */
+  hidden?: boolean;
+  onToggleHidden?: () => void;
   onOpen: () => void;
   onApply: () => void;
   applyDisabled?: boolean;
@@ -20,7 +23,7 @@ export function MatchBadge({ job }: { job: ScoredJob }) {
   return <Badge tone={tone} size="sm">{job.match.score}% match</Badge>;
 }
 
-export const JobCard = React.memo(function JobCard({ job, saved, selected, onToggleSelect, onToggleSave, onOpen, onApply, applyDisabled }: JobCardProps) {
+export const JobCard = React.memo(function JobCard({ job, saved, selected, onToggleSelect, onToggleSave, hidden, onToggleHidden, onOpen, onApply, applyDisabled }: JobCardProps) {
   const posted = postedLabel(job.createdAt);
   return (
     <Card padding="md" selected={selected} className={cn('flex flex-col gap-3')}>
@@ -54,6 +57,15 @@ export const JobCard = React.memo(function JobCard({ job, saved, selected, onTog
           size="sm"
           onClick={onToggleSave}
         />
+        {onToggleHidden && (
+          <IconButton
+            label={hidden ? 'Show this job again' : 'Not interested (hide this job)'}
+            icon={hidden ? <Eye /> : <EyeOff />}
+            variant="ghost"
+            size="sm"
+            onClick={onToggleHidden}
+          />
+        )}
         <Button size="sm" variant="ghost" onClick={onOpen}>Details</Button>
         <Button size="sm" className="ml-auto" onClick={onApply} disabled={applyDisabled}>Apply</Button>
       </div>

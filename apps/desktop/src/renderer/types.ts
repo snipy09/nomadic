@@ -174,9 +174,11 @@ export interface AppUser {
 
 
 export type {
+  HiddenJob, HideJobInput,
   FeedbackInput, FeedbackKind, FeedbackResult, TelemetryState, UpdateChannel, UpdatePolicyResult, UpdaterInfo, UpdaterStatus, WhatsNewInfo,
 } from '../shared/ipc';
 import type {
+  HiddenJob, HideJobInput,
   FeedbackInput, FeedbackResult, TelemetryState, UpdateChannel, UpdatePolicyResult, UpdaterInfo, UpdaterStatus, WhatsNewInfo,
 } from '../shared/ipc';
 
@@ -238,6 +240,9 @@ export interface ElectronAPI {
   getSavedJobs: () => Promise<Job[]>;
   saveJob: (job: Job) => Promise<{ success: boolean; error?: string }>;
   removeSavedJob: (applyUrl: string) => Promise<{ success: boolean; error?: string }>;
+  getHiddenJobs?: () => Promise<HiddenJob[]>;
+  hideJob?: (job: HideJobInput) => Promise<{ success: boolean; error?: string }>;
+  unhideJob?: (applyUrl: string) => Promise<{ success: boolean; error?: string }>;
   openExternalUrl: (url: string) => Promise<{ success: boolean; error?: string }>;
 
   // AI Generation & Assistant Handlers

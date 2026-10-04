@@ -118,6 +118,20 @@ export interface SavedJob {
   description?: string;
 }
 
+/** A job the user marked "Not interested"; hidden from the feed until restored. */
+export interface HiddenJob {
+  applyUrl: string;
+  title: string;
+  company: string;
+  hiddenAt: string;
+}
+
+export interface HideJobInput {
+  applyUrl: string;
+  title?: string;
+  company?: string;
+}
+
 export interface SaveJobInput {
   title?: string;
   company?: string;
@@ -807,6 +821,9 @@ export interface IpcChannels {
   'get-saved-jobs': Channel<[], SavedJob[]>;
   'save-job': Channel<[job: SaveJobInput], SuccessResult>;
   'remove-saved-job': Channel<[applyUrl: string], SuccessResult>;
+  'get-hidden-jobs': Channel<[], HiddenJob[]>;
+  'hide-job': Channel<[job: HideJobInput], SuccessResult>;
+  'unhide-job': Channel<[applyUrl: string], SuccessResult>;
 
   // applications & auto-apply
   'get-applications': Channel<[], ApplicationRecord[]>;
@@ -902,6 +919,7 @@ export const IPC_CHANNELS = [
   'get-master-profile', 'save-master-profile', 'get-resumes', 'save-resume', 'delete-resume',
   'set-default-resume', 'pick-resume-file',
   'run-scrapers', 'get-cloud-feed-page', 'get-cloud-feed', 'get-saved-jobs', 'save-job', 'remove-saved-job',
+  'get-hidden-jobs', 'hide-job', 'unhide-job',
   'get-applications', 'update-application-status', 'update-application-notes', 'delete-application', 'save-application',
   'launch-semi-auto', 'launch-autonomous', 'cancel-autonomous-apply', 'start-batch-copilot',
   'submit-all-batch-copilot',
@@ -967,6 +985,9 @@ export interface NomadicApi {
   getSavedJobs: Invoke<'get-saved-jobs'>;
   saveJob: Invoke<'save-job'>;
   removeSavedJob: Invoke<'remove-saved-job'>;
+  getHiddenJobs: Invoke<'get-hidden-jobs'>;
+  hideJob: Invoke<'hide-job'>;
+  unhideJob: Invoke<'unhide-job'>;
   checkDependencies: Invoke<'check-dependencies'>;
   installDependencies: Invoke<'install-dependencies'>;
   startHeartbeat: (userId: string, sessionToken: string, deviceFingerprint: string) => Promise<ChannelResult<'start-heartbeat'>>;

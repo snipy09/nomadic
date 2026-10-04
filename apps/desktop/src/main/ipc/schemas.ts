@@ -119,6 +119,9 @@ const saveJobInput = z
   .passthrough();
 export const saveJobArgs: ArgSchemas<'save-job'> = [saveJobInput];
 export const applyUrlArgs: ArgSchemas<'remove-saved-job'> = [url];
+export const hideJobArgs: ArgSchemas<'hide-job'> = [
+  z.object({ applyUrl: url, title: opt(str()), company: opt(str()) }).strict(),
+];
 
 // ── applications & auto-apply ──────────────────────────────────────────────
 export const idArgs: ArgSchemas<'delete-application'> = [id];
