@@ -133,7 +133,7 @@ export const NomadicAssistant: React.FC<NomadicAssistantProps> = ({
         reply = `Opening your **Candidate Settings & Automation Preferences**.`;
         action = { type: 'NAVIGATE', target: 'settings' };
       } else if (lower.includes('outreach') || lower.includes('email') || lower.includes('recruiter')) {
-        reply = `Opening the **Recruiter Outreach Radar & Drip Dispatcher**.`;
+        reply = `Opening **Outreach**: write to people who can refer you, and review every message before it is sent.`;
         action = { type: 'NAVIGATE', target: 'outreach' };
       }
 

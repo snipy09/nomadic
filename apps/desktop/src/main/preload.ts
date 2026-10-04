@@ -43,9 +43,21 @@ const apiObj: NomadicApi = {
   getEntitlements: (options) => invoke('get-entitlements', options),
   startCheckout: (plan) => invoke('start-checkout', plan),
   getPaymentHistory: () => invoke('get-payment-history'),
-  verifyEmail: (email) => invoke('verify-email', email),
-  getHrContacts: (targetRole) => invoke('get-hr-contacts', targetRole),
-  sendOutreach: (contacts) => invoke('send-outreach', contacts),
+  outreachListContacts: (query) => invoke('outreach-list-contacts', query),
+  outreachReportContact: (input) => invoke('outreach-report-contact', input),
+  outreachGetState: () => invoke('outreach-get-state'),
+  outreachSavePerson: (input) => invoke('outreach-save-person', input),
+  outreachDeletePerson: (id) => invoke('outreach-delete-person', id),
+  outreachSaveMessage: (input) => invoke('outreach-save-message', input),
+  outreachDeleteMessage: (id) => invoke('outreach-delete-message', id),
+  outreachReviewMessage: (id) => invoke('outreach-review-message', id),
+  outreachSendMessage: (id) => invoke('outreach-send-message', id),
+  outreachOpenMessage: (input) => invoke('outreach-open-message', input),
+  outreachMarkMessage: (input) => invoke('outreach-mark-message', input),
+  outreachDraftAi: (input) => invoke('outreach-draft-ai', input),
+  outreachGetSmtp: () => invoke('outreach-get-smtp'),
+  outreachSaveSmtp: (input) => invoke('outreach-save-smtp', input),
+  outreachClearSmtp: () => invoke('outreach-clear-smtp'),
   getApplications: () => invoke('get-applications'),
   saveApplication: (app) => invoke('save-application', app),
   getSavedJobs: () => invoke('get-saved-jobs'),
@@ -69,7 +81,6 @@ const apiObj: NomadicApi = {
 
   // AI Generation Handlers
   askNomadicAssistant: (data) => invoke('ask-nomadic-assistant', data),
-  generateAiOutreachEmail: (params) => invoke('generate-ai-outreach-email', params),
 
   // Learn
   learningGetState: () => invoke('learning-get-state'),

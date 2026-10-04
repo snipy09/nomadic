@@ -1,7 +1,7 @@
 # Nomadic: complete project context
 
 Read this first. It is the single source of context for anyone (person or AI assistant) working on this repo.
-Last full update: 4 October 2026 (v1.0.12). Keep it current when something important changes.
+Last full update: 5 October 2026 (v1.1.0). Keep it current when something important changes.
 New session or new assistant account? Read sections 9–11 at the end first (handoff state, how to build and test,
 how the owner wants work done).
 
@@ -96,9 +96,10 @@ Key flows:
 - **Supabase project `nomadic`**: ref `grqkiddfwoyicktpgdea`, region ap-south-1 (Mumbai), free plan, org "Nomadic".
   URL `https://grqkiddfwoyicktpgdea.supabase.co`. The anon key is public by design and is the build default in
   `apps/desktop/build-main.mjs`, scrapers and web. The service-role key is never in the app or repo.
-- **Applied migrations**: 001–012, 014–026 (013 does not exist; 023 is the web waitlist; 024 no Max downgrade on
-  payment, 025 payment history, 026 account sync of hidden jobs and follow-up dates, all applied 4 Oct 2026; next
-  is 027). Security advisor: no errors; remaining notices are by design (deny-all tables;
+- **Applied migrations**: 001–012, 014–027 (013 does not exist; 023 is the web waitlist; 024 no Max downgrade on
+  payment, 025 payment history, 026 account sync of hidden jobs and follow-up dates, 027 outreach directory and
+  outreach AI quota, all applied 4 Oct 2026; next is 028). The legacy `public.hr_contacts` still exists live and is
+  dropped by an owner paste (`DROP TABLE public.hr_contacts;`). Security advisor: no errors; remaining notices are by design (deny-all tables;
   session-checked SECURITY DEFINER RPCs callable by anon).
 - **Learn content seeded** from the bundle (checksums verified).
 - **Edge Functions deployed** (JWT verification on): `google-sign-in`, `send-email-code`, `ai-proxy`.
@@ -131,10 +132,11 @@ Key flows:
 Built and merged: F1 shell, F2 accounts + onboarding + password reset/verification + Google sign-in (server side),
 F3 feed + matching, F4 apply with review, F5 tracker, F6 profile, F7 Learn + roadmap, F8 Practice, F9 entitlements
 and quotas, F10 data safety, F11 updates/telemetry/help, F12 admin, F14 landing (Lighthouse mobile 97/100/100/100).
-F13 (Outreach, Opportunity Board, Resource Vault, Assistant) stays hidden; Outreach and the Assistant still call AI
-directly and need rework or removal.
+F13: Outreach was rebuilt in v1.1.0 (see section 9) and shows in the sidebar as "Soon" with an information screen;
+the working module needs `VITE_FEATURES="outreach=on"`. Opportunity Board, Resource Vault and the Assistant stay
+hidden; the Assistant still needs rework or removal.
 
-Tests: 1,172 vitest tests pass (113 files; run with `--maxWorkers=2 --testTimeout=30000` on this laptop, the default
+Tests: 1,215 vitest tests pass (117 files, 20 skipped; run with `--maxWorkers=2 --testTimeout=30000` on this laptop, the default
 parallelism times out component tests, and the three Chrome DOM suites can time out closing Chrome in `afterAll`);
 typecheck, lint (0 errors, ~190 warnings) and desktop/web builds pass.
 The built Electron app has been smoke-tested over CDP (window, live feed via IPC, Learn, Settings, Help, Activity, Admin
@@ -194,8 +196,8 @@ Code follow-ups: `packages/automation/src/ai-pilot-engine.ts` is unused (only it
 placeholder defaults: remove it; form-engine DOM tests and `npm run bench:forms` need
 `PLAYWRIGHT_CHROMIUM_EXECUTABLE` set to an installed Chrome on this laptop (else they skip/fail to launch);
 resume parsing/versions; multi-step form edits in apply; GST tax invoices (need a GSTIN; today receipts only); skill tagging in the
-scraper pipeline (the app tags at runtime, so optional); event sync beyond learning; F13 decisions (Outreach and the
-Assistant still call AI directly); OS notification for due follow-ups (today an in-app list).
+scraper pipeline (the app tags at runtime, so optional); event sync beyond learning; F13 decisions (Outreach launch
+checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification for due follow-ups (today an in-app list).
 
 ## 8. Conventions
 
@@ -213,14 +215,24 @@ Assistant still call AI directly); OS notification for due follow-ups (today an 
   build-main.mjs`.
 - Do not put secrets in code, commits or docs. Do not add model identifiers to commits or code.
 
-## 9. Handoff state (4 October 2026)
+## 9. Handoff state (5 October 2026)
 
 - Branch `main` (remote github.com/snipy09/nomadic) holds everything; there are no open feature branches to merge.
-  Last commit of the session: "feat(apply): fill applications in the user's own browser".
+  Last commit of the session: "feat(outreach): referral outreach behind the flag, desktop 1.1.0".
+- **v1.1.0 Outreach** (`docs/OUTREACH_PLAN.md`): targets everyone who can refer (recruiter/HR, hiring manager,
+  founder, employee, alumni, team inbox). Contacts scraper `packages/scrapers/src/contacts/` (public pages only, no
+  LinkedIn scraping or guessed emails, MX check; `npm run scrape:contacts -- --publish` with the service key) writes
+  `outreach_contacts` (027, service role only), read via `outreach_list_contacts` / `outreach_report_contact`.
+  Desktop: local people/messages store `main/services/outreach-store.ts` (review gate: placeholders, LinkedIn 300
+  chars, edits reset review, sent is locked), SMTP send via nodemailer (`packages/email-verifier/src/sender.ts`,
+  password stored locally via `writeSecret`, never uploaded, 20/day, a minute apart), Gmail/mailto/LinkedIn open, tracker entry on send; AI drafts
+  via ai-proxy kind `outreach_email` (deployed) with per-plan limits `aiOutreachDraftsPerDay`. Renderer
+  `features/outreach/` (OutreachView, Composer, PersonForm, DirectoryPanel, SmtpPanel, OutreachComingSoon). The old
+  HR scraper, `hr_contacts` reads and Chrome outreach were deleted.
 - Untracked on purpose, never stage: `brag-output*/`, `reel*/`, `showreel/` (local marketing renders) and `.claude/`
   (local assistant settings and `launch.json`; its notes are folded into section 10).
-- Delivered build: `Nomadic-v1.0.13-portable.exe` in `C:\Users\sajal\Downloads` and `Desktop\Nomadic-v1\`
-  (built from `apps/desktop/dist-electron/Nomadic.1.0.13.exe`; 1.0.13: a listing that names no skills is scored
+- Delivered build: `Nomadic-v1.1.0-portable.exe` in `C:\Users\sajal\Downloads` and `Desktop\Nomadic-v1\`
+  (built from `apps/desktop/dist-electron/Nomadic.1.1.0.exe`; 1.1.0: Outreach as above, shown as "Soon"; 1.0.13: a listing that names no skills is scored
   against the core skills (weight ≥ 0.8) of the role family in its title and shown as an estimate (`~N%`, "est.
   match"; `JobMatch.estimated`, `features/feed/match.ts`); `inferRole` matches whole stemmed words; the Internshala
   scraper no longer writes filler descriptions (empty instead); the Internshala adapter waits for the

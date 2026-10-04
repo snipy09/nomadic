@@ -258,88 +258,6 @@ export function createBrowserApiShim(): ElectronAPI {
       };
     },
 
-    verifyEmail: async (email: string) => {
-      return { isValid: true };
-    },
-
-    getHrContacts: async (targetRole?: string) => {
-      const fallbackContacts = [
-        { name: 'Sarah Jenkins', company: 'Linear', role: 'Head of Engineering Talent', email: 's.jenkins@linear.app', department: 'Talent Acquisition', verificationStatus: 'valid' as const, verifiedAt: 'Just now', sentStatus: 'unsent' as const, matchScore: 85, linkedinUrl: 'https://linkedin.com/in/sarah-jenkins-talent' },
-        { name: 'David Chen', company: 'Vercel', role: 'Staff Technical Recruiter', email: 'david.chen@vercel.com', department: 'Talent Acquisition', verificationStatus: 'valid' as const, verifiedAt: 'Just now', sentStatus: 'unsent' as const, matchScore: 80, linkedinUrl: 'https://linkedin.com/in/david-chen-tech' },
-        { name: 'Priya Sharma', company: 'Stripe', role: 'Engineering Lead & Hiring Manager', email: 'psharma@stripe.com', department: 'Engineering', verificationStatus: 'valid' as const, verifiedAt: 'Just now', sentStatus: 'unsent' as const, matchScore: 90, linkedinUrl: 'https://linkedin.com/in/priya-sharma-eng' },
-        { name: 'Alex Rivera', company: 'Supabase', role: 'Lead Infrastructure Recruiter', email: 'alex.rivera@supabase.io', department: 'Talent Acquisition', verificationStatus: 'valid' as const, verifiedAt: 'Just now', sentStatus: 'unsent' as const, matchScore: 85, linkedinUrl: 'https://linkedin.com/in/alex-rivera-talent' },
-        { name: 'Elena Rostova', company: 'Figma', role: 'Principal Talent Partner', email: 'elena.rostova@figma.com', department: 'Talent Acquisition', verificationStatus: 'valid' as const, verifiedAt: 'Just now', sentStatus: 'unsent' as const, matchScore: 75, linkedinUrl: 'https://linkedin.com/in/elena-rostova-recruiter' },
-        { name: 'Marcus Vance', company: 'Postman', role: 'Director of Developer Relations', email: 'marcus.vance@postman.com', department: 'Engineering', verificationStatus: 'valid' as const, verifiedAt: 'Just now', sentStatus: 'unsent' as const, matchScore: 70, linkedinUrl: 'https://linkedin.com/in/marcus-vance-devrel' },
-      ];
-
-      // Read saved jobs from localStorage to find candidate's target companies
-      const targetCompanies = new Set<string>();
-      try {
-        const raw = localStorage.getItem('nomadic_saved_jobs');
-        if (raw) {
-          const list = JSON.parse(raw);
-          if (Array.isArray(list)) {
-            list.forEach((j: any) => targetCompanies.add((j.company || '').toLowerCase().trim()));
-          }
-        }
-      } catch {}
-
-      if (!SUPABASE_REST_URL || !SUPABASE_ANON_KEY) return { success: true, contacts: fallbackContacts };
-      try {
-        const res = await fetch(`${SUPABASE_REST_URL}/hr_contacts?order=created_at.desc&limit=200`, {
-          headers: {
-            apikey: SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-          },
-        });
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          const contacts = data.map((c: any) => {
-            const compLower = (c.company || '').toLowerCase().trim();
-            const isTarget = targetCompanies.has(compLower);
-            let score = 50;
-            if (isTarget) score += 35;
-            const roleLower = (c.role || '').toLowerCase();
-            const deptLower = (c.department || '').toLowerCase();
-            if (targetRole) {
-              const tr = targetRole.toLowerCase();
-              if (roleLower.includes('manager') || roleLower.includes('lead') || roleLower.includes('vp') || roleLower.includes('director')) {
-                score += 20;
-              }
-              if (roleLower.includes(tr) || deptLower.includes('engineering') || roleLower.includes('technical')) {
-                score += 15;
-              }
-            }
-
-            return {
-              name: c.name || 'Hiring Lead',
-              company: c.company || 'Tech Company',
-              role: c.role || 'Talent Acquisition',
-              email: c.email || '',
-              department: c.department || (roleLower.includes('engineer') || roleLower.includes('manager') ? 'Engineering' : 'Talent Acquisition'),
-              verificationStatus: (c.verification_status || 'valid') as 'valid' | 'invalid' | 'risky' | 'pending',
-              verifiedAt: c.verified_at || 'Just now',
-              sentStatus: 'unsent' as const,
-              isTargetCompany: isTarget,
-              matchScore: score,
-            };
-          });
-
-          // Sort by matchScore descending
-          contacts.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
-          return { success: true, contacts };
-        }
-      } catch (err: any) {
-        emitLog(`[Recruiters] Note: ${err?.message}`);
-      }
-      return { success: true, contacts: fallbackContacts };
-    },
-
-    sendOutreach: async (contacts) => {
-      emitLog(`[Outreach] Dispatched ${contacts.length} personalized referral inquiries.`);
-      return { success: true, sent: contacts.length };
-    },
-
     startHeartbeat: async () => ({ success: true }),
     stopHeartbeat: async () => ({ success: true }),
     syncCloudData: async () => {
@@ -387,15 +305,6 @@ export function createBrowserApiShim(): ElectronAPI {
       list.unshift(newApp);
       localStorage.setItem('nomadic_applications', JSON.stringify(list));
       return { success: true, id: newApp.id };
-    },
-
-    generateAiOutreachEmail: async (params: any) => {
-      emitLog(`[AI Outreach] Drafting personalized email for ${params.role || 'Engineering'} at ${params.company || 'Target Company'}...`);
-      return {
-        success: true,
-        subject: `Referral Request — ${params.role || 'Software Engineer'} at ${params.company || 'your team'}`,
-        body: `Hi {{name}},\n\nI hope you're having a productive week! I came across the ${params.role || 'Software Engineer'} role at ${params.company || 'your team'} and wanted to connect. With strong background in ${params.skills || 'TypeScript, React, Node.js'}, I'd be very grateful for a quick referral or any guidance on navigating the application process.\n\nWould you be open to a quick 5-minute chat?\n\nBest regards,\n{{senderName}}`
-      };
     },
 
     // Learn in browser preview: kept in memory for this tab only (no app data in localStorage).

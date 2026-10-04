@@ -29,7 +29,7 @@ Legend: ✅ fixed and verified · ⚠️ mitigated, follow-up needed · ☐ open
 | # | Finding | Status | Fix |
 |---|---|---|---|
 | S2d | Login error messages revealed whether an email has an account. | ✅ | One message: "Incorrect email or password." The desktop's offline-cache fallback now returns the same text, and the sign-in screen collapses any credential error into it. Sign-up still says an email is taken (unavoidable without email verification); `register_user` rate-limits that to 5 attempts per email per 15 minutes. |
-| S4 | `hr_contacts` (recruiter names and emails) readable by anyone with the anon key. | ✅ | `008` drops the policy. Outreach is hidden behind a feature flag; re-enabling it needs a session-checked RPC (`apps/desktop/src/main/services/outreach.ts` reads the table with the anon key today). |
+| S4 | `hr_contacts` (recruiter names and emails) readable by anyone with the anon key. | ✅ | `008` drops the policy. Outreach is hidden behind a feature flag; re-enabling it needs a session-checked RPC. Done in `027`: the directory is `outreach_contacts` (service role only), read through `outreach_list_contacts`; the old HR scraper and `hr_contacts` reads were removed. |
 | S7 | `match_jobs_for_user(p_user_id)` (SECURITY DEFINER, no `search_path`) callable by anon for any user. | ✅ | Removed from anon by the `008` allow-list (no client calls it). |
 | S8 | `jobs` readable by anon. | ✅ by design | Only `is_active = TRUE` rows; writes service-role only (`002`). Expired jobs are hidden via the `006` status trigger. |
 | S10 | Admin panel (`apps/desktop/src/main/services/admin.ts`) read and wrote `users_profile`, `billing_records` and local tables with the **service-role key** when present (anon key otherwise); hiding the Admin tab was the only gate, and audit entries were invented in `sessionStorage`. | ✅ | `014`: every admin read/write is a SECURITY DEFINER RPC that checks `session_token + user_id + device_fingerprint + is_active` **and** `users_profile.role = 'admin'` / `status = 'active'` for that user; an admin cannot change their own account; every change writes one row to the append-only `admin_audit_log` (update/delete/truncate blocked by trigger, no client grants) with the reason. Lesson/resource edits snapshot the old row into append-only `content_versions` and require the edited version (optimistic lock); resources can't be created from the app and only link-checked ones can be made `active`. Refused non-admins are logged (`admin.denied`, at most once per 10 min). The desktop no longer has a service-role client. Rehearsed on PostgreSQL 16 as `anon`: non-admin, suspended-admin, wrong-device and ended sessions refused; admin works; each change audited. Tests: `apps/desktop/src/main/__tests__/admin-service.test.ts`. |
@@ -73,7 +73,7 @@ Legend: ✅ fixed and verified · ⚠️ mitigated, follow-up needed · ☐ open
 `authenticate_user`, `register_device_session`, `verify_and_update_session`, `sync_pull_user_data`,
 `sync_push_user_profile`, `sync_push_application`, `sync_push_saved_job`, `sync_remove_saved_job`,
 `sync_push_resume`, `sync_delete_resume`, `sync_delete_application` (010), `learning_start_track`, `learning_archive_track`,
-`learning_record_events`, `learning_pull_events`, `account_export_data` and `account_delete` (022), `billing_list_payments` (025), `sync_hide_job`, `sync_unhide_job`, `sync_pull_hidden_jobs` and `sync_set_application_follow_up` (026), `learning_get_tracks` (012), `get_entitlements` (011), `consume_apply_quota` (011), `register_user` (009), and the admin RPCs (014; each re-checks the
+`learning_record_events`, `learning_pull_events`, `account_export_data` and `account_delete` (022), `billing_list_payments` (025), `sync_hide_job`, `sync_unhide_job`, `sync_pull_hidden_jobs` and `sync_set_application_follow_up` (026), `outreach_list_contacts` and `outreach_report_contact` (027; session-checked, per-user daily row cap), `learning_get_tracks` (012), `get_entitlements` (011), `consume_apply_quota` (011), `register_user` (009), and the admin RPCs (014; each re-checks the
 session and the admin role): `admin_list_users`, `admin_set_user_plan`, `admin_set_user_status`, `admin_list_audit`,
 `admin_scrape_health`, `admin_list_content`, `admin_update_lesson`, `admin_set_resource_status`,
 `admin_content_history`, and the email-code RPCs (019): `confirm_password_reset` (code-checked, generic errors),
@@ -84,7 +84,7 @@ default. (`login_prehash` is also executable by anon; it is a pure hashing helpe
 
 ## Service-role-only functions (not client RPCs)
 
-`server_secret` (018), `consume_ai_quota`, `refund_ai_quota`, `ai_limits` (020): callable only with the service-role
+`server_secret` (018), `consume_ai_quota`, `refund_ai_quota`, `ai_limits` (020, extended in 027), `outreach_suppress` (027): callable only with the service-role
 key, i.e. from Edge Functions. None of them may ever be granted to anon/authenticated.
 
 ## Owner actions

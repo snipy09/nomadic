@@ -13,7 +13,8 @@ import { UpgradeDialog } from './features/billing/UpgradeDialog';
 import { ENTITLEMENTS_KEY } from './features/billing/useEntitlements';
 import { queryClient } from './queryClient';
 import { FeedView } from './features/feed/FeedView';
-import { OutreachView } from './components/OutreachView';
+import { OutreachView } from './features/outreach/OutreachView';
+import { OutreachComingSoon } from './features/outreach/OutreachComingSoon';
 import { ApplicationsView } from './features/applications/ApplicationsView';
 import { ProfileView } from './features/profile/ProfileView';
 import { AdminView } from './features/admin/AdminView';
@@ -457,15 +458,9 @@ export default function App() {
               />
             )}
 
-            {activeTab === 'outreach' && isTabEnabled('outreach') && (
-              <OutreachView
-                profile={profile}
-                onLog={addLog}
-                initialSearchQuery={outreachTargetCompany}
-                currentUser={currentUser}
-                onOpenUpgrade={handleOpenUpgrade}
-              />
-            )}
+            {activeTab === 'outreach' && (isTabEnabled('outreach')
+              ? <OutreachView profile={profile} onLog={addLog} initialCompany={outreachTargetCompany} />
+              : <OutreachComingSoon />)}
 
             {activeTab === 'applications' && (
               <ApplicationsView onBrowseJobs={() => setActiveTab('feed')} />

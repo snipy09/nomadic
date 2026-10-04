@@ -156,7 +156,8 @@ export function saveMasterProfile(p: Record<string, unknown>): { success: boolea
     desired_salary: (p.desiredSalary as string) ?? (p.desired_salary as string) ?? null,
     notice_period: (p.noticePeriod as string) ?? (p.notice_period as string) ?? null,
     groq_api_key: (p.groqApiKey as string) ?? (p.groq_api_key as string) ?? null,
-    smtp_password: (p.smtpPassword as string) ?? (p.smtp_password as string) ?? null,
+    // The SMTP password is owned by Outreach → Email account; a profile save keeps it.
+    smtp_password: readSecret('smtp_password'),
     resume_text: (p.resumeText as string) ?? (p.resume_text as string) ?? null,
     custom_answers_json: (p.customAnswersJson as string) ?? (p.custom_answers_json as string) ?? (p.customAnswers ? JSON.stringify(p.customAnswers) : null),
     onboarding_completed: onboardingVal,

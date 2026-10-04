@@ -29,6 +29,11 @@ export interface PlanLimits {
    * questions). Enforced by the AI proxy through migration 020 consume_ai_quota.
    */
   aiFormCallsPerDay: number;
+  /**
+   * AI outreach drafts per day (one email or LinkedIn note each). Enforced by the AI
+   * proxy through migration 027 consume_ai_quota.
+   */
+  aiOutreachDraftsPerDay: number;
   resumes: number;
 }
 
@@ -70,6 +75,7 @@ export const PLANS: readonly Plan[] = [
       aiFeedback: false,
       aiFeedbackPerDay: 0,
       aiFormCallsPerDay: 10,
+      aiOutreachDraftsPerDay: 3,
       resumes: 1,
     },
   },
@@ -96,6 +102,7 @@ export const PLANS: readonly Plan[] = [
       aiFeedback: true,
       aiFeedbackPerDay: 30,
       aiFormCallsPerDay: 40,
+      aiOutreachDraftsPerDay: 25,
       resumes: 5,
     },
   },
@@ -121,6 +128,7 @@ export const PLANS: readonly Plan[] = [
       aiFeedback: true,
       aiFeedbackPerDay: 100,
       aiFormCallsPerDay: 300,
+      aiOutreachDraftsPerDay: 100,
       resumes: Infinity,
     },
   },
@@ -180,6 +188,19 @@ export function aiLimitsSqlRows(): string[] {
       throw new Error(`AI limits must be finite (plan ${p.id})`);
     }
     const row = `('${p.id}', ${l.aiFeedback ? 'TRUE' : 'FALSE'}, ${l.aiFeedbackPerDay}, ${l.aiFormCallsPerDay})`;
+    return i < PLANS.length - 1 ? `${row},` : row;
+  });
+}
+
+/**
+ * The rows of `public.ai_outreach_limits()` in migration 027, rendered from PLANS.
+ * Column order: (plan, ai_outreach_drafts_per_day).
+ */
+export function aiOutreachLimitsSqlRows(): string[] {
+  return PLANS.map((p, i) => {
+    const n = p.limits.aiOutreachDraftsPerDay;
+    if (!Number.isFinite(n)) throw new Error(`AI limits must be finite (plan ${p.id})`);
+    const row = `('${p.id}', ${n})`;
     return i < PLANS.length - 1 ? `${row},` : row;
   });
 }

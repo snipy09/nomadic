@@ -388,49 +388,189 @@ export interface CheckoutResult extends SuccessResult {
 /** Reviewed values per snapshot id, keyed by `BatchSnapshotField.fieldKey`. */
 export type BatchOverrides = Record<string, Record<string, string>>;
 
-export interface EmailVerification {
-  email?: string;
-  isValid: boolean;
-  stageFailed?: number;
-  reason?: string;
-}
+// ── Outreach (F13, behind the `outreach` flag) ──────────────────────────────
+// Everyone who can refer: recruiters, hiring managers, founders, employees, alumni and
+// team inboxes. Directory rows come from public pages only (migration 027); messages are
+// written locally, reviewed by the user and only then sent or opened.
 
-export interface HrContact {
-  name: string;
+export const OUTREACH_CONTACT_KINDS = ['recruiter', 'hiring_manager', 'founder', 'employee', 'alumni', 'team_inbox', 'unknown'] as const;
+export type OutreachContactKind = (typeof OUTREACH_CONTACT_KINDS)[number];
+export const OUTREACH_PURPOSES = ['referral', 'application_follow_up', 'introduction', 'follow_up'] as const;
+export type OutreachPurpose = (typeof OUTREACH_PURPOSES)[number];
+export type OutreachChannel = 'email' | 'linkedin';
+export const OUTREACH_REPORT_REASONS = ['bounced', 'wrong_person', 'not_hiring', 'asked_to_stop', 'other'] as const;
+export type OutreachReportReason = (typeof OUTREACH_REPORT_REASONS)[number];
+export type OutreachMessageStatus = 'draft' | 'ready' | 'sent' | 'replied' | 'no_reply' | 'bounced';
+export type OutreachSentVia = 'smtp' | 'gmail' | 'mailto' | 'linkedin' | 'manual';
+
+export type OutreachErrorCode =
+  | 'not_signed_in'
+  | 'unauthorized'
+  | 'account_suspended'
+  | 'daily_limit'
+  | 'bad_request'
+  | 'network'
+  | 'not_found'
+  | 'not_reviewed'
+  | 'placeholders'
+  | 'send_limit'
+  | 'smtp_not_configured'
+  | 'smtp_failed';
+
+/** A published directory row (outreach_list_contacts). Unknown stays null. */
+export interface DirectoryContact {
+  id: string;
+  email: string;
+  name: string | null;
   company: string;
-  role: string;
-  email: string;
-  department?: string;
-  verificationStatus: string;
-  sentStatus: string;
-  isTargetCompany?: boolean;
-  matchScore?: number;
+  companyDomain: string | null;
+  roleTitle: string | null;
+  hiringFor: string | null;
+  kind: OutreachContactKind;
+  addressType: string | null;
+  source: string;
+  sourceUrl: string | null;
+  sourceSnippet: string | null;
+  jobUrl: string | null;
+  location: string | null;
+  remote: boolean | null;
+  postedAt: string | null;
+  mxOk: boolean | null;
+  lastSeenAt: string | null;
 }
 
-export interface OutreachRecipient {
-  email: string;
-  name?: string;
+export interface OutreachContactQuery {
   company?: string;
-  role?: string;
-  subject?: string;
-  body?: string;
+  query?: string;
+  kinds?: OutreachContactKind[];
+  limit?: number;
+  offset?: number;
+}
+
+export type OutreachContactsResult =
+  | { success: true; contacts: DirectoryContact[]; total: number; rowsLeftToday: number | null }
+  | { success: false; code: OutreachErrorCode; error: string };
+
+export interface OutreachReportInput {
+  contactId: string;
+  reason: OutreachReportReason;
+  note?: string;
 }
 
 export interface OutreachResult {
   success: boolean;
-  sent: number;
-  mode?: 'smtp' | 'automated_chrome' | 'draft_opened';
+  code?: OutreachErrorCode;
   error?: string;
 }
 
-export interface AiOutreachEmailParams {
-  role?: string;
-  company?: string;
-  recipientName?: string;
-  tone?: string;
-  skills?: string;
-  candidateName?: string;
+/** Someone the user wants to reach, saved locally (from the directory or typed in). */
+export interface OutreachPerson {
+  id: number;
+  name: string | null;
+  email: string | null;
+  linkedinUrl: string | null;
+  company: string;
+  roleTitle: string | null;
+  kind: OutreachContactKind;
+  contactId: string | null;
+  sourceUrl: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
+
+export interface OutreachPersonInput {
+  id?: number;
+  name?: string | null;
+  email?: string | null;
+  linkedinUrl?: string | null;
+  company: string;
+  roleTitle?: string | null;
+  kind: OutreachContactKind;
+  contactId?: string | null;
+  sourceUrl?: string | null;
+  notes?: string | null;
+}
+
+export interface OutreachMessage {
+  id: number;
+  personId: number;
+  channel: OutreachChannel;
+  purpose: OutreachPurpose;
+  jobTitle: string | null;
+  jobUrl: string | null;
+  subject: string;
+  body: string;
+  status: OutreachMessageStatus;
+  reviewedAt: string | null;
+  sentAt: string | null;
+  sentVia: OutreachSentVia | null;
+  applicationId: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OutreachMessageInput {
+  id?: number;
+  personId: number;
+  channel: OutreachChannel;
+  purpose: OutreachPurpose;
+  jobTitle?: string | null;
+  jobUrl?: string | null;
+  subject: string;
+  body: string;
+}
+
+export interface OutreachState {
+  people: OutreachPerson[];
+  messages: OutreachMessage[];
+  /** Emails sent through SMTP today (local day) and the daily cap. */
+  sentToday: number;
+  sendLimit: number;
+}
+
+export interface OutreachOpenInput {
+  id: number;
+  via: 'gmail' | 'mailto' | 'linkedin';
+}
+
+export interface OutreachMarkInput {
+  id: number;
+  status: 'sent' | 'replied' | 'no_reply' | 'bounced';
+}
+
+export interface OutreachDraftInput {
+  personId: number;
+  channel: OutreachChannel;
+  purpose: OutreachPurpose;
+  jobTitle?: string | null;
+  note?: string | null;
+}
+
+export type OutreachDraftResult =
+  | { success: true; subject: string | null; body: string | null; quota: AiQuota | null }
+  | { success: false; code: AiErrorCode | 'not_found'; error: string; quota?: AiQuota | null };
+
+export interface OutreachSmtpSettings {
+  configured: boolean;
+  host: string;
+  port: number;
+  secure: boolean;
+  user: string;
+  fromName: string;
+}
+
+export interface OutreachSmtpInput {
+  host: string;
+  port: number;
+  secure: boolean;
+  user: string;
+  /** Omit to keep the stored password. */
+  password?: string;
+  fromName?: string;
+}
+
+export type OutreachMessageResult = OutreachResult & { message?: OutreachMessage };
 
 export interface AssistantAction {
   type: string;
@@ -933,10 +1073,26 @@ export interface IpcChannels {
   'get-payment-history': Channel<[], PaymentHistoryResult>;
 
   // outreach
-  'verify-email': Channel<[email: string], EmailVerification>;
-  'get-hr-contacts': Channel<[targetRole?: string], { success: boolean; contacts: HrContact[] }>;
-  'send-outreach': Channel<[contacts: OutreachRecipient[]], OutreachResult>;
-  'generate-ai-outreach-email': Channel<[params: AiOutreachEmailParams], { success: boolean; subject: string; body: string }>;
+  /** Published directory (server RPC, session-checked, 500 rows per day). */
+  'outreach-list-contacts': Channel<[query: OutreachContactQuery], OutreachContactsResult>;
+  'outreach-report-contact': Channel<[input: OutreachReportInput], OutreachResult>;
+  'outreach-get-state': Channel<[], OutreachState>;
+  'outreach-save-person': Channel<[input: OutreachPersonInput], OutreachResult & { person?: OutreachPerson }>;
+  'outreach-delete-person': Channel<[id: number], OutreachResult>;
+  /** Any edit puts the message back to draft; it must be reviewed again. */
+  'outreach-save-message': Channel<[input: OutreachMessageInput], OutreachMessageResult>;
+  'outreach-delete-message': Channel<[id: number], OutreachResult>;
+  /** The user's "I reviewed this" tick: draft -> ready. */
+  'outreach-review-message': Channel<[id: number], OutreachMessageResult>;
+  /** Sends a ready email through the user's own SMTP account. */
+  'outreach-send-message': Channel<[id: number], OutreachMessageResult>;
+  /** Opens a ready message in Gmail, the mail app, or LinkedIn (note copied). Nothing is sent by Nomadic. */
+  'outreach-open-message': Channel<[input: OutreachOpenInput], OutreachResult & { copied?: boolean }>;
+  'outreach-mark-message': Channel<[input: OutreachMarkInput], OutreachMessageResult>;
+  'outreach-draft-ai': Channel<[input: OutreachDraftInput], OutreachDraftResult>;
+  'outreach-get-smtp': Channel<[], OutreachSmtpSettings>;
+  'outreach-save-smtp': Channel<[input: OutreachSmtpInput], OutreachResult>;
+  'outreach-clear-smtp': Channel<[], OutreachResult>;
 
   // assistant
   'ask-nomadic-assistant': Channel<[data: AssistantRequest], AssistantReply>;
@@ -1013,7 +1169,10 @@ export const IPC_CHANNELS = [
   'launch-semi-auto', 'launch-autonomous', 'cancel-autonomous-apply', 'start-batch-copilot',
   'submit-all-batch-copilot',
   'get-entitlements', 'start-checkout', 'get-payment-history',
-  'verify-email', 'get-hr-contacts', 'send-outreach', 'generate-ai-outreach-email',
+  'outreach-list-contacts', 'outreach-report-contact', 'outreach-get-state', 'outreach-save-person',
+  'outreach-delete-person', 'outreach-save-message', 'outreach-delete-message', 'outreach-review-message',
+  'outreach-send-message', 'outreach-open-message', 'outreach-mark-message', 'outreach-draft-ai',
+  'outreach-get-smtp', 'outreach-save-smtp', 'outreach-clear-smtp',
   'ask-nomadic-assistant',
   'learning-get-state', 'learning-save-goal', 'learning-record-events', 'learning-sync',
   'practice-get-catalog', 'practice-get-state', 'practice-record-attempt', 'ai-rubric-feedback',
@@ -1072,9 +1231,21 @@ export interface NomadicApi {
   getEntitlements: Invoke<'get-entitlements'>;
   startCheckout: Invoke<'start-checkout'>;
   getPaymentHistory: Invoke<'get-payment-history'>;
-  verifyEmail: Invoke<'verify-email'>;
-  getHrContacts: Invoke<'get-hr-contacts'>;
-  sendOutreach: Invoke<'send-outreach'>;
+  outreachListContacts: Invoke<'outreach-list-contacts'>;
+  outreachReportContact: Invoke<'outreach-report-contact'>;
+  outreachGetState: Invoke<'outreach-get-state'>;
+  outreachSavePerson: Invoke<'outreach-save-person'>;
+  outreachDeletePerson: Invoke<'outreach-delete-person'>;
+  outreachSaveMessage: Invoke<'outreach-save-message'>;
+  outreachDeleteMessage: Invoke<'outreach-delete-message'>;
+  outreachReviewMessage: Invoke<'outreach-review-message'>;
+  outreachSendMessage: Invoke<'outreach-send-message'>;
+  outreachOpenMessage: Invoke<'outreach-open-message'>;
+  outreachMarkMessage: Invoke<'outreach-mark-message'>;
+  outreachDraftAi: Invoke<'outreach-draft-ai'>;
+  outreachGetSmtp: Invoke<'outreach-get-smtp'>;
+  outreachSaveSmtp: Invoke<'outreach-save-smtp'>;
+  outreachClearSmtp: Invoke<'outreach-clear-smtp'>;
   getApplications: Invoke<'get-applications'>;
   saveApplication: Invoke<'save-application'>;
   getSavedJobs: Invoke<'get-saved-jobs'>;
@@ -1112,7 +1283,6 @@ export interface NomadicApi {
   openInApplyBrowser: Invoke<'open-in-apply-browser'>;
 
   askNomadicAssistant: Invoke<'ask-nomadic-assistant'>;
-  generateAiOutreachEmail: Invoke<'generate-ai-outreach-email'>;
 
   learningGetState: Invoke<'learning-get-state'>;
   learningSaveGoal: Invoke<'learning-save-goal'>;

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { ArgSchemas } from './handle.js';
 import { LearningEventPayloadSchema, LearningEventTypeSchema, RoleFamilyIdSchema, UuidSchema } from '@job-automator/learning';
-import { USER_APPLICATION_STATUSES } from '../../shared/ipc.js';
+import { OUTREACH_CONTACT_KINDS, OUTREACH_PURPOSES, OUTREACH_REPORT_REASONS, USER_APPLICATION_STATUSES } from '../../shared/ipc.js';
 import {
   ADMIN_ASSIGNABLE_TIERS,
   ADMIN_CONTENT_KINDS,
@@ -186,33 +186,90 @@ export const getEntitlementsArgs: ArgSchemas<'get-entitlements'> = [
 export const startCheckoutArgs: ArgSchemas<'start-checkout'> = [z.enum(['pro', 'max'])];
 
 // ── outreach ───────────────────────────────────────────────────────────────
-export const emailArgs: ArgSchemas<'verify-email'> = [str(320)];
-export const targetRoleArgs: ArgSchemas<'get-hr-contacts'> = [opt(str())];
-
-const outreachRecipient = z
-  .object({
-    email: str(320),
-    name: opt(str()),
-    company: opt(str()),
-    role: opt(str()),
-    subject: opt(str(2_000)),
-    body: opt(str(MEDIUM)),
-  })
-  .passthrough();
-export const sendOutreachArgs: ArgSchemas<'send-outreach'> = [z.array(outreachRecipient).max(LIST_MAX)];
-
-const aiOutreachParams = z
-  .object({
-    role: opt(str()),
-    company: opt(str()),
-    recipientName: opt(str()),
-    tone: opt(str()),
-    skills: opt(str(MEDIUM)),
-    candidateName: opt(str()),
-  })
-  .passthrough();
-export const aiOutreachArgs: ArgSchemas<'generate-ai-outreach-email'> = [aiOutreachParams];
-
+const outreachKind = z.enum(OUTREACH_CONTACT_KINDS);
+const outreachPurpose = z.enum(OUTREACH_PURPOSES);
+const outreachChannel = z.enum(['email', 'linkedin']);
+const nullableField = (max: number = SHORT) => str(max).nullish().transform((v) => (v == null ? null : v));
+export const outreachListContactsArgs: ArgSchemas<'outreach-list-contacts'> = [
+  z
+    .object({
+      company: opt(str(200)),
+      query: opt(str(200)),
+      kinds: opt(z.array(outreachKind).max(OUTREACH_CONTACT_KINDS.length)),
+      limit: opt(z.number().int().min(1).max(50)),
+      offset: opt(z.number().int().min(0).max(100_000)),
+    })
+    .strict(),
+];
+export const outreachReportContactArgs: ArgSchemas<'outreach-report-contact'> = [
+  z
+    .object({
+      contactId: UuidSchema,
+      reason: z.enum(OUTREACH_REPORT_REASONS),
+      note: opt(str(500)),
+    })
+    .strict(),
+];
+export const outreachSavePersonArgs: ArgSchemas<'outreach-save-person'> = [
+  z
+    .object({
+      id: opt(numericId),
+      name: nullableField(200),
+      email: str(320).trim().email().nullish().or(z.literal('')).transform((v) => (v ? v : null)),
+      linkedinUrl: str(URL_MAX).trim().regex(/^https:\/\/([a-z0-9-]+\.)?linkedin\.com\//i).nullish().or(z.literal('')).transform((v) => (v ? v : null)),
+      company: z.string().trim().min(1).max(200),
+      roleTitle: nullableField(200),
+      kind: outreachKind,
+      contactId: UuidSchema.nullish().transform((v) => (v == null ? null : v)),
+      sourceUrl: str(URL_MAX).regex(/^https?:\/\//i).nullish().transform((v) => (v == null ? null : v)),
+      notes: nullableField(2_000),
+    })
+    .strict(),
+];
+export const outreachIdArgs: ArgSchemas<'outreach-delete-person'> = [numericId];
+export const outreachSaveMessageArgs: ArgSchemas<'outreach-save-message'> = [
+  z
+    .object({
+      id: opt(numericId),
+      personId: numericId,
+      channel: outreachChannel,
+      purpose: outreachPurpose,
+      jobTitle: nullableField(200),
+      jobUrl: str(URL_MAX).regex(/^https?:\/\//i).nullish().transform((v) => (v == null ? null : v)),
+      subject: str(300),
+      body: str(5_000),
+    })
+    .strict(),
+];
+export const outreachOpenMessageArgs: ArgSchemas<'outreach-open-message'> = [
+  z.object({ id: numericId, via: z.enum(['gmail', 'mailto', 'linkedin']) }).strict(),
+];
+export const outreachMarkMessageArgs: ArgSchemas<'outreach-mark-message'> = [
+  z.object({ id: numericId, status: z.enum(['sent', 'replied', 'no_reply', 'bounced']) }).strict(),
+];
+export const outreachDraftAiArgs: ArgSchemas<'outreach-draft-ai'> = [
+  z
+    .object({
+      personId: numericId,
+      channel: outreachChannel,
+      purpose: outreachPurpose,
+      jobTitle: nullableField(200),
+      note: nullableField(500),
+    })
+    .strict(),
+];
+export const outreachSaveSmtpArgs: ArgSchemas<'outreach-save-smtp'> = [
+  z
+    .object({
+      host: z.string().trim().min(3).max(253).regex(/^[a-z0-9.-]+$/i),
+      port: z.number().int().min(1).max(65_535),
+      secure: z.boolean(),
+      user: z.string().trim().min(3).max(320),
+      password: opt(z.string().min(1).max(500)),
+      fromName: opt(str(100)),
+    })
+    .strict(),
+];
 // ── assistant ──────────────────────────────────────────────────────────────
 const assistantRequest = z
   .object({

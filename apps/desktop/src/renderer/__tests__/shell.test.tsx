@@ -11,9 +11,11 @@ import { UserMenu } from '../components/shell/UserMenu';
 afterEach(() => cleanup());
 
 describe('nav sections', () => {
-  it('hides flagged features and only shows Admin to admins', () => {
+  it('hides flagged features, keeps Outreach as Soon and only shows Admin to admins', () => {
     const titles = (admin: boolean) => getNavSections('seeker', admin).flatMap((s) => s.items.map((i) => i.id));
-    expect(titles(false)).not.toContain('outreach');
+    const outreach = getNavSections('seeker', false).flatMap((s) => s.items).find((i) => i.id === 'outreach');
+    expect(outreach?.soon).toBe(true);
+    expect(titles(false)).not.toContain('opportunities');
     expect(titles(false)).not.toContain('admin-overview');
     expect(titles(true)).toContain('admin-overview');
     expect(getNavSections('learner', false).flatMap((s) => s.items.map((i) => i.id))).not.toContain('learner-resources');

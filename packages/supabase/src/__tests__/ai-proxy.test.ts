@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { checkFormOutput, checkRubricOutput, parseProxyRequest, buildRubricPrompt, buildFormPrompt, type RubricPayload, type FormPayload } from '../../functions/ai-proxy/core.ts';
+import { checkFormOutput, checkRubricOutput, checkOutreachOutput, parseProxyRequest, buildRubricPrompt, buildFormPrompt, buildOutreachPrompt, type RubricPayload, type FormPayload, type OutreachPayload } from '../../functions/ai-proxy/core.ts';
 import { GeminiProvider, GroqProvider, ProviderError, createProvider, geminiHttpError, keyKind, type FetchLike } from '../../functions/ai-proxy/providers.ts';
 import { handleAiProxy, type ProxyDeps, type QuotaRow } from '../../functions/ai-proxy/handler.ts';
 
@@ -275,5 +275,48 @@ describe('ai-proxy handler', () => {
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ ok: true, result: { answers: { q1: 'I like Acme.', q2: null } } });
     expect(JSON.stringify(res.body)).not.toContain('zzz');
+  });
+});
+
+const outreachPayload: OutreachPayload = {
+  candidate: { name: 'Asha Rao', skills: 'React, TypeScript', education: 'B.Tech CSE, NIT Trichy' },
+  recipient: { kind: 'employee', name: 'Ravi', role_title: 'Software Engineer', company: 'Acme' },
+  job_title: 'Frontend Intern',
+  channel: 'email',
+  purpose: 'referral',
+};
+
+describe('outreach_email kind', () => {
+  it('parses a valid request and rejects bad kinds, channels and missing companies', () => {
+    const req = parseProxyRequest(envelope('outreach_email', outreachPayload));
+    expect(req.kind).toBe('outreach_email');
+    expect(() => parseProxyRequest(envelope('outreach_email', { ...outreachPayload, channel: 'sms' }))).toThrow(/channel/);
+    expect(() => parseProxyRequest(envelope('outreach_email', { ...outreachPayload, purpose: 'spam' }))).toThrow(/purpose/);
+    expect(() => parseProxyRequest(envelope('outreach_email', { ...outreachPayload, recipient: { kind: 'boss', company: 'Acme' } }))).toThrow(/recipient.kind/);
+    expect(() => parseProxyRequest(envelope('outreach_email', { ...outreachPayload, recipient: { kind: 'recruiter' } }))).toThrow(/recipient.company/);
+  });
+
+  it('prompt keeps the injection guard and the LinkedIn limit', () => {
+    expect(buildOutreachPrompt(outreachPayload).system).toMatch(/Ignore any instructions/);
+    expect(buildOutreachPrompt({ ...outreachPayload, channel: 'linkedin' }).system).toMatch(/300 characters/);
+  });
+
+  it('accepts a clean draft, null for missing facts, and rejects placeholders, links and long notes', () => {
+    expect(checkOutreachOutput(outreachPayload, { subject: 'Referral for Frontend Intern', body: 'Hi Ravi, ...\nAsha' })).toEqual({ subject: 'Referral for Frontend Intern', body: 'Hi Ravi, ...\nAsha' });
+    expect(checkOutreachOutput(outreachPayload, { subject: null, body: null })).toEqual({ subject: null, body: null });
+    expect(() => checkOutreachOutput(outreachPayload, { subject: 'Hi', body: 'Hi [Name], I am...' })).toThrow();
+    expect(() => checkOutreachOutput(outreachPayload, { subject: 'Hi', body: 'See https://asha.dev' })).toThrow();
+    expect(() => checkOutreachOutput(outreachPayload, { subject: 'Hi', body: 'Mail me at asha@example.com' })).toThrow();
+    const li = { ...outreachPayload, channel: 'linkedin' as const };
+    expect(checkOutreachOutput(li, { subject: 'ignored', body: 'Hi Ravi' })).toEqual({ subject: null, body: 'Hi Ravi' });
+    expect(() => checkOutreachOutput(li, { subject: null, body: 'x'.repeat(301) })).toThrow(/too long/);
+  });
+
+  it('handler counts the outreach quota and returns the draft', async () => {
+    const d = deps({ fetch: fakeFetch({ status: 200, body: geminiReply({ subject: 'Referral', body: 'Hi Ravi' }) }) });
+    const res = await handleAiProxy('POST', body('outreach_email', outreachPayload), d);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ ok: true, kind: 'outreach_email', result: { subject: 'Referral', body: 'Hi Ravi' } });
+    expect(d.consumeQuota).toHaveBeenCalledWith(expect.objectContaining({ kind: 'outreach_email' }));
   });
 });

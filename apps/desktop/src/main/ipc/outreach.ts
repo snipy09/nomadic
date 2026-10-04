@@ -1,11 +1,48 @@
 import { handle } from './handle.js';
-import { aiOutreachArgs, emailArgs, sendOutreachArgs, targetRoleArgs } from './schemas.js';
-import { generateAiOutreachEmail, getHrContacts, sendOutreach, verifyEmail } from '../services/outreach.js';
+import {
+  outreachDraftAiArgs,
+  outreachIdArgs,
+  outreachListContactsArgs,
+  outreachMarkMessageArgs,
+  outreachOpenMessageArgs,
+  outreachReportContactArgs,
+  outreachSaveMessageArgs,
+  outreachSavePersonArgs,
+  outreachSaveSmtpArgs,
+} from './schemas.js';
+import {
+  clearSmtpSettings,
+  deleteOutreachMessage,
+  deleteOutreachPerson,
+  draftOutreachWithAi,
+  getOutreachState,
+  getSmtpSettings,
+  listDirectoryContacts,
+  markOutreachMessage,
+  openOutreachMessage,
+  reportDirectoryContact,
+  reviewOutreachMessage,
+  saveOutreachMessage,
+  saveOutreachPerson,
+  saveSmtpSettings,
+  sendOutreachMessage,
+} from '../services/outreach.js';
 
-/** Recruiter contacts, email verification and outreach dispatch. */
+/** Outreach: contact directory, people and reviewed messages, the user's SMTP account. */
 export function registerOutreachIpc(): void {
-  handle('verify-email', emailArgs, (email) => verifyEmail(email));
-  handle('get-hr-contacts', targetRoleArgs, (targetRole) => getHrContacts(targetRole));
-  handle('send-outreach', sendOutreachArgs, (contacts) => sendOutreach(contacts));
-  handle('generate-ai-outreach-email', aiOutreachArgs, (params) => generateAiOutreachEmail(params));
+  handle('outreach-list-contacts', outreachListContactsArgs, (q) => listDirectoryContacts(q));
+  handle('outreach-report-contact', outreachReportContactArgs, (input) => reportDirectoryContact(input));
+  handle('outreach-get-state', () => getOutreachState());
+  handle('outreach-save-person', outreachSavePersonArgs, (input) => saveOutreachPerson(input));
+  handle('outreach-delete-person', outreachIdArgs, (id) => deleteOutreachPerson(id));
+  handle('outreach-save-message', outreachSaveMessageArgs, (input) => saveOutreachMessage(input));
+  handle('outreach-delete-message', outreachIdArgs, (id) => deleteOutreachMessage(id));
+  handle('outreach-review-message', outreachIdArgs, (id) => reviewOutreachMessage(id));
+  handle('outreach-send-message', outreachIdArgs, (id) => sendOutreachMessage(id));
+  handle('outreach-open-message', outreachOpenMessageArgs, (input) => openOutreachMessage(input));
+  handle('outreach-mark-message', outreachMarkMessageArgs, (input) => markOutreachMessage(input));
+  handle('outreach-draft-ai', outreachDraftAiArgs, (input) => draftOutreachWithAi(input));
+  handle('outreach-get-smtp', () => getSmtpSettings());
+  handle('outreach-save-smtp', outreachSaveSmtpArgs, (input) => saveSmtpSettings(input));
+  handle('outreach-clear-smtp', () => clearSmtpSettings());
 }

@@ -1,7 +1,8 @@
 # Setting up a new Supabase database
 
 **Live project:** `nomadic` (ref `grqkiddfwoyicktpgdea`, ap-south-1). Set up 2026-10-03 with `baseline/supabase_full_setup.sql`
-(001–011, 014, 015, 016) plus 012, 017, 018 and 021; verified: all migrations recorded, RLS on all public tables; anon RPC allow-list per SECURITY_CHECKLIST. The app's build defaults point at it (the anon key is public by design). Advisor notes that remain
+(001–011, 014, 015, 016) plus 012, 017, 018 and 021, then 019, 020 and 022–027 (027 outreach directory, applied
+2026-10-04; after it the owner pastes `DROP TABLE public.hr_contacts;`); verified: all migrations recorded, RLS on all public tables; anon RPC allow-list per SECURITY_CHECKLIST. The app's build defaults point at it (the anon key is public by design). Advisor notes that remain
 are by design: deny-all tables (RLS, no policies) and session-checked SECURITY DEFINER RPCs callable by anon.
 The Resend key is stored in Vault (`resend_api_key`), readable only by service_role via `private.get_vault_secret`.
 

@@ -54,8 +54,8 @@ describe('typed IPC handle()', () => {
   });
 
   it('lists every invoke channel exactly once', () => {
-    expect(new Set(IPC_CHANNELS).size).toBe(88);
-    expect(IPC_CHANNELS.length).toBe(88);
+    expect(new Set(IPC_CHANNELS).size).toBe(99);
+    expect(IPC_CHANNELS.length).toBe(99);
   });
 });
 
@@ -80,8 +80,9 @@ describe('IPC input validation schemas', () => {
 
   it('rejects wrong types and oversize input with readable issues', () => {
     expect(() => validateArgs('launch-autonomous', schemas.jobUrlsArgs, ['https://a'])).toThrow(/arg0/);
-    expect(() => validateArgs('send-outreach', schemas.sendOutreachArgs, [[{ name: 'x' }]])).toThrow(/arg0\.0\.email/);
-    expect(() => validateArgs('verify-email', schemas.emailArgs, ['a'.repeat(400)])).toThrow(IpcValidationError);
+    expect(() => validateArgs('outreach-save-person', schemas.outreachSavePersonArgs, [{ kind: 'recruiter' }])).toThrow(/arg0\.company/);
+    expect(() => validateArgs('outreach-save-message', schemas.outreachSaveMessageArgs, [{ personId: 1, channel: 'email', purpose: 'referral', subject: 's', body: 'b'.repeat(6000) }])).toThrow(IpcValidationError);
+    expect(() => validateArgs('outreach-list-contacts', schemas.outreachListContactsArgs, [{ limit: 500 }])).toThrow(/arg0\.limit/);
     expect(() => validateArgs('save-master-profile', schemas.saveMasterProfileArgs, [{ groqApiKey: 123 }])).toThrow();
   });
 });

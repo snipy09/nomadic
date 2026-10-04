@@ -92,21 +92,6 @@ export interface Application {
   history?: ApplicationStatusEvent[];
 }
 
-export interface OutreachContact {
-  email: string;
-  name?: string;
-  company?: string;
-  role?: string;
-  department?: 'Engineering' | 'Talent Acquisition' | 'Product' | 'Executive' | string;
-  verificationStatus?: 'valid' | 'invalid' | 'pending' | 'risky' | 'catch-all';
-  sentStatus?: 'unsent' | 'sent' | 'failed' | 'drafted';
-  sentAt?: string;
-  verifiedAt?: string;
-  isTargetCompany?: boolean;
-  matchScore?: number;
-  linkedinUrl?: string;
-}
-
 export interface CuratedResource {
   id: number;
   title: string;
@@ -234,10 +219,22 @@ export interface ElectronAPI {
   /** Opens Razorpay checkout for a paid plan in the browser. */
   startCheckout?: (plan: 'pro' | 'max') => Promise<CheckoutResult>;
   getPaymentHistory?: NomadicApi['getPaymentHistory'];
-  verifyEmail: (email: string) => Promise<{ isValid: boolean; stageFailed?: number; reason?: string }>;
-  getHrContacts: (targetRole?: string) => Promise<{ success: boolean; contacts: OutreachContact[]; error?: string }>;
-  sendOutreach: (contacts: Array<{ email: string; name?: string; company?: string; role?: string; subject?: string; body?: string }>) =>
-    Promise<{ success: boolean; sent?: number; mode?: string; error?: string }>;
+  // Outreach (behind the `outreach` flag)
+  outreachListContacts?: NomadicApi['outreachListContacts'];
+  outreachReportContact?: NomadicApi['outreachReportContact'];
+  outreachGetState?: NomadicApi['outreachGetState'];
+  outreachSavePerson?: NomadicApi['outreachSavePerson'];
+  outreachDeletePerson?: NomadicApi['outreachDeletePerson'];
+  outreachSaveMessage?: NomadicApi['outreachSaveMessage'];
+  outreachDeleteMessage?: NomadicApi['outreachDeleteMessage'];
+  outreachReviewMessage?: NomadicApi['outreachReviewMessage'];
+  outreachSendMessage?: NomadicApi['outreachSendMessage'];
+  outreachOpenMessage?: NomadicApi['outreachOpenMessage'];
+  outreachMarkMessage?: NomadicApi['outreachMarkMessage'];
+  outreachDraftAi?: NomadicApi['outreachDraftAi'];
+  outreachGetSmtp?: NomadicApi['outreachGetSmtp'];
+  outreachSaveSmtp?: NomadicApi['outreachSaveSmtp'];
+  outreachClearSmtp?: NomadicApi['outreachClearSmtp'];
   startHeartbeat: (userId: string, sessionToken: string, deviceFingerprint: string) =>
     Promise<{ success: boolean }>;
   stopHeartbeat: () => Promise<{ success: boolean }>;
@@ -268,19 +265,6 @@ export interface ElectronAPI {
   // AI Generation & Assistant Handlers
   askNomadicAssistant?: (data: { message: string; history?: Array<{ sender: string; text: string }> }) =>
     Promise<{ success: boolean; reply: string; action?: { type: string; target?: string; payload?: Record<string, any> }; error?: string }>;
-  generateAiOutreachEmail: (params: {
-    role?: string;
-    company?: string;
-    recipientName?: string;
-    tone?: string;
-    skills?: string;
-    candidateName?: string;
-  }) => Promise<{
-    success: boolean;
-    subject?: string;
-    body?: string;
-    error?: string;
-  }>;
   // Learn: goal and append-only learning events (local SQLite, synced to Supabase)
   learningGetState: () => Promise<LearningState>;
   learningSaveGoal: (goal: LearningGoalInput) => Promise<{ success: boolean; goal?: LearningGoal; error?: string }>;

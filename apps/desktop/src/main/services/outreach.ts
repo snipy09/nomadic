@@ -1,414 +1,467 @@
-import { app, shell } from 'electron';
-import { generateStructuredAIContent } from '@job-automator/automation';
-import { scrapeRecruiterLeads } from '@job-automator/scrapers';
-import { EmailVerificationPipeline, LocalOutreachSender } from '@job-automator/email-verifier';
+import { clipboard, shell } from 'electron';
+import { z } from 'zod';
+import { SmtpSender } from '@job-automator/email-verifier';
 import type {
-  AiOutreachEmailParams,
-  EmailVerification,
-  HrContact,
-  OutreachRecipient,
+  DirectoryContact,
+  OutreachContactQuery,
+  OutreachContactsResult,
+  OutreachDraftInput,
+  OutreachDraftResult,
+  OutreachErrorCode,
+  OutreachMarkInput,
+  OutreachMessage,
+  OutreachMessageInput,
+  OutreachMessageResult,
+  OutreachOpenInput,
+  OutreachPerson,
+  OutreachPersonInput,
+  OutreachReportInput,
   OutreachResult,
+  OutreachSmtpInput,
+  OutreachSmtpSettings,
+  OutreachState,
 } from '../../shared/ipc.js';
-import { getDb, persistDb, logUserActivityDb } from '../db.js';
-import { log } from './app-context.js';
-import { getAnonSupabase } from './supabase.js';
-import { logAndSyncApplication } from './cloud-sync.js';
+import { splitProfileExtras } from '../../shared/profileExtras.js';
+import { getDb, persistDb } from '../db.js';
+import { errorMessage, log } from './app-context.js';
+import { aiErrorMessage, callAiProxy } from './ai-proxy.js';
+import { logAndSyncApplication, updateApplicationFollowUp } from './applications.js';
 import { getMasterProfileRow } from './profile.js';
+import { readSecret, writeSecret } from './secrets.js';
+import { getActiveSyncSession } from './session.js';
+import { getAnonSupabase } from './supabase.js';
+import {
+  OUTREACH_SEND_GAP_MS,
+  OUTREACH_SEND_LIMIT,
+  assertSendable,
+  deleteMessage,
+  deletePerson,
+  getMessage,
+  getPerson,
+  listMessages,
+  listPeople,
+  localDay,
+  markSent,
+  readSmtpSettings,
+  reviewMessage,
+  saveMessage,
+  savePerson,
+  setStatus,
+  smtpSendStats,
+  writeSmtpSettings,
+} from './outreach-store.js';
 
-// ── Email Verification ──────────────────────────────────────────────────────
-export async function verifyEmail(email: string): Promise<EmailVerification> {
-  log(`[Email Verifier] Verifying: ${email}`);
-  try {
-    const result = await EmailVerificationPipeline.verify(email);
-    log(`[Email Verifier] ${email} => ${result.isValid ? 'VALID ✓' : 'INVALID'}`);
-    return result;
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    log(`[Email Verifier] ERROR: ${msg}`);
-    return { email, isValid: false, reason: msg };
-  }
-}
+/**
+ * Outreach (F13, behind the `outreach` flag): reach people who can refer, from the
+ * published directory (migration 027) or typed in by the user. Every message is written
+ * or edited by the user and ticked "I reviewed this" before it is sent through the user's
+ * own SMTP account or opened in Gmail / the mail app / LinkedIn. Nothing is sent in bulk,
+ * nothing is guessed, and message text is never logged.
+ */
 
-// ── Verified Recruiter & HR Contacts ────────────────────────────────────────
-const SAMPLE_VERIFIED_HR_CONTACTS: HrContact[] = [
-  { name: 'Sarah Jenkins', company: 'Linear', role: 'Head of Engineering Talent', email: 's.jenkins@linear.app', verificationStatus: 'valid', sentStatus: 'unsent' },
-  { name: 'David Chen', company: 'Vercel', role: 'Staff Technical Recruiter', email: 'david.chen@vercel.com', verificationStatus: 'valid', sentStatus: 'unsent' },
-  { name: 'Priya Sharma', company: 'Stripe', role: 'Engineering Lead & Hiring Manager', email: 'psharma@stripe.com', verificationStatus: 'valid', sentStatus: 'unsent' },
-  { name: 'Alex Rivera', company: 'Supabase', role: 'Lead Infrastructure Recruiter', email: 'alex.rivera@supabase.io', verificationStatus: 'valid', sentStatus: 'unsent' },
-  { name: 'Elena Rostova', company: 'Figma', role: 'Principal Talent Partner', email: 'elena.rostova@figma.com', verificationStatus: 'valid', sentStatus: 'unsent' },
-  { name: 'Marcus Vance', company: 'Postman', role: 'Director of Developer Relations', email: 'marcus.vance@postman.com', verificationStatus: 'valid', sentStatus: 'unsent' },
-  { name: 'Ananya Roy', company: 'Razorpay', role: 'Senior Talent Acquisition Manager', email: 'ananya.roy@razorpay.com', verificationStatus: 'valid', sentStatus: 'unsent' },
-  { name: 'Karthik Nair', company: 'Swiggy', role: 'Engineering Manager - Platform', email: 'karthik.nair@swiggy.in', verificationStatus: 'valid', sentStatus: 'unsent' },
-];
+const now = () => new Date().toISOString();
+const fail = (code: OutreachErrorCode, error: string) => ({ success: false as const, code, error });
 
-export async function getHrContacts(targetRole?: string): Promise<{ success: boolean; contacts: HrContact[] }> {
-  log(`[Recruiter Sync] Querying verified hiring manager contacts for "${targetRole || 'All Roles'}"...`);
-  const combinedContacts: HrContact[] = [];
-  const seenEmails = new Set<string>();
+// ── Directory (server) ─────────────────────────────────────────────────────
 
-  const db = getDb();
-  const targetCompanies = new Set<string>();
-  try {
-    const sj = db.exec('SELECT company FROM saved_jobs');
-    if (sj.length && sj[0].values.length) {
-      sj[0].values.forEach(v => targetCompanies.add(String(v[0]).toLowerCase().trim()));
-    }
-    const la = db.exec('SELECT company FROM local_applications');
-    if (la.length && la[0].values.length) {
-      la[0].values.forEach(v => targetCompanies.add(String(v[0]).toLowerCase().trim()));
-    }
-  } catch {}
+const DIRECTORY_ERRORS: Record<string, { code: OutreachErrorCode; error: string }> = {
+  unauthorized: { code: 'unauthorized', error: 'Your session has ended. Sign in again.' },
+  account_suspended: { code: 'account_suspended', error: 'This account is suspended. Contact support.' },
+  bad_request: { code: 'bad_request', error: 'That search was not valid.' },
+  daily_limit: { code: 'daily_limit', error: 'You have looked through today\'s contact allowance. It resets at midnight IST.' },
+};
 
-  try {
-    const supabase = getAnonSupabase();
-    if (supabase) {
-      const { data, error } = await supabase
-        .from('hr_contacts')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(200);
+const contactRow = z
+  .object({
+    id: z.string(),
+    email: z.string(),
+    name: z.string().nullish(),
+    company: z.string(),
+    company_domain: z.string().nullish(),
+    role_title: z.string().nullish(),
+    hiring_for: z.string().nullish(),
+    contact_kind: z.string().nullish(),
+    address_type: z.string().nullish(),
+    source: z.string().nullish(),
+    source_url: z.string().nullish(),
+    source_snippet: z.string().nullish(),
+    job_url: z.string().nullish(),
+    location: z.string().nullish(),
+    remote: z.boolean().nullish(),
+    posted_at: z.string().nullish(),
+    mx_ok: z.boolean().nullish(),
+    last_seen_at: z.string().nullish(),
+  })
+  .passthrough();
 
-      if (!error && data && data.length > 0) {
-        data.forEach(r => {
-          if (r.email && !seenEmails.has(r.email.toLowerCase())) {
-            seenEmails.add(r.email.toLowerCase());
-            const compLower = (r.company || '').toLowerCase().trim();
-            const isTarget = targetCompanies.has(compLower);
-            let score = 50;
-            if (isTarget) score += 35;
-            const roleLower = (r.role || '').toLowerCase();
-            const deptLower = (r.department || '').toLowerCase();
-            if (targetRole) {
-              const tr = targetRole.toLowerCase();
-              if (roleLower.includes('manager') || roleLower.includes('lead') || roleLower.includes('vp') || roleLower.includes('director')) {
-                score += 20;
-              }
-              if (roleLower.includes(tr) || deptLower.includes('engineering') || roleLower.includes('technical')) {
-                score += 15;
-              }
-            }
+const KINDS = new Set(['recruiter', 'hiring_manager', 'founder', 'employee', 'alumni', 'team_inbox', 'unknown']);
 
-            combinedContacts.push({
-              name: r.name,
-              company: r.company,
-              role: r.role,
-              email: r.email,
-              department: r.department || 'Talent Acquisition',
-              verificationStatus: r.verification_status || 'valid',
-              sentStatus: 'unsent',
-              isTargetCompany: isTarget,
-              matchScore: score,
-            });
-          }
-        });
-        log(`[Recruiter Sync] Fetched ${combinedContacts.length} verified hiring managers from Supabase.`);
-      }
-    }
-  } catch (err: any) {
-    log(`[Recruiter Sync] Note: ${err?.message}`);
-  }
-
-  // Synthesize rich recruiter leads from top tech companies if feed is small
-  if (combinedContacts.length < 30) {
-    try {
-      const liveLeads = await scrapeRecruiterLeads([], targetRole || 'Software Engineer');
-      liveLeads.forEach(lead => {
-        if (lead.email && !seenEmails.has(lead.email.toLowerCase())) {
-          seenEmails.add(lead.email.toLowerCase());
-          const compLower = (lead.company || '').toLowerCase().trim();
-          const isTarget = targetCompanies.has(compLower);
-          combinedContacts.push({
-            name: lead.name,
-            company: lead.company,
-            role: lead.role,
-            email: lead.email,
-            department: lead.department,
-            verificationStatus: 'valid',
-            sentStatus: 'unsent',
-            isTargetCompany: isTarget,
-            matchScore: isTarget ? 85 : 70,
-          });
-        }
-      });
-      log(`[Recruiter Sync] Synthesized ${liveLeads.length} live executive & HR decision makers.`);
-    } catch (err: any) {
-      log(`[Recruiter Sync] Recruiter generator note: ${err?.message}`);
-    }
-  }
-
-  // Sort by match score descending (Target companies and relevant Engineering Leads first)
-  combinedContacts.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
-
-  return { success: true, contacts: combinedContacts.length > 0 ? combinedContacts : SAMPLE_VERIFIED_HR_CONTACTS };
-}
-
-function gmailComposeUrl(vc: { email: string; subject: string; body: string }): string {
-  return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
-    vc.email
-  )}&su=${encodeURIComponent(vc.subject)}&body=${encodeURIComponent(vc.body)}`;
-}
-
-// ── Send Outreach (External Chrome Gmail & SMTP Drip Engine) ────────────────
-export async function sendOutreach(contacts: OutreachRecipient[]): Promise<OutreachResult> {
-  log(`[Outreach Bot] Initiating automated outreach for ${contacts.length} hiring contacts...`);
-  try {
-    const db = getDb();
-
-    // Load candidate info from master profile
-    let smtpEmail = '';
-    let smtpPassword = '';
-    let senderName = 'Candidate';
-    let techStack = 'TypeScript, React, Node.js';
-    let desiredTitle = 'Software Engineer';
-
-    const pmap = getMasterProfileRow();
-    if (pmap) {
-      smtpEmail = String(pmap['email'] ?? '');
-      smtpPassword = String(pmap['smtp_password'] ?? '');
-      senderName = [pmap['first_name'], pmap['last_name']].filter(Boolean).join(' ') || 'Candidate';
-      if (pmap['tech_stack']) techStack = String(pmap['tech_stack']);
-      if (pmap['desired_title']) desiredTitle = String(pmap['desired_title']);
-    }
-
-    const verifiedContacts: Array<{
-      email: string;
-      name?: string;
-      company?: string;
-      role?: string;
-      subject: string;
-      body: string;
-    }> = [];
-
-    for (const c of contacts) {
-      const email = c.email.trim();
-      if (!email || !email.includes('@')) continue;
-
-      let isMxValid = true;
-      try {
-        const verifyRes = await EmailVerificationPipeline.verify(email);
-        isMxValid = verifyRes.isValid;
-      } catch {
-        isMxValid = true;
-      }
-
-      const status = isMxValid ? 'valid' : 'valid';
-
-      db.run(
-        `INSERT INTO outreach_contacts (contact_email, contact_name, company, verification_status)
-         VALUES (?, ?, ?, ?)
-         ON CONFLICT(contact_email) DO UPDATE SET verification_status=excluded.verification_status`,
-        [email, c.name ?? null, c.company ?? null, status]
-      );
-
-      const targetSubject = c.subject || `Referral Inquiry - ${c.role || desiredTitle} at ${c.company || 'your team'}`;
-      const targetBody = c.body || `Hi ${c.name || 'there'},\n\nHope you're having a great week! I came across your profile at ${c.company || 'your company'} and wanted to reach out regarding the open ${c.role || desiredTitle} role. With my background in ${techStack}, I'd be very grateful for a referral or any advice on navigating the application.\n\nWould you be open to a brief chat?\n\nBest regards,\n${senderName}`;
-
-      verifiedContacts.push({
-        email,
-        name: c.name,
-        company: c.company,
-        role: c.role,
-        subject: targetSubject,
-        body: targetBody,
-      });
-
-      logAndSyncApplication({
-        company: c.company || 'Unknown',
-        title: `${c.role || 'Referral Request'} (${email})`,
-        apply_url: `mailto:${email}`,
-        status: 'applied',
-        mode: 'outreach',
-      });
-    }
-    persistDb();
-
-    if (verifiedContacts.length === 0) {
-      log('[Outreach Bot] No valid recipient addresses found.');
-      return { success: false, sent: 0, error: 'No valid recipient email addresses found.' };
-    }
-
-    // 1. Direct SMTP Delivery if SMTP app password configured
-    if (smtpPassword && smtpEmail) {
-      log(`[Outreach SMTP] Dispatching via SMTP (${smtpEmail})...`);
-      try {
-        const sender = new LocalOutreachSender({
-          host: 'smtp.gmail.com',
-          port: 587,
-          secure: false,
-          auth: { user: smtpEmail, pass: smtpPassword },
-        });
-        await sender.sendWithDripDelay(
-          verifiedContacts.map(v => ({ to: v.email, subject: v.subject, bodyText: v.body })),
-          2,
-          5
-        );
-        log(`[Outreach SMTP] Dispatched ${verifiedContacts.length} direct emails ✓`);
-        logUserActivityDb('outreach', `Sent ${verifiedContacts.length} verified outreach emails via SMTP`);
-        return { success: true, sent: verifiedContacts.length, mode: 'smtp' };
-      } catch (smtpErr: any) {
-        log(`[Outreach SMTP] Notice: ${smtpErr?.message || 'Falling back to browser compose drafts'}`);
-      }
-    }
-
-    // 2. Automated Direct Background Sequential Dispatch via Playwright Session
-    try {
-      const { chromium } = await import('playwright');
-      const path = await import('path');
-      const fs = await import('fs');
-
-      // Use a dedicated automation profile directory to prevent Chrome SingletonLock crashes
-      const automationUserData = path.join(app.getPath('userData'), 'nomadic_outreach_profile');
-      if (!fs.existsSync(automationUserData)) {
-        fs.mkdirSync(automationUserData, { recursive: true });
-      }
-
-      log(`[Outreach Bot] Launching background sequential outreach session for ${verifiedContacts.length} contacts...`);
-
-      let context: any = null;
-      try {
-        context = await chromium.launchPersistentContext(automationUserData, {
-          headless: false,
-          channel: 'chrome',
-          args: [
-            '--no-first-run',
-            '--no-default-browser-check',
-            '--window-position=3500,3500', // Positions off-screen to avoid stealing visual focus
-            '--window-size=800,600',
-            '--disable-background-timer-throttling',
-            '--disable-backgrounding-occluded-windows',
-            '--disable-renderer-backgrounding',
-          ],
-        });
-      } catch {
-        // Fallback to standard chromium instance
-        const browser = await chromium.launch({ headless: false, args: ['--window-position=3500,3500'] });
-        context = await browser.newContext();
-      }
-
-      let sentCount = 0;
-
-      // Process strictly ONE BY ONE sequentially
-      for (let i = 0; i < verifiedContacts.length; i++) {
-        const vc = verifiedContacts[i];
-        log(`[Outreach Bot] (${i + 1}/${verifiedContacts.length}) Sending background email to ${vc.name || vc.email} (${vc.company || 'Company'})...`);
-
-        const gmailUrl = gmailComposeUrl(vc);
-
-        let page: any = null;
-        try {
-          page = await context.newPage();
-          await page.goto(gmailUrl, { waitUntil: 'domcontentloaded', timeout: 25000 });
-          await page.waitForTimeout(1800);
-
-          // Focus message area and trigger send shortcut
-          await page.keyboard.press('Control+Enter').catch(() => {});
-          await page.keyboard.press('Meta+Enter').catch(() => {});
-          await page.waitForTimeout(800);
-
-          // Query and click primary Send buttons directly in DOM
-          await page.evaluate(() => {
-            const sendSelectors = [
-              'div[role="button"][data-tooltip*="Send" i]',
-              'div[role="button"][aria-label*="Send" i]',
-              'div.T-I.J-J5-Ji.aoO.v7.T-I-atl.L3',
-              'div[data-tooltip*="Send (Ctrl-Enter)" i]',
-              'div[aria-label*="Send ‪(Ctrl-Enter)‬" i]',
-              'button:has-text("Send")',
-              'div:has-text("Send")'
-            ];
-            for (const sel of sendSelectors) {
-              const btn = document.querySelector<HTMLElement>(sel);
-              if (btn) {
-                btn.click();
-                return true;
-              }
-            }
-            return false;
-          }).catch(() => false);
-
-          await page.waitForTimeout(1200);
-
-          sentCount++;
-          logUserActivityDb('outreach', `Dispatched outreach email to ${vc.name || vc.email} at ${vc.company || 'Company'}`);
-          log(`[Outreach Bot] (${i + 1}/${verifiedContacts.length}) Actively dispatched email to ${vc.email} ✓`);
-        } catch (itemErr) {
-          log(`[Outreach Bot] Notice for ${vc.email}: ${itemErr}`);
-        } finally {
-          if (page && !page.isClosed()) {
-            await page.close().catch(() => {});
-          }
-        }
-
-        // Natural human spacing between dispatches
-        if (i < verifiedContacts.length - 1) {
-          await new Promise(r => setTimeout(r, 1600));
-        }
-      }
-
-      await context.close().catch(() => {});
-      if (sentCount > 0) {
-        log(`[Outreach] Successfully finished background sequential outreach: ${sentCount}/${verifiedContacts.length} sent ✓`);
-        return { success: true, sent: sentCount, mode: 'automated_chrome' };
-      }
-    } catch (chromeErr: any) {
-      log(`[Outreach] Chrome direct background sending notice: ${chromeErr?.message || chromeErr}. Falling back to default browser drafts.`);
-    }
-
-    // 3. Open Drafts in User's Default Browser sequentially with staggered delay
-    log(`[Outreach Deep-Link] Opening ${verifiedContacts.length} compose drafts in system default browser...`);
-    for (let i = 0; i < verifiedContacts.length; i++) {
-      const vc = verifiedContacts[i];
-      await shell.openExternal(gmailComposeUrl(vc));
-      if (i < verifiedContacts.length - 1) {
-        await new Promise(r => setTimeout(r, 600));
-      }
-      logUserActivityDb('outreach', `Prepared draft outreach for ${vc.name || vc.email} at ${vc.company || 'Company'}`);
-    }
-
-    log(`[Outreach] Successfully opened ${verifiedContacts.length} compose drafts in default browser.`);
-    return { success: true, sent: verifiedContacts.length, mode: 'draft_opened' };
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    log(`[Outreach Bot] ERROR: ${msg}`);
-    return { success: false, error: msg, sent: 0 };
-  }
-}
-
-// ── AI Cold Outreach Email Generator ────────────────────────────────────────
-export async function generateAiOutreachEmail(
-  params: AiOutreachEmailParams
-): Promise<{ success: boolean; subject: string; body: string }> {
-  const { role, company, recipientName, tone, skills, candidateName } = params;
-  const prompt = `Write a high-converting cold outreach email from a candidate to a recruiter or engineering manager.
-Candidate Name: ${candidateName || 'Candidate'}
-Target Role: ${role || 'Software Engineer'}
-Target Company: ${company || 'Target Company'}
-Recipient Name: ${recipientName || 'Hiring Manager'}
-Candidate Skills: ${skills || 'TypeScript, React, Node.js, Python, PostgreSQL'}
-Tone Style: ${tone || 'High-Impact Direct Pitch'} (options: High-Impact Direct Pitch, Referral Request, Portfolio Showcase, Startup Value-Add)
-
-Return strictly a JSON object:
-{
-  "subject": "Compelling subject line (max 60 chars, e.g. 'Referral Request - {{role}} at {{company}}')",
-  "body": "Clean, punchy, professional cold email (max 120 words). Use placeholders {{name}}, {{company}}, {{role}}, {{skills}}, {{senderName}} where appropriate."
-}`;
-
-  try {
-    const res = await generateStructuredAIContent<{ subject: string; body: string }>(
-      'You are an expert tech recruiter and cold email strategist.',
-      prompt
-    );
-    if (res && res.subject && res.body) {
-      return { success: true, subject: res.subject, body: res.body };
-    }
-  } catch (err) {
-    log(`[AI Outreach] Error generating email: ${err}`);
-  }
-
-  // High-converting fallback template
+export function mapDirectoryContact(raw: unknown): DirectoryContact | null {
+  const r = contactRow.safeParse(raw);
+  if (!r.success) return null;
+  const c = r.data;
   return {
-    success: true,
-    subject: `Application & Introduction — {{role}} at {{company}}`,
-    body: `Hi {{name}},\n\nI hope you're doing well! I came across the {{role}} opening at {{company}} and wanted to introduce myself. With hands-on experience building systems in {{skills}}, I believe my technical background aligns closely with what your engineering team is building.\n\nI'd love to share my portfolio and explore if my profile is a great fit. Would you be open to a brief 5-minute conversation this week?\n\nBest regards,\n{{senderName}}`
+    id: c.id,
+    email: c.email,
+    name: c.name ?? null,
+    company: c.company,
+    companyDomain: c.company_domain ?? null,
+    roleTitle: c.role_title ?? null,
+    hiringFor: c.hiring_for ?? null,
+    kind: (c.contact_kind && KINDS.has(c.contact_kind) ? c.contact_kind : 'unknown') as DirectoryContact['kind'],
+    addressType: c.address_type ?? null,
+    source: c.source ?? 'unknown',
+    sourceUrl: c.source_url ?? null,
+    sourceSnippet: c.source_snippet ?? null,
+    jobUrl: c.job_url ?? null,
+    location: c.location ?? null,
+    remote: c.remote ?? null,
+    postedAt: c.posted_at ?? null,
+    mxOk: c.mx_ok ?? null,
+    lastSeenAt: c.last_seen_at ?? null,
   };
+}
+
+function firstRow(data: unknown): Record<string, unknown> | null {
+  const row = Array.isArray(data) ? data[0] : data;
+  return row && typeof row === 'object' ? (row as Record<string, unknown>) : null;
+}
+
+export async function listDirectoryContacts(q: OutreachContactQuery): Promise<OutreachContactsResult> {
+  const s = getActiveSyncSession();
+  if (!s) return fail('not_signed_in', 'Sign in to look through contacts.');
+  const supabase = getAnonSupabase();
+  if (!supabase) return fail('network', 'Nomadic could not be reached. Try again.');
+  try {
+    const { data, error } = await supabase.rpc('outreach_list_contacts', {
+      p_user_id: s.userId,
+      p_session_token: s.sessionToken,
+      p_device_fingerprint: s.deviceFingerprint,
+      p_company: q.company?.trim() || null,
+      p_query: q.query?.trim() || null,
+      p_kinds: q.kinds?.length ? q.kinds : null,
+      p_limit: Math.min(Math.max(q.limit ?? 25, 1), 50),
+      p_offset: Math.max(q.offset ?? 0, 0),
+    });
+    if (error) {
+      log(`[Outreach] Directory error: ${error.message}`);
+      return fail('network', 'Could not load contacts. Try again.');
+    }
+    const row = firstRow(data);
+    if (!row) return fail('network', 'Could not load contacts. Try again.');
+    if (row.ok !== true) {
+      const known = DIRECTORY_ERRORS[String(row.error ?? '')];
+      return known ? fail(known.code, known.error) : fail('network', 'Could not load contacts. Try again.');
+    }
+    const contacts = (Array.isArray(row.contacts) ? row.contacts : []).map(mapDirectoryContact).filter((c): c is DirectoryContact => c !== null);
+    return {
+      success: true,
+      contacts,
+      total: typeof row.total === 'number' ? row.total : contacts.length,
+      rowsLeftToday: typeof row.rows_left_today === 'number' ? row.rows_left_today : null,
+    };
+  } catch (err) {
+    log(`[Outreach] Directory error: ${errorMessage(err)}`);
+    return fail('network', 'Could not reach Nomadic. Check your connection and try again.');
+  }
+}
+
+export async function reportDirectoryContact(input: OutreachReportInput): Promise<OutreachResult> {
+  const s = getActiveSyncSession();
+  if (!s) return fail('not_signed_in', 'Sign in to report a contact.');
+  const supabase = getAnonSupabase();
+  if (!supabase) return fail('network', 'Nomadic could not be reached. Try again.');
+  try {
+    const { data, error } = await supabase.rpc('outreach_report_contact', {
+      p_user_id: s.userId,
+      p_session_token: s.sessionToken,
+      p_device_fingerprint: s.deviceFingerprint,
+      p_contact_id: input.contactId,
+      p_reason: input.reason,
+      p_note: input.note?.trim() || null,
+    });
+    if (error) return fail('network', 'Could not send the report. Try again.');
+    const row = firstRow(data);
+    if (row?.ok === true) return { success: true };
+    const known = DIRECTORY_ERRORS[String(row?.error ?? '')];
+    if (String(row?.error) === 'not_found') return fail('not_found', 'That contact is no longer listed.');
+    return known ? fail(known.code, known.error) : fail('network', 'Could not send the report. Try again.');
+  } catch (err) {
+    log(`[Outreach] Report error: ${errorMessage(err)}`);
+    return fail('network', 'Could not reach Nomadic. Check your connection and try again.');
+  }
+}
+
+// ── Local people and messages ──────────────────────────────────────────────
+
+export function getOutreachState(): OutreachState {
+  const db = getDb();
+  return {
+    people: listPeople(db),
+    messages: listMessages(db),
+    sentToday: smtpSendStats(db, new Date()).sentToday,
+    sendLimit: OUTREACH_SEND_LIMIT,
+  };
+}
+
+export function saveOutreachPerson(input: OutreachPersonInput): OutreachResult & { person?: OutreachPerson } {
+  try {
+    const person = savePerson(getDb(), input, now());
+    persistDb();
+    return { success: true, person };
+  } catch (err) {
+    log(`[Outreach] Save person error: ${errorMessage(err)}`);
+    return fail('bad_request', 'Could not save this person.');
+  }
+}
+
+export function deleteOutreachPerson(id: number): OutreachResult {
+  if (!deletePerson(getDb(), id)) return fail('not_found', 'That person no longer exists.');
+  persistDb();
+  return { success: true };
+}
+
+export function saveOutreachMessage(input: OutreachMessageInput): OutreachMessageResult {
+  const res = saveMessage(getDb(), input, now());
+  if ('error' in res) {
+    return res.error === 'already_sent' ? fail('bad_request', 'A sent message cannot be edited.') : fail('not_found', 'That person or message no longer exists.');
+  }
+  persistDb();
+  return { success: true, message: res };
+}
+
+export function deleteOutreachMessage(id: number): OutreachResult {
+  if (!deleteMessage(getDb(), id)) return fail('not_found', 'That message no longer exists.');
+  persistDb();
+  return { success: true };
+}
+
+export function reviewOutreachMessage(id: number): OutreachMessageResult {
+  const res = reviewMessage(getDb(), id, now());
+  if (!res.ok) return fail(res.code, res.error);
+  persistDb();
+  return { success: true, message: res.message };
+}
+
+/** Logs the sent message in the tracker (mode `outreach`) with a follow-up a week later. */
+function recordInTracker(msg: OutreachMessage, person: OutreachPerson, uid: string): number | null {
+  try {
+    const id = logAndSyncApplication({
+      company: person.company,
+      title: msg.jobTitle || (msg.purpose === 'referral' ? 'Referral request' : 'Outreach'),
+      apply_url: `outreach:${uid}`,
+      status: 'applied',
+      mode: 'outreach',
+      notes: `Message to ${person.name ?? person.email ?? 'a contact'}${person.roleTitle ? ` (${person.roleTitle})` : ''} via ${msg.channel}.`,
+    });
+    const followUp = new Date(Date.now() + 7 * 86_400_000);
+    updateApplicationFollowUp({ id, followUpAt: localDay(followUp) });
+    return id;
+  } catch (err) {
+    log(`[Outreach] Tracker entry not saved: ${errorMessage(err)}`);
+    return null;
+  }
+}
+
+function smtpConfig(): { host: string; port: number; secure: boolean; user: string; fromName: string; pass: string } | null {
+  const db = getDb();
+  const settings = readSmtpSettings(db);
+  const pass = readSecret('smtp_password', db);
+  return settings && pass ? { ...settings, pass } : null;
+}
+
+function fromHeader(name: string, address: string): string {
+  const clean = name.replace(/["\r\n<>]/g, '').trim();
+  return clean ? `"${clean}" <${address}>` : address;
+}
+
+/** Sends one reviewed email through the user's own SMTP account. */
+export async function sendOutreachMessage(id: number): Promise<OutreachMessageResult> {
+  const db = getDb();
+  const check = assertSendable(db, id);
+  if (!check.ok) return fail(check.code, check.error);
+  const { message, person, uid } = check;
+  if (message.channel !== 'email' || !person.email) return fail('bad_request', 'Only email messages are sent from Nomadic. Open LinkedIn messages instead.');
+  const cfg = smtpConfig();
+  if (!cfg) return fail('smtp_not_configured', 'Connect your email account first (Outreach → Email account).');
+  const stats = smtpSendStats(db, new Date());
+  if (stats.sentToday >= OUTREACH_SEND_LIMIT) return fail('send_limit', `You have sent ${OUTREACH_SEND_LIMIT} emails today. Send more tomorrow.`);
+  if (stats.lastSentAt !== null && Date.now() - stats.lastSentAt < OUTREACH_SEND_GAP_MS) {
+    return fail('send_limit', 'Wait a minute between emails so your account is not flagged as spam.');
+  }
+  const sender = new SmtpSender({ host: cfg.host, port: cfg.port, secure: cfg.secure, user: cfg.user, pass: cfg.pass });
+  try {
+    const res = await sender.send({ from: fromHeader(cfg.fromName, cfg.user), to: person.email, subject: message.subject, text: message.body });
+    if (res.rejected.length && !res.accepted.length) return fail('smtp_failed', 'Your mail server refused this address.');
+  } catch (err) {
+    log(`[Outreach] SMTP send failed: ${err instanceof Error ? err.name : 'error'}`);
+    return fail('smtp_failed', `Your mail server did not accept the email: ${errorMessage(err).slice(0, 200)}`);
+  } finally {
+    sender.close();
+  }
+  const applicationId = recordInTracker(message, person, uid);
+  const sent = markSent(db, id, 'smtp', now(), applicationId);
+  persistDb();
+  log(`[Outreach] Email #${id} sent via SMTP`);
+  return { success: true, message: sent ?? undefined };
+}
+
+export function gmailComposeUrl(to: string, subject: string, body: string): string {
+  const p = new URLSearchParams({ view: 'cm', fs: '1', to, su: subject, body });
+  return `https://mail.google.com/mail/?${p.toString()}`;
+}
+
+export function mailtoUrl(to: string, subject: string, body: string): string {
+  return `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+/**
+ * Opens a reviewed message in Gmail, the mail app or LinkedIn (body copied to the
+ * clipboard). The user sends it there, then marks it sent here.
+ */
+export async function openOutreachMessage(input: OutreachOpenInput): Promise<OutreachResult & { copied?: boolean }> {
+  const check = assertSendable(getDb(), input.id);
+  if (!check.ok) return fail(check.code, check.error);
+  const { message, person } = check;
+  try {
+    if (input.via === 'linkedin') {
+      if (message.channel !== 'linkedin') return fail('bad_request', 'This is an email. Open it in Gmail or your mail app.');
+      if (!person.linkedinUrl) return fail('bad_request', 'Add their LinkedIn profile link first.');
+      clipboard.writeText(message.body);
+      await shell.openExternal(person.linkedinUrl);
+      return { success: true, copied: true };
+    }
+    if (message.channel !== 'email' || !person.email) return fail('bad_request', 'This is a LinkedIn note. Open it on LinkedIn.');
+    const url = input.via === 'gmail' ? gmailComposeUrl(person.email, message.subject, message.body) : mailtoUrl(person.email, message.subject, message.body);
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (err) {
+    log(`[Outreach] Open failed: ${errorMessage(err)}`);
+    return fail('bad_request', 'Could not open it. Copy the message instead.');
+  }
+}
+
+export function markOutreachMessage(input: OutreachMarkInput): OutreachMessageResult {
+  const db = getDb();
+  const msg = getMessage(db, input.id);
+  const person = msg ? getPerson(db, msg.personId) : null;
+  if (!msg || !person) return fail('not_found', 'That message no longer exists.');
+  if (input.status === 'sent') {
+    if (msg.sentAt) return { success: true, message: msg };
+    // The user says they sent it themselves: it must still be the reviewed text.
+    const check = assertSendable(db, input.id);
+    if (!check.ok) return fail(check.code, check.error);
+    const via = msg.channel === 'linkedin' ? 'linkedin' : 'manual';
+    const applicationId = recordInTracker(msg, person, check.uid);
+    const sent = markSent(db, input.id, via, now(), applicationId);
+    persistDb();
+    return { success: true, message: sent ?? undefined };
+  }
+  if (!msg.sentAt) return fail('bad_request', 'Mark the message as sent first.');
+  const updated = setStatus(db, input.id, input.status, now());
+  persistDb();
+  return { success: true, message: updated ?? undefined };
+}
+
+// ── AI draft (ai-proxy `outreach_email`) ───────────────────────────────────
+
+const draftSchema = z.object({ subject: z.string().nullable(), body: z.string().nullable() });
+
+const txt = (v: unknown): string | undefined => {
+  const t = typeof v === 'string' ? v.trim() : '';
+  return t ? t : undefined;
+};
+
+/** Only facts the user entered; unknown fields are left out, never filled in. */
+export function candidateFacts(profile: Record<string, unknown> | null): Record<string, unknown> {
+  if (!profile) return {};
+  let answers: Record<string, unknown> = {};
+  try {
+    const raw = profile.custom_answers_json;
+    answers = typeof raw === 'string' ? (JSON.parse(raw) as Record<string, unknown>) : raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  } catch { /* unreadable answers: no extras */ }
+  const { extras } = splitProfileExtras(answers);
+  const name = [txt(profile.first_name), txt(profile.last_name)].filter(Boolean).join(' ');
+  const years = extras.yearsOfExperience != null ? Number.parseFloat(extras.yearsOfExperience) : NaN;
+  const out: Record<string, unknown> = {
+    name: name || undefined,
+    desired_title: txt(profile.desired_title),
+    skills: txt(profile.tech_stack)?.slice(0, 1000),
+    location: extras.location,
+    years_of_experience: Number.isFinite(years) && years >= 0 && years <= 80 ? years : undefined,
+  };
+  return Object.fromEntries(Object.entries(out).filter(([, v]) => v !== undefined));
+}
+
+export async function draftOutreachWithAi(input: OutreachDraftInput): Promise<OutreachDraftResult> {
+  const feature = 'AI outreach drafts';
+  const person = getPerson(getDb(), input.personId);
+  if (!person) return { success: false, code: 'not_found', error: 'That person no longer exists.' };
+  const recipient: Record<string, unknown> = { kind: person.kind, company: person.company };
+  if (person.name) recipient.name = person.name;
+  if (person.roleTitle) recipient.role_title = person.roleTitle;
+  const payload: Record<string, unknown> = {
+    candidate: candidateFacts(getMasterProfileRow()),
+    recipient,
+    channel: input.channel,
+    purpose: input.purpose,
+  };
+  if (input.jobTitle?.trim()) payload.job_title = input.jobTitle.trim();
+  if (input.note?.trim()) payload.note = input.note.trim();
+  const res = await callAiProxy('outreach_email', payload, feature);
+  if (!res.ok) return { success: false, code: res.code, error: res.error, quota: res.quota ?? null };
+  const parsed = draftSchema.safeParse(res.result);
+  if (!parsed.success || !parsed.data.body) {
+    return { success: false, code: 'failed', error: aiErrorMessage('failed', feature), quota: res.quota };
+  }
+  return { success: true, subject: input.channel === 'linkedin' ? null : parsed.data.subject, body: parsed.data.body, quota: res.quota };
+}
+
+// ── SMTP account (the user's own; password stays on this computer) ─────────
+
+export function getSmtpSettings(): OutreachSmtpSettings {
+  const db = getDb();
+  const s = readSmtpSettings(db);
+  const configured = !!s && !!readSecret('smtp_password', db);
+  return {
+    configured,
+    host: s?.host ?? '',
+    port: s?.port ?? 587,
+    secure: s?.secure ?? false,
+    user: s?.user ?? '',
+    fromName: s?.fromName ?? '',
+  };
+}
+
+function storePassword(password: string | null): void {
+  const db = getDb();
+  const column = writeSecret('smtp_password', password, db);
+  db.run('UPDATE master_profile SET smtp_password = ? WHERE id = 1', [column]);
+}
+
+/** Signs in to the server with the new settings before saving them. */
+export async function saveSmtpSettings(input: OutreachSmtpInput): Promise<OutreachResult> {
+  const db = getDb();
+  const pass = input.password ?? readSecret('smtp_password', db);
+  if (!pass) return fail('smtp_not_configured', 'Enter the password (for Gmail, an app password).');
+  const sender = new SmtpSender({ host: input.host, port: input.port, secure: input.secure, user: input.user, pass });
+  try {
+    await sender.verify();
+  } catch (err) {
+    log(`[Outreach] SMTP sign-in failed: ${err instanceof Error ? err.name : 'error'}`);
+    return fail('smtp_failed', `Could not sign in to ${input.host}: ${errorMessage(err).slice(0, 200)}`);
+  } finally {
+    sender.close();
+  }
+  writeSmtpSettings(db, { host: input.host, port: input.port, secure: input.secure, user: input.user, fromName: input.fromName?.trim() ?? '' });
+  if (input.password) storePassword(input.password);
+  persistDb();
+  return { success: true };
+}
+
+export function clearSmtpSettings(): OutreachResult {
+  writeSmtpSettings(getDb(), null);
+  storePassword(null);
+  persistDb();
+  return { success: true };
 }

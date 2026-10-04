@@ -16,6 +16,11 @@ export function parseRegion(value: string | undefined): Region {
   return value?.trim().toLowerCase() === 'all' ? 'all' : 'india';
 }
 
+/** True when the text names India or an Indian city. */
+export function mentionsIndia(text: string): boolean {
+  return INDIA.test(text);
+}
+
 export function isIndiaEligible(job: { location: string; remote: boolean }): boolean {
   const location = job.location.trim();
   if (INDIA.test(location)) return true;

@@ -1,4 +1,4 @@
-import type { Database } from 'sql.js';
+﻿import type { Database } from 'sql.js';
 
 /**
  * The local database caches one account's data (profile, tracker, saved and hidden jobs, resumes,
@@ -23,6 +23,8 @@ const ACCOUNT_TABLES = [
   'resumes',
   'cached_form_answers',
   'outreach_contacts',
+  'outreach_people',
+  'outreach_messages',
   'user_activity_log',
   'secure_secrets',
 ];
@@ -63,6 +65,7 @@ export function claimLocalDataFor(db: Database, userId: string, email?: string):
     }
   }
   for (const t of ACCOUNT_TABLES) if (hasTable(db, t)) db.run(`DELETE FROM ${t}`);
+  db.run(`DELETE FROM local_meta WHERE key <> ?`, [OWNER_KEY]);
   db.run(`DELETE FROM master_profile`);
   db.run(
     `INSERT INTO master_profile (id, first_name, last_name, email, phone, desired_title, tech_stack, sponsorship, onboarding_completed)

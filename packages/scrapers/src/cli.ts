@@ -10,6 +10,10 @@
  *   scrape bench [--sources a,b] [--include-tier3] [--out results/baseline.md]
  *   scrape runs  [--limit 20] [--source greenhouse]
  *   scrape sources
+ *   scrape contacts [--sources hn,jobs,pages] [--publish] [--months 2] [--region india|all]
+ *                   [--max-pages 40] [--summary-dir DIR] [--json report.json]
+ *                Public hiring contacts (recruiters, managers, founders, employees, team inboxes)
+ *                from HN "Who is hiring?" posts, published job descriptions and company sites.
  *
  * Publishing needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment.
  */
@@ -25,7 +29,11 @@ import {
   formatRunTable,
   formatSummaryCsvRow,
 } from './pipeline/report.js';
-import { parseRegion } from './pipeline/region.js';
+import { supabaseJobReader } from './contacts/job-descriptions.js';
+import { CONTACT_SOURCE_IDS, formatContactSummary, runContactScrape, type ContactSourceId } from './contacts/run.js';
+import { SupabaseContactStore } from './contacts/store.js';
+import { getScraperSupabase } from './env-helper.js';
+import { parseRegion, type Region } from './pipeline/region.js';
 import { runPipeline } from './pipeline/run.js';
 import { SupabaseJobStore, getRecentScrapeRuns } from './pipeline/store.js';
 import { SOURCES, selectSources, type Tier } from './sources/registry.js';
@@ -83,8 +91,22 @@ async function main(argv: string[]): Promise<number> {
       'fail-on-alert': { type: 'boolean', default: false },
       limit: { type: 'string' },
       source: { type: 'string' },
+      months: { type: 'string' },
+      'max-pages': { type: 'string' },
     },
   });
+
+  if (command === 'contacts') {
+    return runContacts({
+      sources: list(values.sources),
+      publish: values.publish,
+      months: values.months,
+      maxPages: values['max-pages'],
+      region: parseRegion(values.region ?? process.env.SCRAPER_REGION),
+      summaryDir: values['summary-dir'],
+      json: values.json,
+    });
+  }
 
   if (command === 'sources') {
     for (const s of SOURCES) {
@@ -113,7 +135,7 @@ async function main(argv: string[]): Promise<number> {
   }
 
   if (command !== 'run' && command !== 'bench') {
-    console.error(`Unknown command "${command}". Use run, bench, runs or sources.`);
+    console.error(`Unknown command "${command}". Use run, bench, runs, sources or contacts.`);
     return 2;
   }
 
@@ -211,6 +233,78 @@ async function main(argv: string[]): Promise<number> {
   }
 
   return values['fail-on-alert'] && report.alerts.length > 0 ? 1 : 0;
+}
+
+interface ContactsArgs {
+  sources?: string[];
+  publish: boolean;
+  months?: string;
+  maxPages?: string;
+  region: Region;
+  summaryDir?: string;
+  json?: string;
+}
+
+function positiveInt(value: string | undefined, name: string): number | undefined | null {
+  if (value === undefined) return undefined;
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 1) {
+    console.error(`--${name} must be a positive whole number.`);
+    return null;
+  }
+  return n;
+}
+
+async function runContacts(args: ContactsArgs): Promise<number> {
+  const sources = (args.sources ?? [...CONTACT_SOURCE_IDS]) as ContactSourceId[];
+  const unknown = sources.filter((s) => !(CONTACT_SOURCE_IDS as readonly string[]).includes(s));
+  if (unknown.length > 0) {
+    console.error(`Unknown contact source(s): ${unknown.join(', ')}. Use ${CONTACT_SOURCE_IDS.join(', ')}.`);
+    return 2;
+  }
+  const months = positiveInt(args.months, 'months');
+  const maxPages = positiveInt(args.maxPages, 'max-pages');
+  if (months === null || maxPages === null) return 2;
+
+  // Publishing writes with the service role; a dry run only reads public active jobs.
+  const client = args.publish ? serviceClientFromEnv() : getScraperSupabase();
+  console.log(`[scrape contacts] sources: ${sources.join(', ')}${args.publish ? ' — publishing' : ' — dry run'} — region ${args.region}`);
+  const report = await runContactScrape({
+    sources,
+    region: args.region,
+    publish: args.publish,
+    store: args.publish ? new SupabaseContactStore(client) : undefined,
+    readJobs: supabaseJobReader(client),
+    months,
+    maxPages,
+    log: (message) => console.log(message),
+  });
+
+  const summary = formatContactSummary(report);
+  console.log('\n' + summary);
+  if (!args.publish && report.contacts.length > 0) {
+    console.table(
+      report.contacts.slice(0, 15).map((c) => ({ kind: c.contactKind, name: c.name ?? '', company: c.company, email: c.email, source: c.source }))
+    );
+  }
+  for (const s of report.sources) if (!s.ok) annotate('warning', `contacts ${s.source} failed: ${s.error}`);
+
+  if (args.json) {
+    const path = resolve(args.json);
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, JSON.stringify(report, null, 2));
+    console.log(`report written to ${path}`);
+  }
+  if (args.summaryDir) {
+    const dir = resolve(args.summaryDir);
+    mkdirSync(dir, { recursive: true });
+    const stamp = report.startedAt.slice(0, 19).replace(/[:T]/g, '-');
+    writeFileSync(resolve(dir, `contacts-${stamp}.txt`), summary);
+    writeFileSync(resolve(dir, 'latest-contacts.txt'), summary);
+    console.log(`summary written to ${resolve(dir, `contacts-${stamp}.txt`)}`);
+  }
+  if (process.env.GITHUB_STEP_SUMMARY) writeFileSync(process.env.GITHUB_STEP_SUMMARY, '```\n' + summary + '```\n', { flag: 'a' });
+  return report.sources.every((s) => !s.ok) ? 1 : 0;
 }
 
 const isDirectRun = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);

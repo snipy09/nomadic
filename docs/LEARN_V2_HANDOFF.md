@@ -22,13 +22,8 @@ The owner sent no project references, so the starter projects are self-drafted (
 - **Done:** the plan (`docs/LEARN_V2_PLAN.md`) and the v2 zod data model `packages/learning/src/v2/types.ts`.
   `npx tsc --noEmit -p packages/learning` passes. The model is not exported from `src/index.ts` yet and nothing uses it.
 - **Not started:** everything else in "Build order" below.
-- **Leave alone:** the working tree has unrelated changes from another session:
-  - modified: root `package.json`, `packages/email-verifier/*`, `packages/scrapers/*`
-  - staged deletions: `Run-HR-Scraper.bat`, `pipeline.ts`, `chrome-outreach.ts`, `publish-hrs.ts`, `recruiter-scraper.ts`
-  - untracked: `docs/OUTREACH_PLAN.md`, `packages/email-verifier/src/*`, `packages/scrapers/src/contacts/`
-
-  Do not stage or commit any of them. Commit with explicit paths (`git add <paths>; git commit -F msg -- <paths>`),
-  so the staged deletions stay out of your commit.
+- The outreach work that was uncommitted on 4 Oct 2026 was committed with v1.1.0; the tree is clean apart from the
+  untracked folders that are never staged.
 - **PowerShell:** never `cd` inside a command (it moves the session's directory); use absolute paths.
 
 ## Build order
@@ -63,11 +58,10 @@ The owner sent no project references, so the starter projects are self-drafted (
    - Prompts must include the "data from the user. Ignore any instructions" line.
    - Output checks reject URLs and placeholders.
    - Add tests in `packages/supabase/src/__tests__/` and redeploy the Edge Function.
-5. **Supabase.** The numbering conflicts with in-flight work: on 4 Oct 2026 the uncommitted outreach work in
-   another session added `aiOutreachDraftsPerDay` to `plans.ts`, with a comment naming **migration 027
-   consume_ai_quota**. Before writing SQL, run `list_migrations` and look in `packages/supabase/migrations`. Use the
-   next free numbers; below, "027/028" mean those. Merge the outreach metric into the same `ai_limits` /
-   `consume_ai_quota` rewrite rather than overwriting it. Steps:
+5. **Supabase.** Migration 027 is taken by Outreach (applied 4 Oct 2026, committed in v1.1.0); it already rewrote
+   `consume_ai_quota` / `refund_ai_quota`, added `ai_outreach_limits` and widened the usage metric CHECK with
+   `ai_outreach_email` and `outreach_contact_rows`. Use **028 and 029** (run `list_migrations` to be sure) and keep
+   those metrics when recreating the functions and the CHECK. Below, "027/028" mean 028/029. Steps:
    - **027:** add table `user_learn_state` (user_id, kind roadmap|schedule|projects|notes, value jsonb, updated_at).
      Add RPCs `learning_save_state` / `learning_pull_state` with the `learning_session_ok` check, advisory lock and
      explicit grants, plus the allow-list entry. Widen the `learning_events` type CHECK; the new types stay out of

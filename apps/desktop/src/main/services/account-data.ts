@@ -1,4 +1,4 @@
-import fs from 'fs';
+﻿import fs from 'fs';
 import path from 'path';
 import { app, dialog } from 'electron';
 import type { AccountExportResult, DeleteAccountInput, SuccessResult } from '../../shared/ipc.js';
@@ -8,7 +8,7 @@ import { session, stopHeartbeat } from './session.js';
 import { getAnonSupabase } from './supabase.js';
 import { readLoginTicket } from './auth.js';
 
-// ── Account data export and deletion (F10, migration 022) ────────────────
+// â”€â”€ Account data export and deletion (F10, migration 022) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 declare const __APP_VERSION__: string | undefined;
 
@@ -16,6 +16,7 @@ declare const __APP_VERSION__: string | undefined;
 const EXPORTED_TABLES = [
   'master_profile', 'resumes', 'local_applications', 'application_status_history', 'saved_jobs',
   'learner_progress', 'custom_roadmaps', 'cached_form_answers', 'user_activity_log', 'outreach_contacts',
+  'outreach_people', 'outreach_messages',
 ] as const;
 const SECRET_COLUMNS = new Set(['groq_api_key', 'gemini_api_key', 'smtp_password', 'password_hash']);
 

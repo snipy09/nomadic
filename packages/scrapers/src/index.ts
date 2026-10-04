@@ -6,7 +6,6 @@ import { scrapeNicheBoards } from './niche-boards-scraper.ts';
 import { scrapeInternshala, type InternshalaJob } from './internshala-scraper.ts';
 import { scrapeNaukriIndia, scrapeIndeedIndia } from './indian-portals-scraper.ts';
 import { computeJobHash } from './hasher.ts';
-import { scrapeRecruiterLeads, type RecruiterLead } from './recruiter-scraper.ts';
 import { getScraperSupabase } from './env-helper.ts';
 import { batchResolveAndFilterJobs } from './form-link-resolver.ts';
 import { getRecentScrapeRuns, type ScrapeRunRow, type RecentRunsOptions } from './pipeline/store.ts';
@@ -22,15 +21,13 @@ export {
   scrapeInternshala,
   scrapeNaukriIndia,
   scrapeIndeedIndia,
-  scrapeRecruiterLeads,
   computeJobHash,
   batchResolveAndFilterJobs,
   getRecentScrapeRuns,
   type ScrapeRunRow,
   type RecentRunsOptions,
   type RawJob,
-  type InternshalaJob,
-  type RecruiterLead
+  type InternshalaJob
 };
 
 export interface ScoredJob extends RawJob {
