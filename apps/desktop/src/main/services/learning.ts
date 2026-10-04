@@ -1,50 +1,40 @@
-import {
-  learningArchiveTrack,
-  learningGetTracks,
-  learningPullEvents,
-  learningRecordEvents,
-  learningStartTrack,
-} from '@job-automator/supabase';
-import { LearningEventSchema, RoleFamilyIdSchema } from '@job-automator/learning';
-import type {
-  LearningEventInput,
-  LearningEventRecord,
-  LearningGoal,
-  LearningGoalInput,
-  LearningState,
-  LearningSyncResult,
-} from '../../shared/ipc.js';
+import { learningPullEvents, learningPullState, learningRecordEvents, learningSaveState } from '@job-automator/supabase';
+import { LearningEventSchema, ProblemNoteSchema, RoadmapSchema, ScheduleSchema, UserProjectSchema } from '@job-automator/learning';
+import type { LearningEventInput, LearningEventRecord, LearningState, LearningSyncResult } from '../../shared/ipc.js';
 import { getDb, persistDb } from '../db.js';
 import { errorMessage, log } from './app-context.js';
 import { getActiveSyncSession, session } from './session.js';
 import { getAnonSupabase } from './supabase.js';
+import { readDraft, readNotes, readProjects, readRoadmap, readSchedule } from './learn-v2.js';
 import {
   LOCAL_USER,
+  SYNCED_DOC_KINDS,
   claimLocalRows,
   countUnsynced,
-  getGoal,
+  countUnsyncedDocs,
   getPulledUntil,
-  goalToSync,
   insertEvents,
   listEvents,
+  markDocSynced,
   markEventsSynced,
-  markGoalSynced,
-  restoreGoal,
-  saveGoal,
+  mergePulledDoc,
   setPulledUntil,
+  unsyncedDocs,
   unsyncedEvents,
+  type SyncedDocKind,
 } from './learning-store.js';
 
 /**
  * Learn persistence: local SQLite is the cache and outbox, Supabase (migration
  * 007 RPCs, session-checked) is the durable store. Events are append-only and
- * merged by id, so pushing and pulling in any order is safe.
+ * merged by id, so pushing and pulling in any order is safe. Learn v2 documents
+ * (roadmap, schedule, projects, notes; migration 027) sync newest-wins.
  */
 
 const now = () => new Date().toISOString();
 
 /** The signed-in user's id, or 'local' before sign-in (claimed on the next sign-in). */
-function currentUserId(): string {
+export function currentUserId(): string {
   return session.userId ? String(session.userId) : LOCAL_USER;
 }
 
@@ -55,18 +45,28 @@ export function getLearningState(): LearningState {
     claimLocalRows(db, userId);
     persistDb();
   }
-  return { goal: getGoal(db, userId), events: listEvents(db, userId), pendingSync: countUnsynced(db, userId) };
+  return {
+    events: listEvents(db, userId),
+    pendingSync: countUnsynced(db, userId) + countUnsyncedDocs(db, userId),
+    roadmap: readRoadmap(db, userId),
+    schedule: readSchedule(db, userId),
+    projects: readProjects(db, userId),
+    notes: readNotes(db, userId),
+    draft: readDraft(db, userId),
+  };
 }
 
-export function saveLearningGoal(input: LearningGoalInput): { success: boolean; goal?: LearningGoal; error?: string } {
-  try {
-    const goal = saveGoal(getDb(), currentUserId(), input, now());
-    persistDb();
-    void syncLearning().catch(() => {});
-    return { success: true, goal };
-  } catch (err) {
-    log(`[Learn] Goal not saved: ${errorMessage(err)}`);
-    return { success: false, error: 'Your goal could not be saved on this device.' };
+/** Schema check for a document pulled from the account (bad documents are skipped). */
+function validDoc(kind: SyncedDocKind, value: unknown): boolean {
+  switch (kind) {
+    case 'roadmap':
+      return RoadmapSchema.safeParse(value).success;
+    case 'schedule':
+      return ScheduleSchema.safeParse(value).success;
+    case 'projects':
+      return Array.isArray(value) && value.every((p) => UserProjectSchema.safeParse(p).success);
+    case 'notes':
+      return Array.isArray(value) && value.every((p) => ProblemNoteSchema.safeParse(p).success);
   }
 }
 
@@ -113,27 +113,25 @@ async function runSync(): Promise<LearningSyncResult> {
   try {
     claimLocalRows(db, userId);
 
-    // 1. Goal (archive the previous track first so a free account can switch roles).
-    const pending = goalToSync(db, userId);
-    if (pending) {
-      if (pending.archiveTrackId) {
-        await learningArchiveTrack(supabase, userId, sessionToken, deviceFingerprint, pending.archiveTrackId);
-      }
-      const res = await learningStartTrack(supabase, userId, sessionToken, deviceFingerprint, pending.goal);
-      if (res.ok) markGoalSynced(db, userId, pending.goal, now());
-      else log(`[Learn] Goal not synced: ${res.error ?? 'unknown error'}`);
-    } else if (!getGoal(db, userId)) {
-      const res = await learningGetTracks(supabase, userId, sessionToken, deviceFingerprint);
-      const t = res.tracks.find((x) => x.status === 'active');
-      const track = t ? RoleFamilyIdSchema.safeParse(t.track_id) : null;
-      if (t && track?.success && [1, 3, 6].includes(t.horizon_months) && [1, 2, 4].includes(t.daily_hours)) {
-        restoreGoal(db, userId, {
-          track_id: track.data,
-          horizon_months: t.horizon_months as LearningGoal['horizon_months'],
-          daily_hours: t.daily_hours as LearningGoal['daily_hours'],
-          started_at: t.started_at,
-          updated_at: t.started_at,
-        }, now());
+    // 1. Learn v2 documents: pull (newest wins), then push what changed here.
+    const pulledDocs = await learningPullState(supabase, userId, sessionToken, deviceFingerprint);
+    if (!pulledDocs.ok) throw new Error(pulledDocs.error || 'State pull failed');
+    for (const d of pulledDocs.docs) {
+      const kind = d.kind as SyncedDocKind;
+      if (!(SYNCED_DOC_KINDS as readonly string[]).includes(kind) || !validDoc(kind, d.value)) continue;
+      if (mergePulledDoc(db, userId, kind, d.value, d.updated_at, now())) result.pulled += 1;
+    }
+    for (const doc of unsyncedDocs(db, userId)) {
+      const res = await learningSaveState(supabase, userId, sessionToken, deviceFingerprint, {
+        kind: doc.kind as SyncedDocKind,
+        value: doc.value,
+        updatedAt: doc.updated_at,
+      });
+      if (res.ok) {
+        markDocSynced(db, userId, doc.kind, doc.updated_at, now());
+        result.pushed += 1;
+      } else if (!res.stale) {
+        throw new Error(res.error || 'State push failed');
       }
     }
 

@@ -629,6 +629,66 @@ export async function learningPullEvents(
   }
 }
 
+// ── Learn v2 state documents (migration 027) ───────────────────────────────
+
+export type LearnStateKind = 'roadmap' | 'schedule' | 'projects' | 'notes';
+
+export interface CloudLearnState {
+  kind: LearnStateKind;
+  value: unknown;
+  updated_at: string;
+}
+
+/**
+ * Saves one state document. The server keeps the newest by `updatedAt`; an older
+ * write comes back as `stale` (pull first, then save again).
+ */
+export async function learningSaveState(
+  supabase: any,
+  userId: string,
+  sessionToken: string,
+  deviceFingerprint: string,
+  doc: { kind: LearnStateKind; value: unknown; updatedAt: string }
+): Promise<{ ok: boolean; stale?: boolean; error?: string }> {
+  try {
+    const { data, error } = await supabase.rpc('learning_save_state', {
+      p_user_id: userId,
+      p_session_token: sessionToken,
+      p_device_fingerprint: deviceFingerprint,
+      p_kind: doc.kind,
+      p_value: doc.value,
+      p_updated_at: doc.updatedAt,
+    });
+    if (error) return { ok: false, error: error.message };
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row) return { ok: false, error: 'No response' };
+    if (row.ok) return { ok: true };
+    return { ok: false, stale: row.error === 'stale', error: row.error ?? 'Not saved' };
+  } catch (err: any) {
+    return { ok: false, error: String(err?.message ?? err) };
+  }
+}
+
+/** Every state document of the user. */
+export async function learningPullState(
+  supabase: any,
+  userId: string,
+  sessionToken: string,
+  deviceFingerprint: string
+): Promise<{ ok: boolean; docs: CloudLearnState[]; error?: string }> {
+  try {
+    const { data, error } = await supabase.rpc('learning_pull_state', {
+      p_user_id: userId,
+      p_session_token: sessionToken,
+      p_device_fingerprint: deviceFingerprint,
+    });
+    if (error) return { ok: false, docs: [], error: error.message };
+    return { ok: true, docs: Array.isArray(data) ? data : [] };
+  } catch (err: any) {
+    return { ok: false, docs: [], error: String(err?.message ?? err) };
+  }
+}
+
 /** Starts or resumes a track. Free tier: fails with `free_tier_track_limit` while another track is active. */
 export async function learningStartTrack(
   supabase: any,

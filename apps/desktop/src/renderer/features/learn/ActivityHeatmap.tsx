@@ -3,7 +3,7 @@ import { Flame } from 'lucide-react';
 import { cn } from '@nomadic/ui';
 import type { LearningEvent } from '@job-automator/learning';
 import { buildHeatGrid, cellLabel, type HeatCell } from './heatmapLogic';
-import { tzOffsetMinutes } from './learnLogic';
+import { tzOffsetMinutes } from './quizLogic';
 
 const LEVEL_CLASS: Record<HeatCell['level'], string> = {
   0: 'bg-surface-sunken',

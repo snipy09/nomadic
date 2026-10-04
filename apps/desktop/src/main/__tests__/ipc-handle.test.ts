@@ -54,8 +54,8 @@ describe('typed IPC handle()', () => {
   });
 
   it('lists every invoke channel exactly once', () => {
-    expect(new Set(IPC_CHANNELS).size).toBe(99);
-    expect(IPC_CHANNELS.length).toBe(99);
+    expect(new Set(IPC_CHANNELS).size).toBe(105);
+    expect(IPC_CHANNELS.length).toBe(105);
   });
 });
 

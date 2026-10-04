@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
+  learningSaveState,
+  learningPullState,
   sendSessionHeartbeat,
   getSupabaseClient,
   registerDeviceSession,
@@ -387,6 +389,25 @@ describe('Supabase Package Unit Tests', () => {
       const events = [{ id: 'e1', type: 'quiz_passed', skill_id: 's', item_id: 'i', payload: {}, duration_s: 0, created_at: '2026-10-01T00:00:00Z' }];
       expect(await learningRecordEvents({ rpc }, ...sess, events)).toEqual({ ok: true, accepted: 3, rejected: 1 });
       expect(rpc).toHaveBeenCalledWith('learning_record_events', { p_user_id: 'user-1', p_session_token: 'tok', p_device_fingerprint: 'fp', p_events: events });
+    });
+
+    it('saves a Learn v2 state document and reports a stale write', async () => {
+      const rpc = vi.fn()
+        .mockResolvedValueOnce({ data: [{ ok: true, error: null, updated_at: '2026-10-05T00:00:00Z' }], error: null })
+        .mockResolvedValueOnce({ data: [{ ok: false, error: 'stale', updated_at: '2026-10-06T00:00:00Z' }], error: null });
+      const doc = { kind: 'roadmap' as const, value: { id: 'r' }, updatedAt: '2026-10-05T00:00:00Z' };
+      expect(await learningSaveState({ rpc }, ...sess, doc)).toEqual({ ok: true });
+      expect(rpc).toHaveBeenCalledWith('learning_save_state', {
+        p_user_id: 'user-1', p_session_token: 'tok', p_device_fingerprint: 'fp', p_kind: 'roadmap', p_value: { id: 'r' }, p_updated_at: '2026-10-05T00:00:00Z',
+      });
+      expect(await learningSaveState({ rpc }, ...sess, doc)).toMatchObject({ ok: false, stale: true });
+    });
+
+    it('pulls Learn v2 state documents', async () => {
+      const rpc = vi.fn().mockResolvedValue({ data: [{ kind: 'notes', value: [], updated_at: 'x' }], error: null });
+      expect(await learningPullState({ rpc }, ...sess)).toEqual({ ok: true, docs: [{ kind: 'notes', value: [], updated_at: 'x' }] });
+      const failing = vi.fn().mockResolvedValue({ data: null, error: { message: 'down' } });
+      expect(await learningPullState({ rpc: failing }, ...sess)).toMatchObject({ ok: false, docs: [] });
     });
 
     it('treats a server-side error row (e.g. unauthorized) as a failure', async () => {

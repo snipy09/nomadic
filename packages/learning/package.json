@@ -15,7 +15,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "seed": "tsx scripts/seed.ts",
     "check-links": "tsx scripts/check-links.ts",
-    "build-seed": "tsx scripts/build-seed.ts"
+    "build-seed": "tsx scripts/build-seed.ts",
+    "build-problems": "tsx scripts/build-problems.ts",
+    "check-paid-only": "tsx scripts/check-paid-only.ts"
   },
   "dependencies": {
     "zod": "^3.23.8",

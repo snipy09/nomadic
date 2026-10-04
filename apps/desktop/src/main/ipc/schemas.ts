@@ -1,6 +1,15 @@
 import { z } from 'zod';
 import type { ArgSchemas } from './handle.js';
-import { LearningEventPayloadSchema, LearningEventTypeSchema, RoleFamilyIdSchema, UuidSchema } from '@job-automator/learning';
+import {
+  IntakeSchema,
+  LearningEventPayloadSchema,
+  LearningEventTypeSchema,
+  ProblemNoteSchema,
+  RoadmapSchema,
+  ScheduleSchema,
+  UserProjectSchema,
+  UuidSchema,
+} from '@job-automator/learning';
 import { OUTREACH_CONTACT_KINDS, OUTREACH_PURPOSES, OUTREACH_REPORT_REASONS, USER_APPLICATION_STATUSES } from '../../shared/ipc.js';
 import {
   ADMIN_ASSIGNABLE_TIERS,
@@ -292,12 +301,28 @@ const learningEventInput = z.object({
 /** At most 500 events per call (the server RPC's batch limit). */
 export const learningRecordEventsArgs: ArgSchemas<'learning-record-events'> = [z.array(learningEventInput).min(1).max(500)];
 
-const learningGoalInput = z.object({
-  track_id: RoleFamilyIdSchema,
-  horizon_months: z.union([z.literal(1), z.literal(3), z.literal(6)]),
-  daily_hours: z.union([z.literal(1), z.literal(2), z.literal(4)]),
-});
-export const learningSaveGoalArgs: ArgSchemas<'learning-save-goal'> = [learningGoalInput];
+// Learn v2: the documents are validated with the shared zod model (the same one the
+// main process and sync use), plus size caps so a bad caller cannot flood the store.
+const sized = <T extends z.ZodTypeAny>(schema: T, maxChars: number, what: string) =>
+  z.unknown().superRefine((v, ctx) => {
+    if (JSON.stringify(v ?? null).length > maxChars) ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${what} is too large` });
+  }).pipe(schema);
+export const learnRoadmapGenerateArgs: ArgSchemas<'learn-roadmap-generate'> = [sized(IntakeSchema, 20_000, 'intake')];
+export const learnRoadmapAdjustArgs: ArgSchemas<'learn-roadmap-adjust'> = [z.string().trim().min(3).max(500)];
+export const learnRoadmapAcceptArgs: ArgSchemas<'learn-roadmap-accept'> = [
+  sized(RoadmapSchema, 200_000, 'roadmap'),
+  sized(ScheduleSchema, 400_000, 'schedule'),
+];
+export const learnScheduleSaveArgs: ArgSchemas<'learn-schedule-save'> = [sized(ScheduleSchema, 400_000, 'schedule')];
+export const learnProjectSaveArgs: ArgSchemas<'learn-project-save'> = [sized(UserProjectSchema, 50_000, 'project')];
+export const learnProblemNoteSaveArgs: ArgSchemas<'learn-problem-note-save'> = [ProblemNoteSchema];
+export const learnProjectCheckRepoArgs: ArgSchemas<'learn-project-check-repo'> = [
+  z.object({
+    projectId: str(120).min(1),
+    stageId: str(120).min(1),
+    repoUrl: z.string().trim().min(10).max(200).regex(/^(https?:\/\/)?(www\.)?github\.com\//i, 'must be a GitHub repository link'),
+  }),
+];
 
 // ── practice (F8) ──────────────────────────────────────────────────────────
 // Validated with the shared schema from @job-automator/learning (one source of

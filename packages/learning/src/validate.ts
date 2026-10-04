@@ -4,6 +4,7 @@
  */
 import { buildSkillGraph, findCycle } from './graph';
 import { ContentBundleSchema, type ContentBundle } from './types';
+import { findModuleCycle } from './v2/catalog';
 
 export interface ValidationReport {
   errors: string[];
@@ -100,5 +101,69 @@ export function validateContentBundle(input: unknown): ValidationReport {
       errors.push(`ordering ${p.id} has duplicate steps`);
     if (p.kind === 'code' && !p.tests.some((t) => !t.hidden)) warnings.push(`code ${p.id} has no visible example test`);
   }
+  validateV2(b, errors, warnings);
   return { errors, warnings };
+}
+
+/** Learn v2 catalogue checks: ids, references, module cycles, problem refs and paid-only placement. */
+function validateV2(b: ContentBundle, errors: string[], warnings: string[]): void {
+  const skillIds = new Set(b.skills.map((s) => s.id));
+  const resourceIds = new Set(b.resources.map((r) => r.id));
+  const itemIds = new Set(b.practice_items.map((p) => p.id));
+  const moduleIds = new Set(b.modules.map((m) => m.id));
+  const topicIds = new Set(b.topics.map((t) => t.id));
+  const problems = new Map(b.problems.map((p) => [p.ref, p]));
+  const dup = (label: string, ids: string[]) => {
+    const seen = new Set<string>();
+    for (const id of ids) {
+      if (seen.has(id)) errors.push(`duplicate ${label} id: ${id}`);
+      seen.add(id);
+    }
+  };
+  dup('module', b.modules.map((m) => m.id));
+  dup('topic', b.topics.map((t) => t.id));
+  dup('project', b.projects.map((p) => p.id));
+  dup('problem', b.problems.map((p) => p.ref));
+
+  for (const m of b.modules) {
+    for (const p of m.prerequisites) {
+      if (!moduleIds.has(p.module_id)) errors.push(`module ${m.id} requires unknown module ${p.module_id}`);
+      if (p.module_id === m.id) errors.push(`module ${m.id} lists itself as prerequisite`);
+    }
+    for (const s of m.skill_ids) if (!skillIds.has(s)) errors.push(`module ${m.id} references unknown skill ${s}`);
+    if (!b.topics.some((t) => t.module_id === m.id)) errors.push(`module ${m.id} has no topics`);
+  }
+  const cycle = findModuleCycle(b.modules);
+  if (cycle) errors.push(`module prerequisite cycle: ${cycle.join(' -> ')}`);
+
+  for (const t of b.topics) {
+    if (!moduleIds.has(t.module_id)) errors.push(`topic ${t.id} references unknown module ${t.module_id}`);
+    if (!t.id.startsWith(`${t.module_id}.`)) errors.push(`topic ${t.id} must start with its module id ${t.module_id}`);
+    for (const s of t.skill_ids) if (!skillIds.has(s)) errors.push(`topic ${t.id} references unknown skill ${s}`);
+    for (const r of t.resource_ids) if (!resourceIds.has(r)) errors.push(`topic ${t.id} references unknown resource ${r}`);
+    for (const q of t.quiz_item_ids) if (!itemIds.has(q)) errors.push(`topic ${t.id} references unknown practice item ${q}`);
+    const keys = new Set<string>();
+    for (const k of t.tasks) {
+      if (keys.has(k.key)) errors.push(`topic ${t.id} has duplicate task key ${k.key}`);
+      keys.add(k.key);
+    }
+    const all = [...t.problems.must, ...t.problems.good, ...t.problems.stretch];
+    if (new Set(all).size !== all.length) errors.push(`topic ${t.id} lists a problem twice`);
+    for (const ref of all) if (!problems.has(ref)) errors.push(`topic ${t.id} references problem ${ref} that is not in the dataset`);
+    for (const ref of [...t.problems.must, ...t.problems.good]) {
+      if (problems.get(ref)?.paid_only === true) errors.push(`topic ${t.id} lists paid-only ${ref} outside stretch`);
+    }
+    if (!t.resource_ids.length) warnings.push(`topic ${t.id} has no resource yet`);
+  }
+
+  for (const p of b.projects) {
+    for (const s of p.skill_ids) if (!skillIds.has(s)) errors.push(`project ${p.id} references unknown skill ${s}`);
+    for (const m of p.prerequisite_modules) if (!moduleIds.has(m)) errors.push(`project ${p.id} requires unknown module ${m}`);
+    dup(`stage in ${p.id}`, p.stages.map((s) => s.id));
+    for (const st of p.stages) {
+      for (const t of st.topic_ids) if (!topicIds.has(t)) errors.push(`project ${p.id} stage ${st.id} references unknown topic ${t}`);
+      for (const r of st.resource_ids) if (!resourceIds.has(r)) errors.push(`project ${p.id} stage ${st.id} references unknown resource ${r}`);
+      dup(`acceptance in ${p.id}/${st.id}`, st.acceptance.map((a) => a.id));
+    }
+  }
 }

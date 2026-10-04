@@ -14,7 +14,7 @@ import { getActiveSyncSession } from './session.js';
 // bearer (the function is deployed with verify_jwt) and the device session in the body.
 // Prompts, answers and profile facts are never logged here.
 
-export type AiKind = 'rubric_feedback' | 'form_answers' | 'outreach_email';
+export type AiKind = 'rubric_feedback' | 'form_answers' | 'outreach_email' | 'roadmap_plan' | 'roadmap_adjust';
 
 /** Main waits a little longer than the proxy's two 25 s model attempts. */
 export const AI_PROXY_TIMEOUT_MS = 60_000;

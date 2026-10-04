@@ -1,5 +1,5 @@
 import type { Database, SqlValue } from 'sql.js';
-import type { LearningEventInput, LearningEventRecord, LearningGoal, LearningGoalInput } from '../../shared/ipc.js';
+import type { LearningEventInput, LearningEventRecord } from '../../shared/ipc.js';
 
 /**
  * SQLite access for Learn. Pure functions over a sql.js `Database` (no
@@ -10,6 +10,10 @@ import type { LearningEventInput, LearningEventRecord, LearningGoal, LearningGoa
  * trigger aborts the update). Only `synced_at` and the owner of events
  * recorded before sign-in (`user_id = 'local'`) are ever written after insert.
  * Streaks, mastery, the Today queue and the path are derived from these rows.
+ *
+ * Learn v2 keeps the student's roadmap, schedule, projects and problem notes as
+ * JSON documents in `learn_state` (one row per user and kind), synced with
+ * Supabase migration 027; `draft` is a local-only kind (an unaccepted roadmap).
  */
 
 /** Owner of events recorded while no account session is active. */
@@ -50,6 +54,52 @@ export function migrateLearningSchema(db: Database): void {
       user_id      TEXT PRIMARY KEY,
       pulled_until TEXT NOT NULL
     );
+  `);
+}
+
+/** Event types allowed by local migration 9 (v1 plus Learn v2). Fixed text: never edit a shipped migration. */
+const V2_EVENT_TYPES_SQL =
+  "'lesson_viewed', 'quiz_passed', 'quiz_failed', 'problem_solved', 'review_done', 'skill_marked_known', " +
+  "'task_done', 'task_skipped', 'task_moved', 'problem_attempted', 'stage_done', 'project_started', 'project_done', 'roadmap_accepted'";
+
+/**
+ * Local migration 9 (Learn v2): recreates learning_events with the widened type
+ * CHECK (SQLite cannot alter a CHECK: new table, copy, drop, rename, then the index
+ * and append-only trigger again), adds learn_state and drops the v1 goal table.
+ */
+export function migrateLearnV2Schema(db: Database): void {
+  db.run(`
+    DROP TRIGGER IF EXISTS trg_learning_events_append_only;
+    CREATE TABLE learning_events_v2 (
+      id         TEXT PRIMARY KEY,
+      user_id    TEXT NOT NULL,
+      type       TEXT NOT NULL CHECK (type IN (${V2_EVENT_TYPES_SQL})),
+      skill_id   TEXT,
+      item_id    TEXT,
+      payload    TEXT NOT NULL DEFAULT '{}',
+      duration_s INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      synced_at  TEXT
+    );
+    INSERT INTO learning_events_v2 (id, user_id, type, skill_id, item_id, payload, duration_s, created_at, synced_at)
+      SELECT id, user_id, type, skill_id, item_id, payload, duration_s, created_at, synced_at FROM learning_events;
+    DROP TABLE learning_events;
+    ALTER TABLE learning_events_v2 RENAME TO learning_events;
+    CREATE INDEX IF NOT EXISTS idx_learning_events_user_time ON learning_events (user_id, created_at);
+    CREATE TRIGGER IF NOT EXISTS trg_learning_events_append_only
+      BEFORE UPDATE OF id, type, skill_id, item_id, payload, duration_s, created_at ON learning_events
+      BEGIN SELECT RAISE(ABORT, 'learning_events is append-only'); END;
+
+    CREATE TABLE IF NOT EXISTS learn_state (
+      user_id    TEXT NOT NULL,
+      kind       TEXT NOT NULL CHECK (kind IN ('roadmap', 'schedule', 'projects', 'notes', 'draft')),
+      value      TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      synced_at  TEXT,
+      PRIMARY KEY (user_id, kind)
+    );
+
+    DROP TABLE IF EXISTS learning_goal;
   `);
 }
 
@@ -124,13 +174,13 @@ export function listEvents(db: Database, userId: string, limit = EVENTS_LIMIT): 
   ).map(toRecord);
 }
 
-/** Moves events and the goal recorded before sign-in to the signed-in user. */
+/** Moves events and Learn documents recorded before sign-in to the signed-in user. */
 export function claimLocalRows(db: Database, userId: string): void {
   if (userId === LOCAL_USER) return;
   db.run('UPDATE learning_events SET user_id = ? WHERE user_id = ?', [userId, LOCAL_USER]);
-  const own = rows(db, 'SELECT 1 FROM learning_goal WHERE user_id = ?', [userId]).length > 0;
-  if (own) db.run('DELETE FROM learning_goal WHERE user_id = ?', [LOCAL_USER]);
-  else db.run('UPDATE learning_goal SET user_id = ? WHERE user_id = ?', [userId, LOCAL_USER]);
+  // A document the account already has wins over one made before sign-in.
+  db.run('DELETE FROM learn_state WHERE user_id = ? AND kind IN (SELECT kind FROM learn_state WHERE user_id = ?)', [LOCAL_USER, userId]);
+  db.run('UPDATE learn_state SET user_id = ? WHERE user_id = ?', [userId, LOCAL_USER]);
 }
 
 export function unsyncedEvents(db: Database, userId: string, limit = 500): LearningEventRecord[] {
@@ -153,67 +203,86 @@ export function markEventsSynced(db: Database, ids: string[], at: string): void 
   }
 }
 
-function toGoal(r: Record<string, SqlValue>): LearningGoal {
-  return {
-    track_id: String(r.track_id),
-    horizon_months: Number(r.horizon_months) as LearningGoal['horizon_months'],
-    daily_hours: Number(r.daily_hours) as LearningGoal['daily_hours'],
-    started_at: String(r.started_at),
-    updated_at: String(r.updated_at),
-  };
+// ── Learn v2 state documents ───────────────────────────────────────────────
+
+export type LearnDocKind = 'roadmap' | 'schedule' | 'projects' | 'notes' | 'draft';
+/** Kinds that sync to the account (draft stays on this device). */
+export const SYNCED_DOC_KINDS = ['roadmap', 'schedule', 'projects', 'notes'] as const;
+export type SyncedDocKind = (typeof SYNCED_DOC_KINDS)[number];
+
+export interface LearnDoc {
+  kind: LearnDocKind;
+  value: unknown;
+  updated_at: string;
+  synced_at: string | null;
 }
 
-export function getGoal(db: Database, userId: string): LearningGoal | null {
+function parseJson(v: SqlValue | undefined): unknown {
+  try {
+    return JSON.parse(String(v ?? 'null'));
+  } catch {
+    return null;
+  }
+}
+
+function toDoc(r: Record<string, SqlValue>): LearnDoc {
+  return { kind: String(r.kind) as LearnDocKind, value: parseJson(r.value), updated_at: String(r.updated_at), synced_at: nullable(r.synced_at) };
+}
+
+/** The user's document of a kind (their own first, else one made before sign-in). */
+export function getDoc(db: Database, userId: string, kind: LearnDocKind): LearnDoc | null {
   const r = rows(
     db,
-    'SELECT * FROM learning_goal WHERE user_id IN (?, ?) ORDER BY (user_id = ?) DESC LIMIT 1',
-    [...owners(userId), userId]
+    'SELECT * FROM learn_state WHERE user_id IN (?, ?) AND kind = ? ORDER BY (user_id = ?) DESC LIMIT 1',
+    [...owners(userId), kind, userId]
   )[0];
-  return r ? toGoal(r) : null;
+  return r ? toDoc(r) : null;
+}
+
+/** Writes a document; `syncedAt` null marks it for upload. */
+export function putDoc(db: Database, userId: string, kind: LearnDocKind, value: unknown, updatedAt: string, syncedAt: string | null = null): void {
+  db.run(
+    `INSERT INTO learn_state (user_id, kind, value, updated_at, synced_at) VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(user_id, kind) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at, synced_at = excluded.synced_at`,
+    [userId, kind, JSON.stringify(value), updatedAt, syncedAt]
+  );
+}
+
+export function deleteDoc(db: Database, userId: string, kind: LearnDocKind): void {
+  db.run('DELETE FROM learn_state WHERE user_id IN (?, ?) AND kind = ?', [...owners(userId), kind]);
+}
+
+/** Synced kinds changed on this device since their last upload. */
+export function unsyncedDocs(db: Database, userId: string): LearnDoc[] {
+  return rows(
+    db,
+    `SELECT * FROM learn_state WHERE user_id = ? AND synced_at IS NULL AND kind IN (${SYNCED_DOC_KINDS.map(() => '?').join(',')}) ORDER BY kind`,
+    [userId, ...SYNCED_DOC_KINDS]
+  ).map(toDoc);
+}
+
+export function countUnsyncedDocs(db: Database, userId: string): number {
+  const r = rows(
+    db,
+    `SELECT COUNT(*) AS n FROM learn_state WHERE user_id IN (?, ?) AND synced_at IS NULL AND kind IN (${SYNCED_DOC_KINDS.map(() => '?').join(',')})`,
+    [...owners(userId), ...SYNCED_DOC_KINDS]
+  );
+  return Number(r[0]?.n ?? 0);
+}
+
+/** Marks a document uploaded, only if it did not change since it was read for the push. */
+export function markDocSynced(db: Database, userId: string, kind: LearnDocKind, updatedAt: string, at: string): void {
+  db.run('UPDATE learn_state SET synced_at = ? WHERE user_id = ? AND kind = ? AND updated_at = ?', [at, userId, kind, updatedAt]);
 }
 
 /**
- * Sets the goal. Changing pace keeps `started_at`; changing role starts a new
- * track. Progress lives in events keyed by skill, so neither loses anything.
+ * Applies a document pulled from the account: the newer `updated_at` wins, so a
+ * newer local edit is kept (and pushed) and an older one is replaced.
  */
-export function saveGoal(db: Database, userId: string, input: LearningGoalInput, now: string): LearningGoal {
-  const prev = rows(db, 'SELECT * FROM learning_goal WHERE user_id = ?', [userId])[0];
-  const startedAt = prev && String(prev.track_id) === input.track_id ? String(prev.started_at) : now;
-  db.run(
-    `INSERT INTO learning_goal (user_id, track_id, horizon_months, daily_hours, started_at, updated_at, synced_at, synced_track_id)
-     VALUES (?, ?, ?, ?, ?, ?, NULL, NULL)
-     ON CONFLICT(user_id) DO UPDATE SET
-       track_id = excluded.track_id, horizon_months = excluded.horizon_months, daily_hours = excluded.daily_hours,
-       started_at = excluded.started_at, updated_at = excluded.updated_at, synced_at = NULL`,
-    [userId, input.track_id, input.horizon_months, input.daily_hours, startedAt, now]
-  );
-  return toGoal(rows(db, 'SELECT * FROM learning_goal WHERE user_id = ?', [userId])[0]);
-}
-
-/** The goal to push, and the previously synced track to archive first (when the role changed). */
-export function goalToSync(db: Database, userId: string): { goal: LearningGoal; archiveTrackId: string | null } | null {
-  const r = rows(db, 'SELECT * FROM learning_goal WHERE user_id = ? AND synced_at IS NULL', [userId])[0];
-  if (!r) return null;
-  const prev = nullable(r.synced_track_id);
-  return { goal: toGoal(r), archiveTrackId: prev && prev !== String(r.track_id) ? prev : null };
-}
-
-export function markGoalSynced(db: Database, userId: string, goal: LearningGoal, at: string): void {
-  // Only if unchanged since it was read for the push.
-  db.run(
-    'UPDATE learning_goal SET synced_at = ?, synced_track_id = track_id WHERE user_id = ? AND updated_at = ? AND track_id = ?',
-    [at, userId, goal.updated_at, goal.track_id]
-  );
-}
-
-/** Restores a goal from the cloud only when this device has none. */
-export function restoreGoal(db: Database, userId: string, goal: LearningGoal, at: string): boolean {
-  if (getGoal(db, userId)) return false;
-  db.run(
-    `INSERT INTO learning_goal (user_id, track_id, horizon_months, daily_hours, started_at, updated_at, synced_at, synced_track_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [userId, goal.track_id, goal.horizon_months, goal.daily_hours, goal.started_at, goal.updated_at, at, goal.track_id]
-  );
+export function mergePulledDoc(db: Database, userId: string, kind: SyncedDocKind, value: unknown, updatedAt: string, at: string): boolean {
+  const local = getDoc(db, userId, kind);
+  if (local && local.updated_at >= updatedAt) return false;
+  putDoc(db, userId, kind, value, updatedAt, at);
   return true;
 }
 

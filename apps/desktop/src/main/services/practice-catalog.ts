@@ -220,6 +220,20 @@ export function companyDatasetCandidates(baseDir: string): string[] {
 }
 
 let cached: Promise<PracticeCatalog> | null = null;
+let datasetCached: Promise<unknown> | null = null;
+
+/** The raw LeetCode company dataset (Learn v2 company boosts). A failed load is not cached. */
+export function loadCompanyDataset(baseDir: string = __dirname): Promise<unknown> {
+  if (!datasetCached) {
+    datasetCached = readFirst(companyDatasetCandidates(baseDir))
+      .then((text) => JSON.parse(text) as unknown)
+      .catch((err) => {
+        datasetCached = null;
+        throw err;
+      });
+  }
+  return datasetCached;
+}
 
 async function readFirst(paths: string[]): Promise<string> {
   for (const p of paths) {
