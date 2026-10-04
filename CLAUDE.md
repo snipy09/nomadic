@@ -95,8 +95,8 @@ Key flows:
 - **Supabase project `nomadic`**: ref `grqkiddfwoyicktpgdea`, region ap-south-1 (Mumbai), free plan, org "Nomadic".
   URL `https://grqkiddfwoyicktpgdea.supabase.co`. The anon key is public by design and is the build default in
   `apps/desktop/build-main.mjs`, scrapers and web. The service-role key is never in the app or repo.
-- **Applied migrations**: 001–012, 014–023 (013 does not exist; 023 is the web waitlist). **Not yet applied: 024**
-  (payments never downgrade an active Max; paste `baseline/apply_024.sql`) and **025** (payment history RPC;
+- **Applied migrations**: 001–012, 014–024 (013 does not exist; 023 is the web waitlist; 024, no Max downgrade on
+  payment, applied 4 Oct 2026). **Not yet applied: 025** (payment history RPC;
   `baseline/apply_025.sql`), both rehearsed on PostgreSQL 16. Security advisor: no errors; remaining notices are by design (deny-all tables;
   session-checked SECURITY DEFINER RPCs callable by anon).
 - **Learn content seeded** from the bundle (checksums verified).
@@ -158,7 +158,7 @@ Owner actions:
 9. (Done 4 Oct 2026) `require_login_ticket` is on.
 10. Review and publish Learn content (all drafts; 69 lessons have no resource yet); run the link checker.
 11. Rotate the Resend and Gemini keys (they were shared in a chat) and update Vault.
-12. Apply migrations 024 and 025 (paste files in `packages/supabase/baseline/`).
+12. Apply migration 025 (`packages/supabase/baseline/apply_025.sql`); 024 is done.
 13. (Done) `GOOGLE_OAUTH_CLIENT_ID/SECRET` repository secrets.
 
 Done in October 2026: hide job ("Not interested", local migration 5), tracker follow-up reminders (local
@@ -201,8 +201,9 @@ Assistant still call AI directly); OS notification for due follow-ups (today an 
   Last commit of the session: "fix(desktop): remember answers typed during apply review; Google button opens terms".
 - Untracked on purpose, never stage: `brag-output*/`, `reel*/`, `showreel/` (local marketing renders) and `.claude/`
   (local assistant settings and `launch.json`; its notes are folded into section 10).
-- Delivered build: `Nomadic-v1.0.6-portable.exe` in `C:\Users\sajal\Downloads` and `Desktop\Nomadic-v1\`
-  (built from `apps/desktop/dist-electron/Nomadic.1.0.6.exe`). Bump `apps/desktop/package.json` `version` for the next one.
+- Delivered build: `Nomadic-v1.0.7-portable.exe` in `C:\Users\sajal\Downloads` and `Desktop\Nomadic-v1\`
+  (built from `apps/desktop/dist-electron/Nomadic.1.0.7.exe`). Bump `apps/desktop/package.json` `version` for the next one.
+  App icon (`apps/desktop/assets/icon.ico`, `logo-icon.png`, `logo.png`) is the site mark from `apps/web/public/logo-icon.svg`.
 - Google sign-in: client id/secret are baked into the build from `apps/desktop/.env`; the app opens Google with PKCE
   and a loopback listener on `http://127.0.0.1:42813/callback`; Google accepts the client. If users see "Access
   blocked", the OAuth consent screen is still in Testing (owner action 4). Errors from the callback are shown on the
