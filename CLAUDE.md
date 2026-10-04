@@ -117,7 +117,7 @@ Key flows:
   session-checked SECURITY DEFINER RPCs callable by anon).
 - **Learn content seeded** from the bundle (checksums verified).
 - **Edge Functions deployed** (JWT verification on): `google-sign-in`, `send-email-code`, `ai-proxy` (kinds
-  `rubric_feedback`, `form_answers`, `outreach_email`, `roadmap_plan`, `roadmap_adjust`; the roadmap kinds need 029).
+  `rubric_feedback`, `form_answers`, `outreach_email`, `roadmap_plan`, `roadmap_adjust`, redeployed 5 Oct 2026; the roadmap kinds need 029).
   `razorpay-webhook` exists in the repo but is not deployed yet.
 - **Vault secrets**: `resend_api_key`, `gemini_api_key`, `google_oauth_client_id` (set). Missing: `email_from`.
 - **Google OAuth**: "Desktop app" client created; id/secret are in GitHub repo secrets and in the gitignored
@@ -164,7 +164,7 @@ screens). The owner has signed in on the packaged v1.0.6 app and run apply up to
 Owner actions:
 0. **Learn v2 go-live** (merged into `main` with 1.1.0):
    paste `packages/supabase/baseline/apply_028.sql` then `apply_029.sql` in the SQL editor (029 drops and recreates
-   `ai_limits`); redeploy the `ai-proxy` Edge Function; paste the regenerated `baseline/content_seed.sql` (adds the 7
+   `ai_limits`) (the `ai-proxy` Edge Function with the roadmap kinds was deployed 5 Oct 2026); paste the regenerated `baseline/content_seed.sql` (adds the 7
    new skills, lessons, 95 quiz items, 26 resources); on the laptop run `npm run check-paid-only -w
    @job-automator/learning`, `npm run build-problems`, `npm run check-links -w @job-automator/learning --
    --write-seed` and `npm run build-seed` (the build container could not reach leetcode.com or the resource sites,
