@@ -104,6 +104,8 @@ export const LearnTopicSchema = z.object({
   title: z.string().min(1).max(100),
   summary_md: Text(1200),
   key_points: z.array(z.string().min(1).max(240).refine(noUrls, 'text must not contain URLs')).default([]),
+  /** What to learn, in study order ("Name: what exactly to know"). */
+  learn_items: z.array(z.string().min(1).max(160).refine(noUrls, 'text must not contain URLs')).max(10).default([]),
   tier: TopicTierSchema,
   skill_ids: z.array(SlugSchema).default([]),
   resource_ids: z.array(SlugSchema).default([]),
@@ -149,10 +151,15 @@ export const RepoRulesSchema = z.object({
 });
 export type RepoRules = z.infer<typeof RepoRulesSchema>;
 
+/** Code may point at a local dev server (localhost) but never at the web. */
+const noWebUrls = (s: string) => !/https?:\/\/(?!localhost[:/]|127\.0\.0\.1[:/])|www\./i.test(s);
+
 export const ProjectStepSchema = z.object({
   title: z.string().min(1).max(120).refine(noUrls, 'text must not contain URLs'),
   detail: Text(900),
   minutes: z.number().int().min(10).max(30),
+  /** Starter code or commands for the step. */
+  code: z.string().min(1).max(2500).refine(noWebUrls, 'code must not contain web URLs').optional(),
 });
 export type ProjectStep = z.infer<typeof ProjectStepSchema>;
 

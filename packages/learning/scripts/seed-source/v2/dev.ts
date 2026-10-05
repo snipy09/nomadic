@@ -1,7 +1,7 @@
 /**
  * Learn v2 dev stream, built from the existing skill graph: every skill
- * becomes one topic that reuses its lesson text, key points, curated
- * resources and practice items. A module is offered to a role when the role
+ * becomes a run of day-sized topics from its authored syllabus (dev/*.ts),
+ * or one topic from its lesson when none is authored. A module is offered to a role when the role
  * weights its skills (any skill >= 0.7, or a summed weight >= 1.0); a topic's
  * tier comes from the highest weight among those roles (>= 0.7 core,
  * >= 0.4 standard, else optional).
@@ -9,7 +9,17 @@
 import type { RoleFamilyId } from '../../../src/primitives';
 import { ROLE_DEFS } from '../roles';
 import { SKILL_DEFS } from '../skills';
-import type { ModuleDef, TopicDef } from './defs';
+import type { DevSyllabus, ModuleDef, TopicDef } from './defs';
+import { ANALYTICS_SYLLABUS } from './dev/analytics';
+import { BACKEND_SYLLABUS } from './dev/backend';
+import { CLOUD_SYLLABUS } from './dev/cloud';
+import { DATA_SYLLABUS } from './dev/data';
+import { FRONTEND_SYLLABUS } from './dev/frontend';
+import { LLM_SYLLABUS } from './dev/llm';
+import { ML_SYLLABUS } from './dev/ml';
+import { OPS_SYLLABUS } from './dev/ops';
+import { PRODUCT_DESIGN_SYLLABUS } from './dev/product-design';
+import { WEB_SYLLABUS } from './dev/web';
 
 interface DevGroup {
   id: string;
@@ -67,31 +77,73 @@ function tierFor(roles: RoleFamilyId[], skill: string): TopicDef['tier'] {
 
 const clip = (s: string, n: number) => (s.length <= n ? s : `${s.slice(0, n - 1).trimEnd()}…`);
 
+const TIER_RANK = { core: 0, standard: 1, optional: 2 } as const;
+const AUTHORED: DevSyllabus = {
+  ...WEB_SYLLABUS,
+  ...FRONTEND_SYLLABUS,
+  ...BACKEND_SYLLABUS,
+  ...DATA_SYLLABUS,
+  ...OPS_SYLLABUS,
+  ...CLOUD_SYLLABUS,
+  ...ANALYTICS_SYLLABUS,
+  ...ML_SYLLABUS,
+  ...LLM_SYLLABUS,
+  ...PRODUCT_DESIGN_SYLLABUS,
+};
+
+/** The skill's single topic built from its lesson (used when no syllabus is authored for it). */
+function lessonTopic(id: string, roles: RoleFamilyId[]): TopicDef {
+  const s = skillById.get(id)!;
+  const practice = s.hours >= 30 ? 3 : s.hours >= 12 ? 2 : 1;
+  return {
+    key: id,
+    title: s.name,
+    tier: tierFor(roles, id),
+    min: Math.max(10, Math.min(45, Math.round(s.hours * 3))),
+    sum: clip(s.lesson, 1200),
+    pts: s.points.map((p) => clip(p, 240)),
+    skills: [id],
+    tasks: s.points.slice(0, practice).map((p, i) => ({
+      key: `hands-on-${i + 1}`,
+      kind: 'practice' as const,
+      title: clip(`Hands-on: ${p}`, 140),
+      minutes: 40,
+    })),
+  };
+}
+
+/**
+ * Topics of one skill: the authored syllabus (dev/*.ts) when there is one, else one topic
+ * from the skill's lesson. The first authored topic must be keyed by the skill id (projects
+ * and the feed refer to `<module>.<skill>`). A topic's tier is the deeper of the skill's
+ * tier for the module's roles and the topic's own `depth`.
+ */
+export function skillTopics(id: string, roles: RoleFamilyId[]): TopicDef[] {
+  if (!skillById.has(id)) throw new Error(`dev syllabus references unknown skill ${id}`);
+  const authored = AUTHORED[id];
+  if (!authored?.length) return [lessonTopic(id, roles)];
+  if (authored[0].key !== id) throw new Error(`the first ${id} topic must be keyed "${id}"`);
+  const base = tierFor(roles, id) ?? 'core';
+  return authored.map(({ depth, ...t }) => {
+    const own = depth ?? 'core';
+    return { ...t, tier: TIER_RANK[own] > TIER_RANK[base] ? own : base, skills: [id] };
+  });
+}
+
 export function buildDevModules(): ModuleDef[] {
+  for (const id of Object.keys(AUTHORED)) {
+    if (!GROUPS.some((g) => g.skills.includes(id))) throw new Error(`dev syllabus skill ${id} is in no dev module`);
+  }
   return GROUPS.map((g, order) => {
     const roles = rolesFor(g.skills);
     // An empty list would mean "every role", so a module no role weights is an authoring error.
     if (!roles.length) throw new Error(`dev module ${g.id} matches no role`);
-    const topics: TopicDef[] = g.skills.map((id) => {
-      const s = skillById.get(id);
-      if (!s) throw new Error(`dev module ${g.id} references unknown skill ${id}`);
-      const practice = s.hours >= 30 ? 3 : s.hours >= 12 ? 2 : 1;
-      return {
-        key: id,
-        title: s.name,
-        tier: tierFor(roles, id),
-        min: Math.max(10, Math.min(45, Math.round(s.hours * 3))),
-        sum: clip(s.lesson, 1200),
-        pts: s.points.map((p) => clip(p, 240)),
-        skills: [id],
-        tasks: s.points.slice(0, practice).map((p, i) => ({
-          key: `hands-on-${i + 1}`,
-          kind: 'practice' as const,
-          title: clip(`Hands-on: ${p}`, 140),
-          minutes: 40,
-        })),
-      };
-    });
+    const topics = g.skills.flatMap((id) => skillTopics(id, roles));
+    const keys = new Set<string>();
+    for (const t of topics) {
+      if (keys.has(t.key)) throw new Error(`duplicate topic key ${g.id}.${t.key}`);
+      keys.add(t.key);
+    }
     return {
       id: g.id,
       title: g.title,

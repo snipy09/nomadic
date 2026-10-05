@@ -32,6 +32,12 @@ export interface TopicDef {
   kind?: 'learn' | 'read';
   sum: string;
   pts: string[];
+  /**
+   * What to learn, in study order: 4-8 concrete items, each "Name: what exactly to know"
+   * (at most 160 characters, no URLs). Shown as the topic's syllabus and split across the
+   * days a long learn task spans.
+   */
+  learn?: string[];
   /** Space-separated LeetCode slugs. */
   must?: string;
   good?: string;
@@ -61,6 +67,18 @@ export interface ModuleDef {
   res?: string[];
   topics: TopicDef[];
 }
+
+/**
+ * One dev-stream topic of a skill's syllabus (scripts/seed-source/v2/dev/*.ts). The skill is
+ * implied; `depth` marks topics that only deeper plans include ('standard': standard and deep
+ * emphasis, 'optional': deep only). Resources are never authored here.
+ */
+export type DevTopicDef = Omit<TopicDef, 'skills' | 'res' | 'must' | 'good' | 'stretch' | 'tags' | 'tier'> & {
+  depth?: 'standard' | 'optional';
+};
+
+/** Authored dev syllabus: skill id → its topics in study order (the first is keyed by the skill id). */
+export type DevSyllabus = Record<string, DevTopicDef[]>;
 
 /** SDE roles plus data-ml and devops: the audience of advanced DSA. */
 export const ADVANCED_DSA_ROLES: RoleFamilyId[] = ['frontend', 'backend', 'fullstack', 'data-ml', 'devops'];

@@ -117,7 +117,10 @@ export function buildV2Content(): V2Content {
         });
       });
       // Dev topics also quiz on the skill's existing practice items (code items need a runner, so they are left out).
-      for (const p of PRACTICE_ITEMS) if (skills.includes(p.skill_id) && p.kind !== 'code') quizIds.push(p.id);
+      // Only the skill's first topic (keyed by the skill id) takes them, so no item is quizzed twice.
+      if (m.stream === 'dev' && skills.includes(t.key)) {
+        for (const p of PRACTICE_ITEMS) if (p.skill_id === t.key && p.kind !== 'code') quizIds.push(p.id);
+      }
       topics.push({
         id,
         module_id: m.id,
@@ -125,6 +128,7 @@ export function buildV2Content(): V2Content {
         title: t.title,
         summary_md: t.sum,
         key_points: t.pts,
+        learn_items: t.learn ?? [],
         tier: t.tier ?? 'core',
         skill_ids: skills,
         resource_ids,

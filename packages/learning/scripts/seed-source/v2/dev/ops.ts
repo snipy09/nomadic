@@ -1,0 +1,1098 @@
+/** Dev syllabus: scaling backends, Linux and networking. AI-drafted, status draft. */
+import type { DevSyllabus } from '../defs';
+
+export const OPS_SYLLABUS: DevSyllabus = {
+  // ── Scaling and securing backends ────────────────────────────────────────
+  caching: [
+    {
+      key: 'caching',
+      title: 'Caching basics: where to cache and cache-aside',
+      min: 30,
+      sum: 'A cache keeps a copy of slow-to-compute or slow-to-fetch data close to where it is needed. Caches exist at every layer: the browser, a CDN, the reverse proxy, the app process and a shared store such as **Redis**. The most common backend pattern is **cache-aside**: read the cache, on a miss read the database and store the result with a **TTL**. Cache only data that is read far more often than it changes.',
+      pts: [
+        'Cache-aside: read cache, on a miss read the DB, then write the value back with a TTL.',
+        'Every cached value needs a TTL or an explicit invalidation path, ideally both.',
+        'A per-process cache is fast but each server holds its own copy; Redis is shared by all servers.',
+        'Measure the hit ratio: a cache that rarely hits only adds latency and complexity.',
+      ],
+      learn: [
+        'Cache layers: browser, CDN, reverse proxy, in-process memory and a shared Redis; what each one is good for',
+        'HTTP caching headers: Cache-Control max-age, no-store, private vs public, and ETag with 304 Not Modified',
+        'Cache-aside: write the read path (get, miss, load from DB, set with TTL) step by step in code',
+        'Write-through and write-behind: how they differ from cache-aside and when each is used',
+        'TTL choice: pick a TTL from how stale the data may safely be, e.g. 60 s for a product list',
+        'Cache keys: build stable keys such as user:42:profile and include every input that changes the result',
+        'Hit ratio and latency: compare response time with and without the cache using simple timing logs',
+      ],
+      tasks: [
+        { key: 'build-cache-aside', kind: 'build', title: 'Add Redis cache-aside with a 60-second TTL to a slow API endpoint and log hits and misses', minutes: 45 },
+        { key: 'practice-http-headers', kind: 'practice', title: 'Set Cache-Control and ETag on a static JSON endpoint and confirm a 304 response with curl -v', minutes: 20, optional: true },
+      ],
+      quiz: [
+        {
+          q: 'In the cache-aside pattern, what does the application do on a cache miss?',
+          options: [
+            'Returns an error so the client retries later',
+            'Reads from the database, returns the value and stores it in the cache with a TTL',
+            'Waits for the cache to load the value from the database by itself',
+            'Writes an empty value to the cache and returns nothing',
+          ],
+          answer: 1,
+          why: 'In cache-aside the application owns loading: it reads the database on a miss and populates the cache itself.',
+        },
+        {
+          q: 'Your API runs on four servers, each with its own in-memory cache. What problem is most likely?',
+          options: [
+            'Requests become slower than with no cache at all',
+            'Redis refuses connections from more than one server',
+            'Servers can return different, stale copies after the data changes',
+            'The database can no longer be written to',
+          ],
+          answer: 2,
+          why: 'Each process cache is separate, so invalidating one server leaves the others serving old data until their TTL expires.',
+        },
+      ],
+    },
+    {
+      key: 'caching-redis',
+      title: 'Redis data types, invalidation and stampedes',
+      min: 35,
+      depth: 'standard',
+      sum: '**Redis** is an in-memory data store with rich types: strings, hashes, lists, sets and sorted sets, plus atomic commands such as `INCR`. Invalidation is the hard part of caching: delete or update keys whenever the source data changes. When a hot key expires, many requests can hit the database at once (a **cache stampede**); prevent it with locks, early refresh or jittered TTLs. Configure `maxmemory` and an eviction policy such as `allkeys-lru`.',
+      pts: [
+        'Delete the cache key after the database write commits, not before.',
+        'SET key value NX EX 30 is the basic building block of a simple Redis lock.',
+        'Add random jitter to TTLs so many keys do not expire at the same moment.',
+        'The default eviction policy is noeviction: writes fail when memory is full.',
+      ],
+      learn: [
+        'Redis types: when to use a string, hash, list, set and sorted set, with one command each (GET, HSET, LPUSH, SADD, ZADD)',
+        'Atomic counters: INCR and EXPIRE for a per-minute rate limiter keyed by user and minute',
+        'Sorted sets: build a leaderboard with ZADD, ZINCRBY and ZREVRANGE with scores',
+        'Invalidation on write: update the DB, then DEL the key; why deleting beats updating the cached value',
+        'Cache stampede: what it is and three fixes (a lock with SET NX EX, early refresh, jittered TTLs)',
+        'Eviction: maxmemory, noeviction vs allkeys-lru vs allkeys-lfu, and what volatile-* policies need',
+        'Persistence trade-off: RDB snapshots vs AOF, and why a pure cache can usually run without either',
+      ],
+      tasks: [
+        { key: 'build-rate-limiter', kind: 'build', title: 'Build a per-user limit of 10 requests per minute with Redis INCR and EXPIRE and return HTTP 429 when exceeded', minutes: 40 },
+        { key: 'practice-leaderboard', kind: 'practice', title: 'Model a game leaderboard with a sorted set in redis-cli: add scores, increment one, read the top five', minutes: 20 },
+      ],
+      quiz: [
+        {
+          q: 'A popular key expires and 2,000 requests reach the database at the same moment. What is this called?',
+          options: ['Cache stampede', 'Cache poisoning', 'Write-behind', 'Read repair'],
+          answer: 0,
+          why: 'A stampede (thundering herd) happens when many requests miss the same expired key and all reload it at once.',
+        },
+        {
+          q: 'Which Redis type best fits "top 10 players by score"?',
+          options: ['List', 'Set', 'Hash', 'Sorted set'],
+          answer: 3,
+          why: 'A sorted set keeps members ordered by score, so ZREVRANGE returns the highest scores directly.',
+        },
+      ],
+    },
+  ],
+
+  'message-queues': [
+    {
+      key: 'message-queues',
+      title: 'Why queues: async work, delivery and idempotency',
+      min: 35,
+      sum: 'A queue lets a producer hand off work and return immediately while **consumers** process it in the background, so spikes are absorbed and slow tasks (emails, PDFs, video) do not block requests. In **RabbitMQ**, producers publish to an **exchange**, which routes messages into queues; consumers **ack** each message when done. Most brokers give **at-least-once** delivery, so a message can arrive twice and consumers must be **idempotent**.',
+      pts: [
+        'At-least-once delivery means duplicates will happen; design for them.',
+        'Ack a message only after the work is done, or a crash loses it.',
+        'Idempotent consumer: processing the same message twice has the same effect as once.',
+        'Point-to-point queues give each message to one worker; pub/sub gives a copy to every subscriber.',
+      ],
+      learn: [
+        'Sync vs async: which request work can move to a background job (emails, reports, thumbnails) and which cannot',
+        'Queue vocabulary: producer, broker, queue, consumer, message, acknowledgement',
+        'RabbitMQ routing: exchanges (direct, topic, fanout), bindings and routing keys, with one example each',
+        'Acks and prefetch: manual ack vs auto ack, nack with requeue, and prefetch to limit unacked messages per worker',
+        'Delivery guarantees: at-most-once, at-least-once and why exactly-once is rarely end to end',
+        'Idempotency: dedupe with a message id stored in a processed table or a unique database constraint',
+        'Competing consumers: scale throughput by adding workers to the same queue',
+      ],
+      tasks: [
+        { key: 'build-email-worker', kind: 'build', title: 'Run RabbitMQ in Docker, publish "welcome email" jobs from an API and process them in a worker with manual acks', minutes: 50 },
+        { key: 'practice-idempotent', kind: 'practice', title: 'Publish the same message twice and make the worker skip the duplicate using a processed-ids table', minutes: 25 },
+      ],
+      quiz: [
+        {
+          q: 'A worker charges a card, then crashes before acking. The broker redelivers. What prevents a double charge?',
+          options: [
+            'Using auto ack instead of manual ack',
+            'Making the consumer idempotent, e.g. checking a stored payment id',
+            'Increasing the prefetch count',
+            'Switching from a direct exchange to a fanout exchange',
+          ],
+          answer: 1,
+          why: 'Redelivery is expected under at-least-once delivery; only an idempotent consumer makes the duplicate harmless.',
+        },
+        {
+          q: 'In RabbitMQ, which exchange type copies every message to all bound queues regardless of routing key?',
+          options: ['Direct', 'Topic', 'Fanout', 'Default'],
+          answer: 2,
+          why: 'A fanout exchange ignores the routing key and broadcasts to every queue bound to it.',
+        },
+      ],
+    },
+    {
+      key: 'message-queues-kafka',
+      title: 'Kafka: topics, partitions, offsets and groups',
+      min: 40,
+      sum: '**Kafka** stores messages in an append-only, replicated **log** split into **partitions**. Messages are not deleted when read; consumers track their position with **offsets** and can replay history until retention removes it. Within a **consumer group** each partition is read by exactly one consumer, so the partition count caps parallelism. Ordering is guaranteed only within a partition, which is why related events share a **key**.',
+      pts: [
+        'Kafka orders messages within a partition only, never across a whole topic.',
+        'Messages with the same key go to the same partition, so they stay in order.',
+        'More consumers than partitions in a group leaves the extra consumers idle.',
+        'Commit offsets after processing to get at-least-once; before processing risks loss.',
+      ],
+      learn: [
+        'Log model: topic, partition, offset, and why reading does not delete a message',
+        'Keys and partitioning: same key goes to the same partition; choose order id or user id as the key',
+        'Consumer groups: one partition per consumer in a group, rebalancing, and two groups each reading every message',
+        'Offset commits: auto commit vs manual commit after processing, and what each means after a crash',
+        'Retention and replay: time or size based retention, and resetting a group offset to reprocess data',
+        'Replication: brokers, leader and followers, replication factor 3 and acks=all for durable writes',
+        'Kafka vs RabbitMQ: replayable log and high throughput vs flexible routing and per-message acks',
+      ],
+      tasks: [
+        { key: 'build-kafka-orders', kind: 'build', title: 'Run single-node Kafka in Docker, produce order events keyed by order id and consume them with two consumers in one group', minutes: 50 },
+        { key: 'practice-replay', kind: 'practice', title: 'Reset a consumer group offset to the earliest position and replay a topic, then explain the output', minutes: 20, optional: true },
+      ],
+      quiz: [
+        {
+          q: 'A topic has 4 partitions and a consumer group has 6 consumers. What happens?',
+          options: [
+            'Each consumer reads a third of every partition',
+            'Kafka creates 2 extra partitions automatically',
+            'All 6 consumers read every message',
+            '4 consumers each get a partition and 2 stay idle',
+          ],
+          answer: 3,
+          why: 'Within a group a partition is assigned to one consumer only, so consumers beyond the partition count sit idle.',
+        },
+        {
+          q: 'Events for the same order must be processed in order. How should they be produced?',
+          options: [
+            'With the order id as the message key',
+            'With a random key to spread the load',
+            'To a topic with exactly one consumer group',
+            'With acks=0 for lower latency',
+          ],
+          answer: 0,
+          why: 'Messages with the same key land in the same partition, and Kafka preserves order within a partition.',
+        },
+      ],
+    },
+    {
+      key: 'message-queues-patterns',
+      title: 'Retries, dead-letter queues and the outbox pattern',
+      min: 35,
+      depth: 'standard',
+      sum: 'Real consumers fail: a downstream API times out or a message is malformed. Retry transient errors with **exponential backoff**, and move messages that keep failing to a **dead-letter queue** (DLQ) for inspection instead of blocking the queue. To publish an event reliably together with a database change, use the **transactional outbox**: write the event to an outbox table in the same transaction, then a relay publishes it.',
+      pts: [
+        'A poison message fails every time; cap retries and dead-letter it.',
+        'Retry with exponential backoff and jitter; never in a tight loop.',
+        'Writing to the DB and publishing to a broker are two systems: use an outbox to keep them consistent.',
+        'Watch queue depth and consumer lag; a growing backlog means consumers are too slow.',
+      ],
+      learn: [
+        'Transient vs permanent errors: retry timeouts and 503s, dead-letter validation errors at once',
+        'Backoff: exponential delays (1 s, 2 s, 4 s…) with jitter and a maximum attempt count',
+        'Dead-letter queues: how a DLQ is configured in RabbitMQ or SQS and how to inspect and redrive messages',
+        'Dual-write problem: why "save to DB, then publish" loses events when the process crashes in between',
+        'Transactional outbox: outbox table written in the same transaction, a relay that publishes and marks rows sent',
+        'Backpressure: monitor queue depth and consumer lag, then scale consumers or slow producers',
+        'Event-driven choreography: services react to events such as OrderPlaced instead of calling each other',
+      ],
+      tasks: [
+        { key: 'build-dlq', kind: 'build', title: 'Add three retries with backoff and a dead-letter queue to your worker, then find a malformed message in the DLQ', minutes: 40 },
+        { key: 'build-outbox', kind: 'build', title: 'Implement an outbox table and a polling relay that publishes unsent rows and marks them sent', minutes: 45, optional: true },
+      ],
+      quiz: [
+        {
+          q: 'An order service saves an order and then publishes OrderPlaced, but sometimes crashes in between. What fixes this?',
+          options: [
+            'Publishing the event before saving the order',
+            'Increasing the broker retention period',
+            'A transactional outbox written in the same DB transaction',
+            'Using a fanout exchange',
+          ],
+          answer: 2,
+          why: 'The outbox makes the event part of the same DB transaction; a relay publishes it later, so neither side is lost.',
+        },
+        {
+          q: 'What is a dead-letter queue for?',
+          options: [
+            'Holding messages that failed processing too many times so they can be inspected',
+            'Storing messages that have been processed successfully',
+            'Speeding up delivery of high-priority messages',
+            'Replacing acknowledgements in RabbitMQ',
+          ],
+          answer: 0,
+          why: 'A DLQ isolates poison or repeatedly failing messages so the main queue keeps flowing and humans can investigate.',
+        },
+      ],
+    },
+  ],
+
+  microservices: [
+    {
+      key: 'microservices',
+      title: 'Monolith vs microservices and service boundaries',
+      min: 35,
+      sum: 'Microservices split a system into small services that are deployed independently and built around **business capabilities** such as orders, payments and catalogue. Each service **owns its data**; others reach it only through its API or events. The benefits are independent deploys and scaling; the costs are network failures, harder debugging and data consistency. Most teams should start with a **modular monolith** and split only when a boundary is clear.',
+      pts: [
+        'Each service owns its database; no other service reads its tables directly.',
+        'Split by business capability, not by technical layer such as "the DB service".',
+        'A distributed monolith (services that must deploy together) has the costs of both styles.',
+        'A modular monolith with clean module boundaries is the safest starting point.',
+      ],
+      learn: [
+        'Monolith, modular monolith, microservices: define each and list two pros and two cons',
+        'Bounded contexts: find service boundaries from business nouns and the teams that own them',
+        'Database per service: why shared tables couple services and how data is shared via APIs or events',
+        'Distributed monolith: symptoms such as lock-step deploys and chatty synchronous chains',
+        'Consistency: why cross-service transactions are avoided and what eventual consistency means for users',
+        'When to split: team size, independent scaling needs and deploy frequency as decision criteria',
+      ],
+      tasks: [
+        { key: 'practice-boundaries', kind: 'practice', title: 'Draw service boundaries for a food-delivery app: list each service, the data it owns and the events it emits', minutes: 30 },
+        { key: 'build-modular-monolith', kind: 'build', title: 'Restructure a small API into modules (users, orders) that call each other only through exported functions', minutes: 45, optional: true },
+      ],
+      quiz: [
+        {
+          q: 'The orders service needs a customer email that lives in the users service. What is the recommended approach?',
+          options: [
+            'Query the users table directly from the orders service',
+            'Call the users service API, or keep a local copy updated from user events',
+            'Merge the two databases into one shared schema',
+            'Store the email in a shared config file',
+          ],
+          answer: 1,
+          why: 'Services own their data; others use the owner\'s API or subscribe to its events instead of reading its tables.',
+        },
+        {
+          q: 'Which is a sign of a "distributed monolith"?',
+          options: [
+            'Each service has its own database',
+            'Services communicate through events',
+            'Services are split by business capability',
+            'Every release requires deploying several services together',
+          ],
+          answer: 3,
+          why: 'If services must be released in lock-step, they are coupled like a monolith but still pay the network costs.',
+        },
+      ],
+    },
+    {
+      key: 'microservices-grpc',
+      title: 'Service communication: REST, gRPC and gateways',
+      min: 40,
+      sum: 'Services talk **synchronously** over HTTP/JSON or **gRPC**, or **asynchronously** through events. gRPC uses **Protocol Buffers** contracts compiled into client and server code, runs over HTTP/2 and supports streaming. An **API gateway** gives external clients one entry point and handles authentication, rate limits and routing. Inside the cluster, services find each other through **service discovery**, usually DNS names in Kubernetes.',
+      pts: [
+        'gRPC uses protobuf contracts and HTTP/2; it is compact, typed and supports streaming.',
+        'Never reuse or renumber a protobuf field number; add new fields with new numbers.',
+        'An API gateway is the single public entry point; internal services stay private.',
+        'Prefer events when the caller does not need an immediate answer.',
+      ],
+      learn: [
+        'Sync vs async calls: request/response over HTTP or gRPC vs fire-and-forget events, with one use case each',
+        'Protobuf: write a .proto file with a message, field numbers and a service with one rpc',
+        'gRPC call types: unary, server streaming, client streaming and bidirectional streaming',
+        'Contract evolution: add optional fields, never change or reuse field numbers, reserve removed ones',
+        'API gateway: routing, authentication, rate limiting and request aggregation for external clients',
+        'Service discovery: DNS names, client-side vs server-side discovery, and Kubernetes Services',
+        'REST vs gRPC: JSON for public and browser APIs, gRPC for internal low-latency service calls',
+      ],
+      tasks: [
+        { key: 'build-grpc-service', kind: 'build', title: 'Define a PriceService in protobuf, generate code, and call GetPrice from a second service', minutes: 50 },
+      ],
+      quiz: [
+        {
+          q: 'Which transport does gRPC use?',
+          options: ['HTTP/1.1 with JSON bodies', 'HTTP/2 with Protocol Buffers', 'Raw UDP datagrams', 'WebSockets with XML'],
+          answer: 1,
+          why: 'gRPC sends protobuf-encoded messages over HTTP/2, which also enables multiplexing and streaming.',
+        },
+        {
+          q: 'You remove a field from a protobuf message that clients still use. What should you do with its number?',
+          options: [
+            'Reuse it for the next new field',
+            'Renumber the remaining fields to close the gap',
+            'Mark it reserved so it is never reused',
+            'Nothing; numbers do not matter on the wire',
+          ],
+          answer: 2,
+          why: 'Field numbers identify fields on the wire; reusing one makes old clients misread data, so reserve it.',
+        },
+      ],
+    },
+    {
+      key: 'microservices-resilience',
+      title: 'Resilience: timeouts, circuit breakers and tracing',
+      min: 40,
+      depth: 'standard',
+      sum: 'In a distributed system every remote call can be slow or fail. Give each call a **timeout**, retry only safe operations with **exponential backoff and jitter**, and use a **circuit breaker** to stop calling a failing dependency so failures do not cascade. Long workflows across services use a **saga**: a series of local steps with compensating actions. **Distributed tracing** with a shared trace id shows where a request spent its time.',
+      pts: [
+        'Every remote call needs a timeout; the default is often "wait forever".',
+        'Circuit breaker states: closed (normal), open (fail fast), half-open (test with a few calls).',
+        'Retries without backoff and jitter can turn a small outage into an overload.',
+        'Propagate a trace id through every hop so one request can be followed end to end.',
+      ],
+      learn: [
+        'Timeouts: set connect and request timeouts on every HTTP or gRPC client and pick values below the caller\'s own',
+        'Retries: retry only idempotent calls, use exponential backoff with jitter and cap attempts',
+        'Circuit breaker: closed, open and half-open states and the thresholds that move between them',
+        'Bulkheads and fallbacks: separate connection pools per dependency and return cached or default data',
+        'Sagas: choreography vs orchestration and compensating actions such as "refund payment"',
+        'Observability: correlation ids in logs, distributed traces with spans, and the RED metrics (rate, errors, duration)',
+        'Health checks: liveness vs readiness endpoints and why readiness should check dependencies',
+      ],
+      tasks: [
+        { key: 'build-circuit-breaker', kind: 'build', title: 'Wrap calls to a flaky service with a timeout, retries with jitter and a circuit breaker, and log each state change', minutes: 45 },
+        { key: 'practice-saga', kind: 'practice', title: 'Write the steps and compensating actions of an order saga: reserve stock, charge payment, book delivery', minutes: 20 },
+      ],
+      quiz: [
+        {
+          q: 'A circuit breaker is open. What happens to new calls to the dependency?',
+          options: [
+            'They fail fast without calling the dependency',
+            'They are queued until the dependency recovers',
+            'They are retried immediately in a loop',
+            'They are sent to the dependency with a longer timeout',
+          ],
+          answer: 0,
+          why: 'An open breaker short-circuits calls so callers fail quickly and the struggling dependency gets time to recover.',
+        },
+        {
+          q: 'In a saga, payment succeeded but delivery booking failed. What should happen?',
+          options: [
+            'A distributed two-phase commit rolls everything back',
+            'The order stays half-complete forever',
+            'The payment service deletes its database row directly',
+            'A compensating action refunds the payment',
+          ],
+          answer: 3,
+          why: 'Sagas avoid distributed transactions; each completed step is undone by its own compensating action.',
+        },
+      ],
+    },
+  ],
+
+  'fullstack-architecture': [
+    {
+      key: 'fullstack-architecture',
+      title: 'Request flow and shared types across the stack',
+      min: 35,
+      sum: 'A full stack feature crosses the UI, an API, business logic and the database. Keep clear layers: the UI renders and collects input, the API validates and authorises, a service layer holds business rules and a data layer talks to the database. Share **types and validation schemas** (for example a zod schema) between client and server so the contract cannot drift, and always validate again on the server.',
+      pts: [
+        'Validate on the client for fast feedback and on the server for safety; never only the client.',
+        'Business rules live on the server, where users cannot change them.',
+        'One shared schema gives both sides the same types and the same validation.',
+        'Keep route handlers thin: parse input, call a service, shape the response.',
+      ],
+      learn: [
+        'Request flow: trace one click from a React form to an API route, service, SQL query and back to the UI',
+        'Layers: UI, API handlers, service layer, data access; what belongs in each and what does not',
+        'Shared schemas: define a zod schema once, infer the TypeScript type, use it in the form and the API',
+        'Contract options: REST with OpenAPI codegen, tRPC, and server actions; when each fits',
+        'Error shape: a consistent JSON error with code, message and field errors that the UI can display',
+        'Monorepo layout: apps/web, apps/api and packages/shared, and importing shared code safely',
+      ],
+      tasks: [
+        { key: 'build-shared-schema', kind: 'build', title: 'Build a "create task" feature where one zod schema validates the form in React and the request body in the API', minutes: 50 },
+      ],
+      quiz: [
+        {
+          q: 'Why must the server validate input even when the client already validates it?',
+          options: [
+            'Client validation is slower than server validation',
+            'Requests can be sent directly to the API, bypassing the client',
+            'Browsers ignore client-side validation',
+            'Validation libraries only work on the server',
+          ],
+          answer: 1,
+          why: 'Anyone can call the API with curl or a script, so the server is the only place validation is guaranteed.',
+        },
+        {
+          q: 'Where should the rule "a coupon can be used once per user" be enforced?',
+          options: ['In the React component', 'In local storage', 'In the server-side service layer', 'In the CSS of the checkout page'],
+          answer: 2,
+          why: 'Business rules must run on the server, where the user cannot skip or change them.',
+        },
+      ],
+    },
+    {
+      key: 'fullstack-architecture-data',
+      title: 'Data fetching, pagination and optimistic updates',
+      min: 35,
+      sum: 'Server data in the UI is a cache of the database. A query library such as TanStack Query caches responses by **query key**, refetches stale data and **invalidates** queries after a mutation. Paginate large lists at the API: **cursor pagination** stays fast and stable as rows are added, unlike large offsets. **Optimistic updates** change the UI before the server replies, so they need a **rollback** when the request fails.',
+      pts: [
+        'Treat server data in the UI as a cache with keys, staleness and invalidation.',
+        'Cursor pagination (WHERE id < last_id LIMIT 20) beats large OFFSETs on big tables.',
+        'An optimistic update must save the previous state and restore it on error.',
+        'Avoid N+1 queries: fetch related rows in one query or a batched lookup.',
+      ],
+      learn: [
+        'Server state vs UI state: which data belongs in a query cache and which in component state',
+        'Query keys and invalidation: cache by ["tasks", filters] and invalidate after a create or update',
+        'Loading, empty and error states: show each one explicitly for every list and detail view',
+        'Offset vs cursor pagination: write both SQL queries and explain why cursors stay stable',
+        'Optimistic updates: snapshot previous data, update the cache, roll back on error, refetch on settle',
+        'N+1 problem: spot it in query logs and fix it with a join or a batched IN query',
+        'Debouncing search: wait 300 ms after typing before calling the API, and cancel outdated requests',
+      ],
+      tasks: [
+        { key: 'build-optimistic-toggle', kind: 'build', title: 'Add an optimistic "mark done" toggle that rolls back and shows an error when the API returns 500', minutes: 40 },
+        { key: 'practice-cursor-pagination', kind: 'practice', title: 'Replace offset pagination on a list endpoint with cursor pagination and add a "Load more" button', minutes: 35 },
+      ],
+      quiz: [
+        {
+          q: 'An optimistic update is applied and the server returns an error. What should the UI do?',
+          options: [
+            'Restore the previous state and tell the user it failed',
+            'Keep the change and retry silently forever',
+            'Reload the whole page',
+            'Ignore the error because the UI already changed',
+          ],
+          answer: 0,
+          why: 'Optimistic UI is only safe with a rollback path; the user must see the true state and know the action failed.',
+        },
+        {
+          q: 'Why does cursor pagination usually beat OFFSET 100000 LIMIT 20 on a large table?',
+          options: [
+            'Cursors compress the response',
+            'OFFSET is not supported by PostgreSQL',
+            'Cursors cache results in the browser',
+            'The database must still read and skip all offset rows, while a cursor seeks by index',
+          ],
+          answer: 3,
+          why: 'A large OFFSET scans and discards rows; WHERE id < cursor uses the index to jump straight to the page.',
+        },
+      ],
+    },
+    {
+      key: 'fullstack-architecture-auth',
+      title: 'Auth, config and deploying a full stack app',
+      min: 35,
+      depth: 'standard',
+      sum: 'Authentication ties the layers together. A **session cookie** that is `HttpOnly`, `Secure` and `SameSite` keeps tokens out of JavaScript; short-lived access tokens with refresh tokens suit separate API domains and mobile apps. Check **authorisation** on the server for every resource, not just in the UI. Keep configuration in **environment variables**, separate development, staging and production, and set CORS to allow only your own frontend origin.',
+      pts: [
+        'Hiding a button is not authorisation; the API must check ownership on every request.',
+        'HttpOnly cookies cannot be read by JavaScript, which limits token theft through XSS.',
+        'Secrets live in environment variables or a secret store, never in the frontend bundle.',
+        'Anything in a frontend build is public, including "secret" keys placed there.',
+      ],
+      learn: [
+        'Sessions vs tokens: server sessions with a cookie vs JWT access plus refresh tokens, with trade-offs',
+        'Cookie flags: HttpOnly, Secure, SameSite=Lax or Strict, and what each one prevents',
+        'Authorisation checks: verify the resource owner in the service layer, e.g. task.userId === session.userId',
+        'Environment config: .env for local only, platform variables for production, and public vs server-only variables',
+        'CORS setup: allow your frontend origin and credentials only, never a wildcard with cookies',
+        'Deploy shape: static frontend on a CDN, API on a server or serverless, managed database, and migrations on deploy',
+      ],
+      tasks: [
+        { key: 'build-session-auth', kind: 'build', title: 'Add cookie-based login to your app and make every task endpoint return 404 for tasks the user does not own', minutes: 50 },
+      ],
+      quiz: [
+        {
+          q: 'A user changes /api/tasks/41 to /api/tasks/42 and sees someone else\'s task. What is missing?',
+          options: ['Rate limiting', 'A server-side ownership check', 'HTTPS', 'Client-side validation'],
+          answer: 1,
+          why: 'This is broken access control: the API must check that the requested task belongs to the signed-in user.',
+        },
+        {
+          q: 'Which cookie flag stops JavaScript in the page from reading the session cookie?',
+          options: ['Secure', 'SameSite', 'HttpOnly', 'Max-Age'],
+          answer: 2,
+          why: 'HttpOnly hides the cookie from document.cookie; Secure only limits it to HTTPS, SameSite limits cross-site sending.',
+        },
+      ],
+    },
+  ],
+
+  'web-security': [
+    {
+      key: 'web-security',
+      title: 'Injection, XSS, CSRF and CORS',
+      min: 40,
+      sum: 'Four classic web flaws come from trusting input or the browser too much. **SQL injection** is stopped with parameterised queries; **XSS** with output encoding, avoiding raw HTML insertion and a **Content Security Policy**; **CSRF** with SameSite cookies and anti-CSRF tokens. **CORS** decides which other origins may read your responses; it is a relaxation of the same-origin policy, not a security feature for your API.',
+      pts: [
+        'Parameterised queries stop SQL injection; string concatenation causes it.',
+        'Encode output for its context and avoid innerHTML or dangerouslySetInnerHTML with user data.',
+        'SameSite=Lax cookies block most cross-site POST requests that CSRF relies on.',
+        'CORS is not authentication: a curl request ignores it completely.',
+      ],
+      learn: [
+        'SQL injection: show how \' OR \'1\'=\'1 breaks a concatenated query and fix it with placeholders',
+        'Command injection: why passing user input to a shell is dangerous; use argument arrays instead',
+        'Stored vs reflected XSS: one example of each and how framework auto-escaping prevents most cases',
+        'Content Security Policy: what script-src \'self\' blocks and why inline scripts need a nonce',
+        'CSRF: how a forged form post uses the victim\'s cookies, and fixes with SameSite and CSRF tokens',
+        'Same-origin policy and CORS: origin = scheme + host + port; Access-Control-Allow-Origin and preflight',
+      ],
+      tasks: [
+        { key: 'practice-sqli-fix', kind: 'practice', title: 'Exploit a deliberately vulnerable login query in a local app with SQL injection, then fix it with parameters', minutes: 35 },
+        { key: 'build-csp', kind: 'build', title: 'Add a Content Security Policy header to a local app and fix every violation shown in the browser console', minutes: 30, optional: true },
+      ],
+      quiz: [
+        {
+          q: 'What reliably prevents SQL injection?',
+          options: [
+            'Escaping quotes with a regular expression',
+            'Hiding database errors from users',
+            'Using HTTPS',
+            'Parameterised queries with bound values',
+          ],
+          answer: 3,
+          why: 'Bound parameters send data separately from the SQL text, so input can never change the query structure.',
+        },
+        {
+          q: 'Your API has CORS restricted to your frontend origin. Can an attacker still call it with curl?',
+          options: [
+            'Yes, CORS is enforced only by browsers',
+            'No, the server rejects all other clients',
+            'Only if the attacker uses HTTP/2',
+            'Only for GET requests',
+          ],
+          answer: 0,
+          why: 'CORS tells browsers which origins may read responses; non-browser clients ignore it, so the API still needs auth.',
+        },
+      ],
+    },
+    {
+      key: 'web-security-owasp',
+      title: 'OWASP Top 10: access control, passwords, secrets',
+      min: 40,
+      depth: 'standard',
+      sum: 'The **OWASP Top 10 (2021)** lists the most common web risks; **Broken Access Control** is number one. Check permissions on the server for every object, store passwords with a slow hash such as **argon2id** or **bcrypt**, keep secrets out of the repo, patch vulnerable dependencies and send security headers. Server-side request forgery (**SSRF**) lets attackers make your server fetch internal addresses, so validate outgoing URLs.',
+      pts: [
+        'A01 Broken Access Control: check ownership on the server for every object id.',
+        'Hash passwords with argon2id or bcrypt; never plain or fast hashes like SHA-256.',
+        'A leaked secret must be rotated; deleting it from git history is not enough.',
+        'Run dependency audits in CI and update packages with known vulnerabilities.',
+      ],
+      learn: [
+        'OWASP Top 10 2021: name the ten categories, from A01 Broken Access Control to A10 SSRF',
+        'Broken access control: IDOR examples and a server-side ownership check on every read and write',
+        'Password storage: why slow salted hashes (argon2id, bcrypt) beat SHA-256, and login rate limits',
+        'Secrets: .env files in .gitignore, secret scanning, and rotating any key that was ever committed',
+        'Vulnerable components: npm audit or pip-audit, lockfiles, and automated dependency updates',
+        'Security headers: Strict-Transport-Security, Content-Security-Policy, X-Content-Type-Options: nosniff',
+        'SSRF: block requests to internal and metadata addresses and use an allow-list of outgoing hosts',
+      ],
+      tasks: [
+        { key: 'practice-audit-app', kind: 'practice', title: 'Audit one of your own apps against the OWASP Top 10 2021 and write one finding and fix per relevant category', minutes: 45 },
+        { key: 'build-password-hashing', kind: 'build', title: 'Replace plain or SHA password storage in a demo app with argon2id or bcrypt and add a login attempt limit', minutes: 35 },
+      ],
+      quiz: [
+        {
+          q: 'Which category is ranked first in the OWASP Top 10 2021?',
+          options: ['Injection', 'Cryptographic Failures', 'Broken Access Control', 'Security Misconfiguration'],
+          answer: 2,
+          why: 'In the 2021 list Broken Access Control moved to A01; Injection dropped to A03.',
+        },
+        {
+          q: 'Why is SHA-256 a poor choice for storing passwords?',
+          options: [
+            'It produces outputs that are too long to store',
+            'It is fast, so attackers can test billions of guesses per second',
+            'It cannot be used with a salt',
+            'It is reversible with the right key',
+          ],
+          answer: 1,
+          why: 'Password hashes should be deliberately slow and memory-hard; fast hashes make offline brute force cheap.',
+        },
+      ],
+    },
+  ],
+
+  // ── Linux and networking ─────────────────────────────────────────────────
+  linux: [
+    {
+      key: 'linux',
+      title: 'Filesystem layout, users and permissions',
+      min: 40,
+      sum: 'On Linux everything is a file under one tree that starts at `/`: configuration in `/etc`, logs in `/var/log`, user homes in `/home`. Every file has an **owner**, a **group** and read/write/execute bits for user, group and others. Read modes such as `755` and `644`, change them with `chmod` and `chown`, and use `sudo` for admin tasks instead of logging in as root.',
+      pts: [
+        'Permission digits: read 4, write 2, execute 1; 755 is rwxr-xr-x, 644 is rw-r--r--.',
+        'On a directory, x means you may enter it and r means you may list it.',
+        'Configuration lives in /etc and logs in /var/log on most distributions.',
+        'Use sudo for single admin commands; avoid working as root all the time.',
+      ],
+      learn: [
+        'Filesystem tree: what lives in /etc, /var/log, /home, /tmp, /usr/bin, /opt and /proc',
+        'Users and groups: whoami, id, /etc/passwd, /etc/group, useradd and usermod -aG to add a user to a group',
+        'Reading ls -l: file type, rwx triplets, owner, group, size and date in each column',
+        'chmod: change modes with numbers (755, 644, 600) and symbols (u+x, go-w)',
+        'chown and chgrp: change owner and group, recursively with -R',
+        'Directory permissions: what r, w and x mean on a directory, and the sticky bit on /tmp',
+        'sudo: run one command as root, the sudo group, and editing sudoers safely with visudo',
+      ],
+      tasks: [
+        { key: 'practice-permissions', kind: 'practice', title: 'Create two users and a shared group, then set up a project folder both can write to but others cannot read', minutes: 35 },
+      ],
+      quiz: [
+        {
+          q: 'Which numeric mode gives the owner read and write, and everyone else read only?',
+          options: ['755', '644', '600', '777'],
+          answer: 1,
+          why: '6 = read (4) + write (2) for the owner, and 4 = read for the group and others.',
+        },
+        {
+          q: 'A user can list a directory\'s file names but cannot cd into it. Which bit are they missing on the directory?',
+          options: ['Execute (x)', 'Read (r)', 'Write (w)', 'Sticky bit'],
+          answer: 0,
+          why: 'On a directory, x allows entering and accessing items inside it; r only allows listing names.',
+        },
+      ],
+    },
+    {
+      key: 'linux-processes',
+      title: 'Processes, signals and resource monitoring',
+      min: 40,
+      sum: 'Every running program is a **process** with a PID, a parent, an owner and a state. List processes with `ps` and watch them live with `top` or `htop`. Stop them with **signals**: `kill` sends SIGTERM to ask politely, SIGKILL forces an exit. When a server is slow, check **load**, memory and disk first with `uptime`, `free -h` and `df -h`.',
+      pts: [
+        'kill sends SIGTERM (15) by default; use SIGKILL (9) only when a process ignores it.',
+        'Load average counts runnable and waiting tasks; compare it with the number of CPU cores.',
+        'In free -h, the "available" column matters more than "free".',
+        'A full disk breaks logging, databases and deploys: check df -h early.',
+      ],
+      learn: [
+        'Process basics: PID, PPID, owner and states (running, sleeping, zombie) in ps aux output',
+        'Finding processes: ps aux, pgrep -a name, and ps -ef --forest to see the parent tree',
+        'top and htop: sort by CPU and memory, read %CPU, RES and load average at the top',
+        'Signals: SIGTERM, SIGKILL, SIGINT and SIGHUP; kill, kill -9 and pkill by name',
+        'Jobs: run in the background with &, list with jobs, and bring back with fg; nohup for long tasks',
+        'Resources: uptime for load, free -h for memory, df -h and du -sh * for disk use',
+        'Open files and ports: lsof -p PID and lsof -i :8080 to find what holds a file or port',
+      ],
+      tasks: [
+        { key: 'practice-runaway-process', kind: 'practice', title: 'Start a CPU-heavy loop, find it with top, stop it with SIGTERM, then find which process holds port 8080 with lsof', minutes: 30 },
+        { key: 'practice-disk-full', kind: 'practice', title: 'Fill a folder with large test files, find the biggest ones with du -sh and sort -h, then clean up', minutes: 20, optional: true },
+      ],
+      quiz: [
+        {
+          q: 'Which signal does a plain `kill 1234` send?',
+          options: ['SIGKILL', 'SIGHUP', 'SIGINT', 'SIGTERM'],
+          answer: 3,
+          why: 'kill defaults to SIGTERM (15), which lets the process clean up; SIGKILL (9) cannot be caught.',
+        },
+        {
+          q: 'A 4-core server shows a load average of 12 for several minutes. What does that suggest?',
+          options: [
+            'The server is idle',
+            'Exactly 12 processes exist on the machine',
+            'More tasks want to run than the cores can serve, so work is queuing',
+            'The disk is full',
+          ],
+          answer: 2,
+          why: 'Load counts runnable and waiting tasks; a load well above the core count means tasks are waiting for CPU or I/O.',
+        },
+      ],
+    },
+    {
+      key: 'linux-systemd',
+      title: 'Services with systemd and logs with journalctl',
+      min: 40,
+      depth: 'standard',
+      sum: 'Modern distributions start and supervise services with **systemd**. A **unit file** describes how to run a program, which user it runs as and when to restart it; `systemctl` starts, stops and **enables** it at boot. Service output goes to the **journal**, read with `journalctl -u name`. Running your own app as a systemd service gives automatic restarts and central logs.',
+      pts: [
+        'enable starts a service at boot; start runs it now; enable --now does both.',
+        'Run systemctl daemon-reload after editing a unit file.',
+        'Restart=on-failure brings a crashed service back automatically.',
+        'journalctl -u app -f follows a service\'s logs live.',
+      ],
+      learn: [
+        'systemctl: status, start, stop, restart, reload, enable, disable and is-active for a service',
+        'Unit file sections: [Unit] Description and After, [Service] ExecStart, User, Restart, [Install] WantedBy',
+        'Writing a unit: put a .service file in /etc/systemd/system, daemon-reload, then enable --now',
+        'Environment: Environment= and EnvironmentFile= for app config, and WorkingDirectory=',
+        'journalctl: -u for one unit, -f to follow, --since "1 hour ago", -p err for errors, -b for this boot',
+        'Classic logs: /var/log files, tail -f, and log rotation with logrotate',
+        'Timers and cron: run a job on a schedule with a systemd timer or a crontab line',
+      ],
+      tasks: [
+        { key: 'build-systemd-service', kind: 'build', title: 'Run a small Node or Python web app as a systemd service with Restart=on-failure, kill it and confirm it restarts', minutes: 45 },
+      ],
+      quiz: [
+        {
+          q: 'You edited /etc/systemd/system/app.service. What must you run before restarting the service?',
+          options: ['systemctl daemon-reload', 'systemctl enable app', 'journalctl --rotate', 'reboot'],
+          answer: 0,
+          why: 'systemd caches unit files; daemon-reload makes it read your changes before the restart.',
+        },
+        {
+          q: 'Which command shows the last hour of logs for the nginx service only?',
+          options: [
+            'tail /var/log/syslog',
+            'systemctl status --all',
+            'journalctl -b',
+            'journalctl -u nginx --since "1 hour ago"',
+          ],
+          answer: 3,
+          why: '-u filters the journal to one unit and --since limits the time range.',
+        },
+      ],
+    },
+    {
+      key: 'linux-server-ops',
+      title: 'Packages, SSH and debugging a slow server',
+      min: 40,
+      depth: 'standard',
+      sum: 'Day-to-day server work means installing software with the **package manager** (`apt` on Debian and Ubuntu, `dnf` on Fedora and RHEL), connecting securely with **SSH keys** and following a fixed checklist when something breaks. Turn off password login once key login works. When a server misbehaves, check in order: is the service running, what do its logs say, and are CPU, memory, disk or the network exhausted?',
+      pts: [
+        'Run apt update before apt install so the package lists are current.',
+        'Use SSH keys (ed25519) and disable password login on public servers.',
+        'Debug in order: service status, logs, then CPU, memory, disk and network.',
+        'Never paste a private key anywhere; only the .pub file goes on servers.',
+      ],
+      learn: [
+        'apt: update, upgrade, install, remove and apt search; dnf equivalents on Fedora and RHEL',
+        'SSH keys: ssh-keygen -t ed25519, ssh-copy-id, and the authorized_keys file',
+        'SSH config: ~/.ssh/config host aliases, and PasswordAuthentication no in sshd_config',
+        'Copying files: scp and rsync -avz between your laptop and a server',
+        'Disks: lsblk, df -h, du -sh, and finding large logs in /var/log',
+        'Troubleshooting checklist: systemctl status, journalctl, top, free -h, df -h, ss -tlnp in that order',
+        'Memory pressure: the OOM killer, finding it with journalctl -k or dmesg, and swap usage',
+      ],
+      tasks: [
+        { key: 'practice-ssh-hardening', kind: 'practice', title: 'Set up key-based SSH to a local VM or container, add a host alias and disable password login', minutes: 35 },
+        { key: 'practice-incident-drill', kind: 'practice', title: 'Stop a service and fill the disk on a VM, then diagnose both with the troubleshooting checklist and write what you found', minutes: 30, optional: true },
+      ],
+      quiz: [
+        {
+          q: 'Which file on the server lists the public keys allowed to log in as a user?',
+          options: ['~/.ssh/known_hosts', '~/.ssh/authorized_keys', '/etc/passwd', '~/.ssh/id_ed25519'],
+          answer: 1,
+          why: 'authorized_keys holds allowed public keys; known_hosts stores fingerprints of servers you have connected to.',
+        },
+        {
+          q: 'An app process vanished overnight with no error in its own log. What should you check?',
+          options: [
+            'The apt package cache',
+            'The SSH known_hosts file',
+            'Kernel messages for an out-of-memory kill',
+            'The sticky bit on /tmp',
+          ],
+          answer: 2,
+          why: 'The OOM killer ends processes when memory runs out and logs it in kernel messages (dmesg or journalctl -k).',
+        },
+      ],
+    },
+  ],
+
+  'bash-scripting': [
+    {
+      key: 'bash-scripting',
+      title: 'Bash basics: variables, quoting, tests and loops',
+      min: 40,
+      sum: 'A Bash script is a text file of commands that starts with `#!/usr/bin/env bash` and is made executable with `chmod +x`. Learn variables and **quoting** (always write `"$var"`), arguments (`$1`, `"$@"`, `$#`), conditions with `[[ ]]`, and `for` and `while` loops. Every command returns an **exit code**: 0 means success, anything else means failure, and `$?` holds the last one.',
+      pts: [
+        'Always quote "$variables" so spaces and empty values do not break commands.',
+        'Exit code 0 means success; $? holds the exit code of the last command.',
+        'Use [[ ]] for tests in Bash: [[ -f file ]], [[ $a == "x" ]], [[ $n -gt 5 ]].',
+        '"$@" passes all arguments through unchanged, one word each.',
+      ],
+      learn: [
+        'Shebang and running: #!/usr/bin/env bash, chmod +x, and ./script.sh vs bash script.sh',
+        'Variables: name=value with no spaces, "$name", ${name:-default}, and $(command) substitution',
+        'Quoting: double quotes expand variables, single quotes do not; why unquoted $file breaks on spaces',
+        'Arguments: $0, $1, $#, "$@", and printing a usage message when arguments are missing',
+        'Tests: [[ -f ]], [[ -d ]], [[ -z ]], string == and numeric -eq, -lt, -gt; && and || between commands',
+        'Loops: for f in *.log, for i in {1..5}, and while read -r line; do … done < file',
+        'Exit codes: $?, exit 1 on errors, and if command; then … fi without checking $? by hand',
+      ],
+      tasks: [
+        { key: 'build-backup-script', kind: 'build', title: 'Write backup.sh that takes a folder argument, checks it exists and creates a dated .tar.gz archive in ~/backups', minutes: 40 },
+      ],
+      quiz: [
+        {
+          q: 'file="my report.txt". Which command removes that file correctly?',
+          options: ['rm $file', 'rm \'$file\'', 'rm "$file"', 'rm ${file}'],
+          answer: 2,
+          why: 'Double quotes keep the value as one word; unquoted $file splits into "my" and "report.txt", and single quotes stop expansion.',
+        },
+        {
+          q: 'What does `$#` hold inside a script?',
+          options: ['The number of arguments', 'The script\'s process id', 'The last exit code', 'The script name'],
+          answer: 0,
+          why: '$# is the argument count; $$ is the PID, $? the last exit code and $0 the script name.',
+        },
+      ],
+    },
+    {
+      key: 'bash-scripting-text',
+      title: 'Pipes, grep, sed, awk and safe scripts',
+      min: 40,
+      depth: 'standard',
+      sum: 'The power of the shell is in **pipes**: small tools that each do one job, chained with `|`. Search with `grep`, edit text with `sed`, pick columns and sum numbers with `awk`, and count with `sort | uniq -c`. Make scripts fail fast with `set -euo pipefail`, clean up with `trap`, organise code into **functions** and schedule them with cron. When a script grows past a page or needs data structures, switch to Python.',
+      pts: [
+        'set -euo pipefail: stop on errors, on unset variables and on failures inside pipes.',
+        'sort | uniq -c | sort -rn is the classic "count and rank" pipeline.',
+        'trap \'cleanup\' EXIT runs cleanup however the script ends.',
+        'Cron fields are minute, hour, day of month, month and day of week.',
+      ],
+      learn: [
+        'Redirection: >, >>, 2>, 2>&1 and /dev/null, and piping output with |',
+        'grep: -i, -r, -n, -v, -c and -E for extended regular expressions',
+        'sed: substitute with s/old/new/g, edit in place with -i, and delete matching lines with /pattern/d',
+        'awk: print columns with {print $1}, set the separator with -F, and sum a column with END',
+        'Counting: cut, sort, uniq -c, sort -rn and head to find the top 10 of anything',
+        'Safe scripts: set -euo pipefail, functions with local variables, and trap for cleanup on EXIT',
+        'Scheduling: crontab -e, the five time fields, and logging cron output to a file',
+      ],
+      tasks: [
+        { key: 'practice-log-pipeline', kind: 'practice', title: 'From an access log, print the 10 busiest IP addresses and the number of 5xx responses, one pipeline each', minutes: 35 },
+        { key: 'build-cron-cleanup', kind: 'build', title: 'Write a safe script with set -euo pipefail that deletes logs older than 7 days, and schedule it daily with cron', minutes: 30 },
+      ],
+      quiz: [
+        {
+          q: 'What does the `pipefail` option change?',
+          options: [
+            'Pipes run in parallel instead of in sequence',
+            'A pipeline fails if any command in it fails, not just the last one',
+            'Unset variables become errors',
+            'The script exits on the first warning',
+          ],
+          answer: 1,
+          why: 'Without pipefail a pipeline returns the last command\'s status, hiding earlier failures; set -u handles unset variables.',
+        },
+        {
+          q: 'Which cron line runs a job at 02:30 every day?',
+          options: ['2 30 * * *', '* * 2 30 *', '30 * 2 * *', '30 2 * * *'],
+          answer: 3,
+          why: 'The fields are minute, hour, day of month, month, day of week, so 30 2 * * * means 02:30 daily.',
+        },
+      ],
+    },
+  ],
+
+  networking: [
+    {
+      key: 'networking',
+      title: 'IP addresses, subnets, ports and TCP vs UDP',
+      min: 40,
+      sum: 'Every host has an **IP address**, and a **CIDR** suffix such as `/24` says how many leading bits name the network. Private ranges (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) are used inside networks and reach the internet through **NAT**. A **port** picks the program on a host. **TCP** gives reliable, ordered delivery after a three-way handshake; **UDP** sends independent datagrams with no guarantees but less overhead.',
+      pts: [
+        'A /24 has 256 addresses; each extra bit of prefix halves the block.',
+        'TCP opens with SYN, SYN-ACK, ACK; UDP has no handshake.',
+        'Common ports: 22 SSH, 53 DNS, 80 HTTP, 443 HTTPS, 5432 PostgreSQL, 6379 Redis.',
+        'Private addresses are not routable on the internet; NAT translates them.',
+      ],
+      learn: [
+        'Layers: link, IP, transport (TCP/UDP) and application (HTTP, DNS), and what each one adds',
+        'IPv4 addresses and CIDR: count addresses in /16, /24 and /28 and tell if two IPs share a subnet',
+        'Private ranges and NAT: 10/8, 172.16/12, 192.168/16, and how a home router shares one public IP',
+        'Ports: well-known ports 22, 53, 80, 443 and how a socket is IP plus port',
+        'TCP: three-way handshake, acknowledgements, retransmission and ordered delivery',
+        'UDP: when to use it (DNS, video calls, games) and why it can lose or reorder packets',
+        'IPv6 basics: 128-bit addresses, :: shorthand, and that NAT is not needed for address shortage',
+      ],
+      tasks: [
+        { key: 'practice-cidr', kind: 'practice', title: 'Split 10.0.0.0/16 into four equal subnets by hand and list each network\'s first and last usable address', minutes: 30 },
+        { key: 'practice-tcp-udp', kind: 'practice', title: 'Start a TCP and a UDP listener with nc, send messages to each, and note which one needs a connection first', minutes: 20, optional: true },
+      ],
+      quiz: [
+        {
+          q: 'How many IPv4 addresses does a /28 block contain?',
+          options: ['8', '16', '28', '256'],
+          answer: 1,
+          why: 'A /28 leaves 32 - 28 = 4 host bits, and 2^4 = 16 addresses.',
+        },
+        {
+          q: 'Which protocol does a typical DNS lookup use by default?',
+          options: ['TCP on port 443', 'TCP on port 80', 'UDP on port 53', 'UDP on port 22'],
+          answer: 2,
+          why: 'DNS queries go over UDP port 53 by default and fall back to TCP for large responses or zone transfers.',
+        },
+      ],
+    },
+    {
+      key: 'networking-dns-tls',
+      title: 'DNS resolution and how TLS secures HTTPS',
+      min: 40,
+      sum: '**DNS** turns a name into addresses: your resolver asks the root, then the TLD servers, then the domain\'s authoritative servers, and caches the answer for its **TTL**. Learn the main record types. **TLS** encrypts HTTP: the server presents a **certificate** signed by a trusted authority for its name, and client and server agree on session keys. TLS 1.3 needs one round trip for a new handshake.',
+      pts: [
+        'A maps a name to IPv4, AAAA to IPv6, CNAME to another name, MX to mail servers.',
+        'Lower a record\'s TTL before a migration so the change spreads quickly.',
+        'A certificate is valid only for the names it lists, and only until it expires.',
+        'SNI lets one IP address serve certificates for many domains.',
+      ],
+      learn: [
+        'Resolution path: stub resolver, recursive resolver, root, TLD and authoritative servers, and caching',
+        'Record types: A, AAAA, CNAME, MX, TXT and NS, with an example of each',
+        'TTL: how caching delays DNS changes and why you lower the TTL before moving a site',
+        'dig: dig example.com, dig +short, dig MX and dig @1.1.1.1 to query a specific resolver',
+        'TLS handshake: client hello with SNI, certificate, key exchange, then encrypted HTTP',
+        'Certificates: subject names, the chain to a trusted root, expiry, and automated renewal with ACME',
+        'Inspecting TLS: openssl s_client -connect host:443 -servername host to see the chain and expiry',
+      ],
+      tasks: [
+        { key: 'practice-dig', kind: 'practice', title: 'Use dig to find the A, AAAA, MX, NS and TXT records of three well-known domains and note each TTL', minutes: 25 },
+        { key: 'practice-tls-inspect', kind: 'practice', title: 'Inspect a site\'s certificate with openssl s_client and record its issuer, the names it covers and its expiry date', minutes: 20 },
+      ],
+      quiz: [
+        {
+          q: 'You want shop.example.com to point to whatever address app.example.com has. Which record fits?',
+          options: ['A', 'MX', 'TXT', 'CNAME'],
+          answer: 3,
+          why: 'A CNAME makes one name an alias of another, so it follows the target\'s address records.',
+        },
+        {
+          q: 'What does SNI (Server Name Indication) do in a TLS handshake?',
+          options: [
+            'Tells the server which hostname the client wants so it can pick the right certificate',
+            'Encrypts the DNS query',
+            'Replaces the certificate authority',
+            'Compresses the HTTP body',
+          ],
+          answer: 0,
+          why: 'With SNI the client names the host in its hello, so one IP can serve different certificates per domain.',
+        },
+      ],
+    },
+    {
+      key: 'networking-debugging',
+      title: 'Debugging networks: ip, ss, curl and firewalls',
+      min: 40,
+      depth: 'standard',
+      sum: 'Most "it cannot connect" problems are found with a few tools: `ip` for addresses and routes, `ss` for listening sockets, `dig` for names, `curl -v` for HTTP and `traceroute` for the path. **Connection refused** means nothing listens on that port; a **timeout** usually means a firewall drops the packets. In the cloud, a **VPC** has public and private subnets, route tables and security groups that act as firewalls.',
+      pts: [
+        'Connection refused: the host answered but nothing listens on that port.',
+        'Timeout: packets are dropped, often by a firewall or security group.',
+        'A service bound to 127.0.0.1 is reachable only from the same machine; 0.0.0.0 listens on all interfaces.',
+        'Private subnets reach the internet through a NAT gateway, not directly.',
+      ],
+      learn: [
+        'ip: ip addr for interfaces and addresses, ip route for the default gateway',
+        'ss: ss -tlnp to list listening TCP ports with their processes, and 127.0.0.1 vs 0.0.0.0 binding',
+        'curl -v: read the DNS, connect, TLS and HTTP stages of a request and spot where it fails',
+        'Reachability: ping, traceroute or mtr, and nc -zv host port to test one port',
+        'Refused vs timeout: what each error tells you and where to look next',
+        'Host firewalls: ufw allow 22/tcp, ufw status, and the idea behind iptables and nftables rules',
+        'Cloud networks: VPC, public and private subnets, route tables, internet and NAT gateways, security groups',
+      ],
+      tasks: [
+        { key: 'practice-debug-connect', kind: 'practice', title: 'Bind an app to 127.0.0.1, fail to reach it from another container, diagnose with ss and curl -v, then fix it', minutes: 35 },
+        { key: 'practice-vpc-design', kind: 'practice', title: 'Sketch a VPC with public and private subnets for a web app and database, with routes and security group rules', minutes: 30, optional: true },
+      ],
+      quiz: [
+        {
+          q: '`curl 10.0.1.5:8080` returns "Connection refused" instantly. What is the most likely cause?',
+          options: [
+            'DNS cannot resolve the name',
+            'Nothing is listening on port 8080 on that host',
+            'A firewall is silently dropping packets',
+            'The TLS certificate has expired',
+          ],
+          answer: 1,
+          why: 'Refused means the host replied with a reset because no process listens on the port; drops cause timeouts.',
+        },
+        {
+          q: 'Which command lists listening TCP ports along with the owning processes?',
+          options: ['ip route', 'dig -t TCP', 'ss -tlnp', 'traceroute -T'],
+          answer: 2,
+          why: 'ss -t (TCP) -l (listening) -n (numeric) -p (process) shows each listening socket and its program.',
+        },
+      ],
+    },
+  ],
+
+  nginx: [
+    {
+      key: 'nginx',
+      title: 'Nginx basics: server blocks, static files, proxying',
+      min: 40,
+      sum: 'Nginx is a fast web server most often used as a **reverse proxy**: it faces clients, serves static files itself and forwards other requests to app servers that stay private. Configuration is made of `server` blocks chosen by `listen` and `server_name`, and `location` blocks chosen by the request path. Test every change with `nginx -t` before `systemctl reload nginx`.',
+      pts: [
+        'Always run nginx -t before reloading; a typo can take the site down.',
+        'try_files $uri $uri/ /index.html serves single-page apps on any route.',
+        'proxy_pass forwards a location to a private app server, for example one on 127.0.0.1 port 3000.',
+        'Pass the original Host and client IP to the app with proxy_set_header.',
+      ],
+      learn: [
+        'Reverse vs forward proxy: who each one acts for, and why the app server stays on a private port',
+        'Config layout: nginx.conf, sites-available and sites-enabled or conf.d, and nginx -t then reload',
+        'server blocks: listen 80, server_name example.com, and how Nginx picks the block for a request',
+        'location matching: exact =, prefix, ^~ and regex ~, and which one wins',
+        'Static files: root vs alias, index, and try_files for a single-page app',
+        'proxy_pass: forward /api/ to an upstream app, and how a trailing slash changes the forwarded path',
+        'Proxy headers: Host, X-Real-IP, X-Forwarded-For and X-Forwarded-Proto set with proxy_set_header',
+      ],
+      tasks: [
+        { key: 'build-nginx-proxy', kind: 'build', title: 'Serve a built React app from Nginx and proxy /api/ to a local Node or Python server, both in Docker Compose', minutes: 45 },
+      ],
+      quiz: [
+        {
+          q: 'What should you run after editing an Nginx config and before reloading?',
+          options: ['nginx -s stop', 'nginx -t', 'systemctl disable nginx', 'nginx -v'],
+          answer: 1,
+          why: 'nginx -t checks the syntax and referenced files, so a broken config never replaces the running one.',
+        },
+        {
+          q: 'A React app shows 404 when a user refreshes on /dashboard. Which directive fixes this?',
+          options: [
+            'A proxy_pass to the app on port 3000',
+            'listen 443 ssl;',
+            'gzip on;',
+            'try_files $uri $uri/ /index.html;',
+          ],
+          answer: 3,
+          why: 'Client-side routes have no file on disk; try_files falls back to index.html so the app router can handle the path.',
+        },
+      ],
+    },
+    {
+      key: 'nginx-tls-balancing',
+      title: 'TLS termination, load balancing and rate limits',
+      min: 35,
+      depth: 'standard',
+      sum: 'In production Nginx usually **terminates TLS**: it holds the certificate, serves HTTPS on 443 and redirects port 80. An `upstream` block lists several app servers and Nginx **load-balances** across them (round-robin by default, or `least_conn`). It can also compress responses, limit request rates per client and proxy WebSockets when the upgrade headers are passed through.',
+      pts: [
+        'Redirect HTTP to HTTPS in the port 80 block with a 301 return that keeps $host and $request_uri.',
+        'Round-robin is the default upstream method; least_conn suits uneven request times.',
+        'limit_req_zone with limit_req throttles abusive clients by IP.',
+        'WebSockets need proxy_http_version 1.1 plus the Upgrade and Connection headers.',
+      ],
+      learn: [
+        'TLS termination: listen 443 ssl, ssl_certificate and ssl_certificate_key, and an HTTP to HTTPS redirect',
+        'Certificates: obtaining and auto-renewing a free certificate with an ACME client such as certbot',
+        'upstream blocks: list servers, round-robin vs least_conn vs ip_hash, and max_fails for passive checks',
+        'Timeouts and buffering: proxy_read_timeout and proxy_connect_timeout for slow backends',
+        'Compression and caching: gzip on with gzip_types, and expires headers for hashed static assets',
+        'Rate limiting: limit_req_zone keyed by $binary_remote_addr and limit_req with burst',
+        'WebSockets: proxy_http_version 1.1, Upgrade $http_upgrade and Connection "upgrade" headers',
+      ],
+      tasks: [
+        { key: 'build-load-balancer', kind: 'build', title: 'Run three copies of an app behind an Nginx upstream, watch requests rotate, then stop one and see traffic shift', minutes: 40 },
+        { key: 'practice-rate-limit', kind: 'practice', title: 'Add a 5 requests per second limit to /api/login and trigger HTTP 503 or 429 responses with a quick curl loop', minutes: 25, optional: true },
+      ],
+      quiz: [
+        {
+          q: 'What load-balancing method does an Nginx upstream use when none is specified?',
+          options: ['Round-robin', 'Least connections', 'IP hash', 'Random with two choices'],
+          answer: 0,
+          why: 'Nginx defaults to weighted round-robin; least_conn, ip_hash and random must be set explicitly.',
+        },
+        {
+          q: 'Your app behind Nginx logs 127.0.0.1 as every client\'s IP. What fixes it?',
+          options: [
+            'Enable gzip in Nginx',
+            'Use least_conn balancing',
+            'Set X-Forwarded-For in Nginx and read it in the app from the trusted proxy',
+            'Move the app to port 80',
+          ],
+          answer: 2,
+          why: 'The app sees the proxy as the client; Nginx must forward the real address in X-Forwarded-For (or X-Real-IP).',
+        },
+      ],
+    },
+  ],
+};

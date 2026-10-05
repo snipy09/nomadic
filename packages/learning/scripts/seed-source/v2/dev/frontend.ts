@@ -1,0 +1,1827 @@
+/** Dev syllabus: React, Next.js and frontend engineering. AI-drafted, status draft. */
+import type { DevSyllabus } from '../defs';
+
+export const FRONTEND_SYLLABUS: DevSyllabus = {
+  // ── React ────────────────────────────────────────────────────────────────
+  react: [
+    {
+      key: 'react',
+      title: 'Components and JSX',
+      min: 30,
+      sum: 'A React app is a tree of **components**: plain functions whose names start with a capital letter and which return JSX. JSX looks like HTML but compiles to JavaScript calls, so you embed expressions with `{}`, write `className` instead of `class` and close every tag. Start a project with Vite and keep components pure: same inputs, same output, no side effects during render.',
+      pts: [
+        'Component names start with a capital letter; lowercase tags such as <div> are HTML elements.',
+        'A component returns one root element; wrap siblings in a fragment <>…</>.',
+        'Rendering must be pure: never change outside variables or the DOM while rendering.',
+      ],
+      learn: [
+        'Project setup: create a React + TypeScript app with npm create vite@latest and find main.tsx, where createRoot renders <App />',
+        'Function components: a function returning JSX, named in PascalCase, exported and imported like any module',
+        'JSX rules: one root element or fragment, close every tag, camelCase attributes such as className, htmlFor, onClick',
+        'Expressions in JSX: put any expression inside {}, e.g. {user.name} or {price * qty}; statements like if are not allowed',
+        'Inline styles: pass an object, style={{ marginTop: 8 }}, with camelCase property names',
+        'Component tree: split a page into small nested components; a file usually exports one main component',
+        'Purity: a component must not mutate props or outside variables while rendering; React may render it more than once',
+        'Strict Mode: in development it renders components twice to expose impure code; production renders once',
+      ],
+      tasks: [
+        {
+          key: 'build-profile-card',
+          kind: 'build',
+          title: 'Build a ProfileCard component (photo, name, college, skills list) and render three cards with different data from App',
+          minutes: 40,
+        },
+      ],
+      quiz: [
+        {
+          q: 'Which JSX attribute sets a CSS class on an element?',
+          options: ['class', 'className', 'cssClass', 'styleName'],
+          answer: 1,
+          why: 'JSX compiles to JavaScript, where class is a reserved word, so React uses className.',
+        },
+        {
+          q: 'Why must a component name start with a capital letter, as in <Navbar />?',
+          options: [
+            'JSX treats lowercase tags as built-in HTML elements',
+            'Capitalised components render faster',
+            'It is required only in TypeScript files',
+            'Lowercase components cannot receive props',
+          ],
+          answer: 0,
+          why: 'JSX compiles lowercase tags to HTML element strings and capitalised tags to references to your component functions.',
+        },
+      ],
+    },
+    {
+      key: 'react-props',
+      title: 'Props and component composition',
+      min: 30,
+      sum: '**Props** are the inputs a parent passes to a child, like arguments to a function. They are read-only: a child never changes its props; it asks the parent to change data by calling a callback prop. The special `children` prop lets you build wrapper components such as Card or Layout, which is how React favours composition over inheritance.',
+      pts: [
+        'Props flow down; events flow up through callback props such as onSelect.',
+        'Never mutate props; treat them as read-only snapshots.',
+        '`children` lets a component wrap any JSX placed between its tags.',
+      ],
+      learn: [
+        'Passing props: <Avatar size={48} user={user} /> and reading them by destructuring, function Avatar({ size, user })',
+        'Default values: give defaults while destructuring, ({ size = 32 }), rather than a separate defaultProps object',
+        'Typing props: describe props with a TypeScript type, mark optional ones with ?, and let the editor catch misuse',
+        'Spreading props: {...props} forwards many props at once; use it sparingly so data flow stays readable',
+        'children: anything between <Card>…</Card> arrives as props.children; render it where the content belongs',
+        'Callback props: pass onDelete={(id) => remove(id)} so a child can tell its parent that something happened',
+        'Composition: build pages from small generic pieces (Card, Button, Modal) instead of one component with many flags',
+      ],
+      tasks: [
+        {
+          key: 'build-card-layout',
+          kind: 'build',
+          title: 'Build a reusable Card with a title prop and children, then compose a dashboard of three different cards with it',
+          minutes: 35,
+        },
+        {
+          key: 'practice-callback-props',
+          kind: 'practice',
+          title: 'Add a Delete button to each ProfileCard that calls an onDelete prop, and remove that card in the parent',
+          minutes: 25,
+          optional: true,
+        },
+      ],
+      quiz: [
+        {
+          q: 'A child component must tell its parent that a button was clicked. What is the usual React pattern?',
+          options: [
+            'Change the props object inside the child',
+            'Read the parent’s state through a ref',
+            'Call a callback function the parent passed as a prop',
+            'Dispatch a custom event on window',
+          ],
+          answer: 2,
+          why: 'Data flows down as props and events flow up through callbacks the parent provides, such as onClick or onDelete.',
+        },
+        {
+          q: 'What does props.children contain in <Card><h2>Hi</h2></Card>?',
+          options: [
+            'Nothing; children must be passed as an attribute',
+            'The string "Card"',
+            'An array of all Card instances',
+            'The <h2>Hi</h2> element',
+          ],
+          answer: 3,
+          why: 'Whatever JSX is nested between a component’s opening and closing tags is passed to it as the children prop.',
+        },
+      ],
+    },
+    {
+      key: 'react-usestate',
+      title: 'State and events with useState',
+      min: 35,
+      sum: '**State** is data a component remembers between renders; `useState` returns the current value and a setter, and calling the setter schedules a re-render. Each render sees a fixed snapshot of state, so reading state right after setting it gives the old value. Update objects and arrays immutably by creating copies, and use the updater form `setCount(c => c + 1)` when the next value depends on the previous one.',
+      pts: [
+        'Setting state does not change the variable now; it asks React for a new render.',
+        'Copy, never mutate: [...items, item] and { ...user, name } create new values.',
+        'Use the updater form when the new state depends on the old state.',
+        'Call hooks only at the top level, never inside loops or conditions.',
+      ],
+      learn: [
+        'useState: const [value, setValue] = useState(initial) declares state; initial is used only on the first render',
+        'Event handlers: pass a function, onClick={handleClick}, not a call, onClick={handleClick()}, which runs during render',
+        'Snapshots: state is fixed for one render, so a log right after setCount(count + 1) still prints the old count',
+        'Batching: React groups several state updates made in one event into a single re-render',
+        'Updater functions: setCount(c => c + 1) three times adds 3, while setCount(count + 1) three times adds 1',
+        'Objects and arrays in state: replace them with copies using spread, map and filter; never push or assign into them',
+        'Rules of Hooks: call hooks only at the top level of components or custom hooks, in the same order every render',
+        'Lazy initial state: useState(() => expensiveSetup()) runs the setup function only once',
+      ],
+      tasks: [
+        {
+          key: 'build-todo-list',
+          kind: 'build',
+          title: 'Build a to-do list with add, toggle-done and delete, keeping the items array in state and updating it immutably',
+          minutes: 45,
+        },
+      ],
+      quiz: [
+        {
+          q: 'count is 0. A click handler calls setCount(count + 1) three times. What is count after the re-render?',
+          options: ['0', '1', '3', 'undefined'],
+          answer: 1,
+          why: 'Each call uses the snapshot value 0, so all three set 1. Use setCount(c => c + 1) to add 3.',
+        },
+        {
+          q: 'Which update correctly adds item to an array held in state?',
+          options: [
+            'items.push(item); setItems(items)',
+            'items[items.length] = item; setItems(items)',
+            'setItems(items.length + 1)',
+            'setItems([...items, item])',
+          ],
+          answer: 3,
+          why: 'React compares state by reference; mutating and passing the same array can skip the re-render. A new array signals a change.',
+        },
+      ],
+    },
+    {
+      key: 'react-lists-forms',
+      title: 'Lists, keys, conditional rendering and forms',
+      min: 35,
+      sum: 'Render lists by mapping data to JSX with `items.map(...)`, giving every item a stable unique `key` so React can match items between renders. Show or hide UI with `&&`, the ternary operator or an early return. A **controlled input** takes its value from state and updates it in onChange, which makes validation and resetting simple; uncontrolled inputs are read from the form on submit.',
+      pts: [
+        'Keys must be stable and unique among siblings; database ids are ideal, array indexes are risky.',
+        'Beware {count && <List />}: when count is 0, React renders the 0.',
+        'Controlled input = value from state + an onChange that sets that state.',
+      ],
+      learn: [
+        'Rendering lists: {users.map(u => <UserRow key={u.id} user={u} />)} turns an array of data into elements',
+        'Keys: use a stable id from the data; index keys break when items are inserted, removed or reordered',
+        'Conditional rendering: cond && <X />, cond ? <A /> : <B />, or return null early to render nothing',
+        'The 0 trap: {items.length && <List />} prints 0 for an empty list; write items.length > 0 && … instead',
+        'Controlled inputs: <input value={name} onChange={e => setName(e.target.value)} />; checkboxes use checked',
+        'Form submit: handle onSubmit on the <form> and call e.preventDefault() before reading state',
+        'Uncontrolled forms: read values with new FormData(e.currentTarget) on submit when you need no live updates',
+        'Derived values: compute filtered lists and validation messages during render instead of storing them in state',
+      ],
+      tasks: [
+        {
+          key: 'build-filterable-list',
+          kind: 'build',
+          title: 'Build a searchable job list: a text input filters an array of 20 jobs by title, with an empty-state message',
+          minutes: 40,
+        },
+        {
+          key: 'practice-signup-form',
+          kind: 'practice',
+          title: 'Build a sign-up form with controlled inputs, inline validation errors and a submit button disabled until valid',
+          minutes: 30,
+          optional: true,
+        },
+      ],
+      quiz: [
+        {
+          q: 'Why is the array index a poor key when list items can be reordered?',
+          options: [
+            'Keys then follow positions, so state and DOM can attach to the wrong item',
+            'React forbids numbers as keys',
+            'Index keys make the list render twice',
+            'Index keys disable event handlers on list items',
+          ],
+          answer: 0,
+          why: 'React matches elements by key. If keys are positions, a reorder makes React reuse an item’s state and DOM for different data.',
+        },
+        {
+          q: 'items is an empty array. What does {items.length && <List />} render?',
+          options: ['Nothing at all', 'An empty <List />', 'The number 0', 'A runtime error'],
+          answer: 2,
+          why: 'items.length is 0, so the && expression evaluates to 0, and React renders numbers. Compare with > 0 to get false instead.',
+        },
+      ],
+    },
+    {
+      key: 'react-effects',
+      title: 'useEffect: syncing with the outside world',
+      min: 40,
+      sum: '`useEffect` runs code after React has updated the screen, to synchronise a component with something outside React: a timer, a subscription, a browser API or a network request. The dependency array tells React when to re-run it, and the cleanup function undoes the previous run. Many effects are unnecessary: derive values during render and handle user actions in event handlers.',
+      pts: [
+        'List every reactive value the effect reads in its dependency array.',
+        'Return a cleanup function to clear timers, remove listeners and cancel requests.',
+        'You might not need an effect: derived data belongs in render, user actions in handlers.',
+      ],
+      learn: [
+        'When effects run: after commit; [] runs once after mount, [a, b] when a or b change, no array after every render',
+        'Cleanup: the returned function runs before the next run and on unmount, e.g. clearInterval or removeEventListener',
+        'Dependencies: include every prop, state and function used inside; the react-hooks lint rule flags missing ones',
+        'Strict Mode: in development effects run, clean up and run again, to prove the cleanup works',
+        'Fetching in effects: refetch when an id changes and ignore stale responses with an AbortController in cleanup',
+        'Avoiding effects: compute fullName during render; reset a child’s state by changing its key instead of an effect',
+        'Object and function dependencies: values created during render are new each time; move them inside the effect',
+        'Data libraries: in real apps prefer a framework loader or TanStack Query over hand-written fetch effects',
+      ],
+      tasks: [
+        {
+          key: 'build-user-fetch',
+          kind: 'build',
+          title: 'Build a user page that fetches a profile when userId changes, shows loading and error states, and aborts stale requests',
+          minutes: 45,
+        },
+      ],
+      quiz: [
+        {
+          q: 'What does the function returned from a useEffect callback do?',
+          options: [
+            'It becomes the component’s rendered output',
+            'It runs only on the first mount',
+            'It is ignored unless the dependency array is empty',
+            'It cleans up before the next effect run and on unmount',
+          ],
+          answer: 3,
+          why: 'The returned cleanup undoes the previous run (clear timers, unsubscribe) before the effect runs again and when the component unmounts.',
+        },
+        {
+          q: 'fullName is always firstName + " " + lastName. What is the best way to get it?',
+          options: [
+            'Compute it during render from firstName and lastName',
+            'Store it in state and update it in a useEffect',
+            'Store it in a ref and update it on every click',
+            'Fetch it from the server',
+          ],
+          answer: 0,
+          why: 'Derived values should be calculated while rendering. Syncing them through state and an effect adds an extra render and bugs.',
+        },
+      ],
+    },
+    {
+      key: 'react-refs-reducers-hooks',
+      title: 'useRef, useReducer and custom hooks',
+      depth: 'standard',
+      min: 35,
+      sum: '`useRef` holds a mutable value that survives renders without causing one, and gives access to DOM nodes for focus, scrolling and measuring. `useReducer` moves complex state updates into a pure reducer function of state and action. **Custom hooks** (functions named `useSomething`) package stateful logic so several components can reuse it; each caller gets its own state.',
+      pts: [
+        'Changing ref.current does not re-render; use state for anything shown on screen.',
+        'A reducer is pure: (state, action) => newState, with no side effects.',
+        'Custom hooks share logic, not state: every component calling one has its own copy.',
+      ],
+      learn: [
+        'useRef for values: const timerId = useRef(null) keeps an interval id across renders without re-rendering',
+        'DOM refs: attach ref={inputRef} and call inputRef.current.focus() in a handler or effect, not during render',
+        'ref as a prop: in React 19 function components receive ref as a normal prop; forwardRef is no longer needed',
+        'useReducer: const [state, dispatch] = useReducer(reducer, initial); then dispatch({ type: "added", item })',
+        'Writing reducers: switch on action.type, return new objects immutably, throw on unknown action types',
+        'Custom hooks: extract logic into hooks such as useOnlineStatus or useDebounce; a hook may call other hooks',
+        'Hook naming: start the name with use so the linter can check the Rules of Hooks inside it',
+      ],
+      tasks: [
+        {
+          key: 'build-custom-hooks',
+          kind: 'build',
+          title: 'Write useDebounce(value, delay) and useLocalStorage(key, initial), then use both in a search box that remembers its query',
+          minutes: 40,
+        },
+        {
+          key: 'practice-reducer-cart',
+          kind: 'practice',
+          title: 'Rewrite a shopping cart with useReducer handling added, removed and quantityChanged actions',
+          minutes: 30,
+          optional: true,
+        },
+      ],
+      quiz: [
+        {
+          q: 'You update ref.current inside a click handler. What happens to the component?',
+          options: [
+            'It re-renders immediately',
+            'It re-renders on the next tick',
+            'It does not re-render; the value is kept for later',
+            'React throws an error',
+          ],
+          answer: 2,
+          why: 'Refs are an escape hatch for values React does not track. Writing to ref.current never schedules a render.',
+        },
+        {
+          q: 'Two components each call the custom hook useCounter(). How is the counter state shared?',
+          options: [
+            'Both read one shared counter',
+            'Each component gets its own independent state',
+            'Only the first caller gets state',
+            'The hook works only inside a context provider',
+          ],
+          answer: 1,
+          why: 'A custom hook reuses stateful logic; each call creates its own state. Sharing state needs lifting, context or a store.',
+        },
+      ],
+    },
+    {
+      key: 'react-rendering-performance',
+      title: 'Re-renders, memoisation and code splitting',
+      depth: 'standard',
+      min: 35,
+      sum: 'A component re-renders when its state changes, when its parent re-renders or when a context it reads changes. Re-renders are usually cheap, so measure with the React DevTools Profiler before optimising. `memo`, `useMemo` and `useCallback` skip work when inputs are unchanged, and the **React Compiler** can add this memoisation automatically. `lazy` with `Suspense` moves rarely used screens into separate chunks.',
+      pts: [
+        'A parent re-render re-renders its children unless they are memoised and their props are unchanged.',
+        'Profile first: optimise only components that are measurably slow.',
+        'useCallback helps only when the function goes to a memoised child or a dependency array.',
+      ],
+      learn: [
+        'Why components re-render: their own state, a parent re-render or a context change',
+        'React DevTools Profiler: record an interaction and find components with long or unnecessary renders',
+        'memo: wrap a component so it skips re-rendering when its props are shallowly equal to last time',
+        'useMemo: cache an expensive calculation, useMemo(() => sortJobs(jobs), [jobs]), recomputed when inputs change',
+        'useCallback: keep the same function identity between renders so memoised children do not re-render',
+        'React Compiler: a build-time plugin that memoises components and values automatically when code follows the rules',
+        'Moving state down: keep fast-changing state in the small component that uses it so less of the tree re-renders',
+        'Code splitting: const Admin = lazy(() => import("./Admin")) rendered inside <Suspense fallback={…}>',
+      ],
+      tasks: [
+        {
+          key: 'practice-profile-rerenders',
+          kind: 'practice',
+          title: 'Render 2,000 rows with a filter box, profile typing in the DevTools Profiler, then fix it with memo and moved state',
+          minutes: 45,
+        },
+      ],
+      quiz: [
+        {
+          q: 'A memo-wrapped child receives onClick={() => save(id)} from its parent. Why does it still re-render?',
+          options: [
+            'A new function is created on each parent render, so the prop is not equal',
+            'memo works only on class components',
+            'memo ignores all function props',
+            'Arrow functions cannot be passed as props',
+          ],
+          answer: 0,
+          why: 'memo compares props shallowly. A new arrow function each render is a different reference; useCallback keeps it stable.',
+        },
+        {
+          q: 'What does lazy(() => import("./Reports")) give you?',
+          options: [
+            'Server-side rendering of Reports',
+            'Automatic memoisation of Reports',
+            'A component whose code loads in a separate chunk when first rendered',
+            'A cached API response for Reports',
+          ],
+          answer: 2,
+          why: 'The dynamic import becomes its own chunk, fetched the first time the lazy component renders; Suspense shows a fallback meanwhile.',
+        },
+      ],
+    },
+    {
+      key: 'react-19-actions',
+      title: 'React 19: Actions, use() and Server Components',
+      depth: 'optional',
+      min: 40,
+      sum: 'React 19 adds **Actions**: async functions passed to a form’s `action` prop or run inside `startTransition`, with pending state, errors and optimistic updates handled for you. `useActionState`, `useFormStatus` and `useOptimistic` cover common form cases, and `use()` reads a promise or context during render. **Server Components** run only on the server and need a framework such as Next.js.',
+      pts: [
+        '<form action={fn}> calls fn with the FormData and resets uncontrolled fields on success.',
+        'useOptimistic shows the expected result at once and reverts it if the action fails.',
+        'use(promise) suspends until the promise resolves; wrap the component in Suspense.',
+      ],
+      learn: [
+        'Transitions: useTransition gives [isPending, startTransition]; async work inside it is a non-urgent Action',
+        'Form actions: <form action={submit}> calls submit(formData); no onSubmit or preventDefault is needed',
+        'useActionState: const [state, formAction, isPending] = useActionState(fn, initial) tracks result and pending',
+        'useFormStatus: a component inside a form reads { pending } to disable its submit button while the action runs',
+        'useOptimistic: show a new comment immediately, then React swaps in the real result or rolls it back',
+        'use(): read a promise or a context inside render, even conditionally; the nearest Suspense shows the fallback',
+        'Context as provider: React 19 lets you render <ThemeContext value={…}> without .Provider',
+        'Server Components: async components that fetch on the server and ship no JS; interactive parts stay client',
+      ],
+      tasks: [
+        {
+          key: 'build-comment-actions',
+          kind: 'build',
+          title: 'Build a comment form with a form action, useActionState for errors, useFormStatus for the button and useOptimistic',
+          minutes: 50,
+        },
+      ],
+      quiz: [
+        {
+          q: 'Which React 19 hook lets a submit button know that its parent form’s action is still running?',
+          options: ['useEffect', 'useRef', 'useId', 'useFormStatus'],
+          answer: 3,
+          why: 'useFormStatus, from react-dom, returns the pending state of the nearest parent form, so a button can disable itself.',
+        },
+        {
+          q: 'What does useOptimistic help you do?',
+          options: [
+            'Show the expected result immediately and revert it if the action fails',
+            'Cache network responses between page loads',
+            'Skip re-renders of unchanged components',
+            'Prefetch code for the next route',
+          ],
+          answer: 0,
+          why: 'useOptimistic holds a temporary value while an async action runs; when the action ends, the real state replaces it.',
+        },
+      ],
+    },
+  ],
+
+  // ── React state management ───────────────────────────────────────────────
+  'react-state-management': [
+    {
+      key: 'react-state-management',
+      title: 'Where state lives: local, lifted and context',
+      min: 35,
+      sum: 'Start with state **local** to the component that uses it, **lift** it to the closest common parent when siblings need it, and avoid duplicated or derivable state. **Context** passes a value deep into the tree without prop drilling; it suits values that change rarely, such as the theme, language or signed-in user. Every component reading a context re-renders when its value changes, so split contexts and memoise their values.',
+      pts: [
+        'Keep state as low in the tree as possible; lift it only when two components need it.',
+        'Do not store what you can compute from props or other state.',
+        'Context re-renders every consumer when its value changes.',
+        'Server state (fetched data) and client state (UI choices) are different problems.',
+      ],
+      learn: [
+        'Lifting state: move shared state to the nearest common parent and pass the value and callbacks down',
+        'Single source of truth: never keep the same data in two states; store the selected id, not a copy of the item',
+        'Prop drilling: passing props through two or three levels is fine; reach for context beyond that',
+        'Creating context: createContext(default), render <ThemeContext value={theme}>, read it with useContext',
+        'Context with a reducer: put state and dispatch from useReducer in context for a small app-wide store',
+        'Context performance: memoise the value with useMemo and split often-changing values into their own context',
+        'State categories: label each value as UI, form, URL, server cache or global client state before picking a tool',
+        'URL state: keep filters, tabs and page numbers in the query string so links and the back button work',
+      ],
+      tasks: [
+        {
+          key: 'build-theme-auth-context',
+          kind: 'build',
+          title: 'Add a ThemeContext and an AuthContext to a small app; show the user in the header and toggle dark mode in settings',
+          minutes: 40,
+        },
+      ],
+      quiz: [
+        {
+          q: 'Two sibling components must show the same selected tab. Where should the selected tab state live?',
+          options: [
+            'In both siblings, kept in sync with effects',
+            'In their closest common parent',
+            'In a module-level global variable',
+            'Only in localStorage',
+          ],
+          answer: 1,
+          why: 'Lifting state to the closest common parent gives one source of truth that both siblings receive as props.',
+        },
+        {
+          q: 'What happens when the value of a context provider changes?',
+          options: [
+            'Nothing until the page reloads',
+            'Only the provider component re-renders',
+            'Every component that reads that context re-renders',
+            'Only components that also receive it as a prop re-render',
+          ],
+          answer: 2,
+          why: 'All consumers of a context re-render on a new value, which is why frequently changing data suits a store with selectors better.',
+        },
+      ],
+    },
+    {
+      key: 'react-state-management-stores',
+      title: 'Stores and server state: Zustand, Redux, TanStack Query',
+      depth: 'standard',
+      min: 40,
+      sum: 'For complex client state shared across many screens, a **store** keeps state outside the component tree and lets components subscribe to only the slice they need. **Zustand** is a minimal hook-based store; **Redux Toolkit** adds slices, Immer-powered updates and strong DevTools. Data from APIs is a cache, not app state: **TanStack Query** handles fetching, caching, refetching and invalidation.',
+      pts: [
+        'Select the smallest slice you need so unrelated updates do not re-render you.',
+        'In Redux Toolkit slices you may write mutating code; Immer turns it into immutable updates.',
+        'Use TanStack Query for API data and invalidate queries after a mutation.',
+        'Normalise collections by id so each item is stored once.',
+      ],
+      learn: [
+        'Zustand: const useCart = create(set => ({ items: [], add: i => set(s => ({ items: [...s.items, i] })) }))',
+        'Selectors: useCart(s => s.items.length) re-renders only when that selected value changes',
+        'Redux Toolkit: configureStore, createSlice with reducers, useSelector to read and useDispatch to send actions',
+        'Immer in slices: state.items.push(x) inside a createSlice reducer is safe because Immer produces new state',
+        'Normalising: store { byId: {…}, ids: […] } instead of nested arrays so an update touches one item',
+        'TanStack Query: useQuery({ queryKey: ["jobs", filters], queryFn }) returns data, isPending and error, cached',
+        'Mutations: useMutation for writes, then queryClient.invalidateQueries({ queryKey: ["jobs"] }) to refetch',
+        'Stale time: staleTime sets how long cached data counts as fresh before a background refetch',
+      ],
+      tasks: [
+        {
+          key: 'build-query-store',
+          kind: 'build',
+          title: 'Build a job board: TanStack Query for the job list, a Zustand store for saved jobs, and a mutation that invalidates the list',
+          minutes: 50,
+        },
+      ],
+      quiz: [
+        {
+          q: 'Which tool is designed mainly for caching and refetching data that comes from an API?',
+          options: ['useReducer', 'Context', 'Zustand', 'TanStack Query'],
+          answer: 3,
+          why: 'TanStack Query manages server state: caching by key, background refetching, retries and invalidation after writes.',
+        },
+        {
+          q: 'In a Zustand store, why write useStore(s => s.count) instead of useStore()?',
+          options: [
+            'The component then re-renders only when count changes',
+            'It is required to read any value from the store',
+            'It makes the store persist to disk',
+            'It converts the store into a Redux store',
+          ],
+          answer: 0,
+          why: 'With a selector, Zustand compares the selected value and skips re-rendering when other parts of the store change.',
+        },
+      ],
+    },
+  ],
+
+  // ── Next.js ──────────────────────────────────────────────────────────────
+  nextjs: [
+    {
+      key: 'nextjs',
+      title: 'App Router: routes, layouts and navigation',
+      min: 35,
+      sum: 'Next.js is a React framework with file-based routing in the `app` directory: each folder is a URL segment and a `page.tsx` file makes it a route. A `layout.tsx` wraps its pages and stays mounted during navigation, while `loading.tsx`, `error.tsx` and `not-found.tsx` give each segment its own loading and error UI. Dynamic segments such as `[id]` receive the value through `params`.',
+      pts: [
+        'Folders define routes; only page.tsx (or route.ts) makes a segment reachable.',
+        'Layouts persist across navigation and keep their state.',
+        'Use <Link> for internal navigation; it navigates on the client and prefetches.',
+      ],
+      learn: [
+        'Create a project: npx create-next-app@latest with TypeScript, the App Router and Tailwind; run npm run dev',
+        'Routing: app/page.tsx is /, app/jobs/page.tsx is /jobs, app/jobs/[id]/page.tsx is /jobs/123',
+        'params: in current versions params is a Promise, so write const { id } = await params in an async page',
+        'Layouts: app/layout.tsx is the root layout with <html> and <body>; nested layouts wrap one section',
+        'Special files: loading.tsx while loading, error.tsx (a client component) for errors, not-found.tsx for 404s',
+        'Navigation: <Link href="/jobs"> for links, useRouter().push() in client code, redirect() on the server',
+        'Route groups and metadata: (marketing) folders group routes without a URL part; export metadata for titles',
+      ],
+      tasks: [
+        {
+          key: 'build-next-routes',
+          kind: 'build',
+          title: 'Create a Next.js app with /, /jobs and /jobs/[id] routes, a shared layout with navigation, and loading and not-found pages',
+          minutes: 45,
+        },
+      ],
+      quiz: [
+        {
+          q: 'Which file makes the URL /about work in the App Router?',
+          options: ['app/about/index.html', 'pages/app/about.tsx', 'app/about/page.tsx', 'app/about/route.json'],
+          answer: 2,
+          why: 'In the app directory, the folder gives the path segment and a page.tsx file inside it makes the segment a public route.',
+        },
+        {
+          q: 'What happens to a layout.tsx when the user navigates between two pages inside it?',
+          options: [
+            'It stays mounted and keeps its state',
+            'It unmounts and mounts again',
+            'It is downloaded again from the server',
+            'It is replaced by the root layout',
+          ],
+          answer: 0,
+          why: 'Layouts are shared UI; on navigation only the changed page segment re-renders, so the layout keeps its state.',
+        },
+      ],
+    },
+    {
+      key: 'nextjs-server-components',
+      title: 'Server Components and Client Components',
+      min: 35,
+      sum: 'In the App Router every component is a **Server Component** by default: it renders on the server, can be `async`, can read databases and secrets directly, and sends no JavaScript to the browser. Add the `"use client"` directive at the top of a file to make a **Client Component** that can use state, effects and event handlers. Keep client components small, at the leaves, and pass server data to them as serialisable props.',
+      pts: [
+        'Server Components cannot use useState, useEffect or event handlers.',
+        '"use client" marks a boundary: that file and everything it imports also run in the browser.',
+        'Props from server to client must be serialisable: no functions or class instances.',
+        'Hydration attaches event handlers to the HTML the server sent.',
+      ],
+      learn: [
+        'Server Components: async function Page() { const jobs = await db.job.findMany(); … } runs only on the server',
+        'Client Components: "use client" at the top of a file enables useState, useEffect, onClick and browser APIs',
+        'The boundary: a client file’s imports become client code; pass server components into client ones as children',
+        'Serialisable props: strings, numbers, plain objects, arrays, Dates and promises can cross; functions cannot',
+        'server-only: import "server-only" in modules holding secrets so an accidental client import fails the build',
+        'Environment variables: only NEXT_PUBLIC_ variables reach the browser; all others stay on the server',
+        'Hydration: React attaches handlers to server HTML; output that differs, such as Date.now(), causes mismatch errors',
+        'Streaming: wrap slow parts in <Suspense> so the rest of the page is sent and shown first',
+      ],
+      tasks: [
+        {
+          key: 'build-server-client-split',
+          kind: 'build',
+          title: 'Build a jobs page where a Server Component loads the data and a small Client Component adds a save-job toggle',
+          minutes: 40,
+        },
+      ],
+      quiz: [
+        {
+          q: 'A component uses useState and onClick. What must its file start with in the App Router?',
+          options: [
+            '"use server"',
+            'Nothing; all components are client components by default',
+            'export const dynamic = "force-dynamic"',
+            '"use client"',
+          ],
+          answer: 3,
+          why: 'Components are Server Components by default; state and event handlers need the "use client" directive.',
+        },
+        {
+          q: 'Which environment variable can be read in browser code in Next.js?',
+          options: ['DATABASE_URL', 'SECRET_KEY', 'NEXT_PUBLIC_API_BASE', 'SERVER_TOKEN'],
+          answer: 2,
+          why: 'Only variables prefixed with NEXT_PUBLIC_ are inlined into the client bundle; the rest stay server-side.',
+        },
+      ],
+    },
+    {
+      key: 'nextjs-data-fetching',
+      title: 'Data fetching, caching and rendering modes',
+      depth: 'standard',
+      min: 40,
+      sum: 'Next.js prerenders a route **statically** when it uses no request data, and renders it **dynamically** per request when it reads cookies, headers or search params. Fetch data directly in Server Components; in current versions `fetch` is not cached by default, so you opt in to caching and decide how it refreshes. **Revalidation** refreshes cached data on a timer or on demand after a change.',
+      pts: [
+        'Static routes are fastest; reading cookies() or headers() makes a route dynamic.',
+        'Revalidate on a timer, or call revalidatePath or revalidateTag after a write.',
+        'Start independent requests together with Promise.all to avoid waterfalls.',
+      ],
+      learn: [
+        'Static vs dynamic: routes without request data are prerendered; cookies(), headers() or searchParams make them dynamic',
+        'Fetching in Server Components: await fetch or a database query directly in the component; no useEffect needed',
+        'Caching fetch: opt in with { cache: "force-cache" }, or { next: { revalidate: 3600 } } for a timed refresh',
+        'Segment config: export const revalidate = 60 in a page refreshes it at most once a minute',
+        'On-demand revalidation: after a write call revalidatePath("/jobs") or revalidateTag("jobs")',
+        'Waterfalls: start independent requests together with Promise.all instead of awaiting them one by one',
+        'generateStaticParams: return the values of a dynamic segment, e.g. all blog slugs, to prerender them at build',
+        'use cache: newer versions add a "use cache" directive to cache a function or component output explicitly',
+      ],
+      tasks: [
+        {
+          key: 'practice-rendering-modes',
+          kind: 'practice',
+          title: 'Build a blog with static post pages via generateStaticParams, a dynamic dashboard reading cookies, and timed revalidation',
+          minutes: 45,
+        },
+      ],
+      quiz: [
+        {
+          q: 'A page calls cookies() to read the session. How does Next.js render it?',
+          options: [
+            'Statically, once at build time',
+            'Dynamically, on each request',
+            'Only in the browser',
+            'Once, then served from cache for ever',
+          ],
+          answer: 1,
+          why: 'Cookies differ per request, so a route that reads them cannot be prerendered and is rendered on the server per request.',
+        },
+        {
+          q: 'After a Server Action adds a job, the cached /jobs page must show it. What should the action call?',
+          options: [
+            'window.location.reload()',
+            'useEffect with an empty dependency array',
+            'generateStaticParams()',
+            'revalidatePath("/jobs")',
+          ],
+          answer: 3,
+          why: 'revalidatePath marks the cached data and output for that path as stale so the next request renders fresh content.',
+        },
+      ],
+    },
+    {
+      key: 'nextjs-server-actions',
+      title: 'Server Actions, route handlers and deployment',
+      depth: 'standard',
+      min: 40,
+      sum: '**Server Actions** are async functions marked `"use server"` that run on the server when a form submits or a client calls them, so you can write to a database without building an API route. Treat them as public endpoints: validate input and check the user every time. **Route handlers** (`route.ts`) serve HTTP APIs for webhooks and other clients, and middleware (called proxy from Next.js 16) runs before routing.',
+      pts: [
+        'Every Server Action is a callable endpoint: validate input and authorise inside it.',
+        'Use route handlers for webhooks, public APIs and non-React clients.',
+        'next build prints which routes are static and which are dynamic.',
+      ],
+      learn: [
+        'Server Actions: async function createJob(formData: FormData) with "use server", used as <form action={createJob}>',
+        'Validation: parse FormData with a schema library such as zod and return field errors to useActionState',
+        'Security: check the session inside every action; never trust hidden form fields or ids sent by the client',
+        'After a write: call revalidatePath or redirect from the action so the UI shows fresh data',
+        'Route handlers: app/api/jobs/route.ts exports GET and POST functions that take a Request and return a Response',
+        'Middleware or proxy: a root file that runs before routing to redirect signed-out users or rewrite paths',
+        'Build and deploy: next build then next start, or a host that supports Next.js; read the route summary',
+      ],
+      tasks: [
+        {
+          key: 'build-server-action-crud',
+          kind: 'build',
+          title: 'Add a create-job form backed by a Server Action with zod validation, field errors, a session check and revalidation',
+          minutes: 50,
+        },
+      ],
+      quiz: [
+        {
+          q: 'Why must a Server Action check the user’s session itself?',
+          options: [
+            'Anyone can call it directly with a crafted request, like any endpoint',
+            'Next.js disables cookies inside actions',
+            'Actions run in the browser',
+            'Middleware never runs before actions',
+          ],
+          answer: 0,
+          why: 'Server Actions are exposed as POST endpoints. Hiding a button does not protect them, so authorise inside the action.',
+        },
+        {
+          q: 'A payment provider must POST a webhook to your Next.js app. What should you build?',
+          options: [
+            'A Server Component',
+            'A Client Component with useEffect',
+            'A route handler in an app/api/…/route.ts file',
+            'A layout.tsx file',
+          ],
+          answer: 2,
+          why: 'Route handlers receive raw HTTP requests from any client and return a Response, which is what a webhook needs.',
+        },
+      ],
+    },
+  ],
+
+  // ── Tailwind CSS ─────────────────────────────────────────────────────────
+  'tailwind-css': [
+    {
+      key: 'tailwind-css',
+      title: 'Utility classes, the design scale and variants',
+      min: 30,
+      sum: 'Tailwind styles elements with small **utility classes** such as `flex`, `p-4`, `text-sm` and `bg-blue-600`, each mapped to a consistent design scale. Variants apply a utility conditionally: `hover:`, `focus-visible:` and `disabled:` for states, and `sm:`, `md:`, `lg:` for breakpoints, which are mobile-first. Tailwind v4 is set up with one CSS import and generates only the classes your files use.',
+      pts: [
+        'Breakpoints are mobile-first: md:flex means flex from the md width upward.',
+        'Spacing follows one scale: p-4 is 1rem, gap-2 is 0.5rem.',
+        'Only class names found in your source are generated, so never build them by string concatenation.',
+      ],
+      learn: [
+        'Setup in v4: install tailwindcss and @tailwindcss/vite, add the plugin, then @import "tailwindcss"; in your CSS',
+        'Layout utilities: flex, grid, grid-cols-3, items-center, justify-between and gap-4 cover most layouts',
+        'Spacing and sizing: p-, px-, m-, mt-, w-, h- and max-w-md all follow one spacing scale',
+        'Typography and colour: text-sm to text-3xl, font-semibold, text-gray-700, bg-indigo-600, bg-black/50 for opacity',
+        'State variants: hover:, focus-visible:, active:, disabled: and group-hover: style interactive states',
+        'Responsive variants: write the mobile style first, then override, e.g. grid-cols-1 md:grid-cols-3',
+        'Arbitrary values: w-[37rem] or top-[117px] for one-off values; prefer the scale when it fits',
+        'Dynamic classes: map each state to a complete class string; "bg-" + colour is never generated',
+      ],
+      tasks: [
+        {
+          key: 'build-responsive-landing',
+          kind: 'build',
+          title: 'Rebuild a landing page hero, three feature cards and a pricing table in Tailwind: one column on mobile, three on desktop',
+          minutes: 45,
+        },
+      ],
+      quiz: [
+        {
+          q: 'What does the class md:grid-cols-3 do?',
+          options: [
+            'Three columns from the md breakpoint and wider',
+            'Three columns only below the md width',
+            'Three columns on medium-density screens only',
+            'Nothing; md is not a Tailwind variant',
+          ],
+          answer: 0,
+          why: 'Breakpoint variants are min-width queries, so md: applies from that width upward; smaller screens use the unprefixed class.',
+        },
+        {
+          q: 'Why does className={"text-" + colour + "-600"} often show no colour?',
+          options: [
+            'Tailwind forbids string concatenation in JSX',
+            'Colours also need the dark: variant',
+            'Tailwind generates only class names it finds as complete strings in source files',
+            'The class needs an !important flag',
+          ],
+          answer: 2,
+          why: 'Tailwind scans files for class names as plain text; a name assembled at runtime never appears, so no CSS is generated.',
+        },
+      ],
+    },
+    {
+      key: 'tailwind-css-theme',
+      title: 'Theme tokens, dark mode and reusable components',
+      depth: 'standard',
+      min: 30,
+      sum: 'In Tailwind v4 you customise the design system in CSS with an `@theme` block: defining `--color-brand-500` creates `bg-brand-500`, `text-brand-500` and related utilities. The `dark:` variant follows the system colour scheme by default and can be switched to a class with a custom variant. Avoid long repeated class lists by extracting components, and merge conditional classes with clsx and tailwind-merge.',
+      pts: [
+        'Define tokens in @theme instead of scattering hard-coded values.',
+        'Reuse styles through components and props, not big @apply blocks.',
+        'tailwind-merge resolves conflicts such as p-2 and p-4 so the later class wins.',
+      ],
+      learn: [
+        '@theme: add --color-brand-500, --font-display or --breakpoint-3xl to generate matching utilities',
+        'CSS variables: theme values are real CSS variables, usable as var(--color-brand-500) in custom CSS',
+        'Dark mode: dark:bg-gray-900 follows prefers-color-scheme; declare @custom-variant dark for a class toggle',
+        'Component extraction: build a Button whose variant and size props map to class strings',
+        'clsx and tailwind-merge: build class lists conditionally and let later utilities override conflicting ones',
+        '@apply: use it sparingly, for example on third-party markup you cannot add classes to',
+        'Container queries: @container on a parent and @md: on children style by container width, not the viewport',
+        'Accessibility: keep visible focus with focus-visible:ring-2 and check the colour contrast of your palette',
+      ],
+      tasks: [
+        {
+          key: 'build-design-tokens',
+          kind: 'build',
+          title: 'Define a brand palette and font in @theme, add a dark-mode toggle, and build a Button with primary, secondary and danger variants',
+          minutes: 40,
+        },
+      ],
+      quiz: [
+        {
+          q: 'In Tailwind v4, how do you add a brand colour usable as bg-brand-500?',
+          options: [
+            'Write a .bg-brand-500 rule by hand in every file',
+            'Call a colour() function in JavaScript',
+            'Define --color-brand-500 inside an @theme block in your CSS',
+            'Name a CSS file brand-500.css',
+          ],
+          answer: 2,
+          why: 'v4 is configured in CSS: theme variables in @theme, such as --color-*, generate the matching colour utilities.',
+        },
+        {
+          q: 'What problem does tailwind-merge solve?',
+          options: [
+            'It removes unused CSS at build time',
+            'It resolves conflicting utilities such as p-2 and p-4 so the later one applies',
+            'It converts plain CSS files into Tailwind classes',
+            'It adds vendor prefixes to utilities',
+          ],
+          answer: 1,
+          why: 'With both p-2 and p-4 present, CSS order decides the winner; tailwind-merge drops the earlier conflicting class.',
+        },
+      ],
+    },
+  ],
+
+  // ── Build tools ──────────────────────────────────────────────────────────
+  'build-tools': [
+    {
+      key: 'build-tools',
+      title: 'Packages, lockfiles and ES modules',
+      min: 30,
+      sum: '`package.json` lists a project’s dependencies, devDependencies and scripts; a **lockfile** records the exact version of every installed package so every machine gets the same tree. Version ranges use semver: `^1.4.0` allows minor and patch updates, `~1.4.0` only patches. Modern code uses **ES modules** (`import`/`export`), which bundlers can analyse statically for tree-shaking.',
+      pts: [
+        'Commit the lockfile; use npm ci in CI for a clean, exact install.',
+        'dependencies ship with the app; devDependencies are build and test tools.',
+        'Static import/export lets tools remove unused code; require() is harder to analyse.',
+      ],
+      learn: [
+        'package.json: name, version, "type": "module", scripts, dependencies and devDependencies, and what each does',
+        'Semver: MAJOR.MINOR.PATCH; ^ allows minor and patch updates, ~ only patches, an exact version none',
+        'Lockfiles: package-lock.json or pnpm-lock.yaml pin the whole tree; npm ci installs exactly from it',
+        'Scripts: npm run dev, build and test run commands from scripts; npx runs a package binary without a global install',
+        'ES modules vs CommonJS: static import/export versus require and module.exports evaluated at runtime',
+        'Package managers: npm, pnpm (shared store, strict node_modules) and Yarn do the same job differently',
+        'Workspaces: a monorepo with several packages sharing one lockfile and linking local packages together',
+        'Auditing: npm outdated and npm audit list old and vulnerable dependencies',
+      ],
+      tasks: [
+        {
+          key: 'practice-package-json',
+          kind: 'practice',
+          title: 'Start a project from scratch, add one dependency and one devDependency, write dev/build/test scripts and read the lockfile diff',
+          minutes: 30,
+        },
+      ],
+      quiz: [
+        {
+          q: 'package.json lists "react": "^19.1.0". Which version may npm install?',
+          options: ['Only 19.1.0', '20.0.0', '18.3.1', '19.3.2'],
+          answer: 3,
+          why: 'The caret allows newer minor and patch versions within the same major version, so 19.3.2 fits but 20.0.0 does not.',
+        },
+        {
+          q: 'Why use npm ci instead of npm install in a CI pipeline?',
+          options: [
+            'It installs exactly what the lockfile says and fails if it does not match package.json',
+            'It upgrades every package to the latest version',
+            'It always skips devDependencies',
+            'It works without network access',
+          ],
+          answer: 0,
+          why: 'npm ci deletes node_modules and installs the exact locked tree, giving reproducible builds; it never rewrites the lockfile.',
+        },
+      ],
+    },
+    {
+      key: 'build-tools-vite',
+      title: 'Vite: dev server, production builds and chunks',
+      depth: 'standard',
+      min: 35,
+      sum: '**Vite** serves your source as native ES modules during development, so the dev server starts quickly and **hot module replacement** swaps edited modules without a full reload. `vite build` bundles for production: it transpiles TypeScript and JSX, **tree-shakes** unused exports, minifies, splits dynamic imports into chunks and adds content hashes to filenames for long-term caching. webpack does the same job and is common in older projects.',
+      pts: [
+        'Dynamic import() creates a separate chunk that loads on demand.',
+        'Hashed filenames let browsers cache assets for a long time; a change produces a new name.',
+        'Only VITE_-prefixed environment variables are exposed to client code.',
+      ],
+      learn: [
+        'Dev server: Vite serves files as ES modules and pre-bundles dependencies with esbuild for a fast start',
+        'HMR: an edit replaces only the changed module; React Fast Refresh keeps component state while you edit',
+        'Production build: vite build writes dist/ with minified, hashed JS and CSS; vite preview serves it locally',
+        'Transpiling: the build strips TypeScript types without checking them; run tsc --noEmit separately',
+        'Tree-shaking: unused ES module exports are dropped; side-effectful modules and CommonJS limit it',
+        'Code splitting: import("./Chart") or React lazy creates a chunk; check chunk sizes in the build output',
+        'Environment variables: .env files and import.meta.env.VITE_API_URL; never put secrets in client variables',
+        'Config: vite.config.ts with plugins (React, Tailwind), path aliases and a dev proxy for API calls',
+      ],
+      tasks: [
+        {
+          key: 'practice-vite-bundle',
+          kind: 'practice',
+          title: 'In a Vite React app, lazy-load a heavy chart page, compare build output before and after, and add a dev proxy for /api',
+          minutes: 40,
+        },
+      ],
+      quiz: [
+        {
+          q: 'What does import("./Settings") do in a Vite production build?',
+          options: [
+            'Inlines Settings into the main bundle',
+            'Loads Settings from a public CDN',
+            'Puts Settings in a separate chunk fetched when the import runs',
+            'Removes Settings from the build',
+          ],
+          answer: 2,
+          why: 'Dynamic imports are split points: the bundler emits a separate file and fetches it only when that import executes.',
+        },
+        {
+          q: 'Does vite build report TypeScript type errors?',
+          options: [
+            'Yes, it fails on any type error',
+            'Only in strict mode',
+            'Only for .tsx files',
+            'No, it strips types; run tsc --noEmit to check them',
+          ],
+          answer: 3,
+          why: 'Vite transpiles each file without type information for speed, so type checking is a separate step in scripts or CI.',
+        },
+      ],
+    },
+  ],
+
+  // ── Frontend testing ─────────────────────────────────────────────────────
+  'frontend-testing': [
+    {
+      key: 'frontend-testing',
+      title: 'Component tests with Vitest and Testing Library',
+      min: 35,
+      sum: 'Component tests render a component in a simulated DOM (jsdom) and check what a user would see. **Vitest** runs the tests with a Jest-compatible API, and **Testing Library** gives queries that find elements the way users and assistive technology do: by role, label and text. Assert on visible output and behaviour, not internal state or class names, so tests survive refactors.',
+      pts: [
+        'Prefer getByRole with a name, e.g. getByRole("button", { name: /save/i }).',
+        'Test behaviour users see, not implementation details.',
+        'getBy throws if missing, queryBy returns null, findBy waits.',
+      ],
+      learn: [
+        'Setup: add vitest, jsdom, @testing-library/react and @testing-library/jest-dom; set environment to jsdom',
+        'Test structure: describe, it and expect; arrange, act and assert in each test; run with npx vitest',
+        'render and screen: render(<Login />), then query through screen so tests read like a user scanning the page',
+        'Query priority: getByRole first, then getByLabelText and getByText; getByTestId only as a last resort',
+        'Query variants: getBy throws if missing, queryBy returns null for absence checks, findBy returns a promise',
+        'jest-dom matchers: toBeInTheDocument, toBeDisabled, toHaveValue and toHaveTextContent read clearly',
+        'What not to test: internal state, private functions or CSS classes; a refactor should not break good tests',
+      ],
+      tasks: [
+        {
+          key: 'practice-test-counter-form',
+          kind: 'practice',
+          title: 'Write Vitest and Testing Library tests for a counter and a login form: initial render, button states and error messages',
+          minutes: 40,
+        },
+      ],
+      quiz: [
+        {
+          q: 'Which query does Testing Library recommend first for finding a Save button?',
+          options: [
+            'getByTestId("save")',
+            'container.querySelector(".save-btn")',
+            'getByClassName("save")',
+            'getByRole("button", { name: /save/i })',
+          ],
+          answer: 3,
+          why: 'Role queries match how users and screen readers find controls, and they also check that the button is accessible.',
+        },
+        {
+          q: 'You want to assert that an error message is NOT shown. Which query fits?',
+          options: [
+            'queryByText, which returns null when nothing matches',
+            'getByText, which returns null when nothing matches',
+            'findByText, which resolves to null',
+            'getAllByText, which returns an empty array',
+          ],
+          answer: 0,
+          why: 'getBy and getAllBy throw and findBy rejects when nothing matches; queryBy returns null, so not.toBeInTheDocument() works.',
+        },
+      ],
+    },
+    {
+      key: 'frontend-testing-async',
+      title: 'User events, async UI and mocking the network',
+      min: 35,
+      sum: 'Real interactions are asynchronous: use **user-event** to type, click and tab like a person, and await `findBy` queries or `waitFor` until the UI updates, never fixed sleeps. Mock the network rather than your own components: **Mock Service Worker (MSW)** intercepts requests and returns fake responses, so components run their real fetching code. Use `vi.fn()` for callback props and `vi.mock()` only for modules you do not control.',
+      pts: [
+        'const user = userEvent.setup(); await user.click(button) simulates real browser events.',
+        'Wait with findBy or waitFor; fixed timeouts make tests slow and flaky.',
+        'Mock at the network boundary so your fetching code is tested too.',
+      ],
+      learn: [
+        'user-event: userEvent.setup(), then await user.type(input, "hello"), user.click, user.keyboard("{Enter}")',
+        'findBy: await screen.findByText("Saved") waits for UI that appears after a promise resolves',
+        'waitFor: wrap an assertion in await waitFor(() => expect(…)) when no element query fits',
+        'Mock functions: const onSave = vi.fn(); then expect(onSave).toHaveBeenCalledWith({ name: "Asha" })',
+        'MSW: define http.get("/api/jobs", () => HttpResponse.json([…])) handlers and start a server in test setup',
+        'Error paths: override a handler in one test to return a 500 and assert the error message and retry button',
+        'Fake timers: vi.useFakeTimers() and vi.advanceTimersByTime(500) test a debounce without waiting',
+        'Providers: a renderWithProviders helper wraps router, query client and theme for every test',
+      ],
+      tasks: [
+        {
+          key: 'practice-test-fetching',
+          kind: 'practice',
+          title: 'Test a job search component with MSW: loading state, results, empty results, a server error and a debounced input',
+          minutes: 45,
+        },
+      ],
+      quiz: [
+        {
+          q: 'A list appears after a fetch resolves. How should the test wait for it?',
+          options: [
+            'await new Promise(r => setTimeout(r, 1000))',
+            'await screen.findByRole("list")',
+            'Call screen.getByRole("list") immediately',
+            'Increase the test timeout',
+          ],
+          answer: 1,
+          why: 'findBy queries retry until the element appears or a timeout passes, so the test waits exactly as long as needed.',
+        },
+        {
+          q: 'Why mock HTTP requests with MSW instead of mocking your own useJobs hook?',
+          options: [
+            'MSW makes assertions unnecessary',
+            'Hooks cannot be mocked in Vitest',
+            'MSW runs only in real browsers',
+            'The component’s real data-fetching code still runs and is tested',
+          ],
+          answer: 3,
+          why: 'Mocking at the network keeps your hook, parsing and error handling in the test, so a bug there is still caught.',
+        },
+      ],
+    },
+    {
+      key: 'frontend-testing-e2e',
+      title: 'End-to-end tests with Playwright',
+      depth: 'standard',
+      min: 40,
+      sum: 'End-to-end tests drive a real browser through the running app, covering routing, network and storage together. **Playwright** runs tests in Chromium, Firefox and WebKit, with locators that auto-wait and web-first assertions that retry until they pass. Keep e2e tests to a few critical journeys such as sign-up, search and checkout, and leave detailed cases to faster component tests.',
+      pts: [
+        'Locators auto-wait; expect(locator).toBeVisible() retries until it passes or times out.',
+        'Write few e2e tests, for critical paths; they are slow and costly to maintain.',
+        'Each test gets a fresh browser context, so tests do not leak state.',
+      ],
+      learn: [
+        'Setup: npm init playwright@latest creates playwright.config.ts and an example test, and installs browsers',
+        'Locators: page.getByRole("button", { name: "Apply" }), getByLabel, getByText; avoid brittle CSS selectors',
+        'Actions: page.goto("/jobs"), then await locator.click(), locator.fill("text") and locator.press("Enter")',
+        'Web-first assertions: await expect(page.getByText("Saved")).toBeVisible() and toHaveURL(/jobs/) retry',
+        'webServer config: let Playwright start the dev or preview server before the tests and set baseURL',
+        'Auth state: sign in once in a setup project, save storageState and reuse it so tests start signed in',
+        'Network control: page.route("**/api/jobs", r => r.fulfill({ json: […] })) stubs flaky or slow APIs',
+        'Debugging: run with --ui or --debug, and open the trace viewer for failures from CI',
+      ],
+      tasks: [
+        {
+          key: 'practice-playwright-journey',
+          kind: 'practice',
+          title: 'Write Playwright tests for signing in, searching jobs and saving one, reusing stored auth state and running headless',
+          minutes: 50,
+        },
+      ],
+      quiz: [
+        {
+          q: 'Why does a Playwright test rarely need explicit sleeps?',
+          options: [
+            'Locators auto-wait for actionability and expect assertions retry',
+            'Playwright disables all animations',
+            'Tests run in slow motion by default',
+            'Playwright blocks all network requests',
+          ],
+          answer: 0,
+          why: 'Before acting, Playwright waits until an element is visible, stable and enabled; web-first assertions poll until they pass.',
+        },
+        {
+          q: 'Which tests belong in the e2e suite rather than in component tests?',
+          options: [
+            'Every validation message of every form',
+            'Each prop combination of a Button',
+            'A few critical user journeys across pages',
+            'Checks of individual CSS colours',
+          ],
+          answer: 2,
+          why: 'E2E tests are slow, so they cover the journeys that matter most; detailed cases run faster as component or unit tests.',
+        },
+      ],
+    },
+  ],
+
+  // ── Web performance ──────────────────────────────────────────────────────
+  'web-performance': [
+    {
+      key: 'web-performance',
+      title: 'Core Web Vitals and how to measure them',
+      min: 35,
+      sum: 'Core Web Vitals measure real user experience: **LCP** (Largest Contentful Paint, loading) should be 2.5 s or less, **INP** (Interaction to Next Paint, responsiveness) 200 ms or less, and **CLS** (Cumulative Layout Shift, visual stability) 0.1 or less, judged at the 75th percentile of visits. **Lab** tools such as Lighthouse test one simulated load; **field** data from real users shows how a site actually performs.',
+      pts: [
+        'Good thresholds: LCP ≤ 2.5 s, INP ≤ 200 ms, CLS ≤ 0.1, at the 75th percentile.',
+        'Lab data helps find causes; field data shows what users really experience.',
+        'INP needs real interactions, so a page-load Lighthouse run cannot measure it.',
+      ],
+      learn: [
+        'LCP: time until the largest image or text block in the viewport renders, usually the hero image or heading',
+        'INP: the delay from a click, tap or key press until the next frame is painted, near the worst on the page',
+        'CLS: a score summing unexpected layout shifts, such as text jumping when an image or banner loads late',
+        'Thresholds: good, needs improvement and poor bands; a page passes when 75% of visits are good',
+        'Lighthouse: run it in Chrome DevTools with mobile throttling; read the diagnostics, not just the score',
+        'Performance panel: record a load and an interaction; find long tasks, layout shifts and the LCP element',
+        'Field data: the web-vitals library reports onLCP, onINP and onCLS values to your analytics',
+        'Supporting timings: TTFB (server response) and FCP (first paint) help explain a slow LCP',
+      ],
+      tasks: [
+        {
+          key: 'practice-measure-vitals',
+          kind: 'practice',
+          title: 'Audit a site you built with Lighthouse and the Performance panel, find its LCP element and longest task, and log web-vitals',
+          minutes: 40,
+        },
+      ],
+      quiz: [
+        {
+          q: 'Which metric measures how quickly a page responds to clicks and key presses?',
+          options: ['LCP', 'CLS', 'INP', 'TTFB'],
+          answer: 2,
+          why: 'Interaction to Next Paint measures the delay between user input and the next painted frame.',
+        },
+        {
+          q: 'What is the "good" threshold for CLS?',
+          options: ['0.1 or less', '1 second or less', '200 ms or less', '0.5 or less'],
+          answer: 0,
+          why: 'CLS is a unitless score; 0.1 or less at the 75th percentile is good. 200 ms is the INP threshold, not CLS.',
+        },
+      ],
+    },
+    {
+      key: 'web-performance-loading',
+      title: 'Faster loading: images, fonts and JavaScript',
+      min: 40,
+      sum: 'LCP improves when the browser finds and downloads the hero resource early and has less to process first. Serve images in modern formats (AVIF, WebP) at the right size with `srcset`, give the LCP image `fetchpriority="high"` and never lazy-load it, and lazy-load only below-the-fold images. Ship less JavaScript through code splitting, defer non-critical scripts, and cache static assets with hashed filenames.',
+      pts: [
+        'Never put loading="lazy" on the LCP image; lazy-load images below the fold instead.',
+        'Every kilobyte of JavaScript must be downloaded, parsed and run on the main thread.',
+        'Fonts: use font-display: swap and preload only the one or two fonts used above the fold.',
+      ],
+      learn: [
+        'Critical rendering path: CSS and synchronous scripts block rendering; keep critical CSS small and defer the rest',
+        'Scripts: use defer or type="module" for app code and async for independent third-party scripts',
+        'Responsive images: srcset and sizes so phones download small files; serve AVIF or WebP',
+        'LCP image: fetchpriority="high", no lazy loading, and present in the HTML rather than injected by JavaScript',
+        'Lazy loading: loading="lazy" on images and iframes below the fold; dynamic import() for heavy components',
+        'Fonts: self-host woff2 files, subset them, preload key files and use font-display: swap',
+        'Caching and CDN: long Cache-Control max-age for hashed assets, Brotli compression, serve from a CDN',
+        'Preconnect: <link rel="preconnect"> to a critical third-party origin saves connection set-up time',
+      ],
+      tasks: [
+        {
+          key: 'practice-improve-lcp',
+          kind: 'practice',
+          title: 'Take a slow page and improve its LCP: resize and convert the hero image, set fetchpriority, defer scripts, then re-measure',
+          minutes: 45,
+        },
+      ],
+      quiz: [
+        {
+          q: 'The hero image is the LCP element. Which change helps most?',
+          options: [
+            'Add loading="lazy" to it',
+            'Add fetchpriority="high" and keep it eagerly loaded',
+            'Load it with JavaScript after the app mounts',
+            'Set it as a CSS background from a script',
+          ],
+          answer: 1,
+          why: 'A high fetch priority makes the browser download the LCP image early; lazy loading or script injection delays it.',
+        },
+        {
+          q: 'Which script tag lets HTML parsing continue and runs scripts after parsing, in document order?',
+          options: [
+            '<script src="app.js">',
+            '<script async src="app.js">',
+            '<script type="text/plain" src="app.js">',
+            '<script defer src="app.js">',
+          ],
+          answer: 3,
+          why: 'defer downloads in parallel and runs scripts in order after parsing; async runs each as soon as it arrives, in any order.',
+        },
+      ],
+    },
+    {
+      key: 'web-performance-inp-cls',
+      title: 'INP and CLS: long tasks and layout shifts',
+      depth: 'standard',
+      min: 35,
+      sum: 'INP is poor when the main thread is busy: any task over 50 ms is a **long task** that delays the response to input. Break work into smaller pieces and yield to the browser, defer non-urgent updates, and avoid rendering huge lists at once. CLS comes from content that moves after it appears; reserve space for images, embeds and ads, and animate with `transform` instead of layout properties.',
+      pts: [
+        'Tasks over 50 ms block input; split them and yield to the main thread.',
+        'Set width and height (or aspect-ratio) on images and embeds to reserve their space.',
+        'Animate transform and opacity; animating top, width or height triggers layout work.',
+      ],
+      learn: [
+        'Long tasks: find them in the Performance panel and see which script or event handler runs them',
+        'Yielding: split loops into chunks and await scheduler.yield() or a setTimeout(0) between chunks',
+        'Event handlers: make the visible update first and defer analytics or heavy work until after the next paint',
+        'React: startTransition or useDeferredValue keeps typing responsive while an expensive list re-renders',
+        'Large lists: virtualise long lists so only the visible rows are in the DOM',
+        'Web Workers: move heavy pure computation such as parsing or search indexing off the main thread',
+        'Layout shifts: set dimensions or aspect-ratio on media, reserve space for banners, avoid inserting content above',
+        'Fonts and CLS: fallback fonts adjusted with size-adjust reduce the shift when the web font swaps in',
+      ],
+      tasks: [
+        {
+          key: 'practice-fix-inp-cls',
+          kind: 'practice',
+          title: 'Fix a page with a slow filter and jumping images: chunk the filter work, use a transition, add image dimensions, re-measure',
+          minutes: 45,
+        },
+      ],
+      quiz: [
+        {
+          q: 'Above what duration does the browser count a main-thread task as a long task?',
+          options: ['200 ms', '1 second', '16 ms', '50 ms'],
+          answer: 3,
+          why: 'Tasks longer than 50 ms are long tasks; while one runs, input cannot be handled, which raises INP.',
+        },
+        {
+          q: 'Images load late and push text down the page. What fixes the CLS?',
+          options: [
+            'Lazy-load every image',
+            'Set width and height or aspect-ratio so space is reserved',
+            'Use PNG instead of JPEG',
+            'Add a CSS transition to the text',
+          ],
+          answer: 1,
+          why: 'With dimensions known up front, the browser reserves the box before the image loads, so nothing moves.',
+        },
+      ],
+    },
+  ],
+
+  // ── Vue ──────────────────────────────────────────────────────────────────
+  vue: [
+    {
+      key: 'vue',
+      title: 'Single-file components and template syntax',
+      min: 35,
+      sum: 'A Vue **single-file component** (`.vue`) holds a `<template>`, a `<script setup>` block and optional `<style scoped>`. Templates bind data with `{{ }}` for text, `:attr` (v-bind) for attributes and `@event` (v-on) for events, and use directives such as `v-if`, `v-show` and `v-for`. Create projects with `npm create vue@latest`, which uses Vite.',
+      pts: [
+        ':href is short for v-bind:href; @click is short for v-on:click.',
+        'v-if adds and removes elements; v-show only toggles CSS display.',
+        'v-for needs a unique :key, e.g. v-for="job in jobs" :key="job.id".',
+      ],
+      learn: [
+        'Project setup: npm create vue@latest with TypeScript, then npm run dev; main.ts mounts createApp(App)',
+        'SFC structure: <template>, <script setup lang="ts"> and <style scoped>, which styles only this component',
+        'Interpolation: {{ user.name }} renders escaped text; only expressions are allowed, not statements',
+        'v-bind and v-on: :src="url", :class="{ active: isActive }", @click="save", @submit.prevent="send"',
+        'Conditionals: v-if, v-else-if and v-else remove elements; v-show keeps them and toggles display',
+        'Lists: v-for="(job, index) in jobs" :key="job.id"; never put v-if and v-for on the same element',
+        'Event modifiers: .prevent, .stop and .once, plus key modifiers such as @keyup.enter',
+        'Vue DevTools: inspect the component tree, props and state in the browser',
+      ],
+      tasks: [
+        {
+          key: 'build-vue-job-list',
+          kind: 'build',
+          title: 'Build a Vue job list page with v-for cards, a v-if empty state, a class binding for saved jobs and a click handler',
+          minutes: 40,
+        },
+      ],
+      quiz: [
+        {
+          q: 'What is the shorthand for v-on:click="save"?',
+          options: [':click="save"', '#click="save"', '@click="save"', 'v-click="save"'],
+          answer: 2,
+          why: '@ is the shorthand for v-on (events); : is the shorthand for v-bind (attributes and props).',
+        },
+        {
+          q: 'An element is shown and hidden very often. Which directive is usually cheaper?',
+          options: [
+            'v-show, because it only switches CSS display',
+            'v-if, because it removes the element',
+            'v-for, because it caches elements',
+            'v-once, because it renders only once',
+          ],
+          answer: 0,
+          why: 'v-show renders once and toggles display; v-if destroys and recreates the element and its children on every toggle.',
+        },
+      ],
+    },
+    {
+      key: 'vue-reactivity',
+      title: 'Reactivity: ref, reactive, computed and watch',
+      min: 40,
+      sum: 'Vue 3 tracks which reactive values a template or computation reads, using JavaScript Proxies, and updates exactly those parts when the values change. `ref()` wraps any value (read and write `.value` in script; templates unwrap it), and `reactive()` makes an object deeply reactive. `computed()` caches derived values, while `watch` and `watchEffect` run side effects when their sources change.',
+      pts: [
+        'ref needs .value in script but not in the template.',
+        'Destructuring a reactive() object loses reactivity; use toRefs or separate refs.',
+        'computed is cached and recalculates only when its dependencies change.',
+      ],
+      learn: [
+        'ref: const count = ref(0); count.value++ in script; {{ count }} in the template unwraps it automatically',
+        'reactive: const form = reactive({ name: "", email: "" }) for objects; it cannot be replaced as a whole',
+        'Pitfalls: destructuring reactive() breaks reactivity; use toRefs(form) or keep separate refs',
+        'computed: const total = computed(() => …) caches until its sources change; keep it free of side effects',
+        'Writable computed: give get and set functions when a derived value must also be editable',
+        'watch: watch(query, (q) => fetchResults(q)) for side effects on a specific source; deep and immediate options',
+        'watchEffect: runs at once and re-runs whenever any reactive value it reads changes',
+        'nextTick: await nextTick() when you need the updated DOM after a state change',
+      ],
+      tasks: [
+        {
+          key: 'build-vue-cart',
+          kind: 'build',
+          title: 'Build a shopping cart with ref items, a computed total and item count, and a watch that saves the cart to localStorage',
+          minutes: 40,
+        },
+      ],
+      quiz: [
+        {
+          q: 'const count = ref(0). How do you increase it inside <script setup>?',
+          options: ['count++', 'count.value++', 'count.set(count + 1)', 'this.count++'],
+          answer: 1,
+          why: 'A ref is an object whose value lives in .value; templates unwrap it, but script code must use .value.',
+        },
+        {
+          q: 'What is the main difference between computed and a method called from the template?',
+          options: [
+            'Methods cannot read refs',
+            'computed runs only on the server',
+            'computed caches its result until its reactive dependencies change',
+            'Methods are cached and computed values are not',
+          ],
+          answer: 2,
+          why: 'A method runs on every re-render; a computed value is recalculated only when something it read has changed.',
+        },
+      ],
+    },
+    {
+      key: 'vue-components',
+      title: 'Props, emits, v-model and slots',
+      min: 35,
+      sum: 'Parent components pass data to children with **props**, declared in `<script setup>` with `defineProps`, and children report back by emitting events declared with `defineEmits`. `v-model` on a component is two-way binding built from a prop and an update event, and `defineModel()` sets it up in one line. **Slots** let a parent pass template content into a child, much like children in React.',
+      pts: [
+        'Props are read-only in the child; emit an event to ask for a change.',
+        'v-model on a component = modelValue prop + update:modelValue event.',
+        'Scoped slots let the child pass data back into the parent’s slot content.',
+      ],
+      learn: [
+        'defineProps: const props = defineProps<{ title: string; count?: number }>() with TypeScript types',
+        'Defaults: destructure with defaults, const { count = 0 } = defineProps<…>(), which stays reactive in Vue 3.5+',
+        'defineEmits: const emit = defineEmits<{ save: [id: number] }>(); emit("save", id); the parent uses @save',
+        'v-model on inputs: v-model="name" binds form fields; .trim and .number modifiers clean the value',
+        'defineModel: const model = defineModel<string>() lets a child component support v-model',
+        'Default slot: <slot /> renders content placed between the component tags; put fallback content inside it',
+        'Named and scoped slots: <template #header>, and <slot :item="item"> to expose data to the parent template',
+        'provide/inject: share a value with deep descendants without passing props through every level',
+      ],
+      tasks: [
+        {
+          key: 'build-vue-modal-input',
+          kind: 'build',
+          title: 'Build a reusable Modal with header, body and footer slots, and a SearchInput that supports v-model through defineModel',
+          minutes: 40,
+        },
+      ],
+      quiz: [
+        {
+          q: 'A child must ask its parent to delete an item. What should it do?',
+          options: [
+            'Change the items prop directly',
+            'Reach the parent through $root',
+            'Write to a global variable',
+            'Emit an event such as emit("delete", id)',
+          ],
+          answer: 3,
+          why: 'Props flow one way. The child emits an event and the parent, which owns the data, updates it.',
+        },
+        {
+          q: 'In Vue 3, what does v-model on a custom component expand to by default?',
+          options: [
+            'A modelValue prop and an update:modelValue event',
+            'A value prop and an input event',
+            'A template ref passed to the child',
+            'A provide and inject pair',
+          ],
+          answer: 0,
+          why: 'Vue 3 uses modelValue and update:modelValue; the value prop with an input event was the Vue 2 convention.',
+        },
+      ],
+    },
+    {
+      key: 'vue-composables-router',
+      title: 'Composables, lifecycle hooks and Vue Router',
+      depth: 'standard',
+      min: 40,
+      sum: '**Composables** are functions named `useX` that use the Composition API to package reusable stateful logic, such as fetching data or tracking the mouse; each call gets its own state. Lifecycle hooks like `onMounted` and `onUnmounted` run code when a component appears or is removed. **Vue Router** maps URLs to components and supports dynamic params, nested routes, lazy-loaded pages and navigation guards.',
+      pts: [
+        'A composable returns refs so callers keep reactivity when they destructure.',
+        'Remove listeners and timers in onUnmounted.',
+        'Lazy-load route components with () => import("./views/Admin.vue").',
+      ],
+      learn: [
+        'Lifecycle: onMounted for DOM access and set-up, onUnmounted for cleanup; onUpdated is rarely needed',
+        'Composables: function useFetch(url) { const data = ref(null); const error = ref(null); …; return { data, error } }',
+        'Reactive arguments: accept refs or getters and read them with toValue() inside watchEffect so changes refetch',
+        'Router set-up: createRouter({ history: createWebHistory(), routes }), app.use(router), render <RouterView />',
+        'Links and params: <RouterLink to="/jobs/42">, a path "/jobs/:id", and useRoute().params.id in the page',
+        'Programmatic navigation: useRouter().push({ name: "job", params: { id } })',
+        'Navigation guards: router.beforeEach((to) => …) redirects signed-out users away from protected routes',
+        'Lazy routes: component: () => import("./views/Admin.vue") puts each page in its own chunk',
+      ],
+      tasks: [
+        {
+          key: 'build-vue-router-app',
+          kind: 'build',
+          title: 'Build a Vue Router app with a job list and a job detail page loaded by a useFetch composable, plus a guarded /saved route',
+          minutes: 50,
+        },
+      ],
+      quiz: [
+        {
+          q: 'Where should you remove a window scroll listener that was added in onMounted?',
+          options: ['onBeforeMount', 'A computed property', 'onUnmounted', 'The template'],
+          answer: 2,
+          why: 'onUnmounted runs when the component is removed; removing the listener there prevents leaks and errors.',
+        },
+        {
+          q: 'For a route with path "/jobs/:id", how does the page component read the id?',
+          options: ['window.location.id', 'useRoute().params.id', 'this.$id', 'defineProps<{ $id }>()'],
+          answer: 1,
+          why: 'useRoute() returns the current reactive route, and params holds the values of dynamic segments such as :id.',
+        },
+      ],
+    },
+    {
+      key: 'vue-pinia-nuxt',
+      title: 'Pinia stores and server rendering with Nuxt',
+      depth: 'optional',
+      min: 40,
+      sum: '**Pinia** is the official Vue store for state shared across many components. A setup store looks like a composable: refs become state, computed values become getters and functions become actions. **Nuxt** is the full-stack Vue framework: file-based routing in `pages/`, server rendering, auto-imports and data fetching with `useFetch`, which avoids fetching twice during hydration.',
+      pts: [
+        'Use storeToRefs() to destructure store state without losing reactivity.',
+        'Keep API data in fetching utilities; use Pinia for shared client state.',
+        'Nuxt useFetch runs on the server during SSR and passes the result to the client.',
+      ],
+      learn: [
+        'Installing Pinia: app.use(createPinia()), then defineStore("cart", () => { … }) as a setup store',
+        'Using a store: const cart = useCartStore(); call cart.add(item); read cart.total in templates',
+        'storeToRefs: const { items, total } = storeToRefs(cart) keeps reactivity; call actions on the store itself',
+        'Pinia in DevTools: inspect state, follow actions and step back through changes',
+        'Nuxt basics: npm create nuxt@latest; pages/ for routes; components/ and composables/ are auto-imported',
+        'Nuxt data: const { data, status, error } = await useFetch("/api/jobs") fetches on the server during SSR',
+        'Server routes: files in server/api/ become endpoints, e.g. server/api/jobs.get.ts handles GET /api/jobs',
+        'Rendering modes: SSR by default; route rules can make pages prerendered, client-only or cached',
+      ],
+      tasks: [
+        {
+          key: 'build-pinia-cart',
+          kind: 'build',
+          title: 'Move the cart from the reactivity exercise into a Pinia setup store used by a header badge and a cart page',
+          minutes: 40,
+        },
+      ],
+      quiz: [
+        {
+          q: 'You write const { total } = useCartStore(). Why does total stop updating?',
+          options: [
+            'Destructuring the store loses reactivity; use storeToRefs()',
+            'Pinia stores are read-only after creation',
+            'Getters update only inside Nuxt',
+            'total must be declared with let',
+          ],
+          answer: 0,
+          why: 'Destructuring copies the current values out of the reactive store; storeToRefs returns refs that stay linked.',
+        },
+        {
+          q: 'In Nuxt, what does a file at pages/jobs/[id].vue do?',
+          options: [
+            'Creates an API endpoint',
+            'Registers a Pinia store',
+            'Creates the route /jobs/:id',
+            'Adds a layout',
+          ],
+          answer: 2,
+          why: 'Nuxt builds routes from the pages/ folder; square brackets mark a dynamic segment.',
+        },
+      ],
+    },
+  ],
+
+  // ── Angular ──────────────────────────────────────────────────────────────
+  angular: [
+    {
+      key: 'angular',
+      title: 'Standalone components, templates and the CLI',
+      min: 40,
+      sum: 'Angular is a full framework built on TypeScript. Create projects with the **Angular CLI** (`ng new`, `ng serve`, `ng generate component`). Components are **standalone** classes decorated with `@Component` that list what they use in `imports`. Templates bind data with `{{ }}`, `[property]` and `(event)`, and use built-in control flow blocks `@if`, `@for` (with a required `track`) and `@switch`.',
+      pts: [
+        '[prop] binds data in, (event) listens for events, [(ngModel)] is two-way.',
+        '@for requires a track expression, e.g. track job.id.',
+        'Standalone components import what they use directly; NgModules are optional.',
+      ],
+      learn: [
+        'CLI: npm install -g @angular/cli, then ng new, ng serve, ng generate component job-card and ng build',
+        'Component anatomy: @Component({ selector, imports, templateUrl, styleUrl }) on an exported class',
+        'Bootstrapping: main.ts calls bootstrapApplication(App, appConfig), with providers in app.config.ts',
+        'Bindings: {{ title }} for text, [src]="logoUrl" for properties, (click)="save()" for events, [class.active]',
+        'Control flow: @if (user) { … } @else { … } and @for (job of jobs; track job.id) { … } @empty { … }',
+        'Pipes: transform values in templates with | date, | currency: "INR" and | uppercase; write your own with @Pipe',
+        'Component styles: styles apply only to the component by default through view encapsulation',
+      ],
+      tasks: [
+        {
+          key: 'build-angular-job-cards',
+          kind: 'build',
+          title: 'Generate an Angular app with a JobCard component; render jobs with @for and track, an @if empty state and pipes',
+          minutes: 45,
+        },
+      ],
+      quiz: [
+        {
+          q: 'Which template syntax listens for a click event in Angular?',
+          options: ['[click]="save()"', '{{ click }}="save()"', '@click="save()"', '(click)="save()"'],
+          answer: 3,
+          why: 'Parentheses bind events and square brackets bind properties; @click is Vue syntax.',
+        },
+        {
+          q: 'What must every @for block in an Angular template include?',
+          options: ['A track expression', 'An index variable', 'An @empty block', 'A pipe'],
+          answer: 0,
+          why: 'track tells Angular how to identify items so it can reuse DOM nodes when the list changes; it is required.',
+        },
+      ],
+    },
+    {
+      key: 'angular-signals',
+      title: 'Signals, inputs and outputs',
+      min: 40,
+      sum: '**Signals** are Angular’s reactive primitive: `signal()` holds a value you read by calling it, `computed()` derives values lazily and caches them, and `effect()` runs side effects when signals it reads change. Components receive data through `input()` and send events through `output()`. Because Angular knows exactly which signals a template reads, it can update only the views that changed.',
+      pts: [
+        'Read a signal by calling it: count(); write with set() or update().',
+        'computed() is read-only and recalculates only when its dependencies change.',
+        'Use effect() sparingly, for syncing with things outside Angular.',
+      ],
+      learn: [
+        'signal: count = signal(0); read count() in code and templates; count.set(5) or count.update(c => c + 1)',
+        'computed: total = computed(() => this.items().reduce(…)) is cached and read-only',
+        'effect: effect(() => localStorage.setItem("cart", JSON.stringify(this.items()))) for side effects only',
+        'Immutability: update arrays with update(list => [...list, item]) so the signal sees a new value',
+        'input(): job = input.required<Job>() in the child, bound by the parent with [job]="selectedJob"',
+        'output(): saved = output<number>(); this.saved.emit(id); the parent listens with (saved)="onSaved($event)"',
+        'model(): a two-way bindable input for custom controls, used by the parent with [(value)]',
+        'linkedSignal: a writable signal that resets when its source changes, e.g. a selection when the list changes',
+      ],
+      tasks: [
+        {
+          key: 'build-angular-signal-cart',
+          kind: 'build',
+          title: 'Build a cart with signal state, a computed total, an effect that saves it, and a child component using input() and output()',
+          minutes: 45,
+        },
+      ],
+      quiz: [
+        {
+          q: 'How do you read the current value of count = signal(0)?',
+          options: ['count.value', 'count.get', 'count()', 'await count'],
+          answer: 2,
+          why: 'A signal is a getter function: calling it returns the value and registers the read as a dependency.',
+        },
+        {
+          q: 'Which statement about computed() signals is true?',
+          options: [
+            'They can be written with set()',
+            'They are read-only and cached until a dependency changes',
+            'They recalculate on every change detection run',
+            'They can depend on only one signal',
+          ],
+          answer: 1,
+          why: 'computed values are derived and read-only; Angular recalculates them lazily only after a signal they read changes.',
+        },
+      ],
+    },
+    {
+      key: 'angular-di-services',
+      title: 'Services and dependency injection',
+      min: 35,
+      sum: 'Angular creates and supplies objects for you through **dependency injection** (DI). A **service** is a class marked `@Injectable` that holds shared logic or state, such as an API client or the signed-in user. Components ask for it with `inject(JobService)` and Angular provides the instance from an injector, which keeps code testable: in tests you provide a fake instead.',
+      pts: [
+        'providedIn: "root" gives one shared, tree-shakable instance for the whole app.',
+        'Providing a service in a component gives that component subtree its own instance.',
+        'inject() works in field initialisers, constructors and factory functions.',
+      ],
+      learn: [
+        'Services: @Injectable({ providedIn: "root" }) export class JobService { … }, created with ng generate service',
+        'inject(): private jobs = inject(JobService) as a class field; constructor parameters are the older equivalent',
+        'Injector hierarchy: root providers are app-wide singletons; providers: [X] on a component scopes a new instance',
+        'Shared state: keep signals in a service so several components read and update the same data',
+        'Injection tokens: new InjectionToken<string>("API_URL") with { provide: API_URL, useValue: … } for config',
+        'Provider kinds: useClass, useValue, useFactory and useExisting, and when each one fits',
+        'Testing with DI: TestBed.configureTestingModule({ providers: [{ provide: JobService, useValue: fake }] })',
+      ],
+      tasks: [
+        {
+          key: 'build-angular-service',
+          kind: 'build',
+          title: 'Create a SavedJobsService with signal state, inject it into a list and a header badge, and provide a fake in a test',
+          minutes: 40,
+        },
+      ],
+      quiz: [
+        {
+          q: 'What does providedIn: "root" on a service mean?',
+          options: [
+            'One instance shared across the whole application',
+            'A new instance for every component that injects it',
+            'The service runs only on the server',
+            'It must also be listed in each component’s providers',
+          ],
+          answer: 0,
+          why: 'Root-provided services are registered with the application injector, so every injection gets the same instance.',
+        },
+        {
+          q: 'How do you give a component test a fake JobService?',
+          options: [
+            'Edit the real service file before the test',
+            'Assign window.JobService = fake',
+            'Provide { provide: JobService, useValue: fake } in TestBed',
+            'Services cannot be replaced in tests',
+          ],
+          answer: 2,
+          why: 'DI lets the test injector hand out a different implementation for the same token, without changing the component.',
+        },
+      ],
+    },
+    {
+      key: 'angular-routing-forms',
+      title: 'Routing, guards and reactive forms',
+      min: 40,
+      sum: 'The Angular **router** maps paths to components with `provideRouter(routes)`, renders them in `<router-outlet>`, and can lazy-load pages with `loadComponent`. Functional **guards** such as `canActivate` decide whether navigation may continue. **Reactive forms** build a typed form model in TypeScript with `FormGroup`, `FormControl` and validators, which keeps validation logic testable.',
+      pts: [
+        'Lazy-load pages with loadComponent: () => import(…).then(m => m.AdminPage).',
+        'Guards are plain functions that return true, false or a UrlTree redirect.',
+        'Reactive forms keep the model in TypeScript; template-driven forms keep it in the template.',
+      ],
+      learn: [
+        'Routes: [{ path: "jobs/:id", component: JobDetail }, { path: "**", component: NotFound }] in app.routes.ts',
+        'Navigation: routerLink="/jobs" with routerLinkActive, and inject(Router).navigate(["/jobs", id]) in code',
+        'Route params: withComponentInputBinding() binds :id to a matching input() of the page; or use ActivatedRoute',
+        'Lazy loading: loadComponent and loadChildren split routes into separate chunks',
+        'Guards: canActivate: [() => inject(Auth).isSignedIn() || inject(Router).parseUrl("/login")]',
+        'Reactive forms: new FormGroup({ email: new FormControl("", [Validators.required, Validators.email]) })',
+        'Template binding: [formGroup]="form" and formControlName="email"; show errors when touched and invalid',
+        'Typed forms and submit: form.getRawValue() is typed; disable the submit button while form.invalid',
+      ],
+      tasks: [
+        {
+          key: 'build-angular-routes-forms',
+          kind: 'build',
+          title: 'Add routing with a lazy-loaded admin page and an auth guard, plus a reactive sign-up form with validators and errors',
+          minutes: 50,
+        },
+      ],
+      quiz: [
+        {
+          q: 'What does loadComponent in a route definition do?',
+          options: [
+            'Loads the component’s code only when the route is first visited',
+            'Preloads every component at start-up',
+            'Renders the component only on the server',
+            'Registers the component globally',
+          ],
+          answer: 0,
+          why: 'loadComponent takes a dynamic import, so the page becomes a separate chunk fetched on first navigation.',
+        },
+        {
+          q: 'Which form approach defines the form model in the component class with FormGroup and FormControl?',
+          options: ['Template-driven forms', 'Reactive forms', 'Signal inputs', 'Route guards'],
+          answer: 1,
+          why: 'Reactive forms create the model explicitly in TypeScript; template-driven forms build it from ngModel in the template.',
+        },
+      ],
+    },
+    {
+      key: 'angular-rxjs-http',
+      title: 'RxJS observables and HttpClient',
+      depth: 'standard',
+      min: 40,
+      sum: 'Angular’s `HttpClient` returns **RxJS observables**: lazy streams that do nothing until subscribed and can be cancelled. Operators such as `map`, `switchMap`, `debounceTime` and `catchError` transform streams, for example a search box that cancels stale requests. Subscribe in templates with the `async` pipe or convert to signals with `toSignal()`, and add auth headers in one place with an interceptor.',
+      pts: [
+        'Observables are lazy: no subscription, no HTTP request.',
+        'switchMap cancels the previous inner request when a new value arrives.',
+        'Avoid leaks: use the async pipe, toSignal or takeUntilDestroyed rather than bare subscribe.',
+      ],
+      learn: [
+        'Set-up: provideHttpClient(withInterceptors([authInterceptor])) in app.config.ts; inject(HttpClient) in a service',
+        'Requests: this.http.get<Job[]>("/api/jobs") returns an Observable; post, put and delete work the same way',
+        'Observables vs promises: lazy, can emit many values, and cancellable by unsubscribing',
+        'Operators: pipe(map(…), filter(…), catchError(() => of([]))) to transform values and recover from errors',
+        'Search pattern: valueChanges.pipe(debounceTime(300), distinctUntilChanged(), switchMap(q => api.search(q)))',
+        'Subscribing safely: async pipe in templates, toSignal(obs$) in components, takeUntilDestroyed() otherwise',
+        'Interceptors: (req, next) => next(req.clone({ setHeaders: { Authorization: … } })) runs for every request',
+        'Subjects: a BehaviorSubject holds a current value; prefer signals for new component state',
+      ],
+      tasks: [
+        {
+          key: 'build-angular-search',
+          kind: 'build',
+          title: 'Build a job search box: debounced input, switchMap to the API, a loading signal, error handling and an auth interceptor',
+          minutes: 50,
+        },
+      ],
+      quiz: [
+        {
+          q: 'You call this.http.get("/api/jobs") but never subscribe. What happens?',
+          options: [
+            'The request is sent and the result cached',
+            'Angular reports an error at compile time',
+            'The request is sent twice',
+            'No request is sent, because observables are lazy',
+          ],
+          answer: 3,
+          why: 'HttpClient observables are cold: the request starts on subscribe, and each new subscription sends a new request.',
+        },
+        {
+          q: 'Which operator suits a search box where only the latest query’s response should be used?',
+          options: ['mergeMap', 'concatMap', 'switchMap', 'forkJoin'],
+          answer: 2,
+          why: 'switchMap unsubscribes from the previous inner observable, cancelling the older HTTP request, when a new query arrives.',
+        },
+      ],
+    },
+    {
+      key: 'angular-change-detection',
+      title: 'Change detection, zoneless apps and @defer',
+      depth: 'optional',
+      min: 35,
+      sum: 'Angular historically used **zone.js** to notice async events and then checked the component tree for changes. With signals, Angular can run **zoneless**, refreshing views only when signals, inputs or events mark them dirty, and recent versions create zoneless apps by default. `OnPush` components skip checks unless an input changes or they are marked dirty, and `@defer` blocks lazy-load parts of a template.',
+      pts: [
+        'OnPush plus signals keeps change detection cheap and predictable.',
+        'In zoneless apps, change state through signals so the view refreshes.',
+        '@defer (on viewport) loads a block’s code only when it scrolls into view.',
+      ],
+      learn: [
+        'zone.js: patches async APIs such as setTimeout and fetch to trigger a check of the whole component tree',
+        'OnPush: ChangeDetectionStrategy.OnPush re-checks on input changes, template events or signal updates',
+        'Zoneless: provideZonelessChangeDetection() drops zone.js; signals, events and the async pipe schedule updates',
+        'Pitfall: in zoneless or OnPush code, changing a plain field in setTimeout does not refresh the view; use a signal',
+        '@defer: @defer (on viewport) { <app-chart /> } @placeholder { … } @loading { … } lazy-loads template parts',
+        'Defer triggers: on idle, on viewport, on interaction, on hover, on timer, and prefetch on idle',
+        'SSR and hydration: ng add @angular/ssr; incremental hydration with @defer (hydrate on viewport)',
+        'Profiling: the Angular DevTools profiler shows change detection cycles and slow components',
+      ],
+      tasks: [
+        {
+          key: 'practice-angular-onpush-defer',
+          kind: 'practice',
+          title: 'Convert a dashboard to OnPush components with signals, defer a heavy chart with @defer (on viewport), compare in DevTools',
+          minutes: 45,
+        },
+      ],
+      quiz: [
+        {
+          q: 'An OnPush component changes a plain class field inside setTimeout. Why might the view not update?',
+          options: [
+            'OnPush components never update after the first render',
+            'setTimeout is blocked inside Angular components',
+            'Nothing marks the view for checking; updating a signal would',
+            'Class fields must be declared private',
+          ],
+          answer: 2,
+          why: 'OnPush views are checked only when marked dirty; a signal read by the template marks it when the signal changes.',
+        },
+        {
+          q: 'What does @defer (on viewport) do?',
+          options: [
+            'Loads and renders the block when it scrolls into view',
+            'Delays the whole app start until the browser is idle',
+            'Moves the block’s rendering to a Web Worker',
+            'Disables change detection for the block',
+          ],
+          answer: 0,
+          why: 'The block’s dependencies are split into a separate chunk and loaded when the placeholder enters the viewport.',
+        },
+      ],
+    },
+  ],
+};
