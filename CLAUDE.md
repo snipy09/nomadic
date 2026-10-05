@@ -175,8 +175,8 @@ screens). The owner has signed in on the packaged v1.0.6 app and run apply up to
 
 Owner actions:
 0. **Learn v2 go-live** (merged into `main` with 1.1.0): 028, 029, the content seed and the ai-proxy redeploy are
-   done (5 Oct 2026). v1.2.0 added 624 quiz items: re-paste `baseline/content_seed.sql` (regenerated, idempotent)
-   after merging. Left: on the laptop run `npm run check-paid-only -w
+   done (5 Oct 2026). v1.2.0's 624 quiz items are live (5 Oct 2026: 864 practice items, content hash checked against the
+   seed). Left: on the laptop run `npm run check-paid-only -w
    @job-automator/learning`, `npm run build-problems`, `npm run check-links -w @job-automator/learning --
    --write-seed` and `npm run build-seed` (the build container could not reach leetcode.com or the resource sites,
    so paid-only flags are a hand list and the 26 new resources stay hidden until link-checked), then regenerate and re-paste `baseline/content_seed.sql` and package the next version.
