@@ -1,7 +1,7 @@
 # Nomadic: complete project context
 
 Read this first. It is the single source of context for anyone (person or AI assistant) working on this repo.
-Last full update: 5 October 2026 (v1.1.0: Outreach + Learn v2). Keep it current when something important changes.
+Last full update: 5 October 2026 (v1.2.0: Learn path + Projects page; v1.1.0: Outreach + Learn v2). Keep it current when something important changes.
 New session or new assistant account? Read sections 9–11 at the end first (handoff state, how to build and test,
 how the owner wants work done).
 
@@ -11,11 +11,16 @@ A **Windows desktop app** (Electron) for **Indian engineering students** looking
 first jobs. One app covers the whole path:
 
 1. **Onboarding** (4–5 short steps) ends with a **personal learning roadmap** (core feature).
-2. **Learn (v2)**: intake (role, aim, dates, weekday/weekend minutes, study days, days off, level, DSA language,
-   target companies) → a roadmap of modules → topics → tasks, picked by AI from the reviewed catalogue (rules
-   planner as fallback) and fitted into dated days by a deterministic scheduler (buffer, revision and OA-mock days,
-   re-plan, pace factor). Today/Week/Roadmap/Topic/Progress screens, named LeetCode problems per topic, quizzes
-   with SM-2 reviews, and a Project Library with guided, stage-by-stage builds and a public GitHub repo check.
+2. **Learn (v2)**: a page-by-page intake (one question per page: role, aim, duration, schedule, level, DSA
+   language, focus, extras, summary) → a roadmap of modules → day-sized topics → tasks, picked by AI from the
+   reviewed catalogue (rules planner as fallback) and fitted into dated days by a deterministic scheduler (buffer,
+   revision and OA-mock days, re-plan, pace factor). Shown as a Duolingo-style **path**: a banner per week ("Week 3:
+   Arrays & Web foundations") and a node per study day ("Day 2: Prefix sums"), plus Today, a day page, Topic and
+   Progress. Every topic has a "What to learn" list (no external resources are shown in Learn), named LeetCode
+   problems, quizzes with SM-2 reviews.
+   **Projects** (sidebar, under Practice): a library of ~2,400 fully guided projects (12 curated + generated
+   idea × stack × level: 80 app ideas on 5 frontend and 6 backend stacks, 40 datasets on 3 data stacks), each with
+   stages, steps with starter code, hints, acceptance checks, an optional GitHub repo check and a finish kit.
 3. **Practice**: ~1,800 LeetCode-company problems (external links), role questions, timed mock mode, weak topics,
    AI rubric feedback on written answers (Pro/Max).
 4. **Job board**: jobs collected by the scraper pipeline, skill-based match % and top missing skills, save, filters.
@@ -74,10 +79,13 @@ packages/ui          @nomadic/ui design system: tokens, Tailwind preset, AppShel
 packages/config      plans.ts (prices/limits), features.ts (flags), legal.ts (terms/privacy/refunds), tiers.ts
 packages/learning    @job-automator/learning: types (zod), graph, sm2, readiness/jobMatch, tagSkills,
                      practiceAttempts/weakTopics, v1 planner (unused by the app now), and src/v2 (Learn v2 engine:
-                     catalog, problems, expand, scheduler, roadmap, intake, projects, progressV2). seed/bundle.json
-                     (SEED_VERSION 2026.10.2): 109 skills, 55 resources, 109 lessons, 240 practice items, 54 modules,
-                     206 topics, 337 problems, 12 projects; all AI-drafted, status draft. Content sources in
-                     scripts/seed-source/v2; scripts build-problems, check-paid-only, check-links --write-seed
+                     catalog, problems, expand, scheduler, roadmap, intake, projects, progressV2, path (weeks/days),
+                     gen (generated project library: ideas.ts, dataIdeas.ts, kinds/frontend|backend|data.ts; ids
+                     g.<idea>.<stack>.<b|i|a>, never rename keys)). seed/bundle.json (SEED_VERSION 2026.10.3): 109
+                     skills, 55 resources, 109 lessons, 864 practice items, 54 modules, 420 topics (each with
+                     learn_items), 337 problems, 12 projects; all AI-drafted, status draft. Content sources in
+                     scripts/seed-source/v2 (dev syllabus per skill in v2/dev/*.ts); scripts build-problems,
+                     check-paid-only, check-links --write-seed, check-content (validate without writing)
 packages/form-engine FormReader, classifier, answerer (one batched LLM call via a FormAnswerClient), writers, verifier
 packages/automation  AutoApplyEngine: fill with autoSubmit off, onReadyForReview, submitReviewed; ATS adapters
 packages/scrapers    Pipeline: fetch, normalise (zod Job schema), dedupe, validate links, classify, publish
@@ -152,7 +160,7 @@ F13: Outreach was rebuilt in v1.1.0 (see section 9) and shows in the sidebar as 
 the working module needs `VITE_FEATURES="outreach=on"`. Opportunity Board, Resource Vault and the Assistant stay
 hidden; the Assistant still needs rework or removal.
 
-Tests: 1,667 vitest tests pass (126 files, 20 skipped, 5 Oct 2026; run with `--maxWorkers=2 --testTimeout=30000` on this laptop, the default
+Tests: 1,723 vitest tests pass (129 files, 5 Oct 2026, v1.2.0 branch; run with `--maxWorkers=2 --testTimeout=30000` on this laptop, the default
 parallelism times out component tests, and the three Chrome DOM suites can time out closing Chrome in `afterAll`);
 typecheck, lint (0 errors, ~190 warnings) and desktop/web builds pass.
 The built Electron app has been smoke-tested over CDP (window, live feed via IPC, Learn, Settings, Help, Activity, Admin
@@ -163,7 +171,8 @@ screens). The owner has signed in on the packaged v1.0.6 app and run apply up to
 
 Owner actions:
 0. **Learn v2 go-live** (merged into `main` with 1.1.0): 028, 029, the content seed and the ai-proxy redeploy are
-   done (5 Oct 2026). Left: on the laptop run `npm run check-paid-only -w
+   done (5 Oct 2026). v1.2.0 added 624 quiz items: re-paste `baseline/content_seed.sql` (regenerated, idempotent)
+   after merging. Left: on the laptop run `npm run check-paid-only -w
    @job-automator/learning`, `npm run build-problems`, `npm run check-links -w @job-automator/learning --
    --write-seed` and `npm run build-seed` (the build container could not reach leetcode.com or the resource sites,
    so paid-only flags are a hand list and the 26 new resources stay hidden until link-checked), then regenerate and re-paste `baseline/content_seed.sql` and package the next version.
@@ -300,6 +309,15 @@ checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification
   Progress, `learnModel.ts`, `quizLogic.ts`, `catalog.ts`) and `features/projects/`. v1 PathScreen, GoalSetup,
   GoalFields, LessonScreen and learnLogic are deleted; the v1 goal RPCs (007/012) are unused but still deployed.
   Go-live steps: owner action 0 in section 7.
+- **v1.2.0 Learn path + Projects** (5 Oct 2026, branch `claude/relaxed-bell-eendal`, not packaged: built in a Linux
+  container): intake is one question per page (`features/learn/IntakeWizard.tsx`, `intakeSteps.ts`; onboarding's
+  roadmap step uses the same pages via `IntakePage`); Learn tabs are Path / Today / Progress (`PathScreen.tsx` from
+  engine `buildPath`, `DayScreen.tsx`, `DayTaskList.tsx` with the per-part "What to learn" list via `partSlice`);
+  Week and Roadmap-tree screens and `IntakeFields` were deleted; the Topic page shows no resources. Review shows the
+  plan week by week. Projects page = sidebar tab `learner-projects` (`features/projects/ProjectsView.tsx`,
+  `ProjectLibrary.tsx`, `projectsLogic.ts`); main `services/learn-v2.ts` `projectFor` resolves generated ids for
+  saves and repo checks. Not built yet: generated full-stack, mobile, CLI, DevOps and ML kinds (ideas already name
+  them; add `gen/kinds/<kind>.ts` and list it in `gen/index.ts`), and AI help inside a project.
 - Next most useful work: owner action 0 (Learn v2 go-live), then owner actions in section 7 (consent screen, Resend domain, key rotation),
   then a live end-to-end pass (Google sign-in, reviewed submit, AI feedback), then the code follow-ups in section 7.
 

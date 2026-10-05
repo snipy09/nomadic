@@ -10,7 +10,7 @@ import { SKILL_DEFS as V1_SKILL_DEFS } from '../scripts/seed-source/skills';
 import { V2_SKILL_DEFS, buildV2Content, v2Resources } from '../scripts/seed-source/v2';
 import { ContentBundleSchema, type ContentBundle, type SkillPrerequisite } from './types';
 
-export const SEED_VERSION = '2026.10.2';
+export const SEED_VERSION = '2026.10.3';
 
 const SKILL_DEFS = [...V1_SKILL_DEFS, ...V2_SKILL_DEFS];
 
