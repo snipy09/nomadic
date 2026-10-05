@@ -707,7 +707,7 @@ export function IntakeWizard({ draft, onChange, feasibility, companiesAllowed, p
             )}
             <div className="flex-1" />
             {def.optional && !isLast && <Button variant="ghost" onClick={() => go(safeIndex + 1)}>Skip</Button>}
-            <Button type="submit" size="lg" rightIcon={isLast ? <Sparkles /> : <ArrowRight />} disabled={isLast && !!problem}>
+            <Button type="submit" variant="primary" size="lg" rightIcon={isLast ? <Sparkles /> : <ArrowRight />} disabled={isLast && !!problem}>
               {isLast ? submitLabel : 'Continue'}
             </Button>
           </div>

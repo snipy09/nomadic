@@ -254,9 +254,9 @@ const modelStage: StageTemplate<Ctx> = {
   minutes: [15, 20, 20],
   build: (c) => ({
     title: `Model the ${c.n.one} in the database`,
-    goal: `A ${c.n.snakeMany} table exists, created by a migration that anyone can run.`,
+    goal: `The ${c.n.snakeMany} table exists, created by a migration that anyone can run.`,
     steps: [
-      { title: 'Design the table', detail: `A ${c.n.one} has an id plus ${fieldList(c.fields)}. Decide each column's type, which are required (NOT NULL) and the allowed values. Add created_at so you can sort by newest.` },
+      { title: 'Design the table', detail: `${upperFirst(an(c.n.one))} has an id plus ${fieldList(c.fields)}. Decide each column's type, which are required (NOT NULL) and the allowed values. Add created_at so you can sort by newest.` },
       { title: 'Write the model and migration', detail: 'Describe the table in code and create it with a migration, so the schema lives in git and every machine gets the same database.', code: model(c) },
       { title: 'Seed sample rows', detail: `Insert three realistic ${c.n.many} (rupees for money, real-looking dates) with a seed script or SQL, then select them to check the types.`, code: `INSERT INTO ${c.n.snakeMany} (${c.fields.map(col).join(', ')})\nVALUES (${c.fields.map((f) => (f.type === 'number' ? '3' : f.type === 'money' ? '1200' : f.type === 'date' ? "'2026-10-05'" : f.type === 'boolean' ? 'true' : f.type === 'enum' ? `'${f.options?.[0]}'` : `'Sample ${f.label}'`)).join(', ')});` },
     ],
@@ -432,7 +432,7 @@ const hardenStage: StageTemplate<Ctx> = {
     steps: [
       { title: 'OpenAPI docs', detail: lang(c) === 'fastapi' ? 'FastAPI already serves the docs at /docs; add descriptions, examples and response models to every route.' : 'Generate an OpenAPI document (springdoc, @nestjs/swagger, drf-spectacular, a hand-written openapi.yaml for Express or Go) and serve interactive docs. Every route has an example request and response.' },
       { title: 'Rate limiting', detail: 'Limit requests per IP (and stricter on log-in): for example 100 per minute, returning 429 with a Retry-After header. Test it with a quick loop of curl calls.' },
-      { title: 'Cache a hot read', detail: `Cache the busiest read (for example a feature summary) in memory or Redis for 30–60 seconds, and clear it when a ${c.n.one} changes. Measure the response time before and after.` },
+      { title: 'Cache a hot read', detail: `Cache the busiest read (for example a feature summary) in memory or Redis for 30–60 seconds, and clear it when ${an(c.n.one)} changes. Measure the response time before and after.` },
     ],
     hints: ['Cache only what is safe to be slightly stale, and always per user for private data.', '429 responses must still use your JSON error shape.'],
     acceptance: ['Interactive API docs list every route with examples.', 'Too many requests get 429 with Retry-After.', 'The cached endpoint is faster and never serves stale data after a change.'],

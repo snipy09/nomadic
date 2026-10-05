@@ -63,14 +63,11 @@ export const KIND_LABEL: Record<StackKind, string> = {
 export const projectHours = (p: Project) => Math.round((projectMinutes(p) / 60) * 10) / 10;
 export const cardHours = (c: Pick<LibraryCard, 'minutes'>) => Math.round((c.minutes / 60) * 10) / 10;
 
+const PREFIX_KIND: Record<string, StackKind> = { fe: 'frontend', be: 'backend', fs: 'fullstack', do: 'devops', da: 'data', ml: 'ml' };
+
+/** Curated ids start with their kind (fe-, be-, fs-, do-); anything else counts as frontend. */
 function curatedKind(p: Project): StackKind {
-  const s = p.stacks.join(' ').toLowerCase();
-  if (/pandas|sql|power bi|excel|tableau/.test(s) && !/react|node|express/.test(s)) return 'data';
-  if (/scikit|pytorch|tensorflow|llm|rag/.test(s)) return 'ml';
-  if (/docker|kubernetes|terraform|actions/.test(s)) return 'devops';
-  if (/react|vue|html|css/.test(s) && /node|express|django|spring|fastapi|postgres|mongo/.test(s)) return 'fullstack';
-  if (/node|express|django|spring|fastapi|go\b|postgres/.test(s)) return 'backend';
-  return 'frontend';
+  return PREFIX_KIND[p.id.split('-')[0]] ?? 'frontend';
 }
 
 let cards: LibraryCard[] | null = null;

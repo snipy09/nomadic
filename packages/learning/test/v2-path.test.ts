@@ -173,6 +173,29 @@ describe('buildPath', () => {
     expect(path.weeks[0].title).toBe('dsa.basics');
   });
 
+  it('marks a topic carried over from an earlier day', () => {
+    const learn: PlanTask = { id: 'dsa.basics.complexity/learn', kind: 'learn', title: 'x', minutes: 60, stream: 'dsa', module_id: 'dsa.basics', topic_id: 'dsa.basics.complexity', optional: false, splittable: true };
+    const solve: PlanTask = { ...learn, id: 'dsa.basics.complexity/solve/two-sum', kind: 'solve', minutes: 20, splittable: false, problem_ref: 'lc:two-sum' };
+    const days: ScheduleDay[] = [
+      { date: '2026-10-05', kind: 'study', capacity: 30, review_minutes: 0, tasks: [{ task_id: learn.id, minutes: 30, stream: 'dsa', part: 1, parts: 2 }] },
+      { date: '2026-10-06', kind: 'study', capacity: 30, review_minutes: 0, tasks: [{ task_id: learn.id, minutes: 30, stream: 'dsa', part: 2, parts: 2 }] },
+      { date: '2026-10-07', kind: 'study', capacity: 30, review_minutes: 0, tasks: [{ task_id: solve.id, minutes: 20, stream: 'dsa', part: 1, parts: 1 }] },
+    ];
+    const path = buildPath({
+      schedule: { start_date: '2026-10-05', end_date: '2026-10-07', days },
+      roadmap: { modules: [] },
+      tasks: new Map([[learn.id, learn], [solve.id, solve]]),
+      index: INDEX,
+      done: new Set(),
+      today: '2026-10-05',
+    });
+    expect(path.weeks[0].days.map((d) => d.title)).toEqual([
+      'dsa.basics.complexity',
+      'dsa.basics.complexity (continued)',
+      'dsa.basics.complexity: practice',
+    ]);
+  });
+
   it('skips entries whose task is no longer in the plan', () => {
     const days: ScheduleDay[] = [
       { date: '2026-10-05', kind: 'study', capacity: 30, review_minutes: 0, tasks: [{ task_id: 'gone/learn', minutes: 30, stream: 'dsa', part: 1, parts: 1 }] },

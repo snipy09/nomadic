@@ -115,7 +115,7 @@ function dayTitle(
   roadmap: Pick<Roadmap, 'modules'>,
   index: CatalogIndex
 ): { title: string; subtitle: string; stream: Stream | null } {
-  const byTitle = new Map<string, { minutes: number; stream: Stream; order: number }>();
+  const byTitle = new Map<string, { minutes: number; stream: Stream; order: number; learnPart: number | null; learnFirst: boolean; topic: boolean }>();
   let order = 0;
   for (const e of entries) {
     if (!e.task) continue;
@@ -125,8 +125,12 @@ function dayTitle(
     else if (t.project_id) label = `Build: ${index.projects.get(t.project_id)?.title ?? 'project'}`;
     else if (t.kind === 'mock') label = `${moduleTitle(t.module_id, roadmap, index)} check`;
     else label = t.title;
-    const cur = byTitle.get(label) ?? { minutes: 0, stream: t.stream, order: order++ };
+    const cur = byTitle.get(label) ?? { minutes: 0, stream: t.stream, order: order++, learnPart: null, learnFirst: false, topic: !!t.topic_id };
     cur.minutes += e.entry.minutes;
+    if (t.kind === 'learn' || t.kind === 'read') {
+      cur.learnPart = e.entry.part;
+      if (e.entry.part === 1) cur.learnFirst = true;
+    }
     byTitle.set(label, cur);
   }
   const ranked = [...byTitle.entries()].sort((a, b) => b[1].minutes - a[1].minutes || a[1].order - b[1].order);
@@ -138,10 +142,13 @@ function dayTitle(
     return { title: 'Weekly revision', subtitle: ranked.map(([t]) => t).slice(0, 2).join(' · '), stream: ranked[0]?.[1].stream ?? null };
   }
   if (!ranked.length) return { title: kind === 'buffer' ? 'Catch-up day' : 'Rest day', subtitle: '', stream: null };
+  const [label, top] = ranked[0];
+  // A topic over several days reads "(continued)" after its first day and "practice" on days without its lesson.
+  const suffix = !top.topic || top.learnFirst ? '' : top.learnPart != null ? ' (continued)' : ': practice';
   return {
-    title: ranked[0][0],
+    title: `${label}${suffix}`,
     subtitle: ranked.slice(1, 3).map(([t]) => t).join(' · '),
-    stream: ranked[0][1].stream,
+    stream: top.stream,
   };
 }
 
