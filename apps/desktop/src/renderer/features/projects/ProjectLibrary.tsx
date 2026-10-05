@@ -60,7 +60,7 @@ export function ProjectLibrary({ mine, role, beginnerOnly, onOpen }: ProjectLibr
           <div className="text-caption font-strong uppercase tracking-wider opacity-80">Project Library</div>
           <h1 className="text-headline font-strong">Build something real, step by step</h1>
           <p className="max-w-2xl text-body-lg opacity-90">
-            {all.length.toLocaleString('en-IN')} guided projects across frontend, backend and data. Every one comes with stages, exact steps, starter
+            {all.length.toLocaleString('en-IN')} guided projects: web, mobile, command line, DevOps, data and machine learning. Every one comes with stages, exact steps, starter
             code, hints, checks and a finish kit for your resume.
           </p>
         </div>

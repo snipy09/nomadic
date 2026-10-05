@@ -16,8 +16,13 @@ import { DATA_IDEAS } from './dataIdeas';
 import { clip, makeCtx } from './names';
 import type { AppIdea, Ctx, DataCtx, DataIdea, KindPlan, StackDef, StackKind, StageDraft, StageTemplate } from './types';
 import { BACKEND } from './kinds/backend';
+import { CLI } from './kinds/cli';
 import { DATA } from './kinds/data';
+import { DEVOPS } from './kinds/devops';
 import { FRONTEND } from './kinds/frontend';
+import { FULLSTACK } from './kinds/fullstack';
+import { ML } from './kinds/ml';
+import { MOBILE } from './kinds/mobile';
 
 export * from './types';
 export { names, makeCtx } from './names';
@@ -31,8 +36,8 @@ interface DataKind {
   plan: KindPlan<DataCtx>;
 }
 
-const APP_KINDS: AppKind[] = [FRONTEND, BACKEND];
-const DATA_KINDS: DataKind[] = [DATA];
+const APP_KINDS: AppKind[] = [FRONTEND, BACKEND, FULLSTACK, MOBILE, CLI, DEVOPS];
+const DATA_KINDS: DataKind[] = [DATA, ML];
 
 export const LEVEL_CODE: Record<ProjectLevel, string> = { beginner: 'b', intermediate: 'i', advanced: 'a' };
 const LEVEL_OF: Record<string, ProjectLevel> = { b: 'beginner', i: 'intermediate', a: 'advanced' };

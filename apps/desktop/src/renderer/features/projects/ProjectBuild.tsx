@@ -159,7 +159,7 @@ export function ProjectBuild(props: ProjectBuildProps) {
       </div>
       <h2 id="project-title" className="text-title font-strong text-fg">{project.title}</h2>
 
-      <div className="grid gap-4 lg:grid-cols-[16rem_1fr]">
+      <div className="grid gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
         <nav aria-label="Stages">
           <ol className="flex flex-col gap-1">
             {stages.map((s, i) => (
@@ -181,7 +181,8 @@ export function ProjectBuild(props: ProjectBuildProps) {
           </ol>
         </nav>
 
-        <div className="flex flex-col gap-4">
+        {/* min-w-0: a long code line scrolls inside its block instead of widening the page */}
+        <div className="flex min-w-0 flex-col gap-4">
           <Card padding="md" className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="mr-auto text-heading font-strong text-fg">{stage.title}</h3>

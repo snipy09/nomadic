@@ -90,6 +90,12 @@ describe('generated library', () => {
     expect(built).toBe(all.length);
   });
 
+  it('covers every kind of project, thousands in total', () => {
+    const kinds = new Set(all.map((s) => s.kind));
+    expect([...kinds].sort()).toEqual(['backend', 'cli', 'data', 'devops', 'frontend', 'fullstack', 'ml', 'mobile']);
+    expect(all.length).toBeGreaterThan(4000);
+  });
+
   it('caches built projects and rejects unknown ids', () => {
     const id = all[0].id;
     expect(generatedProject(id)).toBe(generatedProject(id));

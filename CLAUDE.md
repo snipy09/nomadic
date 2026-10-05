@@ -18,9 +18,11 @@ first jobs. One app covers the whole path:
    Arrays & Web foundations") and a node per study day ("Day 2: Prefix sums"), plus Today, a day page, Topic and
    Progress. Every topic has a "What to learn" list (no external resources are shown in Learn), named LeetCode
    problems, quizzes with SM-2 reviews.
-   **Projects** (sidebar, under Practice): a library of ~2,400 fully guided projects (12 curated + generated
-   idea × stack × level: 80 app ideas on 5 frontend and 6 backend stacks, 40 datasets on 3 data stacks), each with
-   stages, steps with starter code, hints, acceptance checks, an optional GitHub repo check and a finish kit.
+   **Projects** (sidebar, under Practice): a library of ~4,100 fully guided projects (12 curated + 4,085 generated
+   idea × stack × level: 80 app ideas on 5 frontend, 6 backend, 5 full-stack, 3 mobile, 3 CLI and 3 DevOps stacks;
+   40 datasets on 3 data and 2 ML stacks), each with stages, steps with starter code, hints, acceptance checks, an
+   optional GitHub repo check, a finish kit and "Stuck? Ask Nomadic AI" help per stage (ai-proxy `project_help`;
+   when the daily limit is hit the question waits and is asked again automatically after the midnight IST reset).
 3. **Practice**: ~1,800 LeetCode-company problems (external links), role questions, timed mock mode, weak topics,
    AI rubric feedback on written answers (Pro/Max).
 4. **Job board**: jobs collected by the scraper pipeline, skill-based match % and top missing skills, save, filters.
@@ -115,17 +117,19 @@ Key flows:
 - **Supabase project `nomadic`**: ref `grqkiddfwoyicktpgdea`, region ap-south-1 (Mumbai), free plan, org "Nomadic".
   URL `https://grqkiddfwoyicktpgdea.supabase.co`. The anon key is public by design and is the build default in
   `apps/desktop/build-main.mjs`, scrapers and web. The service-role key is never in the app or repo.
-- **Applied migrations**: 001–012, 014–029 (028 Learn v2 state and 029 AI roadmap quotas pasted by the owner on
+- **Applied migrations**: 001–012, 014–030 (028 Learn v2 state and 029 AI roadmap quotas pasted by the owner on
   5 Oct 2026, verified; Learn v2 content seed pasted too: 109 skills, 109 lessons, 240 practice items, 55 resources) (013 does not exist; 023 is the web waitlist; 024 no Max downgrade on
   payment, 025 payment history, 026 account sync of hidden jobs and follow-up dates, 027 outreach directory and
   outreach AI quota, all applied by 5 Oct 2026). The legacy `public.hr_contacts` still exists live and is
   dropped by an owner paste (`DROP TABLE public.hr_contacts;`).
   028 = Learn v2 state documents + v2 event types; 029 = AI roadmap quotas (`ai_limits` with roadmap columns,
-  outreach metrics of 027 kept). Next free number is 030. Security advisor: no errors; remaining notices are by design (deny-all tables;
+  outreach metrics of 027 kept); 030 = AI project help quota (metric `ai_project_help`, `ai_project_help_limits`
+  5/40/150, applied through the Supabase connector on 5 Oct 2026 and verified). Next free number is 031. Security advisor: no errors; remaining notices are by design (deny-all tables;
   session-checked SECURITY DEFINER RPCs callable by anon).
 - **Learn content seeded** from the bundle (checksums verified).
 - **Edge Functions deployed** (JWT verification on): `google-sign-in`, `send-email-code`, `ai-proxy` (kinds
-  `rubric_feedback`, `form_answers`, `outreach_email`, `roadmap_plan`, `roadmap_adjust`, redeployed 5 Oct 2026; the roadmap kinds need 029).
+  `rubric_feedback`, `form_answers`, `outreach_email`, `roadmap_plan`, `roadmap_adjust`, `project_help`; version 4
+  deployed 5 Oct 2026 from the repo files, byte-checked against them; `project_help` needs 030).
   `razorpay-webhook` exists in the repo but is not deployed yet.
 - **Vault secrets**: `resend_api_key`, `gemini_api_key`, `google_oauth_client_id` (set). Missing: `email_from`.
 - **Google OAuth**: "Desktop app" client created; id/secret are in GitHub repo secrets and in the gitignored
@@ -160,7 +164,7 @@ F13: Outreach was rebuilt in v1.1.0 (see section 9) and shows in the sidebar as 
 the working module needs `VITE_FEATURES="outreach=on"`. Opportunity Board, Resource Vault and the Assistant stay
 hidden; the Assistant still needs rework or removal.
 
-Tests: 1,723 vitest tests pass (129 files, 5 Oct 2026, v1.2.0 branch; run with `--maxWorkers=2 --testTimeout=30000` on this laptop, the default
+Tests: 1,742 vitest tests pass (131 files, 5 Oct 2026, v1.2.0 branch; run with `--maxWorkers=2 --testTimeout=30000` on this laptop, the default
 parallelism times out component tests, and the three Chrome DOM suites can time out closing Chrome in `afterAll`);
 typecheck, lint (0 errors, ~190 warnings) and desktop/web builds pass.
 The built Electron app has been smoke-tested over CDP (window, live feed via IPC, Learn, Settings, Help, Activity, Admin
@@ -316,8 +320,10 @@ checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification
   Week and Roadmap-tree screens and `IntakeFields` were deleted; the Topic page shows no resources. Review shows the
   plan week by week. Projects page = sidebar tab `learner-projects` (`features/projects/ProjectsView.tsx`,
   `ProjectLibrary.tsx`, `projectsLogic.ts`); main `services/learn-v2.ts` `projectFor` resolves generated ids for
-  saves and repo checks. Not built yet: generated full-stack, mobile, CLI, DevOps and ML kinds (ideas already name
-  them; add `gen/kinds/<kind>.ts` and list it in `gen/index.ts`), and AI help inside a project.
+  saves and repo checks. Generated kinds live in `packages/learning/src/v2/gen/kinds/` (frontend, backend, fullstack,
+  mobile, cli, devops, data, ml), listed in `gen/index.ts`; `test/v2-gen.test.ts` builds every project in strict
+  mode. AI help per stage: renderer `features/projects/projectHelp.ts` + `ProjectHelpPanel.tsx`, IPC
+  `learn-project-help`, main `askProjectHelp` → ai-proxy `project_help`, plan limit `aiProjectHelpPerDay`.
 - Next most useful work: owner action 0 (Learn v2 go-live), then owner actions in section 7 (consent screen, Resend domain, key rotation),
   then a live end-to-end pass (Google sign-in, reviewed submit, AI feedback), then the code follow-ups in section 7.
 
