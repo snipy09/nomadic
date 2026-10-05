@@ -51,6 +51,13 @@ const skipStep = async (heading: RegExp) => {
   await screen.findByRole('heading', { name: heading });
   await userEvent.click(screen.getByRole('button', { name: /skip for now/i }));
 };
+/** On the roadmap step: Continue through its pages until the heading matches. */
+const roadmapTo = async (heading: RegExp) => {
+  for (let i = 0; i < 10 && !screen.queryByRole('heading', { name: heading }); i++) {
+    await userEvent.click(continueBtn());
+  }
+  return screen.findByRole('heading', { name: heading });
+};
 /** From the About step: skip links, resume, role and answers, landing on Workspace. */
 const skipToWorkspace = async () => {
   await userEvent.click(continueBtn());
@@ -111,13 +118,17 @@ describe('Onboarding', () => {
     await userEvent.click(screen.getByRole('radio', { name: /^apply/i }));
     await userEvent.click(continueBtn());
 
-    // Roadmap: a short intake with the role from step 4, default time, and a live feasibility bar.
-    expect(await screen.findByRole('heading', { name: /your roadmap/i })).toBeTruthy();
+    // Roadmap: a short intake, one question per page, starting from the role picked on step 4.
+    expect(await screen.findByRole('heading', { name: /which role are you preparing for/i })).toBeTruthy();
+    expect(screen.getByText(/your roadmap · 1 of \d+/i)).toBeTruthy();
     expect(progress()).toBe('7');
-    expect(screen.getByRole('status').textContent).toMatch(/h of study time/);
+    expect(screen.getByRole('radio', { name: /data analyst/i }).getAttribute('aria-checked')).toBe('true');
+    await roadmapTo(/when can you study/i);
     expect(screen.getByRole('button', { name: 'Sat' }).getAttribute('aria-pressed')).toBe('true');
     await userEvent.click(screen.getByRole('button', { name: 'Sun' }));
     expect(screen.getByRole('button', { name: 'Sun' }).getAttribute('aria-pressed')).toBe('false');
+    await roadmapTo(/your plan at a glance/i);
+    expect(screen.getByRole('status').textContent).toMatch(/h of study time/);
     expect(onComplete).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole('button', { name: /finish setup/i }));
 
@@ -204,9 +215,11 @@ describe('Onboarding', () => {
     const onComplete = renderOnboarding();
     await skipToWorkspace();
     await userEvent.click(continueBtn());
-    await screen.findByRole('heading', { name: /your roadmap/i });
-    expect(screen.getByText(/pick a target role to build your roadmap/i)).toBeTruthy();
-    await userEvent.click(screen.getByRole('button', { name: /finish setup/i }));
+    await screen.findByRole('heading', { name: /which role are you preparing for/i });
+    expect(screen.queryByRole('radio', { checked: true })).toBeNull();
+    await userEvent.click(continueBtn());
+    expect(await screen.findByText('Pick the role you are preparing for.')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: /skip for now/i }));
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
     expect(api.learnRoadmapGenerate).not.toHaveBeenCalled();
     const saved = api.saveMasterProfile.mock.calls[0][0];
@@ -225,11 +238,12 @@ describe('Onboarding', () => {
     const onComplete = renderOnboarding();
     await skipToWorkspace();
     await userEvent.click(continueBtn());
-    await userEvent.click(await screen.findByRole('button', { name: /finish setup/i }));
+    await screen.findByRole('heading', { name: /which role are you preparing for/i });
+    await userEvent.click(screen.getByRole('button', { name: /skip for now/i }));
 
     expect(await screen.findByText(/disk is full\. nothing was marked complete/i)).toBeTruthy();
     expect(onComplete).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole('button', { name: /try again/i }));
+    await userEvent.click(screen.getByRole('button', { name: /skip for now/i }));
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
     expect(saveMasterProfile).toHaveBeenCalledTimes(2);
   });
@@ -245,7 +259,8 @@ describe('Onboarding', () => {
     await skipStep(/answers for applications/i);
     await screen.findByRole('heading', { name: /choose your workspace/i });
     await userEvent.click(continueBtn());
-    await screen.findByRole('heading', { name: /your roadmap/i });
+    await screen.findByRole('heading', { name: /which role are you preparing for/i });
+    await roadmapTo(/your plan at a glance/i);
     await userEvent.click(screen.getByRole('button', { name: /finish setup/i }));
     expect(await screen.findByText(/database locked\. nothing was marked complete/i)).toBeTruthy();
     expect(api.saveMasterProfile).not.toHaveBeenCalled();

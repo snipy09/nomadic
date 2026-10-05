@@ -1,7 +1,9 @@
 /**
- * Generated Project Library: every app idea built on every stack its kinds
- * allow, at each level the stack supports, plus data and ML projects on
- * public datasets. Summaries (for the library grid) never render stage text;
+ * Generated Project Library: every app idea built on every stack of the
+ * kinds it lists (frontend and backend so far), at each level the stack
+ * supports, plus data-analysis projects on public datasets. Ideas already name
+ * the other kinds (full stack, mobile, CLI, DevOps, ML); they appear once a
+ * kind file exists for them. Summaries (for the library grid) never render stage text;
  * a full guided project is built on demand and cached.
  *
  * Ids: `g.<idea>.<stack>.<b|i|a>`. They are stable as long as idea and stack
@@ -12,16 +14,10 @@ import type { RoleFamilyId } from '../../primitives';
 import { APP_IDEAS } from './ideas';
 import { DATA_IDEAS } from './dataIdeas';
 import { clip, makeCtx } from './names';
-import type { AppIdea, DataCtx, DataIdea, KindPlan, StackDef, StackKind, StageDraft, StageTemplate } from './types';
+import type { AppIdea, Ctx, DataCtx, DataIdea, KindPlan, StackDef, StackKind, StageDraft, StageTemplate } from './types';
 import { BACKEND } from './kinds/backend';
-import { CLI } from './kinds/cli';
 import { DATA } from './kinds/data';
-import { DEVOPS } from './kinds/devops';
 import { FRONTEND } from './kinds/frontend';
-import { FULLSTACK } from './kinds/fullstack';
-import { ML } from './kinds/ml';
-import { MOBILE } from './kinds/mobile';
-import type { Ctx } from './types';
 
 export * from './types';
 export { names, makeCtx } from './names';
@@ -35,8 +31,8 @@ interface DataKind {
   plan: KindPlan<DataCtx>;
 }
 
-const APP_KINDS: AppKind[] = [FRONTEND, BACKEND, FULLSTACK, MOBILE, CLI, DEVOPS];
-const DATA_KINDS: DataKind[] = [DATA, ML];
+const APP_KINDS: AppKind[] = [FRONTEND, BACKEND];
+const DATA_KINDS: DataKind[] = [DATA];
 
 export const LEVEL_CODE: Record<ProjectLevel, string> = { beginner: 'b', intermediate: 'i', advanced: 'a' };
 const LEVEL_OF: Record<string, ProjectLevel> = { b: 'beginner', i: 'intermediate', a: 'advanced' };

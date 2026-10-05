@@ -9,8 +9,6 @@ import {
   IntakeSchema,
   STREAMS,
   STREAM_LABELS,
-  addDays,
-  dayOfWeek,
   deriveReviewStates,
   doneEntries,
   doneTaskIds,
@@ -31,7 +29,6 @@ import {
   type Aim,
   type CatalogIndex,
   type DsaLanguage,
-  type Emphasis,
   type Feasibility,
   type Forecast,
   type Intake,
@@ -311,87 +308,6 @@ export function buildTodayModel(input: {
     beforeStart: date < schedule.start_date,
     afterEnd: date > schedule.end_date,
   };
-}
-
-// ── Week ────────────────────────────────────────────────────────────────────
-
-/** Monday of the week containing `date`. */
-export function weekStart(date: string): string {
-  const dow = dayOfWeek(date);
-  return addDays(date, dow === 0 ? -6 : 1 - dow);
-}
-
-export function weekDates(anchor: string): string[] {
-  const start = weekStart(anchor);
-  return Array.from({ length: 7 }, (_, i) => addDays(start, i));
-}
-
-// ── Roadmap tree ────────────────────────────────────────────────────────────
-
-export interface TaskNode {
-  task: PlanTask;
-  done: boolean;
-  date: string | null;
-}
-
-export interface TopicNode {
-  id: string;
-  title: string;
-  tier: string;
-  tasks: TaskNode[];
-  done: number;
-  total: number;
-}
-
-export interface ModuleNode {
-  id: string;
-  title: string;
-  stream: Stream;
-  emphasis: Emphasis;
-  why: string;
-  addedFor: string | null;
-  custom: boolean;
-  topics: TopicNode[];
-  /** Project and module-check tasks that sit outside topics. */
-  extra: TaskNode[];
-  progress: ModuleProgress | null;
-}
-
-export function roadmapTree(roadmap: Roadmap, schedule: Schedule | null, p: Progress, index: CatalogIndex): ModuleNode[] {
-  const firstDate = new Map<string, string>();
-  for (const d of schedule?.days ?? []) for (const e of d.tasks) if (!firstDate.has(e.task_id)) firstDate.set(e.task_id, d.date);
-  const progress = new Map(moduleProgress(p.tasks, p.doneTasks, schedule).map((m) => [m.module_id, m]));
-  const node = (t: PlanTask): TaskNode => ({ task: t, done: p.doneTasks.has(t.id), date: firstDate.get(t.id) ?? null });
-  return roadmap.modules.map((rm) => {
-    const tasks = p.tasks.filter((t) => t.module_id === rm.module_id);
-    const topicIds = [...new Set(tasks.map((t) => t.topic_id).filter((x): x is string => !!x))];
-    const topics: TopicNode[] = topicIds.map((id) => {
-      const list = tasks.filter((t) => t.topic_id === id).map(node);
-      const catalogTopic = index.topics.get(id);
-      const customTopic = rm.custom?.topics.find((t) => `${rm.module_id}.${t.key}` === id);
-      return {
-        id,
-        title: catalogTopic?.title ?? customTopic?.title ?? id,
-        tier: catalogTopic?.tier ?? 'core',
-        tasks: list,
-        done: list.filter((t) => t.done).length,
-        total: list.length,
-      };
-    });
-    const mod = index.modules.get(rm.module_id);
-    return {
-      id: rm.module_id,
-      title: rm.custom ? rm.custom.title : mod?.title ?? rm.module_id,
-      stream: rm.custom ? rm.custom.stream : mod?.stream ?? 'dev',
-      emphasis: rm.emphasis,
-      why: rm.why,
-      addedFor: rm.added_for,
-      custom: !!rm.custom,
-      topics,
-      extra: tasks.filter((t) => !t.topic_id).map(node),
-      progress: progress.get(rm.module_id) ?? null,
-    };
-  });
 }
 
 // ── Progress ────────────────────────────────────────────────────────────────

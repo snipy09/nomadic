@@ -15,12 +15,9 @@ import {
   problemAttemptedEvent,
   progressModel,
   progressOf,
-  roadmapTree,
   taskDoneEvent,
   topicProblems,
   untickEvent,
-  weekDates,
-  weekStart,
 } from '../features/learn/learnModel';
 import { gradeAll, recallQuality, shuffledSteps, topicQuizEvents } from '../features/learn/quizLogic';
 
@@ -82,11 +79,6 @@ describe('Today and tasks', () => {
     const rev = fit.schedule.days.find((d) => d.kind === 'revision')!;
     expect(entryViews(rev, progress).some((v) => v.task.kind === 'revise')).toBe(true);
   });
-  it('builds a tree per module', () => {
-    const tree = roadmapTree(fit.roadmap, fit.schedule, progress, index);
-    expect(tree.map((m) => m.id)).toEqual(fit.roadmap.modules.map((m) => m.module_id));
-    expect(tree[0].topics.length).toBeGreaterThan(0);
-  });
   it('progress model sums planned time to date', () => {
     const m = progressModel(fit.schedule, progress, index, addDays(START, 2));
     expect(m.minutesPlannedToDate).toBeGreaterThan(0);
@@ -105,10 +97,6 @@ describe('helpers', () => {
     expect(formatMinutes(45)).toBe('45 min');
     expect(formatMinutes(60)).toBe('1 h');
     expect(formatMinutes(80)).toBe('1 h 20 min');
-  });
-  it('weeks start on Monday', () => {
-    expect(weekStart('2026-10-11')).toBe('2026-10-05');
-    expect(weekDates('2026-10-07')).toHaveLength(7);
   });
   it('topic quiz pass completes the quiz task', () => {
     const items = bundle.practice_items.filter((p) => p.id.startsWith('cs.oop.pillars.q')) as never[];

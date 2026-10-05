@@ -1,9 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { AlertTriangle, ArrowDown, ArrowUp, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowUp, ChevronDown, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { Badge, Button, Card, EmptyState, IconButton, Select, Textarea, useToast } from '@nomadic/ui';
 import {
   applyRoadmapDiff,
+  buildPath,
   daysBetween,
+  expandRoadmap,
   fitRoadmap,
   formatDay,
   moduleMinutes,
@@ -80,6 +82,18 @@ export function ReviewScreen({ draft, busy, beginnerOnly, onAccept, onRegenerate
   };
 
   const weeks = useMemo(() => moduleWeeks(schedule), [schedule]);
+  const preview = useMemo(
+    () =>
+      buildPath({
+        schedule,
+        roadmap,
+        tasks: new Map(expandRoadmap(roadmap, learnIndex()).map((t) => [t.id, t])),
+        index: learnIndex(),
+        done: new Set(),
+        today: schedule.start_date,
+      }),
+    [roadmap, schedule]
+  );
   const leftOut = schedule.left_out;
   const noTime = leftOut.filter((l) => l.reason === 'no_time');
   const lastDay = [...schedule.days].reverse().find((d) => d.tasks.length);
@@ -122,6 +136,36 @@ export function ReviewScreen({ draft, busy, beginnerOnly, onAccept, onRegenerate
         )}
         <p className="text-caption text-fg-subtle">AI-drafted lessons and projects are under review; links come only from checked resources and LeetCode.</p>
       </Card>
+
+      <section aria-labelledby="review-weeks" className="flex flex-col gap-2">
+        <h3 id="review-weeks" className="text-heading font-strong text-fg">Week by week ({preview.weeks.filter((w) => w.days.length).length} weeks)</h3>
+        <ol className="flex flex-col gap-1.5">
+          {preview.weeks.filter((w) => w.days.length).map((w) => (
+            <li key={w.number}>
+              <details className="group rounded-lg border border-line bg-surface">
+                <summary className="flex cursor-pointer list-none items-center gap-3 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+                  <span className="w-16 shrink-0 text-caption font-strong uppercase tracking-wide text-accent">Week {w.number}</span>
+                  <span className="min-w-0 flex-1 truncate text-body font-strong text-fg">{w.title}</span>
+                  <span className="shrink-0 text-caption text-fg-subtle">{w.days.length} days · {formatMinutes(w.minutes)}</span>
+                  <ChevronDown className="size-4 shrink-0 text-fg-subtle transition-transform duration-fast group-open:rotate-180" aria-hidden="true" />
+                </summary>
+                <ol className="flex flex-col gap-1 border-t border-line px-3 py-2">
+                  {w.days.map((d) => (
+                    <li key={d.date} className="flex gap-3 text-body">
+                      <span className="w-16 shrink-0 text-fg-subtle">Day {d.day}</span>
+                      <span className="min-w-0 flex-1 text-fg">
+                        {d.title}
+                        {d.subtitle && <span className="text-fg-subtle"> · {d.subtitle}</span>}
+                      </span>
+                      <span className="shrink-0 text-caption text-fg-subtle">{formatDay(d.date)}</span>
+                    </li>
+                  ))}
+                </ol>
+              </details>
+            </li>
+          ))}
+        </ol>
+      </section>
 
       <section aria-labelledby="review-modules" className="flex flex-col gap-2">
         <h3 id="review-modules" className="text-heading font-strong text-fg">Modules ({roadmap.modules.length})</h3>

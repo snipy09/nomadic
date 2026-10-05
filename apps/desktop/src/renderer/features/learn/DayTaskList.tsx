@@ -13,7 +13,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import { Badge, Button, Checkbox, Select, cn } from '@nomadic/ui';
-import { formatDay, partSlice, type PlanTask, type TaskKind } from '@job-automator/learning';
+import { partSlice, type PlanTask, type TaskKind } from '@job-automator/learning';
 import { moduleById, problemByRef, projectById, topicById } from './catalog';
 import { InlineText } from './InlineText';
 import { KIND_LABEL, formatMinutes, streamLabel, type EntryView } from './learnModel';
@@ -246,4 +246,3 @@ export function LearnItem({ text }: { text: string }) {
   );
 }
 
-export const dayLabel = (date: string) => formatDay(date);
