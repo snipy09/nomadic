@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, EmptyState, Skeleton, Tabs, TabsList, TabsTrigger, useToast } from '@nomadic/ui';
+import { Map as MapIcon, BarChart3, RefreshCw, SlidersHorizontal, Sun } from 'lucide-react';
+import { Button, Drawer, DrawerContent, EmptyState, Skeleton, Tabs, TabsList, TabsTrigger, useToast } from '@nomadic/ui';
 import {
   applyRoadmapDiff,
+  buildPath,
   doMore,
   learnTierFor,
   moveEntry,
@@ -17,11 +19,11 @@ import {
 } from '@job-automator/learning';
 import type { AppUser } from '../../types';
 import { ProjectBuild } from '../projects/ProjectBuild';
-import { ProjectLibrary } from '../projects/ProjectLibrary';
 import { ActivityHeatmap } from './ActivityHeatmap';
-import { allProjects, learnIndex, projectById } from './catalog';
+import { learnIndex, projectById } from './catalog';
 import { isRoleId, roleById } from './content';
-import { FeasibilityBar, IntakeFields } from './IntakeFields';
+import { DayScreen } from './DayScreen';
+import { IntakeWizard } from './IntakeWizard';
 import {
   buildTodayModel,
   defaultIntakeDraft,
@@ -37,14 +39,13 @@ import {
   type EntryView,
   type IntakeDraft,
 } from './learnModel';
+import { PathScreen } from './PathScreen';
 import { ProgressScreen } from './ProgressScreen';
 import { practiceLeft } from './quizLogic';
 import { AdjustPanel, GeneratingState, ReviewScreen } from './ReviewScreen';
-import { RoadmapScreen } from './RoadmapScreen';
 import { TodayScreen } from './TodayScreen';
 import { TopicScreen } from './TopicScreen';
 import { useLearning } from './useLearning';
-import { WeekScreen } from './WeekScreen';
 
 interface LearnViewProps {
   currentUser?: Pick<AppUser, 'tier'> | null;
@@ -54,30 +55,31 @@ interface LearnViewProps {
   onLog?: (msg: string) => void;
 }
 
-type Tab = 'today' | 'week' | 'roadmap' | 'projects' | 'progress';
+type Tab = 'path' | 'today' | 'progress';
 type Screen =
   | { name: Tab }
   | { name: 'intake' }
   | { name: 'generating' }
   | { name: 'review' }
-  | { name: 'topic'; topicId: string; from: Tab }
-  | { name: 'project'; projectId: string; from: Tab };
+  | { name: 'day'; date: string }
+  | { name: 'topic'; topicId: string; from: Screen }
+  | { name: 'project'; projectId: string; from: Screen };
 
-const TABS: Array<{ value: Tab; label: string }> = [
-  { value: 'today', label: 'Today' },
-  { value: 'week', label: 'Week' },
-  { value: 'roadmap', label: 'Roadmap' },
-  { value: 'projects', label: 'Projects' },
-  { value: 'progress', label: 'Progress' },
+const TABS: Array<{ value: Tab; label: string; icon: React.ReactNode }> = [
+  { value: 'path', label: 'Path', icon: <MapIcon /> },
+  { value: 'today', label: 'Today', icon: <Sun /> },
+  { value: 'progress', label: 'Progress', icon: <BarChart3 /> },
 ];
+const isTab = (name: string): name is Tab => TABS.some((t) => t.value === name);
 
-/** Learn v2: intake → review → Today, Week, Roadmap, Projects and Progress, all from the roadmap and event log. */
+/** Learn v2: page-by-page intake → review → a week-by-week path of days, Today and Progress. */
 export function LearnView({ currentUser, suggestedRole, onOpenUpgrade, onLog }: LearnViewProps) {
   const data = useLearning();
   const { toast } = useToast();
   const [screen, setScreen] = useState<Screen | null>(null);
   const [intake, setIntake] = useState<IntakeDraft | null>(null);
   const [shortfall, setShortfall] = useState<Shortfall | null>(null);
+  const [adjustOpen, setAdjustOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const tier = learnTierFor(currentUser?.tier);
   const isFree = tier === 'free';
@@ -98,14 +100,19 @@ export function LearnView({ currentUser, suggestedRole, onOpenUpgrade, onLog }: 
     () => (schedule && progress ? buildTodayModel({ schedule, progress, events, now }) : null),
     [schedule, progress, events, now]
   );
+  const path = useMemo(
+    () => (roadmap && schedule && progress ? buildPath({ schedule, roadmap, tasks: progress.byId, index, done: progress.done, today }) : null),
+    [roadmap, schedule, progress, index, today]
+  );
+  const pathDays = useMemo(() => new Map((path?.weeks ?? []).flatMap((w) => w.days).map((d) => [d.date, d])), [path]);
   const practice = useMemo(() => practiceLeft(events, tier, now), [events, tier, now]);
   const trackId = roadmap?.track_id ?? (suggestedRole && isRoleId(suggestedRole) ? suggestedRole : 'fullstack');
 
-  // First screen once loaded: review a draft, else Today, else the intake.
+  // First screen once loaded: review a draft, else the path, else the intake.
   useEffect(() => {
     if (data.status !== 'ready' || screen) return;
     if (data.draft) setScreen({ name: 'review' });
-    else if (roadmap && schedule) setScreen({ name: 'today' });
+    else if (roadmap && schedule) setScreen({ name: 'path' });
     else setScreen({ name: 'intake' });
   }, [data.status, data.draft, roadmap, schedule, screen]);
 
@@ -120,10 +127,12 @@ export function LearnView({ currentUser, suggestedRole, onOpenUpgrade, onLog }: 
 
   if (data.status === 'loading' && !screen) {
     return (
-      <div className="flex flex-col gap-3" aria-busy="true" aria-label="Loading your roadmap">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-3" aria-busy="true" aria-label="Loading your roadmap">
         <Skeleton height={28} width={220} />
-        <Skeleton height={80} radius="lg" />
-        {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} height={52} radius="lg" />)}
+        <Skeleton height={96} radius="lg" />
+        <div className="flex flex-col items-center gap-6 pt-4">
+          {Array.from({ length: 5 }, (_, i) => <Skeleton key={i} height={72} width={72} radius="full" />)}
+        </div>
       </div>
     );
   }
@@ -185,7 +194,7 @@ export function LearnView({ currentUser, suggestedRole, onOpenUpgrade, onLog }: 
     return record([ev]);
   };
 
-  const openTask = (task: PlanTask, from: Tab) => {
+  const openTask = (task: PlanTask, from: Screen) => {
     if (task.project_id) setScreen({ name: 'project', projectId: task.project_id, from });
     else if (task.topic_id && index.topics.has(task.topic_id)) setScreen({ name: 'topic', topicId: task.topic_id, from });
   };
@@ -197,33 +206,34 @@ export function LearnView({ currentUser, suggestedRole, onOpenUpgrade, onLog }: 
     return res;
   };
 
-  const header = (
-    <header className="flex flex-wrap items-end gap-3">
-      <div className="mr-auto">
+  const s: Screen = screen ?? { name: 'intake' };
+  const activeTab: Tab | null = isTab(s.name) ? s.name : s.name === 'day' ? 'path' : null;
+  const ready = !!(roadmap && schedule && progress && todayModel && path);
+  const todayOpen = todayModel ? todayModel.entries.filter((e) => !e.done).length : 0;
+  const roleName = roadmap ? roleById(roadmap.track_id)?.name ?? roadmap.track_id : '';
+
+  const header = ready && activeTab && (
+    <header className="flex flex-wrap items-center gap-3">
+      <div className="mr-auto min-w-0">
         <h1 className="text-title font-strong text-fg">Learn</h1>
-        <p className="text-caption text-fg-subtle">
-          {roadmap ? `${roleById(roadmap.track_id)?.name ?? roadmap.track_id} roadmap` : 'Build a roadmap to your target role'}
+        <p className="truncate text-caption text-fg-subtle">
+          {roleName} roadmap · {path!.weeks.filter((w) => w.days.length).length} weeks
           {data.pendingSync > 0 ? ' · saved on this device, syncs when you are online' : ''}
         </p>
       </div>
-      {roadmap && schedule && screen && TABS.some((t) => t.value === screen.name) && (
-        <Tabs variant="segmented" value={screen.name} onValueChange={(v) => setScreen({ name: v as Tab })}>
-          <TabsList aria-label="Learn sections">
-            {TABS.map((t) => (
-              <TabsTrigger key={t.value} value={t.value} count={t.value === 'today' ? todayModel?.entries.filter((e) => !e.done).length || undefined : undefined}>
-                {t.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-      )}
+      <Tabs variant="segmented" value={activeTab} onValueChange={(v) => setScreen({ name: v as Tab })}>
+        <TabsList aria-label="Learn sections">
+          {TABS.map((t) => (
+            <TabsTrigger key={t.value} value={t.value} icon={t.icon} count={t.value === 'today' ? todayOpen || undefined : undefined}>
+              {t.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
     </header>
   );
 
   let body: React.ReactNode;
-  const s = screen ?? { name: 'intake' as const };
-  const tabOf = (x: Screen): Tab => (TABS.some((t) => t.value === x.name) ? (x.name as Tab) : 'today');
-
   if (s.name === 'generating') {
     body = <GeneratingState onCancel={() => setScreen({ name: 'intake' })} />;
   } else if (s.name === 'review' && data.draft) {
@@ -236,7 +246,7 @@ export function LearnView({ currentUser, suggestedRole, onOpenUpgrade, onLog }: 
           const res = await data.accept(r, sch);
           if (res.ok) {
             onLog?.(`[Learn] Roadmap accepted: ${r.modules.length} modules.`);
-            setScreen({ name: 'today' });
+            setScreen({ name: 'path' });
           }
           return res;
         }}
@@ -250,26 +260,23 @@ export function LearnView({ currentUser, suggestedRole, onOpenUpgrade, onLog }: 
           setIntake(intakeToDraft(data.draft!.roadmap.intake));
           setScreen({ name: 'intake' });
         }}
-        onDiscard={roadmap && schedule ? () => { data.discardDraft(); setScreen({ name: 'roadmap' }); } : undefined}
+        onDiscard={roadmap && schedule ? () => { data.discardDraft(); setScreen({ name: 'path' }); } : undefined}
       />
     );
-  } else if (s.name === 'intake' || !roadmap || !schedule || !progress || !todayModel) {
+  } else if (s.name === 'intake' || !ready) {
     const draft = intake ?? defaultIntakeDraft((suggestedRole && isRoleId(suggestedRole) ? suggestedRole : 'fullstack') as RoleFamilyId, today);
-    const problem = draftProblem(draft);
     body = (
-      <div className="flex flex-col gap-4">
-        <div>
-          <h2 className="text-title font-strong text-fg">{roadmap ? 'Make a new roadmap' : 'Plan your roadmap'}</h2>
-          <p className="text-body text-fg-muted">Tell us your target, your time and your level. The plan picks modules from the reviewed catalogue and fits them into your days.</p>
-        </div>
-        <IntakeFields draft={draft} onChange={setIntake} companiesAllowed={!isFree} />
-        <FeasibilityBar feasibility={feasibilityOf(draft, index)} />
-        {problem && <p role="alert" className="text-body text-danger-fg">{problem}</p>}
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={() => void generate(draft)} disabled={!!problem}>Build my roadmap</Button>
-          {roadmap && schedule && <Button variant="ghost" onClick={() => setScreen({ name: 'roadmap' })}>Cancel</Button>}
-        </div>
-      </div>
+      <IntakeWizard
+        key={roadmap ? `edit-${roadmap.id}` : 'new'}
+        title={roadmap ? 'New roadmap' : 'Plan your roadmap'}
+        draft={draft}
+        onChange={setIntake}
+        feasibility={feasibilityOf(draft, index)}
+        companiesAllowed={!isFree}
+        problem={draftProblem(draft)}
+        onSubmit={() => void generate(draft)}
+        onCancel={ready ? () => setScreen({ name: 'path' }) : undefined}
+      />
     );
   } else if (s.name === 'topic') {
     body = (
@@ -281,7 +288,7 @@ export function LearnView({ currentUser, suggestedRole, onOpenUpgrade, onLog }: 
         trackId={trackId}
         practiceRemaining={practice.remaining}
         isFree={isFree}
-        onBack={() => setScreen({ name: s.from })}
+        onBack={() => setScreen(s.from)}
         onRecord={record}
         onSaveNote={data.saveNote}
         onOpenUpgrade={onOpenUpgrade}
@@ -289,7 +296,7 @@ export function LearnView({ currentUser, suggestedRole, onOpenUpgrade, onLog }: 
     );
   } else if (s.name === 'project') {
     const project = projectById(s.projectId);
-    const doneModules = new Set((progress ? roadmapModulesDone(progress, roadmap) : []));
+    const doneModules = new Set(roadmapModulesDone(progress!, roadmap));
     body = project ? (
       <ProjectBuild
         key={project.id}
@@ -298,83 +305,105 @@ export function LearnView({ currentUser, suggestedRole, onOpenUpgrade, onLog }: 
         doneModules={doneModules}
         trackId={trackId}
         beginnerOnly={isFree}
-        onBack={() => setScreen({ name: s.from })}
+        backLabel="Back"
+        onBack={() => setScreen(s.from)}
         onSave={data.saveProject}
         onRecord={record}
         onCheckRepo={data.checkRepo}
-        onOpenTopic={(topicId) => setScreen({ name: 'topic', topicId, from: s.from })}
+        onOpenTopic={(topicId) => setScreen({ name: 'topic', topicId, from: s })}
         onOpenUpgrade={onOpenUpgrade}
       />
     ) : (
-      <EmptyState bordered title="Project not found" actions={<Button onClick={() => setScreen({ name: s.from })}>Go back</Button>} />
+      <EmptyState bordered title="Project not found" actions={<Button onClick={() => setScreen(s.from)}>Go back</Button>} />
     );
-  } else if (s.name === 'week') {
-    body = (
-      <WeekScreen
-        schedule={schedule}
-        progress={progress}
-        today={today}
-        onMove={(key, to) => saveSchedule(moveEntry(schedule, key, to), 'Task moved')}
-      />
-    );
-  } else if (s.name === 'roadmap') {
-    body = (
-      <RoadmapScreen
-        roadmap={roadmap}
-        schedule={schedule}
-        progress={progress}
-        onOpenTopic={(topicId) => setScreen({ name: 'topic', topicId, from: 'roadmap' })}
-        onOpenTask={(task) => openTask(task, 'roadmap')}
-        onNewRoadmap={startIntake}
-        adjust={
-          <AdjustPanel
-            current={roadmap}
-            onPropose={async (instruction) => {
-              const res = await data.adjust(instruction);
-              return res.success && res.proposal ? { proposal: res.proposal } : { error: res.error };
-            }}
-            onAccept={(p) => changeRoadmap(p.roadmap, p.schedule, 'Roadmap updated')}
-          />
-        }
-      />
-    );
-  } else if (s.name === 'projects') {
-    body = (
-      <ProjectLibrary
-        projects={allProjects()}
-        mine={data.projects}
-        role={roadmap.track_id}
-        beginnerOnly={isFree}
-        onOpen={(projectId) => setScreen({ name: 'project', projectId, from: 'projects' })}
-      />
-    );
+  } else if (s.name === 'day') {
+    body =
+      s.date === today ? null : (
+        <DayScreen
+          date={s.date}
+          today={today}
+          schedule={schedule!}
+          progress={progress!}
+          pathDay={pathDays.get(s.date) ?? null}
+          onBack={() => setScreen({ name: 'path' })}
+          onToggle={toggle}
+          onOpenTask={(task) => openTask(task, s)}
+          onMove={(key, to) => saveSchedule(moveEntry(schedule!, key, to), 'Task moved')}
+        />
+      );
   } else if (s.name === 'progress') {
-    body = <ProgressScreen model={progressModel(schedule, progress, index, today)} forecast={todayModel.forecast} />;
-  } else {
-    const measured = paceFactor(events);
+    body = (
+      <div className="flex flex-col gap-4">
+        <ActivityHeatmap events={events} streak={todayModel!.streak} />
+        <ProgressScreen model={progressModel(schedule!, progress!, index, today)} forecast={todayModel!.forecast} />
+      </div>
+    );
+  } else if (s.name === 'path') {
+    const pm = progressModel(schedule!, progress!, index, today);
+    const total = pm.modules.reduce((n, m) => n + m.minutes_total, 0);
+    const done = pm.modules.reduce((n, m) => n + m.minutes_done, 0);
+    body = (
+      <>
+        <PathScreen
+          path={path!}
+          today={today}
+          streak={todayModel!.streak}
+          forecast={todayModel!.forecast}
+          roleName={roleName}
+          percent={total ? Math.round((done / total) * 100) : 0}
+          onOpenDay={(date) => setScreen(date === today ? { name: 'today' } : { name: 'day', date })}
+          planActions={
+            <>
+              <Button size="sm" variant="secondary" leftIcon={<SlidersHorizontal />} onClick={() => setAdjustOpen(true)}>Adjust plan</Button>
+              <Button size="sm" variant="ghost" leftIcon={<RefreshCw />} onClick={startIntake}>New roadmap</Button>
+            </>
+          }
+        />
+        <Drawer open={adjustOpen} onOpenChange={setAdjustOpen}>
+          <DrawerContent title="Adjust your plan" description="Tell the planner what changed. You see the new plan before anything is saved." size="lg">
+            <AdjustPanel
+              current={roadmap!}
+              onPropose={async (instruction) => {
+                const res = await data.adjust(instruction);
+                return res.success && res.proposal ? { proposal: res.proposal } : { error: res.error };
+              }}
+              onAccept={async (p) => {
+                const res = await changeRoadmap(p.roadmap, p.schedule, 'Roadmap updated');
+                if (res.ok) setAdjustOpen(false);
+                return res;
+              }}
+            />
+          </DrawerContent>
+        </Drawer>
+      </>
+    );
+  }
+
+  if (s.name === 'today' || (s.name === 'day' && s.date === today)) {
     body = (
       <TodayScreen
-        today={todayModel}
+        today={todayModel!}
+        pathDay={pathDays.get(today) ?? null}
         trackId={trackId}
         isFree={isFree}
         practiceRemaining={practice.remaining}
-        paceFactor={schedule.pace_factor}
-        measuredPace={measured}
+        paceFactor={schedule!.pace_factor}
+        measuredPace={paceFactor(events)}
         shortfall={shortfall}
         onToggle={toggle}
         onRecord={record}
-        onOpenTask={(task) => openTask(task, tabOf(s))}
+        onOpenTask={(task) => openTask(task, { name: 'today' })}
         onReplan={async () => {
           const r = await replanWith();
           if (r) await saveSchedule(r.schedule, r.moved ? `${r.moved} tasks moved` : 'Plan is up to date');
         }}
         onSkipToday={async () => {
-          const r = skipToday({ schedule, roadmap, index, done: progress.done, today });
+          const r = skipToday({ schedule: schedule!, roadmap: roadmap!, index, done: progress!.done, today });
           setShortfall(r.shortfall);
           await saveSchedule(r.schedule, 'Today is off; the plan moved forward');
         }}
         onDoMore={async () => {
-          const next = doMore(schedule, today, progress.done);
+          const next = doMore(schedule!, today, progress!.done);
           if (next === schedule) toast({ title: 'Nothing left to pull in', tone: 'neutral' });
           else await saveSchedule(next, 'Added the next task to today');
         }}
@@ -385,14 +414,14 @@ export function LearnView({ currentUser, suggestedRole, onOpenUpgrade, onLog }: 
         onShortfallOption={async (option) => {
           if (!shortfall) return;
           if (option === 'drop') {
-            const optional = progress.tasks.filter((t) => t.optional && !progress.doneTasks.has(t.id)).reverse().slice(0, shortfall.options.drop_optional ?? 0);
-            const left = [...schedule.left_out, ...optional.map((t) => ({ task_id: t.id, minutes: t.minutes, reason: 'optional' as const }))];
-            const r = await replanWith({ schedule: { ...schedule, left_out: left } });
+            const optional = progress!.tasks.filter((t) => t.optional && !progress!.doneTasks.has(t.id)).reverse().slice(0, shortfall.options.drop_optional ?? 0);
+            const left = [...schedule!.left_out, ...optional.map((t) => ({ task_id: t.id, minutes: t.minutes, reason: 'optional' as const }))];
+            const r = await replanWith({ schedule: { ...schedule!, left_out: left } });
             if (r) await saveSchedule(r.schedule, `${optional.length} optional tasks left out`);
             return;
           }
           const diff = option === 'extend' ? { end_date: shortfall.options.extend_to } : { weekend_minutes: shortfall.options.weekend_minutes };
-          const applied = applyRoadmapDiff(roadmap, diff, index);
+          const applied = applyRoadmapDiff(roadmap!, diff, index);
           const r = await replanWith({ roadmap: applied.roadmap, templates: 'intake' });
           if (r) await changeRoadmap(applied.roadmap, r.schedule, 'Plan updated');
         }}
@@ -401,11 +430,9 @@ export function LearnView({ currentUser, suggestedRole, onOpenUpgrade, onLog }: 
     );
   }
 
-  const showHeatmap = s.name === 'today' || s.name === 'progress';
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 pb-16">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 pb-16">
       {header}
-      {showHeatmap && roadmap && <ActivityHeatmap events={events} streak={todayModel?.streak} />}
       {body}
     </div>
   );

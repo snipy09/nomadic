@@ -13,7 +13,8 @@ import { APP_ANSWERS, readAppAnswers, writeAppAnswers } from '../../../shared/ap
 import { AppAnswerFields } from '../answers/AppAnswerFields';
 import { extractResumeFacts, mergeMissing } from '../answers/resumeFacts';
 import { useAnswerDrafts, useDocumentReader } from '../answers/useAnswerDrafts';
-import { FeasibilityBar, IntakeFields } from '../learn/IntakeFields';
+import { IntakePage } from '../learn/IntakeWizard';
+import { INTAKE_STEPS, intakeSteps, stepProblem } from '../learn/intakeSteps';
 import { learnIndex } from '../learn/catalog';
 import { isRoleId, skillIdsFromNames } from '../learn/content';
 import { defaultIntakeDraft, draftProblem, draftToIntake, feasibilityOf, todayOf, type IntakeDraft } from '../learn/learnModel';
@@ -51,6 +52,8 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
   const intakeTouched = useRef(false);
   // A roadmap is built only for a role the user picked (here or on the role step), never a default.
   const [roleSet, setRoleSet] = useState(false);
+  // The roadmap step is a short page-by-page intake inside this step.
+  const [roadmapPage, setRoadmapPage] = useState(0);
   const resumes = useResumes();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const firstRender = useRef(true);
@@ -65,6 +68,9 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
 
   const step: StepId = STEPS[stepIndex].id;
   const isLast = stepIndex === STEPS.length - 1;
+  const roadmapPages = intakeSteps('short', intake);
+  const roadmapSub = roadmapPages[Math.min(roadmapPage, roadmapPages.length - 1)];
+  const onLastPage = !isLast || step !== 'roadmap' || roadmapPage >= roadmapPages.length - 1;
   const errors = showErrors ? stepErrors(step, form) : {};
   const docText = [docs.resume?.text, docs.linkedin?.text].filter(Boolean).join('\n\n');
   const defaultResume = resumes.resumes.find((r) => r.isDefault) ?? resumes.resumes[0];
@@ -136,7 +142,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
   useEffect(() => {
     if (firstRender.current) { firstRender.current = false; return; }
     headingRef.current?.focus();
-  }, [stepIndex]);
+  }, [stepIndex, roadmapPage]);
 
   // Entering the roadmap step: start from the role picked on the "Role and skills" step.
   useEffect(() => {
@@ -202,6 +208,16 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
     }
     // Answers are saved only when the user continues from the Answers step (skipping keeps them out).
     if (step === 'answers') set('answers', writeAppAnswers(form.answers, Object.fromEntries(APP_ANSWERS.map((d) => [d.id, appValues[d.id] ?? '']))));
+    if (step === 'roadmap' && !onLastPage) {
+      const problem = stepProblem(roadmapSub, intake, roleSet);
+      if (problem) {
+        setSaveError(problem);
+        return;
+      }
+      setSaveError(null);
+      setRoadmapPage((p) => p + 1);
+      return;
+    }
     if (isLast && roleSet && draftProblem(intake)) {
       setSaveError(draftProblem(intake));
       return;
@@ -214,7 +230,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
 
   return (
     <main className="flex min-h-screen items-start justify-center overflow-y-auto bg-canvas p-4 text-fg sm:items-center">
-      <Card variant="raised" className={`w-full ${step === 'answers' ? 'max-w-3xl' : 'max-w-xl'}`}>
+      <Card variant="raised" className={`w-full ${step === 'answers' || step === 'roadmap' ? 'max-w-3xl' : 'max-w-xl'}`}>
         <header className="flex flex-col gap-3 border-b border-line px-6 pb-4 pt-5">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -457,30 +473,42 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
 
           {step === 'roadmap' && (
             <>
-              <StepHeading
-                ref={headingRef}
-                title="Your roadmap"
-                description="Your target, your time and your level. Finishing builds a day-by-day plan you review in Learn; you can change everything there."
-              />
-              <IntakeFields
-                compact
+              <div className="flex flex-col gap-1">
+                <span className="text-caption font-strong uppercase tracking-wide text-accent">
+                  Your roadmap · {roadmapPage + 1} of {roadmapPages.length}
+                </span>
+                <h1 ref={headingRef} tabIndex={-1} className="text-title font-strong text-fg outline-none">{INTAKE_STEPS[roadmapSub].title}</h1>
+                <p className="text-body text-fg-muted">
+                  {roadmapSub === 'summary'
+                    ? 'Finishing builds your week-by-week plan, which you review in Learn. You can change everything there.'
+                    : INTAKE_STEPS[roadmapSub].description}
+                </p>
+              </div>
+              <IntakePage
+                step={roadmapSub}
                 draft={intake}
-                onChange={(v) => { intakeTouched.current = true; if (v.role !== intake.role) setRoleSet(true); setIntake(v); }}
+                steps={roadmapPages}
+                roleChosen={roleSet}
+                onRoleChosen={() => { intakeTouched.current = true; setRoleSet(true); }}
+                onChange={(v) => { intakeTouched.current = true; setSaveError(null); setIntake(v); }}
+                feasibility={roleSet ? feasibilityOf({ ...intake, knownSkillIds }, learnIndex()) : null}
+                onJump={(s) => setRoadmapPage(roadmapPages.indexOf(s))}
               />
-              {!roleSet && (
+              {roadmapSub === 'summary' && !roleSet && (
                 <p className="text-caption text-fg-subtle">Pick a target role to build your roadmap. Without one, setup finishes without a roadmap.</p>
               )}
-              <FeasibilityBar feasibility={feasibilityOf({ ...intake, knownSkillIds }, learnIndex())} />
-              {draftProblem(intake) && <p role="alert" className="text-caption text-danger-fg">{draftProblem(intake)}</p>}
-              {knownSkillIds.length > 0 && (
+              {roadmapSub === 'summary' && knownSkillIds.length > 0 && (
                 <p className="text-caption text-fg-subtle">
                   Modules for skills you said you know get lighter. Learn tracks your progress from there.
                 </p>
               )}
+              {step === 'roadmap' && saveError && stepProblemShown(saveError) && (
+                <p role="alert" className="text-caption text-danger-fg">{saveError}</p>
+              )}
             </>
           )}
 
-          {isLast && saveError && (
+          {isLast && saveError && !stepProblemShown(saveError) && (
             <div role="alert" className="flex items-start gap-2 rounded-md border border-danger/40 bg-danger-subtle px-3 py-2 text-body text-danger-fg">
               <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
               <span>We could not finish setup: {saveError} Nothing was marked complete. Try again.</span>
@@ -488,8 +516,16 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
           )}
 
           <div className="flex items-center gap-2 border-t border-line pt-4">
-            {stepIndex > 0 && (
-              <Button variant="ghost" leftIcon={<ArrowLeft />} onClick={() => goTo(stepIndex - 1)} disabled={saving}>
+            {(stepIndex > 0 || (step === 'roadmap' && roadmapPage > 0)) && (
+              <Button
+                variant="ghost"
+                leftIcon={<ArrowLeft />}
+                onClick={() => {
+                  if (step === 'roadmap' && roadmapPage > 0) { setSaveError(null); setRoadmapPage((p) => p - 1); }
+                  else goTo(stepIndex - 1);
+                }}
+                disabled={saving}
+              >
                 Back
               </Button>
             )}
@@ -504,7 +540,7 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
               loading={saving}
               loadingText="Saving…"
             >
-              {isLast ? (saveError ? 'Try again' : 'Finish setup') : 'Continue'}
+              {isLast && onLastPage ? (saveError && !stepProblemShown(saveError) ? 'Try again' : 'Finish setup') : 'Continue'}
             </Button>
           </div>
         </form>
@@ -512,6 +548,17 @@ export const Onboarding: React.FC<OnboardingProps> = ({ initialProfile, currentU
     </main>
   );
 };
+
+/** Intake page problems are shown inline, not as a failed save. */
+const INTAKE_PROBLEMS = new Set([
+  'Pick the role you are preparing for.',
+  'Pick at least one study day.',
+  'Set how much time you have on your study days.',
+  'Pick a duration between 1 and 104 weeks.',
+  'Keep at least one area on.',
+  'Some plan details are not valid.',
+]);
+const stepProblemShown = (msg: string) => INTAKE_PROBLEMS.has(msg);
 
 const StepHeading = React.forwardRef<HTMLHeadingElement, { title: string; description: string }>(function StepHeading(
   { title, description },

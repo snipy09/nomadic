@@ -31,6 +31,8 @@ interface ProjectBuildProps {
   trackId: string | null;
   beginnerOnly: boolean;
   onBack: () => void;
+  /** Text of the back button (default "All projects"). */
+  backLabel?: string;
   onSave: (p: UserProject) => Promise<{ ok: boolean; error?: string; limited?: boolean }>;
   onRecord: (events: LearningEventInput[]) => Promise<{ ok: boolean; error?: string }>;
   onCheckRepo: (req: LearnRepoCheckRequest) => Promise<LearnRepoCheckResult>;
@@ -40,7 +42,7 @@ interface ProjectBuildProps {
 
 /** Project page and guided build: stages, steps, hints, acceptance, repo check and the finish kit. */
 export function ProjectBuild(props: ProjectBuildProps) {
-  const { project, mine, doneModules, trackId, beginnerOnly, onBack, onSave, onRecord, onCheckRepo, onOpenTopic } = props;
+  const { project, mine, doneModules, trackId, beginnerOnly, onBack, onSave, onRecord, onCheckRepo, onOpenTopic, backLabel = 'All projects' } = props;
   const { toast } = useToast();
   const stages = orderedStages(project);
   const progress = projectProgress(project, mine);
@@ -92,7 +94,7 @@ export function ProjectBuild(props: ProjectBuildProps) {
   if (!mine || mine.status === 'abandoned') {
     return (
       <article className="flex flex-col gap-4" aria-labelledby="project-title">
-        <div><Button variant="ghost" size="sm" leftIcon={<ArrowLeft />} onClick={onBack}>All projects</Button></div>
+        <div><Button variant="ghost" size="sm" leftIcon={<ArrowLeft />} onClick={onBack}>{backLabel}</Button></div>
         <header className="flex flex-col gap-1">
           <h2 id="project-title" className="text-title font-strong text-fg">{project.title}</h2>
           <div className="flex flex-wrap gap-2 text-caption text-fg-subtle">
@@ -147,7 +149,7 @@ export function ProjectBuild(props: ProjectBuildProps) {
   return (
     <article className="flex flex-col gap-4" aria-labelledby="project-title">
       <div className="flex flex-wrap items-center gap-2">
-        <Button variant="ghost" size="sm" leftIcon={<ArrowLeft />} onClick={onBack}>All projects</Button>
+        <Button variant="ghost" size="sm" leftIcon={<ArrowLeft />} onClick={onBack}>{backLabel}</Button>
         <span className="ml-auto text-caption text-fg-subtle">{progress.percent}% built · {formatMinutes(progress.minutes_left)} left</span>
         {mine.status === 'active' && (
           <Button size="sm" variant="ghost" onClick={() => void save({ ...mine, status: 'abandoned', updated_at: new Date().toISOString() })}>Stop project</Button>

@@ -1,10 +1,11 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ExternalLink, NotebookPen } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Lightbulb, ListChecks, NotebookPen } from 'lucide-react';
 import { Badge, Button, Card, EmptyState, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Textarea, useToast } from '@nomadic/ui';
 import type { GradeResult, ProblemNote, Roadmap } from '@job-automator/learning';
 import { getApi, type LearningEventInput } from '../../types';
 import { learnIndex, moduleById, problemByRef, topicById } from './catalog';
-import { bundle, isShowableResource, quizItemById, type QuizItem } from './content';
+import { quizItemById, type QuizItem } from './content';
+import { LearnItem } from './DayTaskList';
 import { InlineText } from './InlineText';
 import { formatMinutes, knowThisEvent, problemAttemptedEvent, topicProblems, type Progress } from './learnModel';
 import { QuizForm } from './QuizForm';
@@ -25,12 +26,8 @@ interface TopicScreenProps {
 }
 
 const TIER_LABEL = { must: 'Must do', good: 'Good to do', stretch: 'Stretch', company: 'Company list' } as const;
-const TYPE_LABEL: Record<string, string> = {
-  video: 'Video', doc: 'Docs', book: 'Book', course: 'Course', cheatsheet: 'Cheat sheet',
-  article: 'Article', interactive: 'Interactive', problem: 'Practice problems',
-};
 
-/** Topic page: lesson, curated resources, named problems with notes, the topic quiz and "I already know this". */
+/** Topic page: what to learn, key points, hands-on tasks, named problems with notes, the topic quiz and "I already know this". */
 export function TopicScreen(props: TopicScreenProps) {
   const { topicId, roadmap, progress, notes, trackId, practiceRemaining, isFree, onBack, onRecord, onSaveNote } = props;
   const { toast } = useToast();
@@ -42,11 +39,8 @@ export function TopicScreen(props: TopicScreenProps) {
     () => (topic?.quiz_item_ids ?? []).map((id) => quizItemById(id)).filter((x): x is QuizItem => !!x),
     [topic]
   );
-  const resources = useMemo(() => {
-    const byId = new Map(bundle.resources.map((r) => [r.id, r]));
-    return (topic?.resource_ids ?? []).map((id) => byId.get(id)).filter((r): r is NonNullable<typeof r> => !!r && isShowableResource(r));
-  }, [topic]);
 
+  const learnItems = topic ? (topic.learn_items.length ? topic.learn_items : topic.key_points) : [];
   if (!topic) {
     return <EmptyState bordered title="Topic not found" description="This topic is no longer in the catalogue." actions={<Button onClick={onBack}>Go back</Button>} />;
   }
@@ -90,15 +84,36 @@ export function TopicScreen(props: TopicScreenProps) {
         </div>
       </header>
 
-      <Card padding="md" className="flex flex-col gap-3">
+      <Card padding="lg" className="flex flex-col gap-4">
         <p className="text-body-lg text-fg"><InlineText text={topic.summary_md} /></p>
-        {topic.key_points.length > 0 && (
-          <ul className="flex list-disc flex-col gap-1 pl-5 text-body text-fg-muted">
-            {topic.key_points.map((k) => <li key={k}><InlineText text={k} /></li>)}
-          </ul>
+        {learnItems.length > 0 && (
+          <section aria-labelledby="topic-learn" className="flex flex-col gap-2">
+            <h3 id="topic-learn" className="flex items-center gap-2 text-heading font-strong text-fg">
+              <ListChecks className="size-4 text-accent" aria-hidden="true" /> What to learn
+            </h3>
+            <ol className="flex flex-col gap-2">
+              {learnItems.map((item, i) => (
+                <li key={item} className="flex gap-3 rounded-lg bg-surface-sunken/70 px-3 py-2 text-body text-fg">
+                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent text-caption font-strong text-accent-fg">{i + 1}</span>
+                  <LearnItem text={item} />
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+        {topic.key_points.length > 0 && topic.learn_items.length > 0 && (
+          <section aria-labelledby="topic-remember" className="flex flex-col gap-1.5 rounded-lg border border-accent/30 bg-accent-subtle/50 p-3">
+            <h3 id="topic-remember" className="flex items-center gap-2 text-body font-strong text-accent-subtle-fg">
+              <Lightbulb className="size-4" aria-hidden="true" /> Remember
+            </h3>
+            <ul className="flex list-disc flex-col gap-1 pl-5 text-body text-fg-muted">
+              {topic.key_points.map((k) => <li key={k}><InlineText text={k} /></li>)}
+            </ul>
+          </section>
         )}
         {!learnDone && (
-          <div>
+          <div className="flex flex-wrap items-center gap-3 border-t border-line pt-3">
+            <span className="mr-auto text-caption text-fg-subtle">Already comfortable with every point above?</span>
             <Button size="sm" variant="secondary" onClick={() => void record([knowThisEvent(topic.id, topic.skill_ids[0] ?? mod?.skill_ids[0] ?? null, trackId, new Date())], 'Marked as learned')}>
               I already know this
             </Button>
@@ -106,28 +121,9 @@ export function TopicScreen(props: TopicScreenProps) {
         )}
       </Card>
 
-      <section aria-labelledby="topic-resources" className="flex flex-col gap-2">
-        <h3 id="topic-resources" className="text-heading font-strong text-fg">Resources</h3>
-        {resources.length === 0 ? (
-          <Card variant="sunken" padding="sm" className="text-body text-fg-muted">No checked resource for this topic yet. The summary above covers the essentials.</Card>
-        ) : (
-          <ul className="flex flex-col gap-1.5">
-            {resources.map((r) => (
-              <li key={r.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2">
-                <div className="mr-auto min-w-0">
-                  <div className="text-body text-fg">{r.title}</div>
-                  <div className="text-caption text-fg-subtle">{r.provider} · {TYPE_LABEL[r.type] ?? r.type}{r.is_free ? ' · free' : ''}</div>
-                </div>
-                <Button size="sm" variant="secondary" rightIcon={<ExternalLink />} aria-label={`Open ${r.title} in your browser`} onClick={() => { void getApi().openExternalUrl(r.url); }}>Open</Button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
       {topic.tasks.length > 0 && (
         <section aria-labelledby="topic-tasks" className="flex flex-col gap-2">
-          <h3 id="topic-tasks" className="text-heading font-strong text-fg">Practice tasks</h3>
+          <h3 id="topic-tasks" className="text-heading font-strong text-fg">Hands-on practice</h3>
           <ul className="flex flex-col gap-1">
             {topic.tasks.map((t) => (
               <li key={t.key} className="text-body text-fg">{t.title} <span className="text-caption text-fg-subtle">· {formatMinutes(t.minutes)}{t.optional ? ' · optional' : ''}</span></li>
