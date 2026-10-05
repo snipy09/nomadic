@@ -278,7 +278,7 @@ checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification
 - Videos, reel/brag renders and carousels never go in the repo (`.gitignore` blocks `brag-output*/`, `reel*/`,
   `showreel/`, `instagram-carousel/`, `marketing/` and video/audio files); they live in `Desktop\Nomadic Content`.
   `.claude/` is untracked on purpose, never stage it (local assistant settings and `launch.json`; its notes are folded into section 10).
-- Delivered build: `Nomadic-v1.1.0-portable.exe` in `C:\Users\sajal\Downloads` and `Desktop\Nomadic Content\App builds\`
+- Delivered build: `Nomadic-v1.2.0-portable.exe` (v1.2.0 as below; before it 1.1.0) in `C:\Users\sajal\Downloads` and `Desktop\Nomadic Content\App builds\`
   (built from `apps/desktop/dist-electron/Nomadic.1.1.0.exe`; 1.1.0: Outreach as above, shown as "Soon"; 1.0.13: a listing that names no skills is scored
   against the core skills (weight ≥ 0.8) of the role family in its title and shown as an estimate (`~N%`, "est.
   match"; `JobMatch.estimated`, `features/feed/match.ts`); `inferRole` matches whole stemmed words; the Internshala
@@ -325,8 +325,8 @@ checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification
   Progress, `learnModel.ts`, `quizLogic.ts`, `catalog.ts`) and `features/projects/`. v1 PathScreen, GoalSetup,
   GoalFields, LessonScreen and learnLogic are deleted; the v1 goal RPCs (007/012) are unused but still deployed.
   Go-live steps: owner action 0 in section 7.
-- **v1.2.0 Learn path + Projects** (5 Oct 2026, built on `claude/relaxed-bell-eendal` and merged into `main`; not
-  packaged yet: built in a Linux container): intake is one question per page (`features/learn/IntakeWizard.tsx`, `intakeSteps.ts`; onboarding's
+- **v1.2.0 Learn path + Projects** (5 Oct 2026, built on `claude/relaxed-bell-eendal` and merged into `main`;
+  packaged on the laptop 5 Oct 2026 as `Nomadic-v1.2.0-portable.exe`, smoke-tested over CDP): intake is one question per page (`features/learn/IntakeWizard.tsx`, `intakeSteps.ts`; onboarding's
   roadmap step uses the same pages via `IntakePage`); Learn tabs are Path / Today / Progress (`PathScreen.tsx` from
   engine `buildPath`, `DayScreen.tsx`, `DayTaskList.tsx` with the per-part "What to learn" list via `partSlice`);
   Week and Roadmap-tree screens and `IntakeFields` were deleted; the Topic page shows no resources. Review shows the
