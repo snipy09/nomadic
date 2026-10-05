@@ -253,7 +253,7 @@ checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification
 ## 9. Handoff state (5 October 2026)
 
 - Branch `main` (remote github.com/snipy09/nomadic) holds everything (Outreach and Learn v2 merged); there are no open feature branches to merge.
-  Last commit of the session: "merge: Learn v2 into the outreach release, desktop 1.1.0".
+  v1.2.0 (Learn path, Projects page with ~4,100 projects, AI project help) was fast-forwarded into `main` on 5 Oct 2026.
 - **v1.1.0 Outreach** (`docs/OUTREACH_PLAN.md`): targets everyone who can refer (recruiter/HR, hiring manager,
   founder, employee, alumni, team inbox). Contacts scraper `packages/scrapers/src/contacts/` (public pages only, no
   LinkedIn scraping or guessed emails, MX check; `npm run scrape:contacts -- --publish` with the service key) writes
@@ -313,8 +313,8 @@ checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification
   Progress, `learnModel.ts`, `quizLogic.ts`, `catalog.ts`) and `features/projects/`. v1 PathScreen, GoalSetup,
   GoalFields, LessonScreen and learnLogic are deleted; the v1 goal RPCs (007/012) are unused but still deployed.
   Go-live steps: owner action 0 in section 7.
-- **v1.2.0 Learn path + Projects** (5 Oct 2026, branch `claude/relaxed-bell-eendal`, not packaged: built in a Linux
-  container): intake is one question per page (`features/learn/IntakeWizard.tsx`, `intakeSteps.ts`; onboarding's
+- **v1.2.0 Learn path + Projects** (5 Oct 2026, built on `claude/relaxed-bell-eendal` and merged into `main`; not
+  packaged yet: built in a Linux container): intake is one question per page (`features/learn/IntakeWizard.tsx`, `intakeSteps.ts`; onboarding's
   roadmap step uses the same pages via `IntakePage`); Learn tabs are Path / Today / Progress (`PathScreen.tsx` from
   engine `buildPath`, `DayScreen.tsx`, `DayTaskList.tsx` with the per-part "What to learn" list via `partSlice`);
   Week and Roadmap-tree screens and `IntakeFields` were deleted; the Topic page shows no resources. Review shows the
