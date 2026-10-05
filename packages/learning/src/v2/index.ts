@@ -9,3 +9,4 @@ export * from './intake';
 export * from './projects';
 export * from './progressV2';
 export * from './path';
+export * from './gen';

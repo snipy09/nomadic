@@ -14038,6 +14038,7 @@
         "Pass vectors by const reference: const vector<int>& v.",
         "ios::sync_with_stdio(false); cin.tie(nullptr); speeds up input."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -14071,6 +14072,7 @@
         "map keeps keys sorted; unordered_map does not.",
         "Use count or find to test membership without inserting."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -14104,6 +14106,7 @@
         "lower_bound returns the first element not less than the value.",
         "accumulate with 0LL to sum into a long long."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -14137,6 +14140,7 @@
         "Erasing while iterating: use the iterator returned by erase.",
         "Initialise every variable; local ints start with garbage values."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [
@@ -14170,6 +14174,7 @@
         "StringBuilder.append is amortised O(1); String concatenation in a loop is O(n²).",
         "Arrays.fill and Arrays.sort work on primitive arrays."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -14203,6 +14208,7 @@
         "PriorityQueue is a min-heap; pass a comparator for a max-heap.",
         "Use ArrayDeque instead of the old Stack class."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -14236,6 +14242,7 @@
         "Comparator.comparing(...).thenComparing(...) chains keys.",
         "Collections.reverseOrder() gives descending order for objects."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -14269,6 +14276,7 @@
         "Remove during iteration with an Iterator’s remove method.",
         "Very deep recursion can overflow the stack; convert to an explicit stack."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [
@@ -14302,6 +14310,7 @@
         "[[0] * m for _ in range(n)] builds a grid; [[0] * m] * n shares rows.",
         "Use \"\".join(parts) instead of += on strings in a loop."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -14336,6 +14345,7 @@
         "defaultdict(list) groups values by key.",
         "Use deque for BFS queues; list.pop(0) is O(n)."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -14370,6 +14380,7 @@
         "bisect_left(a, x) is the first index where x could go.",
         "sorted(items, key=lambda t: (t[1], t[0])) sorts by two keys."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -14404,6 +14415,7 @@
         "Never use def f(x, seen=[]): the list is shared across calls.",
         "\"x in list\" is O(n); \"x in set\" is O(1) on average."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [
@@ -14438,6 +14450,7 @@
         "With n up to 10^5, aim for O(n log n) or better; 10^8 simple steps is about one second.",
         "Recursion depth counts as space: a recursive DFS on a path of n nodes uses O(n) stack."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -14473,6 +14486,7 @@
         "Sieve: mark multiples of each prime starting from p*p.",
         "Binary exponentiation: x^n = (x^(n/2))² times x when n is odd."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -14513,6 +14527,7 @@
         "Process from the right when a later symbol changes the meaning of an earlier one.",
         "Test the smallest and largest valid inputs by hand before submitting."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [
@@ -14551,6 +14566,7 @@
         "Rotate by k: reverse all, then reverse the first k and the rest.",
         "Merge from the back when the target array has free space at the end."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -14593,6 +14609,7 @@
         "Count subarrays summing to k: look up prefix - k in a map of seen prefixes.",
         "Product except self: multiply a left pass and a right pass, no division needed."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -14634,6 +14651,7 @@
         "For products, track both the max and the min (a negative flips them).",
         "Circular arrays: answer is max(normal Kadane, total - minimum subarray)."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -14672,6 +14690,7 @@
         "Spiral: keep top, bottom, left and right bounds and move them inward.",
         "Use the first row and column as markers to get O(1) extra space."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -14713,6 +14732,7 @@
         "To remove the fewest intervals, greedily keep the one that ends first.",
         "Two sorted lists of intervals intersect with two pointers."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -14754,6 +14774,7 @@
         "Group anagrams by a key such as the sorted word or a 26-letter count.",
         "Bucket sort by frequency gives top-k in O(n)."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -14796,6 +14817,7 @@
         "Keep a set of the last k elements for \"duplicate within k\".",
         "Moore’s voting finds the majority element in O(1) space."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -14834,6 +14856,7 @@
         "Keep values sorted by timestamp and binary-search the latest one not after t.",
         "Explain collisions and load factor when asked how a hash map works."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [
@@ -14873,6 +14896,7 @@
         "Add numeric strings digit by digit from the right with a carry.",
         "Compress in place with a read pointer and a write pointer."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [],
@@ -14913,6 +14937,7 @@
         "Allowing one deletion: on the first mismatch try skipping either side.",
         "Skip non-alphanumeric characters when the problem says so."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [],
@@ -14950,6 +14975,7 @@
         "A string is a repetition of a pattern if it appears in (s + s) without the ends.",
         "Rolling hash: remove the outgoing character, shift, add the incoming one."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [],
@@ -14985,6 +15011,7 @@
         "Sort first for 3Sum, then skip equal neighbours.",
         "Dutch national flag sorts three values in one pass."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [],
@@ -15024,6 +15051,7 @@
         "Anagram in window: compare two 26-length count arrays.",
         "Taking k cards from both ends equals leaving a middle window of n - k."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [],
@@ -15059,6 +15087,7 @@
         "Character replacement: window is valid while size - maxCount <= k.",
         "Exactly k distinct = atMost(k) - atMost(k - 1)."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [],
@@ -15100,6 +15129,7 @@
         "First position: when equal, record and keep searching left.",
         "Check the loop with arrays of size 0, 1 and 2."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [],
@@ -15135,6 +15165,7 @@
         "A peak exists in the direction of the larger neighbour.",
         "Median of two sorted arrays partitions both so the left halves balance."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [],
@@ -15171,6 +15202,7 @@
         "Bounds: low = the smallest possible answer, high = the largest useful one.",
         "The feasibility check is usually one O(n) greedy pass."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [],
@@ -15208,6 +15240,7 @@
         "Quickselect partitions once and recurses into one side only.",
         "Merge sort’s merge step also counts inversions."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -15245,6 +15278,7 @@
         "Sort characters by count using a map and a bucket list.",
         "Sort by one key, break ties by another."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -15283,6 +15317,7 @@
         "The recursion tree’s size is the time complexity.",
         "Repeated subproblems mean dynamic programming will help."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [],
@@ -15317,6 +15352,7 @@
         "Sort and skip equal neighbours to avoid duplicate results.",
         "Count the results to know the complexity: 2^n subsets, n! permutations."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [],
@@ -15355,6 +15391,7 @@
         "Track used columns and diagonals in sets for N-Queens.",
         "Restore the board after each attempt."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [],
@@ -15394,6 +15431,7 @@
         "Reverse: next = cur.next; cur.next = prev; prev = cur; cur = next.",
         "Draw the pointers before and after each step."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -15435,6 +15473,7 @@
         "Palindrome list: find the middle, reverse the second half, compare.",
         "Cycle start: after meeting, move one pointer to head and step both by one."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -15474,6 +15513,7 @@
         "Interleave copies (A -> A' -> B) to copy random pointers in O(1) extra space.",
         "Sort a list with merge sort: split at the middle, sort halves, merge."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [
@@ -15516,6 +15556,7 @@
         "Min stack: store the current minimum alongside each value.",
         "Calculator: keep a sign and a running number; push terms; sum at the end."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [],
@@ -15558,6 +15599,7 @@
         "Next greater: pop while the top is smaller than the current value.",
         "Largest rectangle: each bar extends until a smaller bar on each side."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [],
@@ -15599,6 +15641,7 @@
         "Window max: drop smaller elements from the back; drop expired indexes from the front.",
         "A circular buffer needs head, tail and count."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [],
@@ -15635,6 +15678,7 @@
         "Right side view: the last node of each level.",
         "Iterative inorder uses an explicit stack."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -15677,6 +15721,7 @@
         "Lowest common ancestor: the node where p and q are found in different subtrees.",
         "Path sums: carry the running sum down; use a prefix-sum map for any start node."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -15721,6 +15766,7 @@
         "Serialise with preorder and a marker for null children.",
         "Vertical order: BFS with (column, row) and sort within each column."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [
@@ -15761,6 +15807,7 @@
         "Validate with bounds carried from ancestors.",
         "k-th smallest: inorder and stop at the k-th node."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [],
@@ -15799,6 +15846,7 @@
         "Sorted list to BST: the middle element becomes the root.",
         "Self-balancing trees (AVL, red-black) keep height O(log n)."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [],
@@ -15836,6 +15884,7 @@
         "Heap push and pop are O(log n); peek is O(1).",
         "Ties: add a second key to the heap entry."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [],
@@ -15871,6 +15920,7 @@
         "Task scheduler: the most frequent task decides the idle slots.",
         "Reorganise string: always place the most frequent remaining character."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [],
@@ -15911,6 +15961,7 @@
         "Sliding median needs lazy deletion or a balanced tree.",
         "Smallest range over k lists: min-heap plus the current maximum."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [],
@@ -15946,6 +15997,7 @@
         "Jump game: keep the furthest reachable index.",
         "Partition labels: extend the current part to the last occurrence of each character."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [],
@@ -15987,6 +16039,7 @@
         "Maximum swap: swap the first digit with the last occurrence of a larger digit.",
         "Break a palindrome: change the first non-a character in the first half."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [],
@@ -16022,6 +16075,7 @@
         "Multi-source BFS: push all sources first, then expand level by level.",
         "BFS gives shortest paths in unweighted graphs."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -16069,6 +16123,7 @@
         "Clone a graph with a map from old node to new node.",
         "Bipartite: colour neighbours the opposite colour; a clash means not bipartite."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -16114,6 +16169,7 @@
         "Fewer output nodes than total nodes means a cycle.",
         "Course schedule is cycle detection in a directed graph."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -16156,6 +16212,7 @@
         "At most k stops: Bellman-Ford for k + 1 rounds on a copy of the distances.",
         "0-1 BFS: push 0-weight edges to the front, 1-weight edges to the back."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [
@@ -16196,6 +16253,7 @@
         "An edge whose ends are already joined is redundant (it forms a cycle).",
         "Kruskal: sort edges by weight, union when the ends differ."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [
@@ -16239,6 +16297,7 @@
         "House robber: dp[i] = max(dp[i-1], dp[i-2] + nums[i]).",
         "Often only the last two states are needed: O(1) space."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -16280,6 +16339,7 @@
         "Target sum reduces to counting subsets with a given sum.",
         "Coin change II counts combinations: loop coins outside, amounts inside."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -16317,6 +16377,7 @@
         "Keep one row to save memory.",
         "Dungeon game is solved from the bottom-right backwards."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -16358,6 +16419,7 @@
         "Edit distance: 1 + min(insert, delete, replace) when characters differ.",
         "Palindromic subsequence = LCS of the string and its reverse."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -16401,6 +16463,7 @@
         "Job scheduling: dp over jobs sorted by end; binary-search the previous job.",
         "Stocks: states such as hold, sold and rest, updated each day."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [
@@ -16443,6 +16506,7 @@
         "startsWith only needs the path to exist.",
         "Autocomplete: walk to the prefix node, then collect words below it."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [],
@@ -16479,6 +16543,7 @@
         "n & (n - 1) == 0 means n is a power of two (for n > 0).",
         "Bit i of n: (n >> i) & 1."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [],
@@ -16519,6 +16584,7 @@
         "Weighted pick: prefix sums plus binary search on a random number.",
         "Store slopes as reduced (dy, dx) pairs to avoid floating-point errors."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [],
@@ -16554,6 +16620,7 @@
         "Overloading is resolved at compile time; overriding at run time.",
         "Use inheritance for an \"is-a\" relation, composition for \"has-a\"."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -16587,6 +16654,7 @@
         "Use an abstract class for shared state and code in a family of types.",
         "Static members belong to the class, not to any object."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -16619,6 +16687,7 @@
         "A Square that breaks Rectangle’s setWidth contract breaks Liskov substitution.",
         "Inject dependencies through constructors to make code testable."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [
@@ -16651,6 +16720,7 @@
         "Observer underlies event listeners and pub/sub.",
         "Singleton needs care with threads and makes testing harder."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [
@@ -16683,6 +16753,7 @@
         "Name responsibilities; each class should have one.",
         "Show where a pattern (strategy for pricing, observer for updates) fits."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [
@@ -16727,6 +16798,7 @@
         "A foreign key enforces that the referenced row exists.",
         "Many-to-many relations need a join table."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -16761,6 +16833,7 @@
         "Comparisons with NULL are unknown; use IS NULL.",
         "Second highest: max of values below the max, or OFFSET 1 on distinct values."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -16805,6 +16878,7 @@
         "DENSE_RANK does not skip numbers after ties; RANK does.",
         "Top N per group: rank in a subquery, filter on the rank."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -16853,6 +16927,7 @@
         "Transitive dependency (id -> zip -> city) breaks 3NF.",
         "Normalisation reduces anomalies; it can add joins."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -16887,6 +16962,7 @@
         "A dirty read sees another transaction’s uncommitted change.",
         "Serializable gives the strongest guarantees at the highest cost."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -16921,6 +16997,7 @@
         "Functions on an indexed column usually prevent index use.",
         "Read the query plan before adding indexes."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [
@@ -16955,6 +17032,7 @@
         "Context switches between threads of one process are cheaper.",
         "fork() creates a child process; exec() replaces its program."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -16987,6 +17065,7 @@
         "Round Robin with a tiny quantum spends most time switching.",
         "Ageing raises the priority of processes that wait long."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -17019,6 +17098,7 @@
         "Always lock resources in a fixed global order to prevent circular wait.",
         "Producer-consumer uses a mutex plus two semaphores (empty, full)."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -17051,6 +17131,7 @@
         "The TLB makes most address translations fast.",
         "Belady’s anomaly: FIFO can fault more with more frames."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -17083,6 +17164,7 @@
         "Indexed allocation supports fast random access.",
         "SCAN moves the head like an elevator."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [
@@ -17115,6 +17197,7 @@
         "Ports belong to the transport layer.",
         "Encapsulation: data -> segment -> packet -> frame."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -17148,6 +17231,7 @@
         "TCP retransmits lost segments; UDP does not.",
         "Choose UDP when late data is worse than lost data."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -17181,6 +17265,7 @@
         "NAT lets many devices share one public IP.",
         "ARP maps IP to MAC on the local link."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [
@@ -17214,6 +17299,7 @@
         "GET should not change data; PUT and DELETE are idempotent.",
         "TLS uses asymmetric keys to agree on a symmetric session key."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -17247,6 +17333,7 @@
         "TLS handshake follows the TCP handshake for HTTPS.",
         "Rendering: DOM + CSSOM -> render tree -> layout -> paint."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [
@@ -17280,6 +17367,7 @@
         "Know latency numbers: memory ~100 ns, SSD ~100 µs, cross-region ~100 ms.",
         "Estimate load: requests per second, storage per day, read/write ratio."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -17313,6 +17401,7 @@
         "Set TTLs to bound staleness.",
         "Protect the database from a cache stampede on popular keys."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -17346,6 +17435,7 @@
         "Read replicas can return slightly stale data.",
         "Message queues decouple slow work from requests."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [
@@ -17379,6 +17469,7 @@
         "Draw boxes for clients, load balancer, services, caches and stores.",
         "Name the trade-offs of every choice you make."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [
@@ -17424,6 +17515,7 @@
         "Profit % is on cost price; discount % is on marked price.",
         "A 20% rise then a 20% fall is a 4% net fall."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -17465,6 +17557,7 @@
         "New item value = new average + count × change in average.",
         "Make ratio terms match before adding."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -17506,6 +17599,7 @@
         "Average speed for equal distances: 2xy / (x + y).",
         "A in a days, B in b days: together ab / (a + b) days."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -17547,6 +17641,7 @@
         "P(at least one) = 1 - P(none).",
         "Arrangements of a word with repeats: n! divided by each repeat’s factorial."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -17588,6 +17683,7 @@
         "Unit digits of powers cycle every 4.",
         "Divisible by 3 or 9: check the digit sum."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [
@@ -17629,6 +17725,7 @@
         "Check alternating patterns when nothing else fits.",
         "Reverse letters: position p maps to 27 - p."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -17669,6 +17766,7 @@
         "Turning right from north faces east.",
         "Distance from start: square root of x² + y²."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -17709,6 +17807,7 @@
         "In a circle facing the centre, a person’s left is clockwise.",
         "Keep both cases when a clue allows two positions."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -17749,6 +17848,7 @@
         "Use \"possibility\" questions to test overlap.",
         "Data sufficiency: evaluate statement 1, statement 2, then both."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [
@@ -17789,6 +17889,7 @@
         "Eliminate options that go beyond the passage.",
         "Note the tone: critical, supportive, neutral."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -17829,6 +17930,7 @@
         "Keep lists parallel: to run, to swim and to cycle.",
         "Check the tense matches the time words in the sentence."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -17869,6 +17971,7 @@
         "Find mandatory pairs before ordering everything.",
         "Prefixes: bene- (good), mal- (bad), circum- (around)."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [
@@ -17909,6 +18012,7 @@
         "Put projects above weak experience; link the repos.",
         "Use a single-column layout and standard section names."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -17946,6 +18050,7 @@
         "Have one hard problem and its fix ready to explain.",
         "Be honest about what you built yourself."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -17983,6 +18088,7 @@
         "End with a result and what you learned.",
         "Keep each answer to about two minutes."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -18020,6 +18126,7 @@
         "Name a real weakness and what you do about it.",
         "Know the company’s products and the role’s work."
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [],
       "resource_ids": [
@@ -18049,6 +18156,7 @@
         "Watch the clock per section; do not get stuck.",
         "Mock interviews reveal habits you cannot see yourself."
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [],
       "resource_ids": [
@@ -18087,6 +18195,7 @@
         "Headings form an outline; do not skip levels",
         "Meta tags control title, description and viewport"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "html"
@@ -18130,6 +18239,7 @@
         "rem scales with the root font size",
         "Custom properties (variables) make themes easy"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "css"
@@ -18180,6 +18290,7 @@
         "fr units share leftover space in Grid",
         "gap replaces margin hacks between items"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "css-layout"
@@ -18223,6 +18334,7 @@
         "clamp() creates fluid type and spacing",
         "Always include the viewport meta tag"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "responsive-design"
@@ -18263,6 +18375,7 @@
         "Everything clickable must be keyboard operable",
         "Announce dynamic changes with live regions"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "accessibility"
@@ -18306,6 +18419,7 @@
         "map/filter/reduce return new arrays",
         "=== compares without type coercion"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "javascript"
@@ -18365,6 +18479,7 @@
         "Batch DOM writes to avoid layout thrashing",
         "localStorage is synchronous and string-only"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "dom-apis"
@@ -18407,6 +18522,7 @@
         "Promise.all fails fast; Promise.allSettled waits for all",
         "AbortController cancels fetches"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "async-javascript"
@@ -18452,6 +18568,7 @@
         "Generics preserve the relationship between input and output types",
         "unknown forces a check before use; any disables checking"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "typescript"
@@ -18500,6 +18617,7 @@
         "Keys must be stable and unique among siblings",
         "Effects are for syncing with external systems, not for derived data"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "react"
@@ -18557,6 +18675,7 @@
         "Stores allow selecting slices to limit re-renders",
         "Normalise collections by id"
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [
         "react-state-management"
@@ -18599,6 +18718,7 @@
         "Static pages are fastest; revalidate to refresh them",
         "Keep secrets in server-only code"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "nextjs"
@@ -18648,6 +18768,7 @@
         "Configure tokens in the theme rather than hard-coding values",
         "Unused classes are purged at build time"
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [
         "tailwind-css"
@@ -18688,6 +18809,7 @@
         "Lockfiles make installs reproducible",
         "Dev servers use hot module replacement"
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [
         "build-tools"
@@ -18728,6 +18850,7 @@
         "Mock the network, not your own components",
         "Keep e2e tests to critical paths"
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [
         "frontend-testing"
@@ -18768,6 +18891,7 @@
         "CLS: reserve space for images and ads",
         "Measure field data, not just lab scores"
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [
         "web-performance"
@@ -18808,6 +18932,7 @@
         "v-for needs a :key",
         "Pinia replaces Vuex"
       ],
+      "learn_items": [],
       "tier": "optional",
       "skill_ids": [
         "vue"
@@ -18855,6 +18980,7 @@
         "Signals avoid zone.js-wide change detection",
         "Use the async pipe to subscribe in templates"
       ],
+      "learn_items": [],
       "tier": "optional",
       "skill_ids": [
         "angular"
@@ -18902,6 +19028,7 @@
         "Merge conflicts are resolved by editing the file and committing",
         "Pull requests are where code review happens"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "git"
@@ -18943,6 +19070,7 @@
         "Environment variables configure programs; PATH lists where executables are searched",
         "Exit code 0 means success"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "cli-basics"
@@ -18984,6 +19112,7 @@
         "4xx means the client sent something wrong, 5xx means the server failed",
         "HTTPS adds TLS encryption on top of HTTP"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "http-fundamentals"
@@ -19027,6 +19156,7 @@
         "Flaky tests usually depend on time, order or the network",
         "TDD: write a failing test, make it pass, refactor"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "testing-fundamentals"
@@ -19070,6 +19200,7 @@
         "Preview deployments per pull request",
         "Roll back by redeploying the previous build"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "deployment-basics"
@@ -19110,6 +19241,7 @@
         "Streams process data without loading it all into memory",
         "Handle errors in async routes or the process may crash"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "nodejs"
@@ -19159,6 +19291,7 @@
         "Comprehensions build collections concisely",
         "Never use a mutable object as a default argument"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "python"
@@ -19211,6 +19344,7 @@
         "Django ships ORM, migrations and admin",
         "Run async endpoints only with async drivers"
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [
         "python-web-frameworks"
@@ -19258,6 +19392,7 @@
         "JPA/Hibernate maps entities to tables",
         "Virtual threads make thread-per-request cheap"
       ],
+      "learn_items": [],
       "tier": "optional",
       "skill_ids": [
         "java-spring"
@@ -19312,6 +19447,7 @@
         "Return errors, do not panic",
         "Pass context for cancellation and deadlines"
       ],
+      "learn_items": [],
       "tier": "optional",
       "skill_ids": [
         "go"
@@ -19359,6 +19495,7 @@
         "Cursor pagination is stable under inserts",
         "Idempotency keys make POST retries safe"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "rest-api-design"
@@ -19402,6 +19539,7 @@
         "Short-lived access tokens plus refresh tokens",
         "Check permissions server-side on every request"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "authentication"
@@ -19443,6 +19581,7 @@
         "DataLoader batches and caches lookups",
         "Limit query depth/complexity to prevent abuse"
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [
         "graphql"
@@ -19483,6 +19622,7 @@
         "Use IS NULL, never = NULL",
         "Logical order: FROM, WHERE, GROUP BY, HAVING, SELECT, ORDER BY"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "sql"
@@ -19537,6 +19677,7 @@
         "ROW_NUMBER is unique, RANK leaves gaps, DENSE_RANK does not",
         "LAG/LEAD compare a row with its neighbours"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "advanced-sql"
@@ -19580,6 +19721,7 @@
         "Constraints are cheaper than application checks",
         "Denormalise only with a measured reason"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "database-design"
@@ -19620,6 +19762,7 @@
         "EXPLAIN ANALYZE shows the real plan and timings",
         "Use a pooler (PgBouncer) for many short connections"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "postgresql"
@@ -19673,6 +19816,7 @@
         "Partition keys decide scalability",
         "Many NoSQL stores are eventually consistent by default"
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [
         "nosql"
@@ -19713,6 +19857,7 @@
         "Make migrations backwards compatible for zero-downtime deploys",
         "Drop to raw SQL for complex reports"
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [
         "orms"
@@ -19753,6 +19898,7 @@
         "LRU evicts the least recently used key",
         "Beware the thundering herd when a hot key expires"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "caching"
@@ -19796,6 +19942,7 @@
         "Kafka orders messages within a partition only",
         "Dead-letter queues capture poison messages"
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [
         "message-queues"
@@ -19845,6 +19992,7 @@
         "Circuit breakers stop cascading failures",
         "gRPC uses protobuf contracts and HTTP/2"
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [
         "microservices"
@@ -19892,6 +20040,7 @@
         "Optimistic UI needs a rollback path",
         "Paginate and cache at the API boundary"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "fullstack-architecture"
@@ -19941,6 +20090,7 @@
         "CORS controls which origins may read responses; it is not authentication",
         "Hash passwords with bcrypt/argon2, never plain SHA"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "web-security"
@@ -19982,6 +20132,7 @@
         "Everything is a file, including devices and sockets",
         "Check disk, memory and load first when debugging"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "linux"
@@ -20030,6 +20181,7 @@
         "$? holds the last exit code",
         "Prefer Python for complex logic"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "bash-scripting"
@@ -20070,6 +20222,7 @@
         "CIDR /24 = 256 addresses",
         "Private subnets reach the internet via NAT"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "networking"
@@ -20113,6 +20266,7 @@
         "Round-robin and least-connections balancing",
         "Forward client IP with X-Forwarded-For"
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [
         "nginx"
@@ -20153,6 +20307,7 @@
         "Multi-stage builds drop build tools from the final image",
         "Run as non-root and pin base image versions"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "docker"
@@ -20196,6 +20351,7 @@
         "Readiness probes gate traffic; liveness probes restart",
         "Requests schedule pods, limits cap them"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "kubernetes"
@@ -20247,6 +20403,7 @@
         "Build once, promote the same artifact through environments",
         "Secrets come from the CI secret store"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "ci-cd"
@@ -20287,6 +20444,7 @@
         "Rollback = git revert",
         "Drift is detected and corrected"
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [
         "gitops"
@@ -20327,6 +20485,7 @@
         "Object storage (S3) for files, managed DBs for data",
         "Set budgets and alerts to avoid surprise bills"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "cloud-platforms"
@@ -20374,6 +20533,7 @@
         "Modules make infrastructure reusable",
         "Manual changes cause drift"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "terraform"
@@ -20421,6 +20581,7 @@
         "Structured logs are searchable",
         "Alert on symptoms that need a human"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "observability"
@@ -20461,6 +20622,7 @@
         "Error budgets balance velocity and reliability",
         "Postmortems fix systems, not people"
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [
         "sre-practices"
@@ -20501,6 +20663,7 @@
         "Least privilege for workloads and pipelines",
         "Sign and verify build artifacts"
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [
         "devsecops"
@@ -20541,6 +20704,7 @@
         "Pivot tables summarise without formulas",
         "Separate raw data from analysis"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "excel"
@@ -20582,6 +20746,7 @@
         "Confidence intervals show the plausible range",
         "Correlation is not causation"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "statistics"
@@ -20630,6 +20795,7 @@
         "Deduplicate on a clear key",
         "Keep cleaning steps scripted and reproducible"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "data-cleaning"
@@ -20670,6 +20836,7 @@
         "Boolean masks filter arrays",
         "Check .shape and .dtype constantly"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "numpy"
@@ -20710,6 +20877,7 @@
         "Use .loc for label-based selection",
         "Vectorised ops beat apply"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "pandas"
@@ -20757,6 +20925,7 @@
         "Highlight the one thing that matters",
         "Avoid pie charts with many slices"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "data-visualization"
@@ -20798,6 +20967,7 @@
         "Filters and drill-downs replace many static charts",
         "Every dashboard answers a named question"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "bi-tools"
@@ -20838,6 +21008,7 @@
         "Quantify the impact of the recommendation",
         "State assumptions and limitations"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "data-storytelling"
@@ -20878,6 +21049,7 @@
         "Test keys for unique and not_null",
         "Docs and lineage come from the code"
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [
         "analytics-engineering"
@@ -20918,6 +21090,7 @@
         "Sample size depends on baseline and minimum detectable effect",
         "Peeking inflates false positives"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "ab-testing"
@@ -20960,6 +21133,7 @@
         "North Star = delivered user value, with input metrics beneath it",
         "Consistent event naming makes analysis possible"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "product-analytics"
@@ -21003,6 +21177,7 @@
         "Too high a learning rate diverges, too low crawls",
         "Dot product measures alignment of vectors"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "math-for-ml"
@@ -21051,6 +21226,7 @@
         "Accuracy misleads on imbalanced data",
         "Data leakage makes results look better than reality"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "ml-fundamentals"
@@ -21106,6 +21282,7 @@
         "Batch size and learning rate interact",
         "Dropout and weight decay fight overfitting"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "deep-learning"
@@ -21160,6 +21337,7 @@
         "Transfer learning beats training from scratch on small data",
         "Augment data to improve robustness"
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [
         "computer-vision"
@@ -21207,6 +21385,7 @@
         "Encoders understand, decoders generate",
         "Fine-tune pretrained models instead of training from scratch"
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [
         "nlp-transformers"
@@ -21254,6 +21433,7 @@
         "Build evals before iterating on prompts",
         "Models hallucinate; verify facts and links"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "llm-applications"
@@ -21302,6 +21482,7 @@
         "Hybrid search mixes keywords and vectors",
         "Evaluate retrieval (recall@k) and answers separately"
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [
         "rag-vector-search"
@@ -21349,6 +21530,7 @@
         "QLoRA quantises the base model to save memory",
         "Data quality beats data quantity"
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [
         "llm-fine-tuning"
@@ -21396,6 +21578,7 @@
         "Monitor input drift and prediction quality",
         "Retrain on a schedule or on drift alerts"
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [
         "mlops"
@@ -21443,6 +21626,7 @@
         "Idempotent tasks make backfills safe",
         "Partition by date for efficient reads"
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [
         "data-pipelines"
@@ -21490,6 +21674,7 @@
         "Prioritise pains by frequency and severity",
         "End with metrics and risks"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "product-sense"
@@ -21532,6 +21717,7 @@
         "Synthesize patterns across 5+ interviews",
         "Frame the problem before proposing solutions"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "product-discovery"
@@ -21574,6 +21760,7 @@
         "Compare competitors on customer-valued dimensions",
         "Moats: network effects, switching costs, data, brand"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "market-research"
@@ -21614,6 +21801,7 @@
         "Acceptance criteria are testable",
         "List open questions and risks"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "prd-writing"
@@ -21655,6 +21843,7 @@
         "Confidence penalises guesses",
         "Frameworks support judgment, they do not replace it"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "prioritization"
@@ -21695,6 +21884,7 @@
         "Kanban limits work in progress",
         "A story is done when it meets the definition of done"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "agile-delivery"
@@ -21735,6 +21925,7 @@
         "OKRs: an objective plus measurable key results",
         "Revisit strategy when evidence changes"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "product-strategy"
@@ -21782,6 +21973,7 @@
         "Write decisions and rationale down",
         "Disagree, then commit"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "stakeholder-management"
@@ -21822,6 +22014,7 @@
         "Alignment creates order",
         "Whitespace is a feature, not wasted space"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "design-principles"
@@ -21864,6 +22057,7 @@
         "45-75 characters per line",
         "One or two typefaces are enough"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "typography"
@@ -21906,6 +22100,7 @@
         "Never rely on colour alone",
         "Shades give depth without new hues"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "color-theory"
@@ -21948,6 +22143,7 @@
         "Gutters stay consistent",
         "Align content to columns, not arbitrary positions"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "grid-systems"
@@ -21988,6 +22184,7 @@
         "Styles keep colour and type consistent",
         "Comment and share instead of exporting"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "figma"
@@ -22028,6 +22225,7 @@
         "Variants model states like hover and disabled",
         "Edit the main component, not instances"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "figma-auto-layout"
@@ -22068,6 +22266,7 @@
         "Purpose-based names survive rebrands",
         "Version and communicate changes"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "design-systems"
@@ -22117,6 +22316,7 @@
         "Include empty, error and loading states",
         "Annotate intent for engineers"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "wireframing"
@@ -22157,6 +22357,7 @@
         "Smart animate for transitions",
         "Prototypes are disposable"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "prototyping"
@@ -22197,6 +22398,7 @@
         "Motion explains spatial change",
         "Respect prefers-reduced-motion"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "interaction-design"
@@ -22237,6 +22439,7 @@
         "Do not lead or help",
         "Prioritise by severity and frequency"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "usability-testing"
@@ -22279,6 +22482,7 @@
         "Use users' vocabulary for labels",
         "Shallow, clear hierarchies beat deep ones"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "information-architecture"
@@ -22319,6 +22523,7 @@
         "Empty states suggest a next step",
         "Use the same word for the same thing everywhere"
       ],
+      "learn_items": [],
       "tier": "standard",
       "skill_ids": [
         "ux-writing"
@@ -22359,6 +22564,7 @@
         "Show iterations and trade-offs",
         "End with outcomes and learnings"
       ],
+      "learn_items": [],
       "tier": "core",
       "skill_ids": [
         "design-portfolio"
