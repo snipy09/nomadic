@@ -1,4 +1,1335 @@
-/** Dev syllabus (to be authored). */
+/** Dev syllabus: developer tools and HTTP, databases for developers. AI-drafted, status draft. */
 import type { DevSyllabus } from '../defs';
 
-export const DATA_SYLLABUS: DevSyllabus = {};
+export const DATA_SYLLABUS: DevSyllabus = {
+  // ── Developer tools and HTTP ─────────────────────────────────────────────
+  git: [
+    {
+      key: 'git',
+      title: 'Git basics: commits, history and undoing changes',
+      min: 35,
+      sum: '**Git** records snapshots of your project as **commits**, each with an author, a message and a parent. Files move from the working tree to the **staging area** (`git add`) and then into a commit (`git commit`). Learn to read history with `git log` and `git diff`, and to undo safely with `git restore` and `git revert` before you ever touch `git reset --hard`.',
+      pts: [
+        'Three places: working tree, staging area (index) and the repository of commits.',
+        'git status tells you what is staged, unstaged and untracked; run it often.',
+        'git revert makes a new commit that undoes an old one, so it is safe on shared branches.',
+        'Write small commits with messages that say what changed and why.',
+      ],
+      learn: [
+        'Setup: git config --global user.name and user.email, git init, and what the hidden .git folder holds',
+        'Three areas: working tree, staging area and commits; move a file through them with git add and git commit',
+        'Reading state: git status, git diff (unstaged) and git diff --staged (what the next commit will contain)',
+        'History: git log --oneline --graph, git show <commit> and what a commit hash identifies',
+        '.gitignore: ignore node_modules, build output and .env files; git rm --cached to stop tracking a file',
+        'Undo locally: git restore <file> discards edits, git restore --staged unstages, git commit --amend fixes the last commit',
+        'Undo shared work: git revert <commit> vs git reset --soft/--hard, and why reset rewrites history',
+      ],
+      tasks: [
+        { key: 'practice-git-history', kind: 'practice', title: 'Create a repo, make five small commits with clear messages, then inspect them with git log --oneline and git show', minutes: 25 },
+        { key: 'practice-git-undo', kind: 'practice', title: 'Break a file on purpose three ways and undo each: restore an edit, unstage a file, revert a bad commit', minutes: 20 },
+      ],
+      quiz: [
+        {
+          q: 'You committed a bug that teammates have already pulled. What is the safest way to undo it?',
+          options: [
+            'git reset --hard HEAD~1 and force push',
+            'Delete the .git folder and clone again',
+            'git revert <commit> and push the new commit',
+            'git commit --amend and push',
+          ],
+          answer: 2,
+          why: 'git revert adds a new commit that undoes the change without rewriting history others already have.',
+        },
+        {
+          q: 'Which command shows the changes that will go into the next commit?',
+          options: ['git diff', 'git diff --staged', 'git log', 'git status --short'],
+          answer: 1,
+          why: 'git diff --staged compares the staging area with the last commit, which is exactly what git commit will record.',
+        },
+      ],
+    },
+    {
+      key: 'git-branching',
+      title: 'Branches, merges, rebase and pull requests',
+      min: 40,
+      depth: 'standard',
+      sum: 'A **branch** is a movable pointer to a commit, so creating one is cheap. Team work follows a pattern: branch from `main`, commit, push to a **remote** such as GitHub, open a **pull request**, get a review, then merge. Learn how merges create a merge commit or fast-forward, how to resolve a **merge conflict** by hand, and when `git rebase` gives a cleaner history.',
+      pts: [
+        'git switch -c feature/login creates a branch and moves you onto it.',
+        'A conflict is Git asking you to choose; edit the markers, then add and commit.',
+        'Never rebase commits that others have already pulled.',
+        'git fetch downloads; git pull is fetch plus merge (or rebase if configured).',
+      ],
+      learn: [
+        'Branches: git branch, git switch -c <name>, and HEAD as a pointer to the current branch',
+        'Merging: fast-forward vs a merge commit, and git merge --no-ff to keep a feature visible in history',
+        'Conflicts: read the <<<<<<<, ======= and >>>>>>> markers, edit the file, then git add and git commit',
+        'Remotes: git remote -v, git clone, git push -u origin <branch>, git fetch vs git pull',
+        'Rebase: git rebase main replays your commits on top of main; resolve, then git rebase --continue',
+        'Pull request flow: branch, push, open a PR, respond to review comments, squash or merge',
+        'Recovery: git stash for unfinished work and git reflog to find a commit you thought was lost',
+      ],
+      tasks: [
+        { key: 'practice-merge-conflict', kind: 'practice', title: 'Create two branches that edit the same line, merge them, and resolve the conflict by hand', minutes: 25 },
+        { key: 'build-pull-request', kind: 'build', title: 'Push a feature branch to GitHub, open a pull request with a clear description, and merge it after self-review', minutes: 30, optional: true },
+      ],
+      quiz: [
+        {
+          q: 'Your branch is behind main and nobody else uses it. Which command replays your commits on top of the latest main?',
+          options: ['git rebase main', 'git revert main', 'git stash main', 'git reset main'],
+          answer: 0,
+          why: 'Rebase moves your commits so they start from the tip of main, giving a straight history.',
+        },
+        {
+          q: 'After git reset --hard you realise you lost a commit. Where can you find its hash?',
+          options: ['git status', 'git diff', 'git blame', 'git reflog'],
+          answer: 3,
+          why: 'The reflog records every position HEAD has pointed to, including commits no branch points to any more.',
+        },
+      ],
+    },
+  ],
+
+  'cli-basics': [
+    {
+      key: 'cli-basics',
+      title: 'Command line basics: navigating and managing files',
+      min: 30,
+      sum: 'The command line is how developers run tools, servers and scripts. Learn to move around the file system, create, copy, move and delete files, and read files without an editor. The commands below are for a Unix shell (bash or zsh, also Git Bash and WSL on Windows); PowerShell has similar commands with different names.',
+      pts: [
+        'Absolute paths start at the root (/); relative paths start from the current directory.',
+        'rm -r deletes without a recycle bin; check the path before you press Enter.',
+        'Tab completes names and the up arrow recalls earlier commands.',
+        'man <command> or <command> --help shows every option.',
+      ],
+      learn: [
+        'Where am I: pwd, ls -la (hidden files, sizes, permissions) and cd with ., .., ~ and -',
+        'Paths: absolute vs relative paths, and why spaces in names need quotes',
+        'Files and folders: mkdir -p, touch, cp -r, mv for move and rename, rm and rm -r',
+        'Reading files: cat, less (search with /, quit with q), head -n 20 and tail -f for live logs',
+        'Wildcards: * and ? globs, e.g. ls *.js, and how the shell expands them before the command runs',
+        'Help and history: man, --help, Tab completion, the up arrow and Ctrl+R to search history',
+        'Windows equivalents: Get-ChildItem (ls), Set-Location (cd), Remove-Item (rm) in PowerShell',
+      ],
+      tasks: [
+        { key: 'practice-cli-files', kind: 'practice', title: 'Using only the terminal, create a project folder with src, tests and docs, add files, then rename and tidy them', minutes: 25 },
+      ],
+      quiz: [
+        {
+          q: 'You are in /home/asha/project/src. Which command takes you to /home/asha/project?',
+          options: ['cd /', 'cd ~', 'cd ..', 'cd -'],
+          answer: 2,
+          why: '.. is the parent directory, so cd .. moves up one level to project.',
+        },
+        {
+          q: 'Which command follows a log file and prints new lines as they are written?',
+          options: ['tail -f app.log', 'cat app.log', 'head app.log', 'less -n app.log'],
+          answer: 0,
+          why: 'tail -f keeps the file open and prints lines appended to it, which is ideal for watching logs.',
+        },
+      ],
+    },
+    {
+      key: 'cli-basics-pipes',
+      title: 'Pipes, grep, environment variables and processes',
+      min: 35,
+      depth: 'standard',
+      sum: 'The shell becomes powerful when you combine small tools: a **pipe** (`|`) sends one command\'s output into the next, and **redirection** writes output to files. Learn to search with `grep` and `find`, use **environment variables** and `PATH`, and manage running processes. These skills make debugging servers and build scripts much faster.',
+      pts: [
+        '> overwrites a file, >> appends, and 2> redirects error output.',
+        'grep -rn "text" . searches every file below the current folder with line numbers.',
+        'A command is found by searching the folders listed in PATH, left to right.',
+        'Ctrl+C stops a foreground process; kill <pid> stops one by its process id.',
+      ],
+      learn: [
+        'Pipes and redirection: |, >, >>, 2> and 2>&1, e.g. npm test > out.txt 2>&1',
+        'Searching text: grep -rn, -i for case-insensitive, -v to invert, and grep with a pipe, e.g. ps aux | grep node',
+        'Finding files: find . -name "*.log" and find . -type f -mtime -1 for files changed in the last day',
+        'Counting and sorting: wc -l, sort, uniq -c and cut to summarise a log file',
+        'Environment variables: export NAME=value, echo $NAME, and reading them in code via process.env',
+        'PATH: what it is, which <command> to see what runs, and adding a folder to PATH in ~/.bashrc',
+        'Processes: ps, top, Ctrl+C, Ctrl+Z, bg, kill <pid>, and finding what holds a port with lsof -i :3000',
+      ],
+      tasks: [
+        { key: 'practice-log-pipeline', kind: 'practice', title: 'Given a web server log, use grep, cut, sort and uniq -c in one pipeline to list the ten most requested paths', minutes: 30 },
+        { key: 'practice-env-path', kind: 'practice', title: 'Write a tiny script, put its folder on PATH, and make it print an environment variable you set with export', minutes: 20, optional: true },
+      ],
+      quiz: [
+        {
+          q: 'What does npm run build > build.log 2>&1 do?',
+          options: [
+            'Writes only errors to build.log',
+            'Writes both normal output and errors to build.log',
+            'Appends output to build.log and shows errors on screen',
+            'Runs the build in the background',
+          ],
+          answer: 1,
+          why: '> sends standard output to the file and 2>&1 sends standard error to the same place.',
+        },
+        {
+          q: 'You type mytool and get "command not found", but the file exists in ~/bin. What is the likely cause?',
+          options: [
+            'The file name has no extension',
+            'grep is not installed',
+            'The terminal needs administrator rights',
+            '~/bin is not listed in the PATH variable',
+          ],
+          answer: 3,
+          why: 'The shell only looks for commands in the folders listed in PATH, so a folder missing from PATH is not searched.',
+        },
+      ],
+    },
+  ],
+
+  'http-fundamentals': [
+    {
+      key: 'http-fundamentals',
+      title: 'HTTP requests, methods and status codes',
+      min: 35,
+      sum: '**HTTP** is the request-response protocol behind every website and API. A request has a **method**, a path, **headers** and an optional body; a response has a **status code**, headers and a body. Learn what each common method means, the status code families, and how to read a raw exchange with `curl -v` or the browser Network tab.',
+      pts: [
+        'GET reads, POST creates, PUT replaces, PATCH updates part, DELETE removes.',
+        '2xx success, 3xx redirect, 4xx client error, 5xx server error.',
+        'GET, PUT and DELETE should be idempotent: repeating them has the same effect.',
+        'HTTP is stateless; cookies or tokens carry identity between requests.',
+      ],
+      learn: [
+        'URL parts: scheme, host, port, path, query string and fragment, e.g. localhost:3000/api/users?page=2',
+        'Request anatomy: method, path, headers (Host, Content-Type, Authorization, Accept) and body',
+        'Methods: GET, POST, PUT, PATCH, DELETE; which are safe and which are idempotent',
+        'Status codes: 200, 201, 204, 301, 304, 400, 401, 403, 404, 409, 422, 429, 500, 502, 503 and what each means',
+        'Content types: application/json vs form data, and why the Content-Type header must match the body',
+        'Tools: curl -v, curl -X POST -H "Content-Type: application/json" -d \'{...}\', and the browser Network tab',
+        'Statelessness: how cookies (Set-Cookie, Cookie) and bearer tokens carry identity across requests',
+      ],
+      tasks: [
+        { key: 'practice-curl-api', kind: 'practice', title: 'Call a public JSON API with curl -v using GET and POST, and note the method, status code and three headers each time', minutes: 25 },
+      ],
+      quiz: [
+        {
+          q: 'A user who is signed in tries to delete someone else\'s post. Which status code fits best?',
+          options: ['401 Unauthorized', '403 Forbidden', '404 Not Found', '500 Internal Server Error'],
+          answer: 1,
+          why: '403 means the server knows who you are but you are not allowed; 401 means you are not authenticated at all.',
+        },
+        {
+          q: 'Which HTTP method should be used to update only the email field of an existing user?',
+          options: ['GET', 'POST', 'PATCH', 'HEAD'],
+          answer: 2,
+          why: 'PATCH applies a partial update; PUT would replace the whole resource.',
+        },
+      ],
+    },
+    {
+      key: 'http-fundamentals-web',
+      title: 'HTTPS, DNS, caching headers and CORS',
+      min: 35,
+      depth: 'standard',
+      sum: 'Before a request is sent, the browser resolves the domain with **DNS** and opens a TCP connection, then a **TLS** handshake for HTTPS. Responses can be cached using headers such as `Cache-Control` and `ETag`. Browsers block cross-origin reads unless the server sends **CORS** headers, which is the source of many beginner bugs. Know what happens end to end when you type a site name and press Enter.',
+      pts: [
+        'HTTPS is HTTP over TLS: encrypted, tamper-proof and the server proves its identity with a certificate.',
+        'An origin is scheme + host + port; any difference makes a request cross-origin.',
+        'CORS is enforced by browsers, not by curl or servers.',
+        'HTTP/2 and HTTP/3 keep the same methods and status codes but change how bytes travel.',
+      ],
+      learn: [
+        'DNS: domain to IP via resolvers, A and CNAME records, TTL, and checking with nslookup or dig',
+        'Connection: TCP handshake, then TLS handshake and certificate check for HTTPS on port 443',
+        'Typing a site name and pressing Enter: DNS, TCP, TLS, request, response, HTML parse, more requests',
+        'Caching headers: Cache-Control max-age, no-cache vs no-store, ETag with If-None-Match and 304 Not Modified',
+        'Same-origin policy: what an origin is and why localhost:5173 calling localhost:3000 is cross-origin',
+        'CORS: Access-Control-Allow-Origin, preflight OPTIONS requests, and allowing credentials safely',
+        'HTTP versions: HTTP/1.1 keep-alive, HTTP/2 multiplexing over one connection, HTTP/3 over QUIC',
+      ],
+      tasks: [
+        { key: 'build-cors-fix', kind: 'build', title: 'Run a frontend and an API on different ports, reproduce the CORS error, then fix it with the right response headers', minutes: 35 },
+        { key: 'practice-dns-trace', kind: 'practice', title: 'Use nslookup and curl -v on a site you use daily and write down each step from DNS to the first byte of HTML', minutes: 20, optional: true },
+      ],
+      quiz: [
+        {
+          q: 'Your React app on localhost:5173 calls your API on localhost:3000 and the browser shows a CORS error. Where is the fix?',
+          options: [
+            'Add Access-Control-Allow-Origin on the API response',
+            'Change GET to POST in the frontend',
+            'Disable HTTPS on the API',
+            'Clear the browser cache',
+          ],
+          answer: 0,
+          why: 'The browser allows the cross-origin read only if the API response includes a matching CORS header.',
+        },
+        {
+          q: 'What does a 304 Not Modified response tell the browser?',
+          options: [
+            'The resource was deleted',
+            'The request must be retried later',
+            'The page moved to a new address',
+            'Its cached copy is still valid, so use it',
+          ],
+          answer: 3,
+          why: 'After a conditional request with If-None-Match, 304 means the ETag still matches and no new body is sent.',
+        },
+      ],
+    },
+  ],
+
+  'testing-fundamentals': [
+    {
+      key: 'testing-fundamentals',
+      title: 'Unit tests: structure, assertions and test runners',
+      min: 35,
+      sum: 'A **unit test** runs a small piece of code with known inputs and checks the output automatically, so you can change code without fear. Structure each test as **Arrange, Act, Assert**, give it a name that states the expected behaviour, and keep it fast and independent. Use a test runner such as **Vitest** or **Jest** (JavaScript) or **pytest** (Python).',
+      pts: [
+        'One behaviour per test, and the test name says what that behaviour is.',
+        'Tests must not depend on each other or on the order they run in.',
+        'Test edge cases: empty input, zero, negative numbers, very long strings.',
+        'A test that never fails is useless; see it fail first, then make it pass.',
+      ],
+      learn: [
+        'Why test: catching regressions, safer refactoring, and tests as living documentation of behaviour',
+        'Test runner basics: describe, it/test and expect in Vitest or Jest; def test_ and assert in pytest',
+        'Arrange, Act, Assert: set up inputs, call the function once, then check the result',
+        'Matchers: toBe vs toEqual, toThrow, toContain, and toBeCloseTo for floating-point numbers',
+        'Edge cases: empty arrays, null or undefined, boundaries such as 0 and the maximum, invalid input',
+        'Setup and teardown: beforeEach and afterEach to keep tests independent of each other',
+        'Running tests: watch mode, running one file or one test, and reading a failure message and stack trace',
+      ],
+      tasks: [
+        { key: 'practice-unit-tests', kind: 'practice', title: 'Write eight unit tests for a slugify(text) function, including empty input, extra spaces and symbols, and make them pass', minutes: 35 },
+      ],
+      quiz: [
+        {
+          q: 'Two arrays have the same contents but are different objects. Which Jest or Vitest matcher passes?',
+          options: ['toBe', 'toEqual', 'toBeNull', 'toBeTruthy only'],
+          answer: 1,
+          why: 'toEqual compares values recursively; toBe checks that both sides are the very same object.',
+        },
+        {
+          q: 'A test passes when run alone but fails when the whole suite runs. What is the most likely cause?',
+          options: [
+            'The test runner is too old',
+            'The assertion uses toEqual',
+            'Tests share state that another test changes',
+            'The function under test is pure',
+          ],
+          answer: 2,
+          why: 'Order-dependent failures usually mean shared mutable state; reset it in beforeEach so tests stay independent.',
+        },
+      ],
+    },
+    {
+      key: 'testing-fundamentals-mocks',
+      title: 'Mocks, test doubles and testing async code',
+      min: 35,
+      sum: 'Real code calls databases, APIs and clocks, which make tests slow and flaky. **Test doubles** (stubs, mocks, spies, fakes) replace those dependencies so a unit test checks only your logic. Learn to test async functions properly, inject dependencies so they can be swapped, and avoid over-mocking, which makes tests pass while the real code is broken.',
+      pts: [
+        'A stub returns canned data; a mock or spy also records how it was called.',
+        'Pass dependencies in (parameters or constructor) so tests can swap them.',
+        'Always await async code in tests, or the test can finish before the assertion runs.',
+        'Mock the boundary (HTTP, database, time), not your own small helper functions.',
+      ],
+      learn: [
+        'Test doubles: stub, mock, spy and fake, with one example of when to use each',
+        'Dependency injection: pass a fetch function or repository into code instead of importing it directly',
+        'Mocking in practice: vi.fn() or jest.fn(), mockResolvedValue, and toHaveBeenCalledWith',
+        'Async tests: return or await promises, test rejected promises with await expect(...).rejects.toThrow()',
+        'Time and randomness: fake timers (vi.useFakeTimers) and seeding or injecting random values',
+        'Over-mocking: why tests that mock everything prove little, and keeping mocks at system boundaries',
+        'Flaky tests: common causes (time, order, network, shared state) and how to make them deterministic',
+      ],
+      tasks: [
+        { key: 'practice-mock-api', kind: 'practice', title: 'Test a getWeather(city) function that calls an API: mock fetch for success, a 404 and a network error', minutes: 35 },
+        { key: 'practice-fake-timers', kind: 'practice', title: 'Test a debounce helper with fake timers so the test runs instantly and checks the function fires once', minutes: 20, optional: true },
+      ],
+      quiz: [
+        {
+          q: 'Which test double both returns a value and lets you assert how many times and with what it was called?',
+          options: ['A mock or spy', 'A fixture file', 'A snapshot', 'A stub that only returns data'],
+          answer: 0,
+          why: 'Mocks and spies record their calls, so you can assert on arguments and call counts as well as return values.',
+        },
+        {
+          q: 'An async test always passes, even when the function is broken. What is the most likely mistake?',
+          options: [
+            'The test uses toEqual',
+            'The mock returns a promise',
+            'The test name is too long',
+            'The promise is not awaited or returned, so the assertion never runs in time',
+          ],
+          answer: 3,
+          why: 'Without await, the test function finishes before the promise settles and the runner reports a pass.',
+        },
+      ],
+    },
+    {
+      key: 'testing-fundamentals-integration',
+      title: 'Integration tests, the test pyramid, TDD and CI',
+      min: 40,
+      depth: 'standard',
+      sum: 'Unit tests alone do not prove the parts work together. **Integration tests** call a real API route or a real test database; **end-to-end tests** drive the app like a user with tools such as **Playwright**. The **test pyramid** suggests many fast unit tests, fewer integration tests and a few E2E tests. **TDD** writes the test first, and **CI** runs every test on each push.',
+      pts: [
+        'Pyramid: many unit tests, some integration tests, few slow end-to-end tests.',
+        'Use a separate test database and reset it between tests.',
+        'Coverage shows which lines ran, not whether behaviour was checked.',
+        'CI should block a merge when any test fails.',
+      ],
+      learn: [
+        'Test levels: unit, integration and end-to-end; what each catches and how fast each runs',
+        'API integration tests: start the app in tests and call routes with supertest (Node) or a test client (FastAPI, Django)',
+        'Test database: a separate database or container, migrations before the run, and cleanup between tests',
+        'End-to-end basics: Playwright opens a browser, clicks, types and asserts on visible text',
+        'TDD cycle: red (failing test), green (simplest code that passes), refactor with tests still green',
+        'Coverage: line vs branch coverage, reading a coverage report, and why 100% is not the goal',
+        'CI: a GitHub Actions workflow that installs dependencies and runs npm test on every push and pull request',
+      ],
+      tasks: [
+        { key: 'build-api-tests', kind: 'build', title: 'Write integration tests for a small REST API covering create, read, a 404 and a validation error, using a test database', minutes: 50 },
+        { key: 'build-ci-workflow', kind: 'build', title: 'Add a GitHub Actions workflow that runs your tests on every push and show a red, then green, run', minutes: 30, optional: true },
+      ],
+      quiz: [
+        {
+          q: 'According to the test pyramid, which kind of test should you have the most of?',
+          options: ['End-to-end tests', 'Manual tests', 'Unit tests', 'Load tests'],
+          answer: 2,
+          why: 'Unit tests are fast and precise, so the pyramid puts many of them at the base and few slow E2E tests at the top.',
+        },
+        {
+          q: 'In TDD, what do you do right after writing a failing test?',
+          options: [
+            'Refactor the existing code',
+            'Write the simplest code that makes the test pass',
+            'Delete the test and write a bigger one',
+            'Measure code coverage',
+          ],
+          answer: 1,
+          why: 'The red, green, refactor cycle makes the test pass with minimal code first and cleans up only once it is green.',
+        },
+      ],
+    },
+  ],
+
+  'deployment-basics': [
+    {
+      key: 'deployment-basics',
+      title: 'Deploying an app: builds, hosting and environment variables',
+      min: 30,
+      sum: 'Deployment turns code on your laptop into an app anyone can open. A static site (HTML, CSS, JS) can go on a static host such as **Vercel**, **Netlify** or GitHub Pages; an API needs a server or platform such as **Render** or **Railway**. Learn the **build step**, how the platform picks a port, and how to keep secrets in **environment variables**, never in the repository.',
+      pts: [
+        'Static hosting serves files; a backend needs a process that keeps running.',
+        'Read the port from process.env.PORT; platforms assign it at run time.',
+        'Secrets go in the platform\'s environment settings, never in Git.',
+        'Most platforms redeploy automatically when you push to the main branch.',
+      ],
+      learn: [
+        'What deploying means: build artefacts, a host, a public address, and logs you can read',
+        'Build step: npm run build creates a dist or build folder; only that output is served for static sites',
+        'Static vs server hosting: static hosts for frontends, platform hosts for Node or Python APIs',
+        'Ports and start commands: listen on process.env.PORT and set the start command, e.g. node server.js',
+        'Environment variables: .env locally (ignored by Git), platform settings in production, a .env.example file',
+        'Git-based deploys: connect the repo, choose the branch, build command and output folder',
+        'First debugging: read build logs and runtime logs, and check a failed deploy before changing code',
+      ],
+      tasks: [
+        { key: 'build-deploy-static', kind: 'build', title: 'Deploy a small frontend from a GitHub repo to a static host and confirm a push to main triggers a new deploy', minutes: 30 },
+      ],
+      quiz: [
+        {
+          q: 'Your Node API works locally on port 3000 but the deployed app never responds. What should you check first?',
+          options: [
+            'That the server listens on process.env.PORT',
+            'That the README is up to date',
+            'That the database has an index',
+            'That the code uses semicolons',
+          ],
+          answer: 0,
+          why: 'Platforms assign the port at run time; a hardcoded port means the platform cannot route traffic to the app.',
+        },
+        {
+          q: 'Where should a production database password be stored?',
+          options: [
+            'In a config.js file committed to the repo',
+            'In the README so the team can find it',
+            'In the platform\'s environment variable settings',
+            'In a comment above the database connection code',
+          ],
+          answer: 2,
+          why: 'Secrets belong in the host\'s environment settings so they never enter Git history.',
+        },
+      ],
+    },
+    {
+      key: 'deployment-basics-production',
+      title: 'Domains, HTTPS, logs and rolling back a deploy',
+      min: 30,
+      depth: 'standard',
+      sum: 'Once an app is live, you need a **custom domain**, **HTTPS**, and a way to see what goes wrong. Point a domain at the host with DNS records, let the platform issue a free TLS certificate, and watch **logs** and a **health check** endpoint. Keep deploys reversible: know how to **roll back** to the previous version and how staging differs from production.',
+      pts: [
+        'A CNAME or A record points your domain at the host; DNS changes can take time to spread.',
+        'Most hosts issue and renew HTTPS certificates automatically.',
+        'A /health endpoint lets the platform and you check the app is up.',
+        'Rolling back to the last good deploy is faster than fixing forward under pressure.',
+      ],
+      learn: [
+        'Custom domains: buy a domain, add an A or CNAME record, and verify it on the host',
+        'Certificates: automatic TLS certificates, redirecting HTTP to HTTPS, and mixed-content errors',
+        'Environments: development, staging and production with separate databases and variables',
+        'Logs: structured log lines, reading runtime logs on the platform, and never logging secrets',
+        'Health checks: a /health route that returns 200, and how platforms use it to restart a failed app',
+        'Rollback: redeploy the previous build or revert the commit, and when to choose each',
+        'Preview deploys: a temporary address per pull request to test changes before merging',
+      ],
+      tasks: [
+        { key: 'build-health-rollback', kind: 'build', title: 'Add a /health route to a deployed API, deploy a deliberate bug, then roll back to the previous deploy', minutes: 35 },
+      ],
+      quiz: [
+        {
+          q: 'A deploy breaks sign-in for every user. What is usually the best first action?',
+          options: [
+            'Delete the production database',
+            'Debug live in production for an hour',
+            'Ask users to clear their cookies',
+            'Roll back to the last working deploy, then investigate',
+          ],
+          answer: 3,
+          why: 'Rolling back restores service quickly; the cause can then be found calmly and fixed in a new deploy.',
+        },
+        {
+          q: 'What is the main purpose of a staging environment?',
+          options: [
+            'To test changes in a production-like setup before real users see them',
+            'To store backups of the production database',
+            'To speed up the production build',
+            'To host the documentation site',
+          ],
+          answer: 0,
+          why: 'Staging mirrors production closely, so problems show up there instead of in front of users.',
+        },
+      ],
+    },
+  ],
+
+  // ── Databases for developers ─────────────────────────────────────────────
+  sql: [
+    {
+      key: 'sql',
+      title: 'SQL basics: tables, SELECT, WHERE and changing rows',
+      min: 40,
+      sum: '**SQL** is the language for relational databases such as PostgreSQL, MySQL and SQLite. Data lives in **tables** of rows and typed columns. Learn to create a table, insert rows, read them with `SELECT` filtered by `WHERE`, sort with `ORDER BY` and page with `LIMIT`, and change data safely with `UPDATE` and `DELETE`. Practise on SQLite or a local PostgreSQL so you can run every query yourself.',
+      pts: [
+        'SQL describes what you want; the database decides how to fetch it.',
+        'NULL means unknown: test it with IS NULL, never with = NULL.',
+        'An UPDATE or DELETE without WHERE changes every row in the table.',
+        'Logical order: FROM, WHERE, SELECT, ORDER BY, LIMIT, even though SELECT is written first.',
+      ],
+      learn: [
+        'Tables: rows, columns and types (INTEGER, TEXT or VARCHAR, NUMERIC, BOOLEAN, DATE, TIMESTAMP)',
+        'CREATE TABLE with a PRIMARY KEY, then INSERT INTO ... VALUES for one row and for several rows',
+        'SELECT: pick columns, alias with AS, SELECT DISTINCT, and why SELECT * is fine to explore but not in app code',
+        'WHERE: =, <>, <, >, AND, OR, NOT, IN (...), BETWEEN, LIKE \'a%\' and parentheses for mixed AND/OR',
+        'NULL: IS NULL, IS NOT NULL, COALESCE(col, 0), and why NULL = NULL is not true',
+        'ORDER BY col ASC or DESC on several columns, LIMIT and OFFSET for pages of results',
+        'UPDATE ... SET ... WHERE and DELETE ... WHERE; run the same WHERE as a SELECT first to check the rows',
+      ],
+      tasks: [
+        { key: 'practice-sql-basics', kind: 'practice', title: 'Create a students table with ten rows and write eight SELECTs using WHERE, IN, LIKE, IS NULL, ORDER BY and LIMIT', minutes: 35 },
+      ],
+      quiz: [
+        {
+          q: 'Which condition finds rows where the phone column has no value?',
+          options: ['phone = NULL', 'phone = \'\'', 'phone IS NULL', 'phone == NULL'],
+          answer: 2,
+          why: 'Comparisons with NULL return unknown, so SQL uses the special IS NULL test.',
+        },
+        {
+          q: 'What does UPDATE users SET active = false; do?',
+          options: [
+            'Updates only the first row',
+            'Sets active to false on every row in users',
+            'Fails because WHERE is required',
+            'Updates rows where active is NULL',
+          ],
+          answer: 1,
+          why: 'Without a WHERE clause the update applies to every row, which is a common and costly mistake.',
+        },
+      ],
+    },
+    {
+      key: 'sql-joins',
+      title: 'Joining tables: INNER, LEFT and self joins',
+      min: 40,
+      sum: 'Relational data is split across tables linked by **foreign keys**, and **joins** put it back together. An `INNER JOIN` keeps only matching pairs; a `LEFT JOIN` keeps every row from the left table and fills missing right columns with NULL. Learn to read a join as "for each row here, find matching rows there", and to spot joins that multiply rows by mistake.',
+      pts: [
+        'Always write the join condition with ON; a missing condition creates every possible pair.',
+        'LEFT JOIN plus WHERE right.id IS NULL finds rows with no match.',
+        'Filtering the right table in WHERE turns a LEFT JOIN back into an INNER JOIN; filter in ON instead.',
+        'A one-to-many join repeats the "one" side once per matching row.',
+      ],
+      learn: [
+        'Foreign keys: orders.customer_id points to customers.id; a table alias such as o and c keeps queries short',
+        'INNER JOIN ... ON: only rows that match in both tables; write it for orders with customer names',
+        'LEFT JOIN: keeps every left row; unmatched right columns are NULL',
+        'Anti-join: LEFT JOIN ... WHERE right.id IS NULL to find customers who never ordered',
+        'RIGHT and FULL OUTER JOIN: what they return, and why most queries rewrite RIGHT as LEFT',
+        'Self join: join employees to employees to show each employee with their manager',
+        'Row multiplication: why joining two one-to-many tables at once inflates counts, and how to check with COUNT',
+      ],
+      tasks: [
+        { key: 'practice-sql-joins', kind: 'practice', title: 'Join customers, orders and products to list order details, customers with no orders and each product\'s buyers', minutes: 35 },
+      ],
+      quiz: [
+        {
+          q: 'customers has 10 rows and 3 of them have no orders. How many customers does customers LEFT JOIN orders keep?',
+          options: ['All 10', 'Only the 7 with orders', 'Only the 3 without orders', 'None, it fails'],
+          answer: 0,
+          why: 'A LEFT JOIN keeps every row of the left table; the 3 without orders appear with NULL order columns.',
+        },
+        {
+          q: 'Which query pattern finds products that have never been ordered?',
+          options: [
+            'products INNER JOIN order_items ON ... WHERE order_items.id IS NULL',
+            'products CROSS JOIN order_items',
+            'SELECT DISTINCT product_id FROM order_items',
+            'products LEFT JOIN order_items ON ... WHERE order_items.id IS NULL',
+          ],
+          answer: 3,
+          why: 'The LEFT JOIN keeps unmatched products with NULLs, and the IS NULL filter keeps only those.',
+        },
+      ],
+    },
+    {
+      key: 'sql-aggregates',
+      title: 'Aggregates: COUNT, SUM, GROUP BY and HAVING',
+      min: 35,
+      sum: 'Aggregate functions turn many rows into one value: `COUNT`, `SUM`, `AVG`, `MIN` and `MAX`. `GROUP BY` computes them per group, such as revenue per city, and `HAVING` filters the groups after they are formed. These queries are the heart of reports and appear in almost every SQL interview round.',
+      pts: [
+        'WHERE filters rows before grouping; HAVING filters groups after.',
+        'Every selected column must be grouped or wrapped in an aggregate.',
+        'COUNT(*) counts rows; COUNT(col) skips NULLs; COUNT(DISTINCT col) counts unique values.',
+        'AVG ignores NULLs, which can make an average look higher than expected.',
+      ],
+      learn: [
+        'Aggregates: COUNT, SUM, AVG, MIN, MAX over a whole table, and how each treats NULL',
+        'COUNT(*) vs COUNT(col) vs COUNT(DISTINCT col), with an example where all three differ',
+        'GROUP BY one and two columns: orders per customer, revenue per city per month',
+        'The grouping rule: every SELECT column is either in GROUP BY or inside an aggregate',
+        'HAVING: keep only groups that pass a condition, e.g. customers with more than 5 orders',
+        'WHERE vs HAVING: filter rows first with WHERE for speed, then groups with HAVING',
+        'Joins with aggregates: total spend per customer name via JOIN then GROUP BY, sorted by total DESC',
+      ],
+      tasks: [
+        { key: 'practice-sql-reports', kind: 'practice', title: 'Write six report queries on orders: orders per day, top five customers by spend, cities with over ten orders', minutes: 35 },
+      ],
+      quiz: [
+        {
+          q: 'You want only departments whose average salary is above 50,000. Which clause holds that condition?',
+          options: ['WHERE', 'HAVING', 'ORDER BY', 'LIMIT'],
+          answer: 1,
+          why: 'The condition is on an aggregate of each group, so it must go in HAVING, which runs after GROUP BY.',
+        },
+        {
+          q: 'A column email has 8 non-NULL values and 2 NULLs. What does COUNT(email) return?',
+          options: ['10', '2', '8', 'NULL'],
+          answer: 2,
+          why: 'COUNT(column) counts only non-NULL values; COUNT(*) would return 10.',
+        },
+      ],
+    },
+    {
+      key: 'sql-subqueries',
+      title: 'Subqueries, EXISTS, UNION and CASE',
+      min: 35,
+      depth: 'standard',
+      sum: 'A **subquery** is a query inside another query: in `WHERE` to compare against a computed value, in `FROM` as a derived table, or correlated to the outer row. `EXISTS` tests whether matching rows exist, `UNION` stacks results, and `CASE` adds if-else logic inside a query. Knowing several ways to write the same query helps you pick the clearest one.',
+      pts: [
+        'A scalar subquery must return exactly one value.',
+        'NOT IN with a subquery that returns a NULL matches nothing; NOT EXISTS is safer.',
+        'UNION removes duplicates; UNION ALL keeps them and is faster.',
+        'CASE WHEN ... THEN ... ELSE ... END works in SELECT, ORDER BY and inside aggregates.',
+      ],
+      learn: [
+        'Scalar subquery: employees paid above the company average with WHERE salary > (SELECT AVG(salary) ...)',
+        'IN with a subquery: customers who ordered a given product; compare it with the same query written as a JOIN',
+        'Correlated subquery: employees paid above their own department\'s average; it runs per outer row',
+        'EXISTS and NOT EXISTS, and why NOT IN breaks when the subquery returns a NULL',
+        'Derived tables: a subquery in FROM with an alias, used to aggregate then filter',
+        'UNION vs UNION ALL: matching column counts and types, and when duplicates matter',
+        'CASE: label rows (salary bands) and conditional counts such as SUM(CASE WHEN status = \'paid\' THEN 1 ELSE 0 END)',
+      ],
+      tasks: [
+        { key: 'practice-sql-subqueries', kind: 'practice', title: 'Solve five questions with a subquery and again with a JOIN, including second highest salary and above-average pay', minutes: 40 },
+      ],
+      quiz: [
+        {
+          q: 'WHERE id NOT IN (SELECT manager_id FROM employees) returns no rows at all. What is the likely cause?',
+          options: [
+            'manager_id contains at least one NULL',
+            'The table has no primary key',
+            'NOT IN only works with numbers',
+            'The subquery must use DISTINCT',
+          ],
+          answer: 0,
+          why: 'If the list contains NULL, id NOT IN (...) is unknown for every row, so nothing matches; NOT EXISTS avoids this.',
+        },
+        {
+          q: 'What is the difference between UNION and UNION ALL?',
+          options: [
+            'UNION ALL removes duplicates',
+            'UNION works only on two tables',
+            'UNION ALL requires the same table name',
+            'UNION removes duplicate rows; UNION ALL keeps every row',
+          ],
+          answer: 3,
+          why: 'UNION de-duplicates the combined result, which costs a sort or hash; UNION ALL simply appends.',
+        },
+      ],
+    },
+    {
+      key: 'sql-constraints',
+      title: 'Constraints, transactions and ACID',
+      min: 35,
+      depth: 'standard',
+      sum: 'Good data is protected by the database itself, not only by app code. **Constraints** such as `NOT NULL`, `UNIQUE`, `CHECK` and `FOREIGN KEY` reject bad rows. **Transactions** group statements so they all succeed or all fail, which is what **ACID** guarantees. Learn to change a schema safely with `ALTER TABLE` and to choose what happens to child rows when a parent is deleted.',
+      pts: [
+        'Put rules that must always hold in constraints; app checks can be bypassed.',
+        'BEGIN ... COMMIT makes a group of statements atomic; ROLLBACK cancels it.',
+        'ON DELETE CASCADE deletes child rows too; RESTRICT blocks the delete.',
+        'ACID: atomicity, consistency, isolation, durability.',
+      ],
+      learn: [
+        'Constraints: PRIMARY KEY, NOT NULL, UNIQUE, CHECK (price >= 0) and DEFAULT values',
+        'FOREIGN KEY with ON DELETE CASCADE, SET NULL or RESTRICT, and which fits orders vs comments',
+        'ALTER TABLE: add a column, add a constraint, rename, and why adding NOT NULL to a full table needs a default',
+        'Transactions: BEGIN, COMMIT, ROLLBACK; a money transfer as two UPDATEs that must both happen',
+        'ACID: what atomicity, consistency, isolation and durability each promise, with one example each',
+        'Concurrency basics: two users buying the last ticket, and how a transaction with a check prevents overselling',
+        'Constraint errors: read a unique or foreign key violation and turn it into a clear API error such as 409',
+      ],
+      tasks: [
+        { key: 'practice-sql-transactions', kind: 'practice', title: 'Add a CHECK on account balance, write a transfer in a transaction, and show a failing step rolls back both updates', minutes: 30 },
+      ],
+      quiz: [
+        {
+          q: 'In a transfer, the debit UPDATE succeeds and the credit UPDATE fails inside one transaction. What happens on ROLLBACK?',
+          options: [
+            'Only the credit is undone',
+            'Both updates are undone',
+            'The debit stays and the credit is retried',
+            'The database deletes both accounts',
+          ],
+          answer: 1,
+          why: 'Atomicity means the whole transaction is applied or none of it is, so the debit is undone too.',
+        },
+        {
+          q: 'Which constraint stops two users signing up with the same email?',
+          options: ['CHECK', 'DEFAULT', 'UNIQUE', 'NOT NULL'],
+          answer: 2,
+          why: 'A UNIQUE constraint makes the database reject any second row with the same value, even under concurrent requests.',
+        },
+      ],
+    },
+  ],
+
+  'advanced-sql': [
+    {
+      key: 'advanced-sql',
+      title: 'CTEs and recursive queries',
+      min: 35,
+      sum: 'A **common table expression** (`WITH name AS (...)`) names a subquery so a long query reads top to bottom in steps. CTEs can be chained, and a **recursive CTE** walks hierarchies such as an org chart or category tree. Learn to break a hard question into small named steps; this is how most interview and real reporting queries are written.',
+      pts: [
+        'A CTE is a named step; chain several with commas after one WITH.',
+        'A recursive CTE has an anchor query, UNION ALL, and a recursive part that refers to itself.',
+        'Always give a recursive CTE a stopping condition such as a depth limit.',
+        'CTEs make queries readable; check the plan if performance matters.',
+      ],
+      learn: [
+        'WITH syntax: one CTE, then several chained CTEs where later ones read earlier ones',
+        'Refactoring: rewrite a nested subquery query as named CTE steps (filter, aggregate, rank, final select)',
+        'Recursive CTE: anchor member, UNION ALL, recursive member, and how rows are produced level by level',
+        'Hierarchies: list every employee under a manager with their depth from an employees(id, manager_id) table',
+        'Series: generate dates with a recursive CTE (or generate_series in PostgreSQL) to fill gaps in a daily report',
+        'Stopping and cycles: a depth column with WHERE depth < 10 to stop runaway recursion',
+        'CTE vs subquery vs temporary table: readability, reuse within one query, and when each is the better choice',
+      ],
+      tasks: [
+        { key: 'practice-recursive-cte', kind: 'practice', title: 'Write a recursive CTE that prints a company org chart with each person\'s level and full chain of managers', minutes: 35 },
+      ],
+      quiz: [
+        {
+          q: 'Which two parts does every recursive CTE combine with UNION ALL?',
+          options: [
+            'A SELECT and an INSERT',
+            'An anchor query and a recursive query that refers to the CTE',
+            'Two tables with the same primary key',
+            'A WHERE clause and a HAVING clause',
+          ],
+          answer: 1,
+          why: 'The anchor gives the starting rows and the recursive part keeps adding rows by joining back to the CTE.',
+        },
+        {
+          q: 'What is the main benefit of rewriting a deeply nested query with CTEs?',
+          options: [
+            'It always runs faster',
+            'It removes the need for indexes',
+            'Each step is named and read top to bottom, so the logic is clearer',
+            'It lets the query change data in other databases',
+          ],
+          answer: 2,
+          why: 'CTEs mainly improve readability; speed depends on the plan the database chooses.',
+        },
+      ],
+    },
+    {
+      key: 'advanced-sql-windows',
+      title: 'Window functions: ranking, LAG/LEAD and running totals',
+      min: 40,
+      sum: '**Window functions** compute a value for each row using a set of related rows, without collapsing them like `GROUP BY` does. With `OVER (PARTITION BY ... ORDER BY ...)` you can rank rows within groups, compare a row with the previous one, and compute running totals and moving averages. They solve many classic interview questions, such as the top N per group.',
+      pts: [
+        'ROW_NUMBER gives 1, 2, 3; RANK leaves gaps after ties; DENSE_RANK does not.',
+        'PARTITION BY restarts the calculation for each group.',
+        'Window functions run after WHERE, so filter on them in an outer query or CTE.',
+        'LAG and LEAD read the previous and next row without a self join.',
+      ],
+      learn: [
+        'OVER clause: an aggregate with OVER () vs GROUP BY; each row keeps its own columns',
+        'PARTITION BY and ORDER BY inside OVER: per-department salary ranking',
+        'ROW_NUMBER, RANK and DENSE_RANK on tied values, written out on a five-row example',
+        'Top N per group: ROW_NUMBER in a CTE, then WHERE rn <= 3 in the outer query',
+        'LAG and LEAD: day-over-day change in revenue and the gap between a user\'s consecutive logins',
+        'Running totals: SUM(amount) OVER (ORDER BY day) and a 7-day moving average with ROWS BETWEEN 6 PRECEDING AND CURRENT ROW',
+        'NTILE and percent: split customers into quartiles by spend',
+      ],
+      tasks: [
+        { key: 'practice-window-functions', kind: 'practice', title: 'Use window functions for top-three salaries per department, monthly revenue change and a running total', minutes: 40 },
+        { key: 'practice-window-streaks', kind: 'practice', title: 'Find each user\'s longest streak of consecutive login days using ROW_NUMBER and date differences', minutes: 30, optional: true },
+      ],
+      quiz: [
+        {
+          q: 'Salaries 100, 90, 90, 80 are ranked in descending order. What does DENSE_RANK give the 80 row?',
+          options: ['3', '4', '2', '1'],
+          answer: 0,
+          why: 'DENSE_RANK gives both 90s rank 2 and the next value rank 3 with no gap; RANK would give it 4.',
+        },
+        {
+          q: 'Why can you not write WHERE ROW_NUMBER() OVER (...) <= 3 directly?',
+          options: [
+            'ROW_NUMBER only works with GROUP BY',
+            'WHERE cannot compare numbers',
+            'ROW_NUMBER needs a LIMIT',
+            'Window functions are computed after WHERE, so filter in an outer query or CTE',
+          ],
+          answer: 3,
+          why: 'WHERE runs before window functions are evaluated, so the result must be filtered one level up.',
+        },
+      ],
+    },
+    {
+      key: 'advanced-sql-performance',
+      title: 'Indexes, EXPLAIN and query performance',
+      min: 40,
+      depth: 'standard',
+      sum: 'An **index** is a sorted structure (usually a **B-tree**) that lets the database find rows without scanning the whole table. Learn which columns to index, how **composite indexes** depend on column order, and how to read a plan from `EXPLAIN ANALYZE` to see whether a query uses an index or a sequential scan. Indexes speed up reads but slow writes and use space.',
+      pts: [
+        'Index columns used in WHERE, JOIN and ORDER BY on large tables.',
+        'A composite index on (a, b) helps filters on a, or on a and b, but not on b alone.',
+        'Wrapping a column in a function, such as LOWER(email), stops a plain index being used.',
+        'Measure with EXPLAIN ANALYZE before and after adding an index.',
+      ],
+      learn: [
+        'B-tree index: how a sorted index turns a full scan into a fast lookup, and the cost on INSERT and UPDATE',
+        'CREATE INDEX on a foreign key and a frequently filtered column; unique indexes and primary keys',
+        'Composite indexes: leftmost-prefix rule for (customer_id, created_at) and matching ORDER BY',
+        'EXPLAIN vs EXPLAIN ANALYZE: Seq Scan, Index Scan, estimated vs actual rows, and total time',
+        'Sargable queries: avoid functions on indexed columns and leading-wildcard LIKE \'%term\'',
+        'Pagination: OFFSET cost on deep pages vs keyset pagination with WHERE id > last_seen_id',
+        'N+1 queries from app code: spot many tiny queries in logs and replace them with one JOIN or IN query',
+      ],
+      tasks: [
+        { key: 'practice-explain-index', kind: 'practice', title: 'Load 100,000 rows, time a filtered query with EXPLAIN ANALYZE, add the right index, and compare the two plans', minutes: 40 },
+      ],
+      quiz: [
+        {
+          q: 'A table has an index on (city, created_at). Which filter can use it most effectively?',
+          options: [
+            'WHERE created_at > \'2026-01-01\' only',
+            'WHERE city = \'Pune\' AND created_at > \'2026-01-01\'',
+            'WHERE LOWER(city) = \'pune\'',
+            'WHERE name = \'Ravi\'',
+          ],
+          answer: 1,
+          why: 'A composite index is sorted by its first column first, so it serves filters that start with city.',
+        },
+        {
+          q: 'What is the main cost of adding many indexes to a table?',
+          options: [
+            'SELECT queries become slower',
+            'Rows can no longer be deleted',
+            'Inserts and updates become slower and storage grows',
+            'Foreign keys stop working',
+          ],
+          answer: 2,
+          why: 'Every index must be updated on each write and takes disk space, so add only indexes that queries use.',
+        },
+      ],
+    },
+  ],
+
+  'database-design': [
+    {
+      key: 'database-design',
+      title: 'Data modelling: entities, keys and relationships',
+      min: 35,
+      sum: 'Database design starts with the real things your app tracks (**entities**), their **attributes**, and how they relate. Each table gets a **primary key**, and relationships become **foreign keys**: one-to-many puts the key on the many side, and many-to-many needs a **junction table**. Sketch an **ER diagram** before writing any `CREATE TABLE`.',
+      pts: [
+        'One table per entity; one row per instance of it.',
+        'One-to-many: the foreign key lives on the "many" table.',
+        'Many-to-many: a junction table holding both foreign keys.',
+        'Surrogate keys (id) are stable; natural keys such as email can change.',
+      ],
+      learn: [
+        'Entities and attributes: list them from a short app description, such as a college event booking app',
+        'Primary keys: surrogate (identity or UUID) vs natural keys, and why an email makes a poor primary key',
+        'One-to-one, one-to-many and many-to-many, with one real example of each',
+        'Foreign keys: place them correctly, e.g. events.club_id, and enforce them with a FOREIGN KEY constraint',
+        'Junction tables: registrations(student_id, event_id) with a composite primary key and extra columns such as registered_at',
+        'ER diagrams: draw entities, attributes and crow\'s-foot cardinality on paper or in a diagram tool',
+        'Naming: plural or singular table names chosen once, snake_case columns, and id and <table>_id conventions',
+      ],
+      tasks: [
+        { key: 'build-er-diagram', kind: 'build', title: 'Design an ER diagram and CREATE TABLE script for a college event app: students, clubs, events, registrations', minutes: 45 },
+      ],
+      quiz: [
+        {
+          q: 'Students can join many clubs and clubs have many students. How should this be modelled?',
+          options: [
+            'A club_ids text column in students',
+            'A junction table with student_id and club_id',
+            'A student_id column in clubs',
+            'One table holding both students and clubs',
+          ],
+          answer: 1,
+          why: 'A many-to-many relationship needs a junction table with a foreign key to each side.',
+        },
+        {
+          q: 'In a one-to-many relationship between authors and books, where does the foreign key go?',
+          options: [
+            'books.author_id',
+            'authors.book_id',
+            'In a separate settings table',
+            'In both tables',
+          ],
+          answer: 0,
+          why: 'Each book has one author, so the many side (books) stores the author\'s id.',
+        },
+      ],
+    },
+    {
+      key: 'database-design-normalisation',
+      title: 'Normalisation: 1NF to 3NF and when to denormalise',
+      min: 35,
+      sum: '**Normalisation** removes duplicated data so each fact is stored once, which prevents **update, insert and delete anomalies**. Learn to spot a table that breaks **1NF**, **2NF** or **3NF** and split it correctly. Then learn the trade-off: **denormalisation** copies data on purpose to speed up reads, at the cost of keeping copies in sync.',
+      pts: [
+        '1NF: atomic values, no repeating groups or comma-separated lists.',
+        '2NF: no column depends on only part of a composite key.',
+        '3NF: no column depends on another non-key column.',
+        'Denormalise only for a measured read problem, and decide how copies stay in sync.',
+      ],
+      learn: [
+        'Anomalies: update, insert and delete anomalies in a single orders sheet that repeats customer details',
+        'Functional dependencies: "A determines B" written as A -> B, read from sample data',
+        '1NF: split a comma-separated skills column into its own table',
+        '2NF: in order_items(order_id, product_id, product_name), move product_name to products',
+        '3NF: remove transitive dependencies, e.g. city -> state belongs in its own table',
+        'BCNF in one sentence: every determinant is a candidate key; know it exists for interviews',
+        'Denormalisation: cached counts, copied prices on orders, and why an order should keep the price paid',
+      ],
+      tasks: [
+        { key: 'practice-normalise', kind: 'practice', title: 'Take a flat spreadsheet of college course enrolments and normalise it to 3NF, writing down each dependency you remove', minutes: 35 },
+      ],
+      quiz: [
+        {
+          q: 'A students table has a phone_numbers column holding "98xxxxxx01, 98xxxxxx02". Which normal form does it break?',
+          options: ['3NF', 'BCNF', '2NF', '1NF'],
+          answer: 3,
+          why: 'A list of values in one column is not atomic, which breaks first normal form.',
+        },
+        {
+          q: 'Why should an orders table store the unit price at the time of purchase, even though products already has a price?',
+          options: [
+            'Because foreign keys cannot point to prices',
+            'Because product prices change later, and the order must keep what was actually paid',
+            'Because 3NF requires it',
+            'Because it makes the products table smaller',
+          ],
+          answer: 1,
+          why: 'The price paid is a historical fact of the order, not a copy of the current product price.',
+        },
+      ],
+    },
+    {
+      key: 'database-design-practice',
+      title: 'Schema design in practice: migrations, time and deletes',
+      min: 35,
+      depth: 'standard',
+      sum: 'Real schemas change all the time, so changes are made with versioned **migrations** checked into Git. Practical design also means storing time correctly (UTC timestamps), choosing between **soft** and hard deletes, picking ID types, and modelling things like status fields and audit history. These choices are cheap at the start and expensive to change later.',
+      pts: [
+        'Every schema change is a migration file in Git, applied in order, never edited after release.',
+        'Store timestamps in UTC with time zone (timestamptz in PostgreSQL); convert for display.',
+        'Soft delete keeps a deleted_at column; every query must then filter it out.',
+        'Use DECIMAL or integer paise for money, never floating point.',
+      ],
+      learn: [
+        'Migrations: up and down scripts, a migrations table recording what ran, and running them in CI and deploys',
+        'Safe changes: add a nullable column, backfill, then add NOT NULL; avoid renaming columns in one step',
+        'Time: created_at and updated_at in UTC, timestamptz vs timestamp, and storing a user\'s time zone separately',
+        'Money and numbers: NUMERIC(12,2) or integer paise; why FLOAT gives rounding errors',
+        'Status fields: a CHECK constraint or enum for allowed values such as pending, paid, failed',
+        'Soft vs hard deletes: deleted_at, partial unique indexes, and privacy laws that require real deletion',
+        'IDs: identity integers vs UUIDs (v4 random, v7 time-ordered) and what each means for URLs and indexes',
+      ],
+      tasks: [
+        { key: 'build-migrations', kind: 'build', title: 'Write three migrations for an app: create tables, add a nullable column with a backfill, then make it NOT NULL', minutes: 40 },
+      ],
+      quiz: [
+        {
+          q: 'Which type is the safest choice for storing an order total in rupees?',
+          options: ['FLOAT', 'NUMERIC(12,2)', 'TEXT', 'REAL'],
+          answer: 1,
+          why: 'NUMERIC stores exact decimals; floating-point types introduce rounding errors in money calculations.',
+        },
+        {
+          q: 'You need to add a NOT NULL column to a large table that already has rows. What is the safe sequence?',
+          options: [
+            'Add it as NOT NULL with no default in one step',
+            'Drop and recreate the table',
+            'Add it nullable, backfill values, then add the NOT NULL constraint',
+            'Store the value in a separate database',
+          ],
+          answer: 2,
+          why: 'Existing rows would violate NOT NULL immediately, so add, fill, then enforce the constraint.',
+        },
+      ],
+    },
+  ],
+
+  postgresql: [
+    {
+      key: 'postgresql',
+      title: 'PostgreSQL setup, psql and core data types',
+      min: 35,
+      sum: '**PostgreSQL** is the most widely used open-source relational database for new backends, and the one behind hosted services such as Supabase and Neon. Learn to run it locally (an installer or Docker), connect with **psql**, and use its core types well: `integer` and `bigint`, `text`, `numeric`, `boolean`, `timestamptz`, `uuid` and identity columns. Then connect to it from your app with a connection string.',
+      pts: [
+        'One server holds several databases; each database holds schemas, and public is the default.',
+        'Prefer text over varchar(n) unless you need a length rule; use a CHECK for that.',
+        'Use timestamptz for points in time and GENERATED ALWAYS AS IDENTITY for integer ids.',
+        'Keep the connection string in an environment variable such as DATABASE_URL.',
+      ],
+      learn: [
+        'Running PostgreSQL: the official installer or a postgres Docker image with a volume and a password',
+        'psql: connect, \\l databases, \\c switch, \\dt tables, \\d table, \\x expanded output and \\q to quit',
+        'Structure: server, database, schema (public), table; roles and a separate app user with limited rights',
+        'Core types: integer, bigint, numeric, text, boolean, date, timestamptz, uuid, and when to choose each',
+        'Identity columns: GENERATED ALWAYS AS IDENTITY vs the older serial, and gen_random_uuid() for UUIDs',
+        'Connection strings: user, password, host, port 5432, database name, and sslmode for hosted databases',
+        'Loading data: \\copy from a CSV file and pg_dump or pg_restore for backups of a small database',
+      ],
+      tasks: [
+        { key: 'practice-psql-setup', kind: 'practice', title: 'Run PostgreSQL in Docker, create an app database and user, load a CSV with \\copy, and query it in psql', minutes: 35 },
+      ],
+      quiz: [
+        {
+          q: 'Which column type should store "when this order was placed" for users across time zones?',
+          options: ['timestamptz', 'varchar(30)', 'date', 'integer'],
+          answer: 0,
+          why: 'timestamptz stores an absolute moment (normalised to UTC) and converts to the session time zone on output.',
+        },
+        {
+          q: 'Which psql command describes the columns and indexes of the table orders?',
+          options: ['\\dt orders', '\\l orders', '\\c orders', '\\d orders'],
+          answer: 3,
+          why: '\\d <table> shows columns, types, indexes and constraints; \\dt only lists tables.',
+        },
+      ],
+    },
+    {
+      key: 'postgresql-features',
+      title: 'PostgreSQL features: JSONB, upserts, RETURNING and search',
+      min: 40,
+      sum: 'PostgreSQL goes well beyond standard SQL. `INSERT ... ON CONFLICT` does an **upsert** in one statement, `RETURNING` gives back inserted or updated rows, **JSONB** stores flexible documents you can still index, and arrays and full-text search cover many needs without another tool. Learn when these features simplify your app and when a plain column is still the better choice.',
+      pts: [
+        'ON CONFLICT (email) DO UPDATE turns insert-or-update into one atomic statement.',
+        'RETURNING id saves a second query after INSERT.',
+        'Use JSONB for truly variable data; keep fields you filter or join on as real columns.',
+        'A GIN index makes JSONB containment (@>) and full-text queries fast.',
+      ],
+      learn: [
+        'RETURNING: INSERT ... RETURNING id, created_at and UPDATE ... RETURNING * to avoid a second query',
+        'Upsert: INSERT ... ON CONFLICT (key) DO NOTHING and DO UPDATE SET col = EXCLUDED.col',
+        'JSONB: store a settings object, read with -> and ->>, filter with @>, and update with jsonb_set',
+        'Indexes beyond B-tree: GIN for JSONB and arrays, partial indexes WHERE deleted_at IS NULL, expression indexes',
+        'Arrays: a text[] tags column with ANY() and @> queries, and when a separate table is better',
+        'Full-text search: to_tsvector, to_tsquery, the @@ match operator and a GIN index for searching job descriptions',
+        'Views and materialised views: save a reporting query, and REFRESH MATERIALIZED VIEW for heavy summaries',
+      ],
+      tasks: [
+        { key: 'build-pg-upsert-search', kind: 'build', title: 'Build a jobs table with a JSONB details column and tags array; add an upsert by external id and a full-text search query', minutes: 45 },
+      ],
+      quiz: [
+        {
+          q: 'Which statement inserts a user, or updates their name if the email already exists?',
+          options: [
+            'INSERT ... IF EXISTS UPDATE',
+            'MERGE ALL users',
+            'INSERT ... ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name',
+            'REPLACE INTO users ...',
+          ],
+          answer: 2,
+          why: 'ON CONFLICT on a unique column turns the insert into an update; EXCLUDED holds the values that were proposed.',
+        },
+        {
+          q: 'Which index type speeds up a JSONB containment query such as details @> \'{"remote": true}\'?',
+          options: ['Hash', 'GIN', 'B-tree on the whole column', 'No index can help'],
+          answer: 1,
+          why: 'GIN indexes the keys and values inside JSONB, which is what containment queries need.',
+        },
+      ],
+    },
+    {
+      key: 'postgresql-internals',
+      title: 'MVCC, isolation levels, locks and connection pooling',
+      min: 40,
+      depth: 'standard',
+      sum: 'PostgreSQL handles many users at once with **MVCC**: each transaction sees a snapshot, and updates write new row versions instead of overwriting. Learn the **isolation levels** and the anomalies they prevent, row locks with `SELECT ... FOR UPDATE`, why **VACUUM** exists, and why apps use a **connection pool** instead of opening a connection per request.',
+      pts: [
+        'The default isolation level is Read Committed: each statement sees data committed before it began.',
+        'SELECT ... FOR UPDATE locks the rows you read until the transaction ends.',
+        'Dead row versions are cleaned by autovacuum; long transactions stop that cleanup.',
+        'Each connection is a server process, so pool connections and keep transactions short.',
+      ],
+      learn: [
+        'MVCC: snapshots, row versions, and why readers do not block writers',
+        'Isolation levels: Read Committed, Repeatable Read and Serializable, and the anomalies each prevents',
+        'Lost updates: two requests read a stock count and both write; fix with UPDATE ... SET stock = stock - 1 WHERE stock > 0',
+        'Row locks: SELECT ... FOR UPDATE, SKIP LOCKED for job queues, and how deadlocks happen and are reported',
+        'VACUUM and autovacuum: dead tuples, table bloat, and why idle-in-transaction sessions are harmful',
+        'Connection pooling: a pool in the app driver, PgBouncer in transaction mode, and max_connections limits',
+        'Operations basics: pg_stat_activity to see running queries, statement_timeout, and daily pg_dump backups',
+      ],
+      tasks: [
+        { key: 'practice-pg-concurrency', kind: 'practice', title: 'In two psql sessions reproduce a lost update, then fix it with an atomic UPDATE and with SELECT ... FOR UPDATE', minutes: 40 },
+      ],
+      quiz: [
+        {
+          q: 'Several workers take jobs from a jobs table. Which clause lets each worker skip rows another worker has locked?',
+          options: ['FOR UPDATE SKIP LOCKED', 'LOCK TABLE jobs', 'SERIALIZABLE ONLY', 'NOWAIT DISTINCT'],
+          answer: 0,
+          why: 'FOR UPDATE SKIP LOCKED locks the chosen rows and ignores ones already locked, so workers never take the same job.',
+        },
+        {
+          q: 'Why do apps use a connection pool with PostgreSQL?',
+          options: [
+            'Pools make SQL queries shorter',
+            'PostgreSQL forbids more than one connection',
+            'Pools replace the need for indexes',
+            'Each connection is costly, so reusing a few connections handles many requests efficiently',
+          ],
+          answer: 3,
+          why: 'Every PostgreSQL connection is a separate process with memory overhead, so reusing pooled connections scales better.',
+        },
+      ],
+    },
+  ],
+
+  nosql: [
+    {
+      key: 'nosql',
+      title: 'NoSQL types and MongoDB basics',
+      min: 35,
+      sum: '**NoSQL** covers databases that do not use the relational table model: **document** stores (MongoDB), **key-value** stores (Redis, DynamoDB), **wide-column** stores (Cassandra) and **graph** databases (Neo4j). Each trades some relational features for flexibility or scale in a specific access pattern. Learn the four families, then practise CRUD in **MongoDB**, the document store most used in student projects.',
+      pts: [
+        'Pick a database by its access patterns, not by trend.',
+        'MongoDB stores JSON-like documents (BSON) in collections; documents can differ in shape.',
+        'Every document has a unique _id, an ObjectId by default.',
+        'Flexible schema still needs validation, in the app or with a JSON schema validator.',
+      ],
+      learn: [
+        'Four families: document, key-value, wide-column and graph, with one typical use case for each',
+        'SQL vs NoSQL: schema flexibility, joins, transactions and horizontal scaling compared honestly',
+        'MongoDB model: database, collection, document, BSON types and the _id ObjectId',
+        'CRUD: insertOne, find with a filter, updateOne with $set and $inc, deleteOne in mongosh',
+        'Query operators: $eq, $gt, $in, $and, $or, projection of fields, sort, limit and skip',
+        'Indexes in MongoDB: createIndex on a filtered field and checking use with explain()',
+        'Validation: a JSON schema validator on a collection, or a schema library such as Mongoose or zod in the app',
+      ],
+      tasks: [
+        { key: 'practice-mongo-crud', kind: 'practice', title: 'Run MongoDB in Docker, add 20 job documents and write ten queries using filters, $set, $inc and sort', minutes: 35 },
+      ],
+      quiz: [
+        {
+          q: 'Which NoSQL family is the best fit for "friends of friends who like the same band"?',
+          options: ['Key-value store', 'Wide-column store', 'Graph database', 'Document store'],
+          answer: 2,
+          why: 'Graph databases store relationships as edges, so multi-hop traversals like friends of friends are natural and fast.',
+        },
+        {
+          q: 'Which MongoDB update increases a post\'s likes by one?',
+          options: [
+            'updateOne({ _id: id }, { likes: +1 })',
+            'updateOne({ _id: id }, { $inc: { likes: 1 } })',
+            'insertOne({ _id: id, likes: 1 })',
+            'find({ _id: id }).likes++',
+          ],
+          answer: 1,
+          why: '$inc atomically adds to a numeric field; the other forms replace, insert or do not update at all.',
+        },
+      ],
+    },
+    {
+      key: 'nosql-modelling',
+      title: 'Document modelling, aggregation and choosing a store',
+      min: 40,
+      depth: 'standard',
+      sum: 'In a document database you model for the queries you run: **embed** data that is read together and **reference** data that is shared or grows without limit. The **aggregation pipeline** filters, groups and reshapes documents in stages. Finally, learn the **CAP** trade-off and eventual consistency well enough to explain when a NoSQL store beats PostgreSQL, and when it does not.',
+      pts: [
+        'Embed one-to-few data read together; reference one-to-many data that grows without bound.',
+        'A MongoDB document is limited to 16 MB, so unbounded arrays are a design bug.',
+        'Aggregation stages run in order: $match early, then $group, $sort and $project.',
+        'Under a network partition a distributed store chooses consistency or availability.',
+      ],
+      learn: [
+        'Embed vs reference: addresses inside a user vs orders in their own collection, and the reasoning for each',
+        'Design from access patterns: list the app\'s top queries first, then shape documents to answer them',
+        'Aggregation pipeline: $match, $group with $sum and $avg, $sort, $project, $lookup and $unwind',
+        'Transactions in MongoDB: single-document writes are atomic; multi-document transactions exist but cost more',
+        'CAP and consistency: partitions, consistency vs availability, and eventual consistency in replicated stores',
+        'Key-value design: DynamoDB-style partition and sort keys, and why access patterns must be known up front',
+        'Choosing: when PostgreSQL with JSONB is enough, and when a document, key-value or graph store is justified',
+      ],
+      tasks: [
+        { key: 'build-mongo-model', kind: 'build', title: 'Model a blog (users, posts, comments) in MongoDB, justify each embed or reference, and aggregate the top authors', minutes: 45 },
+      ],
+      quiz: [
+        {
+          q: 'A product can have thousands of reviews that keep growing. How should reviews be stored in MongoDB?',
+          options: [
+            'In a separate reviews collection that references the product',
+            'As an array embedded inside the product document',
+            'As a comma-separated string field on the product',
+            'In the product\'s _id field',
+          ],
+          answer: 0,
+          why: 'Unbounded, growing data should be referenced; embedding it risks the 16 MB document limit and slow reads.',
+        },
+        {
+          q: 'In an aggregation pipeline, why should $match usually come first?',
+          options: [
+            'It is required to be the first stage',
+            'It sorts the documents',
+            'It joins collections',
+            'It filters early so later stages process fewer documents and can use an index',
+          ],
+          answer: 3,
+          why: 'An early $match reduces the data flowing through the pipeline and can use an index on the collection.',
+        },
+      ],
+    },
+  ],
+
+  orms: [
+    {
+      key: 'orms',
+      title: 'ORMs: models, queries and migrations',
+      min: 35,
+      sum: 'An **ORM** (object-relational mapper) lets you work with database rows as objects in your language. Popular choices are **Prisma** and **Drizzle** for TypeScript, **SQLAlchemy** and the **Django ORM** for Python, and **Hibernate** (JPA) for Java. Learn to define models, run CRUD queries with relations, and generate **migrations** from model changes, while still understanding the SQL the ORM runs.',
+      pts: [
+        'An ORM saves boilerplate but still runs SQL; learn to log and read it.',
+        'Models describe tables; migrations change the real database to match.',
+        'ORM query builders use parameters, which protects against SQL injection.',
+        'Review generated migrations before applying them to production.',
+      ],
+      learn: [
+        'Why ORMs: mapping rows to objects, type safety, and the trade-off of hiding SQL',
+        'Models: define a User and a Post model with types, defaults and a one-to-many relation',
+        'CRUD: create, findMany or filter with conditions, update and delete in one ORM of your stack',
+        'Relations: load a user with their posts using include (Prisma), relationship (SQLAlchemy) or select_related (Django)',
+        'Migrations: change a model, generate a migration, read the SQL it contains, and apply it',
+        'Query logging: turn on SQL logging and match each ORM call to the SQL it runs',
+        'Parameterisation: why ORM queries prevent SQL injection and why string-built raw SQL does not',
+      ],
+      tasks: [
+        { key: 'build-orm-crud', kind: 'build', title: 'Set up an ORM with PostgreSQL, define User and Post models, generate a migration and build CRUD endpoints for posts', minutes: 50 },
+      ],
+      quiz: [
+        {
+          q: 'You added a field to a model in code. What makes the real database table get the new column?',
+          options: [
+            'Restarting the app server',
+            'Generating and applying a migration',
+            'Running the tests',
+            'Clearing the ORM cache',
+          ],
+          answer: 1,
+          why: 'Models only describe the schema; a migration is what actually runs ALTER TABLE on the database.',
+        },
+        {
+          q: 'Why are ORM queries generally safe from SQL injection?',
+          options: [
+            'ORMs encrypt every query',
+            'ORMs only allow SELECT statements',
+            'Values are sent as bound parameters, not pasted into the SQL text',
+            'ORMs block user input',
+          ],
+          answer: 2,
+          why: 'Parameters are sent separately from the SQL, so user input can never change the query structure.',
+        },
+      ],
+    },
+    {
+      key: 'orms-performance',
+      title: 'ORM pitfalls: N+1 queries, eager loading and transactions',
+      min: 35,
+      depth: 'standard',
+      sum: 'Most ORM performance problems come from queries you do not see. The classic is the **N+1 problem**: one query for a list, then one more per item for its relation. Learn **eager loading**, selecting only the columns you need, wrapping related writes in **transactions**, and dropping to raw SQL for complex reports, with parameters, when the ORM gets in the way.',
+      pts: [
+        'N+1: 1 query for 50 posts plus 50 queries for authors; eager loading makes it 1 or 2.',
+        'Select only the fields you need, especially for large text or JSON columns.',
+        'Use the ORM\'s transaction API for writes that must succeed together.',
+        'Raw SQL is fine for complex reports; always pass values as parameters.',
+      ],
+      learn: [
+        'N+1 problem: spot it in query logs when listing posts with author names',
+        'Eager loading: include or join in Prisma, selectinload or joinedload in SQLAlchemy, prefetch_related in Django',
+        'Selecting columns: select only needed fields and paginate lists with take/skip or keyset pagination',
+        'Transactions: the ORM transaction API for an order plus stock update, and what happens on an exception',
+        'Raw SQL escape hatch: parameterised raw queries for window functions and reports the ORM cannot express well',
+        'Connection handling: one shared client or engine per app process, not one per request',
+        'Testing with an ORM: a test database, migrations before tests, and resetting data between tests',
+      ],
+      tasks: [
+        { key: 'practice-fix-n-plus-one', kind: 'practice', title: 'Log the SQL of a post list with authors, show the N+1 pattern, fix it with eager loading and compare query counts', minutes: 35 },
+      ],
+      quiz: [
+        {
+          q: 'Listing 100 orders with customer names runs 101 queries. What is the usual fix?',
+          options: [
+            'Add more database connections',
+            'Cache every customer in a global variable',
+            'Switch to a NoSQL database',
+            'Eager load customers with the orders in one or two queries',
+          ],
+          answer: 3,
+          why: 'This is the N+1 problem; eager loading fetches the related customers in a join or one batched query.',
+        },
+        {
+          q: 'Creating an order and reducing stock must both succeed or both fail. What should you use?',
+          options: [
+            'The ORM\'s transaction API around both writes',
+            'Two separate API requests',
+            'A background job for the stock update',
+            'A longer database timeout',
+          ],
+          answer: 0,
+          why: 'A transaction makes the two writes atomic, so a failure in either rolls back both.',
+        },
+      ],
+    },
+  ],
+};
