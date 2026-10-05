@@ -17,7 +17,7 @@ no longer lists are expired, and a row per source goes to `scrape_runs` (Admin â
 
 ## Desktop launchers (jobs and contacts, summary after every run)
 
-`Desktop\Nomadic-Scraper` (next to the `Nomadic` repo folder; source copies in `scripts\desktop-scraper\`) holds
+`Desktop\Nomadic Content\Scraper` (finds the repo at `Desktop\Nomadic`; source copies in `scripts\desktop-scraper\`) holds
 double-click launchers for `scripts\scrape-desktop.ps1`: `Run job scraper.cmd`, `Run contact scraper.cmd`,
 `Schedule every 6 hours.cmd` (runs jobs, then contacts) and `Remove schedule.cmd`. Add `-DryRun` to scrape and report
 without writing to Supabase.

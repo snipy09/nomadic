@@ -18,7 +18,7 @@ reports\                   Jobs: latest-summary.txt, scrape-<date-time>.txt, his
 First run asks for the Supabase service_role / secret key (Supabase dashboard > Project Settings >
 API keys). It is saved only in Desktop\Nomadic\.env (git-ignored). Never share it.
 
-Needs Node.js 22 LTS. Keep this folder next to the Nomadic folder on the Desktop.
+Needs Node.js 22 LTS. Keep this folder in Desktop\Nomadic Content (it finds the repo at Desktop\Nomadic).
 Extra options can be added after the file name in a terminal, e.g.:
   "Run job scraper.cmd" --sources internshala,lever
   "Run contact scraper.cmd" --sources hn,jobs --region all --max-pages 80

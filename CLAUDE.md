@@ -190,7 +190,7 @@ Owner actions:
    --write-seed` and `npm run build-seed` (the build container could not reach leetcode.com or the resource sites,
    so paid-only flags are a hand list and the 26 new resources stay hidden until link-checked), then regenerate and re-paste `baseline/content_seed.sql` and package the next version.
 1. Keep the live `jobs` table fresh (seeded once on 4 Oct 2026 with 328 active India-open jobs, 137 internships): run
-   `Desktop\Nomadic-Scraper\Run job scraper.cmd` (contacts: `Run contact scraper.cmd` → `outreach_contacts`; sources
+   `Desktop\Nomadic Content\Scraper\Run job scraper.cmd` (contacts: `Run contact scraper.cmd` → `outreach_contacts`; sources
    in `scripts/desktop-scraper/`) (`scripts/scrape-desktop.ps1 -Mode jobs|contacts`: `--max-new 100` new jobs per run,
    duplicates of published jobs skipped, a summary in `reports\` per run; first run asks for the service role key,
    which no `.env` on this laptop had on 4 Oct 2026) or `scripts\scrape-laptop.cmd` (`docs/SCRAPER_LAPTOP.md`) and/or set the GitHub Actions secrets
@@ -275,9 +275,10 @@ checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification
   via ai-proxy kind `outreach_email` (deployed) with per-plan limits `aiOutreachDraftsPerDay`. Renderer
   `features/outreach/` (OutreachView, Composer, PersonForm, DirectoryPanel, SmtpPanel, OutreachComingSoon). The old
   HR scraper, `hr_contacts` reads and Chrome outreach were deleted.
-- Untracked on purpose, never stage: `brag-output*/`, `reel*/`, `showreel/` (local marketing renders) and `.claude/`
-  (local assistant settings and `launch.json`; its notes are folded into section 10).
-- Delivered build: `Nomadic-v1.1.0-portable.exe` in `C:\Users\sajal\Downloads` and `Desktop\Nomadic-v1\`
+- Videos, reel/brag renders and carousels never go in the repo (`.gitignore` blocks `brag-output*/`, `reel*/`,
+  `showreel/`, `instagram-carousel/`, `marketing/` and video/audio files); they live in `Desktop\Nomadic Content`.
+  `.claude/` is untracked on purpose, never stage it (local assistant settings and `launch.json`; its notes are folded into section 10).
+- Delivered build: `Nomadic-v1.1.0-portable.exe` in `C:\Users\sajal\Downloads` and `Desktop\Nomadic Content\App builds\`
   (built from `apps/desktop/dist-electron/Nomadic.1.1.0.exe`; 1.1.0: Outreach as above, shown as "Soon"; 1.0.13: a listing that names no skills is scored
   against the core skills (weight ≥ 0.8) of the role family in its title and shown as an estimate (`~N%`, "est.
   match"; `JobMatch.estimated`, `features/feed/match.ts`); `inferRole` matches whole stemmed words; the Internshala
@@ -374,8 +375,9 @@ checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification
   package or deploy, verify, push to `main`. Do not stop at a plan or ask onboarding questions; pick sensible defaults.
 - Reports are concise: what changed, what was verified, what the owner must do. For routine web deploys, two or three
   lines (live URL, pass/fail).
-- Anything made for the owner (builds, images, docs, exports) is also copied to `C:\Users\sajal\OneDrive\Desktop` in
-  a named subfolder (e.g. `Desktop\Nomadic-v1`, `Desktop\Nomadic-Logo`); builds also go to `Downloads`.
+- The Desktop holds only two folders: `Nomadic` (this repo) and `Nomadic Content`. Anything made for the owner (builds,
+  images, videos, docs, SQL, exports) goes in a subfolder of `Desktop\Nomadic Content` (`App builds`, `Logo`, `Videos`,
+  `SQL`, `Handoff and plans`, `Scraper`, `Carousel and marketing`), never loose on the Desktop. Builds also go to `Downloads`.
 - Do not delete or publish things unasked; flag them. Do not sign in, sign up or submit forms against the live
   backend; the owner tests accounts. Do not print secrets from `.env`, Vault or tokens.
 - Windows + PowerShell 5.1: no `&&`; write commit messages to a file with

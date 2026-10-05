@@ -59,3 +59,17 @@ coverage/
 apps/*/package-lock.json
 packages/*/package-lock.json
 scrape-output/
+
+# Marketing renders, videos and carousels live in Desktop\Nomadic Content, never in the repo
+brag-output*/
+reel*/
+showreel/
+instagram-carousel/
+marketing/
+*.mp4
+*.mov
+*.webm
+*.mkv
+*.avi
+*.mp3
+*.wav

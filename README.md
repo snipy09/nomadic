@@ -49,7 +49,7 @@ packages/
   email-verifier/   Email verification and SMTP sending (Outreach)
 docs/               Plans, decisions, security checklist, database setup, release, scraper, Learn v2, Outreach
 scripts/            Laptop/desktop scraper runners, Windows signing, test helpers
-marketing/, brand-kit/, profile-readme/   Brand and marketing assets
+brand-kit/, profile-readme/   Brand assets (videos and carousels are kept outside the repo)
 ```
 
 ## Getting started

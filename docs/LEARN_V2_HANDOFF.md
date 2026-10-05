@@ -146,7 +146,7 @@ The owner sent no project references, so the starter projects are self-drafted (
      the desktop and web builds.
    - Bump `apps/desktop/package.json` to 1.0.14 and run `npm run package:win` (kill `NomadicOS` first).
    - Run a read-only CDP smoke test.
-   - Copy the build to `Downloads` and `Desktop\Nomadic-v1`.
+   - Copy the build to `Downloads` and `Desktop\Nomadic Content\App builds`.
    - Commit only Learn v2 files, push to `main`, and update CLAUDE.md and the memory files.
 
 ## Engine design (final; implement as written)
