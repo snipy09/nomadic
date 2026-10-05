@@ -23,7 +23,7 @@ interface CommandItem {
   run: () => void;
 }
 
-const LEARNER_TABS = new Set<string>(['learner-roadmaps', 'learner-resources', 'learner-interview-prep']);
+const LEARNER_TABS = new Set<string>(['learner-roadmaps', 'learner-resources', 'learner-interview-prep', 'learner-projects']);
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onSelectTab, activeTrack, onToggleTrack }) => {
   const [query, setQuery] = useState('');

@@ -3,7 +3,7 @@
  * projects from the reviewed seed bundle, indexed once. Every link shown comes
  * from the bundle's problems (LeetCode) and curated resources.
  */
-import { indexCatalog, type CatalogIndex, type LearnModule, type LearnTopic, type ProblemInfo, type Project } from '@job-automator/learning';
+import { generatedProject, indexCatalog, isGeneratedProjectId, type CatalogIndex, type LearnModule, type LearnTopic, type ProblemInfo, type Project } from '@job-automator/learning';
 import { bundle } from './content';
 
 let index: CatalogIndex | null = null;
@@ -18,3 +18,8 @@ export const topicById = (id: string): LearnTopic | undefined => learnIndex().to
 export const problemByRef = (ref: string): ProblemInfo | undefined => learnIndex().problems.get(ref);
 export const projectById = (id: string): Project | undefined => learnIndex().projects.get(id);
 export const allProjects = (): Project[] => learnIndex().catalog.projects;
+
+/** A curated catalogue project or a generated library project (built on demand). */
+export function resolveProject(id: string): Project | undefined {
+  return projectById(id) ?? (isGeneratedProjectId(id) ? generatedProject(id) ?? undefined : undefined);
+}

@@ -22,7 +22,9 @@ import {
   enabledStreams,
   expandRoadmap,
   fitRoadmap,
+  generatedProject,
   indexCatalog,
+  isGeneratedProjectId,
   localToday,
   moduleHardClosure,
   moduleMinutes,
@@ -43,6 +45,7 @@ import {
   type LearningEvent,
   type ProblemInfo,
   type ProblemNote,
+  type Project,
   type Roadmap,
   type Schedule,
   type UserProject,
@@ -445,12 +448,16 @@ export function saveSchedule(userId: string, raw: unknown): SuccessResult {
   }
 }
 
+/** A catalogue project or a generated library project by id. */
+export function projectFor(id: string): Project | null {
+  return learnCatalog().projects.get(id) ?? (isGeneratedProjectId(id) ? generatedProject(id) : null);
+}
+
 /** Saves one project's progress; starting a project checks the plan's limits. */
 export async function saveProject(userId: string, raw: unknown): Promise<LearnProjectSaveResult> {
   const p = UserProjectSchema.safeParse(raw);
   if (!p.success) return { success: false, error: 'The project progress is not valid.' };
-  const idx = learnCatalog();
-  const project = idx.projects.get(p.data.project_id);
+  const project = projectFor(p.data.project_id);
   if (!project) return { success: false, error: 'That project is not in the library.' };
   const db = getDb();
   const mine = readProjects(db, userId);
@@ -499,7 +506,7 @@ export function saveProblemNote(userId: string, raw: unknown): LearnNoteSaveResu
 }
 
 export async function checkProjectRepo(userId: string, req: LearnRepoCheckRequest): Promise<LearnRepoCheckResult> {
-  const project = learnCatalog().projects.get(req.projectId);
+  const project = projectFor(req.projectId);
   const stage = project?.stages.find((s) => s.id === req.stageId);
   if (!project || !stage) return { success: false, error: 'That project stage is not in the library.' };
   if (!stage.repo_rules) return { success: false, error: 'This stage has no repository check.' };

@@ -27,6 +27,7 @@ import { WhatsNewDialog } from './features/updates/WhatsNewDialog';
 import { useUpdatePolicy } from './features/updates/useUpdater';
 import { ResourceVaultView } from './components/ResourceVaultView';
 import { PracticeView } from './features/practice/PracticeView';
+import { ProjectsView } from './features/projects/ProjectsView';
 import { OpportunityBoardView } from './components/OpportunityBoardView';
 import { CommandPalette } from './components/CommandPalette';
 import { NomadicAssistant } from './components/NomadicAssistant';
@@ -158,7 +159,7 @@ export default function App() {
 
   const handleNavigate = (newTab: TabType) => {
     setActiveTab(newTab);
-    if (['learner-roadmaps', 'learner-resources', 'learner-interview-prep'].includes(newTab)) {
+    if (['learner-roadmaps', 'learner-resources', 'learner-interview-prep', 'learner-projects'].includes(newTab)) {
       setActiveTrack('learner');
       prefs.setTrack('learner');
       prefs.setLastTab('learner', newTab);
@@ -437,6 +438,14 @@ export default function App() {
               />
             )}
 
+            {activeTab === 'learner-projects' && (
+              <ProjectsView
+                currentUser={currentUser}
+                suggestedRole={inferRole(profile.desiredTitle)}
+                onOpenUpgrade={handleOpenUpgrade}
+              />
+            )}
+
             {activeTab === 'opportunities' && isTabEnabled('opportunities') && (
               <OpportunityBoardView
                 profile={profile}
@@ -514,7 +523,7 @@ export default function App() {
             )}
 
             {/* Safe Fallback: if activeTab does not match any known route, render FeedView */}
-            {!['learner-roadmaps', 'learner-resources', 'learner-interview-prep', 'opportunities', 'feed', 'outreach', 'applications', 'logs', 'help', 'answers', 'profile', 'settings'].includes(activeTab) && !Boolean(activeTab && activeTab.startsWith('admin')) && (
+            {!['learner-roadmaps', 'learner-resources', 'learner-interview-prep', 'learner-projects', 'opportunities', 'feed', 'outreach', 'applications', 'logs', 'help', 'answers', 'profile', 'settings'].includes(activeTab) && !Boolean(activeTab && activeTab.startsWith('admin')) && (
               <FeedView
                 profile={profile}
                 onUpdateProfile={setProfile}

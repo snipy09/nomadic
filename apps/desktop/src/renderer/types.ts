@@ -138,6 +138,7 @@ export type TabType =
   | 'learner-roadmaps'
   | 'learner-resources'
   | 'learner-interview-prep'
+  | 'learner-projects'
   | 'learner-vault'
   | 'learner-drills'
   | 'admin-overview'

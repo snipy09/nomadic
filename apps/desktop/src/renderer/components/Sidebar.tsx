@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   PanelLeftClose, PanelLeft, BookOpen, MessageSquare, Settings as SettingsIcon, LifeBuoy,
-  Briefcase, Mail, LayoutGrid, Shield, Compass, Target, TrendingUp, MessageSquareText,
+  Briefcase, Mail, LayoutGrid, Shield, Compass, Target, TrendingUp, MessageSquareText, Hammer,
 } from 'lucide-react';
 import { NavItem, NavSection, IconButton, Badge, NomadicLogo, NomadicMark, useAppShell } from '@nomadic/ui';
 import { TabType, AppUser, PersonaTrack } from '../types';
@@ -45,6 +45,7 @@ export const NAV: Record<PersonaTrack, SectionDef[]> = {
         { id: 'learner-roadmaps', label: 'Learn', icon: Compass },
         { id: 'learner-resources', label: 'Resources', icon: BookOpen },
         { id: 'learner-interview-prep', label: 'Practice', icon: MessageSquare },
+        { id: 'learner-projects', label: 'Projects', icon: Hammer },
       ],
     },
     { title: 'Discover', items: [{ id: 'opportunities', label: 'Opportunities', icon: Target }] },
