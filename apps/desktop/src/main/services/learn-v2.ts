@@ -5,6 +5,7 @@
  * Plan limits (beginner-only and active projects, company boosts) come from the
  * server's entitlements; signed out or offline counts as the free plan.
  */
+import { z } from 'zod';
 import bundleJson from '@job-automator/learning/seed/bundle.json';
 import { getPlan, type PlanId } from '@nomadic/config';
 import {
@@ -58,11 +59,13 @@ import type {
   LearnNoteSaveResult,
   LearnProjectSaveResult,
   LearnRepoCheckRequest,
+  LearnProjectHelpRequest,
+  LearnProjectHelpResult,
   LearnRepoCheckResult,
   SuccessResult,
 } from '../../shared/ipc.js';
 import { getDb, persistDb } from '../db.js';
-import { callAiProxy } from './ai-proxy.js';
+import { aiErrorMessage, callAiProxy } from './ai-proxy.js';
 import { errorMessage, log } from './app-context.js';
 import { getEntitlements } from './entitlements.js';
 import { checkRepo } from './github-check.js';
@@ -523,3 +526,34 @@ export async function checkProjectRepo(userId: string, req: LearnRepoCheckReques
   return { success: true, passed: res.passed, checks: res.checks, commits: res.commits, checkedAt: res.checkedAt };
 }
 
+
+// ── Help inside a guided project (ai-proxy `project_help`) ─────────────────
+
+const projectHelpSchema = z.object({
+  answer: z.string().min(1),
+  next_steps: z.array(z.string()).default([]),
+  code: z.string().nullable().default(null),
+});
+
+/** Asks Nomadic AI about one stage or step of a project; the daily quota is enforced by the proxy. */
+export async function askProjectHelp(req: LearnProjectHelpRequest): Promise<LearnProjectHelpResult> {
+  const feature = 'project help';
+  const project = projectFor(req.projectId);
+  const stage = project?.stages.find((s) => s.id === req.stageId);
+  if (!project || !stage) return { success: false, code: 'not_found', error: 'That project stage is not in the library.' };
+  const step = req.stepIndex != null ? stage.steps[req.stepIndex] : undefined;
+  const payload: Record<string, unknown> = {
+    project: project.title,
+    stack: project.stacks.join(', '),
+    stage: stage.title,
+    goal: stage.goal,
+    question: req.question.trim(),
+  };
+  if (step) payload.step = `${step.title}: ${step.detail}`.slice(0, 1500);
+  if (req.code?.trim()) payload.code = req.code.slice(0, 6000);
+  const res = await callAiProxy('project_help', payload, feature);
+  if (!res.ok) return { success: false, code: res.code, error: res.error, quota: res.quota ?? null };
+  const parsed = projectHelpSchema.safeParse(res.result);
+  if (!parsed.success) return { success: false, code: 'failed', error: aiErrorMessage('failed', feature), quota: res.quota };
+  return { success: true, answer: parsed.data.answer, nextSteps: parsed.data.next_steps, code: parsed.data.code, quota: res.quota };
+}

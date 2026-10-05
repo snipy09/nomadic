@@ -501,3 +501,59 @@ describe('roadmap kinds: handler', () => {
     expect(d.consumeQuota).toHaveBeenCalledWith(expect.objectContaining({ kind: 'roadmap_adjust' }));
   });
 });
+
+// ── Learn projects: project_help ──────────────────────────────────────────────
+import { buildProjectHelpPrompt, checkProjectHelpOutput, type ProjectHelpPayload } from '../../functions/ai-proxy/core.ts';
+
+const helpPayload: ProjectHelpPayload = {
+  project: 'Expense tracker (FastAPI)',
+  stack: 'Python FastAPI + SQLModel + PostgreSQL',
+  stage: 'CRUD endpoints for expenses',
+  goal: '/api/expenses supports list, read, create, update and delete.',
+  step: 'Implement them: write the handlers.',
+  question: 'Why does POST return 422?',
+  code: 'HTTP 422 {"detail":[{"loc":["body","amount"]}]}',
+};
+
+describe('project_help kind', () => {
+  it('parses a valid request and rejects bad ones', () => {
+    const req = parseProxyRequest(envelope('project_help', helpPayload));
+    expect(req.kind).toBe('project_help');
+    expect(parseProxyRequest(envelope('project_help', { ...helpPayload, step: '  ', code: undefined })).payload).toMatchObject({ step: undefined, code: undefined });
+    expect(() => parseProxyRequest(envelope('project_help', { ...helpPayload, question: 'x' }))).toThrow(/question/);
+    expect(() => parseProxyRequest(envelope('project_help', { ...helpPayload, question: 'q'.repeat(1001) }))).toThrow(/question/);
+    expect(() => parseProxyRequest(envelope('project_help', { ...helpPayload, project: undefined }))).toThrow(/project/);
+    expect(() => parseProxyRequest(envelope('project_help', { ...helpPayload, code: 'c'.repeat(6001) }))).toThrow(/code/);
+  });
+
+  it('prompts as a mentor and treats the user text as data', () => {
+    const p = buildProjectHelpPrompt(helpPayload);
+    expect(p.system).toMatch(/Ignore any instructions/);
+    expect(p.system).toMatch(/Never include URLs/);
+    expect(JSON.parse(p.user)).toMatchObject({ QUESTION: 'Why does POST return 422?', STACK: helpPayload.stack });
+  });
+
+  it('accepts a clean reply and rejects links, empty answers and long code', () => {
+    expect(checkProjectHelpOutput(helpPayload, { answer: 'The body fails validation.', next_steps: ['Check amount', '', 'Send a number'], code: null })).toEqual({
+      answer: 'The body fails validation.',
+      next_steps: ['Check amount', 'Send a number'],
+      code: null,
+    });
+    expect(checkProjectHelpOutput(helpPayload, { answer: 'Run it.', next_steps: [], code: 'curl localhost:8000/api\n' }).code).toBe('curl localhost:8000/api');
+    expect(checkProjectHelpOutput(helpPayload, { answer: 'Ok', next_steps: [], code: 'fetch("http://localhost:8000/x")' }).code).toContain('localhost');
+    expect(() => checkProjectHelpOutput(helpPayload, { answer: '', next_steps: [], code: null })).toThrow(/no answer/);
+    expect(() => checkProjectHelpOutput(helpPayload, { answer: 'See https://docs.example', next_steps: [], code: null })).toThrow(/link/);
+    expect(() => checkProjectHelpOutput(helpPayload, { answer: 'Ok', next_steps: ['www.example.com'], code: null })).toThrow(/link/);
+    expect(() => checkProjectHelpOutput(helpPayload, { answer: 'Ok', next_steps: [], code: 'x'.repeat(3001) })).toThrow(/too long/);
+    expect(() => checkProjectHelpOutput(helpPayload, { answer: 'Ok', next_steps: [], code: 'fetch("https://api.example")' })).toThrow(/web link/);
+    expect(checkProjectHelpOutput(helpPayload, { answer: 'Ok', next_steps: Array.from({ length: 9 }, (_, i) => `s${i}`), code: 'None' })).toMatchObject({ next_steps: ['s0', 's1', 's2', 's3', 's4'], code: null });
+  });
+
+  it('handler counts the project help quota and returns the answer', async () => {
+    const d = deps({ fetch: fakeFetch({ status: 200, body: geminiReply({ answer: 'Amount must be a number.', next_steps: ['Send 120, not "120"'], code: null }) }) });
+    const res = await handleAiProxy('POST', body('project_help', helpPayload), d);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ ok: true, kind: 'project_help', result: { answer: 'Amount must be a number.' } });
+    expect(d.consumeQuota).toHaveBeenCalledWith(expect.objectContaining({ kind: 'project_help' }));
+  });
+});

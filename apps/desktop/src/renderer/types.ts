@@ -2,14 +2,14 @@ import type {
   AutoApplyProgressEvent, BatchOverrides, BatchSnapshot, BatchStartOptions, BatchSubmitResult, BatchTarget, CheckoutResult, EntitlementsResult, NomadicApi,
   LearningEventInput, LearningEventRecord, LearningState, LearningSyncResult,
   LearnAcceptResult, LearnAdjustProposal, LearnAdjustResult, LearnDraft, LearnGenerateResult, LearnNoteSaveResult,
-  LearnProjectSaveResult, LearnRepoCheckRequest, LearnRepoCheckResult, SuccessResult,
+  LearnProjectHelpRequest, LearnProjectHelpResult, LearnProjectSaveResult, LearnRepoCheckRequest, LearnRepoCheckResult, SuccessResult,
 } from '../shared/ipc';
 import type { IntakeInput, ProblemNote, Roadmap, Schedule, UserProject } from '@job-automator/learning';
 
 export type {
   LearningEventInput, LearningEventRecord, LearningState, LearningSyncResult,
   LearnAcceptResult, LearnAdjustProposal, LearnAdjustResult, LearnDraft, LearnGenerateResult, LearnNoteSaveResult,
-  LearnProjectSaveResult, LearnRepoCheckRequest, LearnRepoCheckResult,
+  LearnProjectHelpRequest, LearnProjectHelpResult, LearnProjectSaveResult, LearnRepoCheckRequest, LearnRepoCheckResult,
 };
 
 export type WorkspaceMode = 'learner_only' | 'seeker_only' | 'unified';
@@ -284,6 +284,7 @@ export interface ElectronAPI {
   learnProjectSave: (project: UserProject) => Promise<LearnProjectSaveResult>;
   learnProblemNoteSave: (note: ProblemNote) => Promise<LearnNoteSaveResult>;
   learnProjectCheckRepo: (req: LearnRepoCheckRequest) => Promise<LearnRepoCheckResult>;
+  learnProjectHelp: (req: LearnProjectHelpRequest) => Promise<LearnProjectHelpResult>;
 
   /** Data safety (F10). Absent in browser preview. */
   getDataHealth?: () => Promise<{

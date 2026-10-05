@@ -93,6 +93,7 @@ const apiObj: NomadicApi = {
   learnProjectSave: (project) => invoke('learn-project-save', project),
   learnProblemNoteSave: (note) => invoke('learn-problem-note-save', note),
   learnProjectCheckRepo: (req) => invoke('learn-project-check-repo', req),
+  learnProjectHelp: (req) => invoke('learn-project-help', req),
 
   // Applications Management
   updateApplicationStatus: (id, status) => invoke('update-application-status', { id, status }),

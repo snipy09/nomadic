@@ -2,6 +2,7 @@ import { handle } from './handle.js';
 import {
   learnProblemNoteSaveArgs,
   learnProjectCheckRepoArgs,
+  learnProjectHelpArgs,
   learnProjectSaveArgs,
   learnRoadmapAcceptArgs,
   learnRoadmapAdjustArgs,
@@ -13,6 +14,7 @@ import { currentUserId, getLearningState, recordLearningEvents, syncLearning } f
 import {
   acceptRoadmap,
   adjustRoadmap,
+  askProjectHelp,
   checkProjectRepo,
   generateRoadmap,
   saveProblemNote,
@@ -38,4 +40,5 @@ export function registerLearnerIpc(): void {
   handle('learn-project-save', learnProjectSaveArgs, async (project) => thenSync(await saveProject(currentUserId(), project)));
   handle('learn-problem-note-save', learnProblemNoteSaveArgs, (note) => thenSync(saveProblemNote(currentUserId(), note)));
   handle('learn-project-check-repo', learnProjectCheckRepoArgs, (req) => checkProjectRepo(currentUserId(), req));
+  handle('learn-project-help', learnProjectHelpArgs, (req) => askProjectHelp(req));
 }

@@ -43,6 +43,11 @@ export interface PlanLimits {
    * proxy through migration 027 consume_ai_quota.
    */
   aiOutreachDraftsPerDay: number;
+  /**
+   * AI help answers per day inside a guided project ("I'm stuck on this step"). Enforced by
+   * the AI proxy through migration 030 consume_ai_quota; the rest of the guided build is free.
+   */
+  aiProjectHelpPerDay: number;
   resumes: number;
 }
 
@@ -88,6 +93,7 @@ export const PLANS: readonly Plan[] = [
       aiRoadmapAdjustPerDay: 2,
       learnProjectsActive: 1,
       aiOutreachDraftsPerDay: 3,
+      aiProjectHelpPerDay: 5,
       resumes: 1,
     },
   },
@@ -118,6 +124,7 @@ export const PLANS: readonly Plan[] = [
       aiRoadmapAdjustPerDay: 15,
       learnProjectsActive: 3,
       aiOutreachDraftsPerDay: 25,
+      aiProjectHelpPerDay: 40,
       resumes: 5,
     },
   },
@@ -147,6 +154,7 @@ export const PLANS: readonly Plan[] = [
       aiRoadmapAdjustPerDay: 40,
       learnProjectsActive: Infinity,
       aiOutreachDraftsPerDay: 100,
+      aiProjectHelpPerDay: 150,
       resumes: Infinity,
     },
   },
@@ -219,6 +227,19 @@ export function aiLimitsSqlRows(): string[] {
 export function aiOutreachLimitsSqlRows(): string[] {
   return PLANS.map((p, i) => {
     const n = p.limits.aiOutreachDraftsPerDay;
+    if (!Number.isFinite(n)) throw new Error(`AI limits must be finite (plan ${p.id})`);
+    const row = `('${p.id}', ${n})`;
+    return i < PLANS.length - 1 ? `${row},` : row;
+  });
+}
+
+/**
+ * The rows of `public.ai_project_help_limits()` in migration 030, rendered from PLANS.
+ * Column order: (plan, ai_project_help_per_day).
+ */
+export function aiProjectHelpLimitsSqlRows(): string[] {
+  return PLANS.map((p, i) => {
+    const n = p.limits.aiProjectHelpPerDay;
     if (!Number.isFinite(n)) throw new Error(`AI limits must be finite (plan ${p.id})`);
     const row = `('${p.id}', ${n})`;
     return i < PLANS.length - 1 ? `${row},` : row;

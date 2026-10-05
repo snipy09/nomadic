@@ -691,6 +691,21 @@ export interface LearnRepoCheckRequest {
   repoUrl: string;
 }
 
+/** "I'm stuck" on a guided project: the question is answered by Nomadic AI (ai-proxy kind project_help). */
+export interface LearnProjectHelpRequest {
+  projectId: string;
+  stageId: string;
+  /** Index of the step the question is about (omit for the whole stage). */
+  stepIndex?: number;
+  question: string;
+  /** Code or error output the student pasted. */
+  code?: string;
+}
+
+export type LearnProjectHelpResult =
+  | { success: true; answer: string; nextSteps: string[]; code: string | null; quota: AiQuota | null }
+  | { success: false; code: AiErrorCode | 'not_found'; error: string; quota?: AiQuota | null };
+
 export interface LearnRepoCheckResult extends SuccessResult {
   passed?: boolean;
   checks?: RepoCheck[];
@@ -1172,6 +1187,7 @@ export interface IpcChannels {
   'learn-project-save': Channel<[project: UserProject], LearnProjectSaveResult>;
   'learn-problem-note-save': Channel<[note: ProblemNote], LearnNoteSaveResult>;
   'learn-project-check-repo': Channel<[request: LearnRepoCheckRequest], LearnRepoCheckResult>;
+  'learn-project-help': Channel<[request: LearnProjectHelpRequest], LearnProjectHelpResult>;
 
   // practice (F8)
   'practice-get-catalog': Channel<[], PracticeCatalogResult>;
@@ -1246,7 +1262,7 @@ export const IPC_CHANNELS = [
   'ask-nomadic-assistant',
   'learning-get-state', 'learning-record-events', 'learning-sync',
   'learn-roadmap-generate', 'learn-roadmap-adjust', 'learn-roadmap-accept', 'learn-schedule-save',
-  'learn-project-save', 'learn-problem-note-save', 'learn-project-check-repo',
+  'learn-project-save', 'learn-problem-note-save', 'learn-project-check-repo', 'learn-project-help',
   'practice-get-catalog', 'practice-get-state', 'practice-record-attempt', 'ai-rubric-feedback',
   'auth-google', 'auth-login', 'auth-signup',
   'auth-request-password-reset', 'auth-confirm-password-reset', 'auth-send-verification', 'auth-confirm-verification',
@@ -1366,6 +1382,7 @@ export interface NomadicApi {
   learnProjectSave: Invoke<'learn-project-save'>;
   learnProblemNoteSave: Invoke<'learn-problem-note-save'>;
   learnProjectCheckRepo: Invoke<'learn-project-check-repo'>;
+  learnProjectHelp: Invoke<'learn-project-help'>;
 
   updateApplicationStatus: (id: number | string, status: string) => Promise<ChannelResult<'update-application-status'>>;
   updateApplicationNotes: (id: number | string, notes: string) => Promise<ChannelResult<'update-application-notes'>>;

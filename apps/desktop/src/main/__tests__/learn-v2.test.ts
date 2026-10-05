@@ -9,7 +9,7 @@ const h = vi.hoisted(() => ({
 
 vi.mock('../db', () => ({ getDb: () => h.db, persistDb: () => {} }));
 vi.mock('../services/app-context', () => ({ log: () => {}, errorMessage: (e: unknown) => String(e) }));
-vi.mock('../services/ai-proxy', () => ({ callAiProxy: (...a: unknown[]) => h.ai(...a) }));
+vi.mock('../services/ai-proxy', () => ({ callAiProxy: (...a: unknown[]) => h.ai(...a), aiErrorMessage: (code: string) => `error ${code}` }));
 vi.mock('../services/entitlements', () => ({
   getEntitlements: async () => ({ success: true, entitlements: { plan: h.plan, accountStatus: 'active' } }),
 }));
@@ -19,9 +19,11 @@ import { migrateLearnV2Schema, migrateLearningSchema, getDoc, listEvents } from 
 import {
   AI_CATALOG_MAX_CHARS,
   acceptRoadmap,
+  askProjectHelp,
   buildAiCatalog,
   generateRoadmap,
   learnCatalog,
+  projectFor,
   proposeChange,
   readDraft,
   readProjects,
@@ -201,5 +203,41 @@ describe('accept, saves and limits', () => {
     expect(days.every((x) => x.capacity === 0 && x.tasks.length === 0)).toBe(true);
     expect(getDoc(h.db, U, 'roadmap')!.value).toMatchObject({ intake: { blackouts: [] } });
     expect(expandRoadmap(res.proposal!.roadmap, learnCatalog()).length).toBeGreaterThan(0);
+  });
+});
+
+describe('generated projects and project help', () => {
+  const id = 'g.expense-tracker.react.b';
+
+  it('resolves generated projects for saves, and still refuses unknown ids', async () => {
+    expect(projectFor(id)?.title).toBe('Expense tracker (React)');
+    expect(projectFor('g.nope.react.b')).toBeNull();
+    const now = new Date().toISOString();
+    const res = await saveProject(U, { project_id: id, status: 'active', started_at: now, updated_at: now });
+    expect(res.success).toBe(true);
+    expect(readProjects(h.db, U).map((p) => p.project_id)).toEqual([id]);
+  });
+
+  it('asks the AI proxy with the stage and step as context and returns the answer', async () => {
+    h.ai = vi.fn(async () => ({ ok: true, result: { answer: 'Use useState.', next_steps: ['Add state'], code: null }, quota: { plan: 'free', limit: 5, used: 1, remaining: 4, resetsAt: 'x' } }));
+    const res = await askProjectHelp({ projectId: id, stageId: 'model', stepIndex: 2, question: 'How do I render the list?' });
+    expect(res).toMatchObject({ success: true, answer: 'Use useState.', nextSteps: ['Add state'], code: null });
+    const [kind, payload] = h.ai.mock.calls[0] as [string, Record<string, string>];
+    expect(kind).toBe('project_help');
+    expect(payload).toMatchObject({ project: 'Expense tracker (React)', stage: 'Model the expense and show a list', question: 'How do I render the list?' });
+    expect(payload.step).toMatch(/^Render the list: /);
+    expect(payload).not.toHaveProperty('code');
+  });
+
+  it('passes quota refusals through with the reset time', async () => {
+    h.ai = vi.fn(async () => ({ ok: false, code: 'quota_exceeded', error: 'limit', quota: { resetsAt: '2026-10-05T18:30:00Z' } }));
+    const res = await askProjectHelp({ projectId: id, stageId: 'model', question: 'Help please' });
+    expect(res).toMatchObject({ success: false, code: 'quota_exceeded', quota: { resetsAt: '2026-10-05T18:30:00Z' } });
+  });
+
+  it('refuses unknown stages and malformed AI replies', async () => {
+    expect(await askProjectHelp({ projectId: id, stageId: 'nope', question: 'Help please' })).toMatchObject({ success: false, code: 'not_found' });
+    h.ai = vi.fn(async () => ({ ok: true, result: { nothing: true }, quota: null }));
+    expect(await askProjectHelp({ projectId: id, stageId: 'model', question: 'Help please' })).toMatchObject({ success: false, code: 'failed' });
   });
 });

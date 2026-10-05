@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowLeft, CheckCircle2, Circle, Copy, ExternalLink, GitBranch, Lightbulb } from 'lucide-react';
-import { Badge, Button, Card, Checkbox, Field, IconButton, Input, Textarea, cn, useToast } from '@nomadic/ui';
+import { Badge, Button, Card, Checkbox, Field, Input, Textarea, cn, useToast } from '@nomadic/ui';
 import {
   RESUME_INPUTS,
   completeStage,
@@ -21,6 +21,8 @@ import {
 import { getApi, type LearningEventInput, type LearnRepoCheckRequest, type LearnRepoCheckResult } from '../../types';
 import { moduleById, topicById } from '../learn/catalog';
 import { formatMinutes } from '../learn/learnModel';
+import { CodeBlock } from './CodeBlock';
+import { ProjectHelpPanel } from './ProjectHelpPanel';
 import { projectHours, stageDoneEvent } from './projectsLogic';
 
 interface ProjectBuildProps {
@@ -223,6 +225,8 @@ export function ProjectBuild(props: ProjectBuildProps) {
             </div>
           </Card>
 
+          <ProjectHelpPanel projectId={project.id} stage={stage} />
+
           <Card padding="md" className="flex flex-col gap-2">
             <h4 className="text-body font-strong text-fg">Acceptance checklist</h4>
             {stage.acceptance.map((a) => (
@@ -277,27 +281,6 @@ export function ProjectBuild(props: ProjectBuildProps) {
         </div>
       </div>
     </article>
-  );
-}
-
-/** Starter code or commands for a step, with a copy button. */
-export function CodeBlock({ code, label }: { code: string; label: string }) {
-  const { toast } = useToast();
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(code);
-      toast({ title: 'Copied', tone: 'success' });
-    } catch {
-      toast({ title: 'Could not copy', tone: 'danger' });
-    }
-  };
-  return (
-    <div className="group relative mt-2 overflow-hidden rounded-lg border border-line bg-surface-sunken">
-      <pre className="max-h-96 overflow-auto p-3 pr-12 font-mono text-caption leading-5 text-fg" aria-label={label} tabIndex={0}>
-        <code>{code}</code>
-      </pre>
-      <IconButton size="sm" variant="ghost" className="absolute right-1.5 top-1.5" label="Copy code" icon={<Copy />} onClick={() => void copy()} />
-    </div>
   );
 }
 

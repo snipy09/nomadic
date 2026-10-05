@@ -363,6 +363,7 @@ export function createBrowserApiShim(): ElectronAPI {
       return { success: true, notes: [...learningMemory.notes] };
     },
     learnProjectCheckRepo: async () => ({ success: false, error: 'The repository check needs the Nomadic desktop app.' }),
+    learnProjectHelp: async () => ({ success: false, code: 'not_signed_in', error: 'Sign in to the Nomadic desktop app to ask for help.' }),
     learningRecordEvents: async (events) => {
       const known = new Set(learningMemory.events.map((e) => e.id));
       const added = events.filter((e) => !known.has(e.id)).map((e) => ({ ...e, user_id: 'local' }));

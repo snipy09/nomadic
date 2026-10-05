@@ -316,6 +316,15 @@ export const learnRoadmapAcceptArgs: ArgSchemas<'learn-roadmap-accept'> = [
 export const learnScheduleSaveArgs: ArgSchemas<'learn-schedule-save'> = [sized(ScheduleSchema, 400_000, 'schedule')];
 export const learnProjectSaveArgs: ArgSchemas<'learn-project-save'> = [sized(UserProjectSchema, 50_000, 'project')];
 export const learnProblemNoteSaveArgs: ArgSchemas<'learn-problem-note-save'> = [ProblemNoteSchema];
+export const learnProjectHelpArgs: ArgSchemas<'learn-project-help'> = [
+  z.object({
+    projectId: str(120).min(1),
+    stageId: str(120).min(1),
+    stepIndex: z.number().int().min(0).max(20).optional(),
+    question: z.string().trim().min(3).max(1000),
+    code: z.string().max(6000).optional(),
+  }),
+];
 export const learnProjectCheckRepoArgs: ArgSchemas<'learn-project-check-repo'> = [
   z.object({
     projectId: str(120).min(1),
