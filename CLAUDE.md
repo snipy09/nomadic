@@ -187,7 +187,7 @@ Owner actions:
    which no `.env` on this laptop had on 4 Oct 2026) or `scripts\scrape-laptop.cmd` (`docs/SCRAPER_LAPTOP.md`) and/or set the GitHub Actions secrets
    (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`). The pipeline keeps only jobs open to candidates in India by default
    (`--region all` to keep everything).
-2. Create the admin account (SQL in `docs/DATABASE_SETUP.md`).
+2. ~~Create the admin account~~: done 5 Oct 2026 (owner account has role `admin`, audit-logged).
 3. Run the app (`npm run dev:desktop`) and test: sign-up, onboarding → roadmap, lesson, feed, apply with review,
    tracker, password reset, AI feedback.
 4. Google OAuth: done (Vault, repo secrets, local `.env`). If the consent screen is in "Testing", add testers or
