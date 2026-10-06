@@ -81,6 +81,7 @@ final class FixtureServer implements AutoCloseable {
             try (InputStream asset = assets.open(root + path)) {
                 body = readAll(asset);
             } catch (IOException e) {
+                android.util.Log.w("NomadicAgentTest", "404 " + path);
                 send(conn.getOutputStream(), 404, "text/plain", "Not found".getBytes(StandardCharsets.UTF_8), false);
                 return;
             }

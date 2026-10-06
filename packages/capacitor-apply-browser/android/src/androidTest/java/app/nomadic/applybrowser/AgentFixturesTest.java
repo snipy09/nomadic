@@ -35,6 +35,13 @@ public class AgentFixturesTest {
     public void fillsEveryFixtureLikeTheDesktopBench() throws Exception {
         assertTrue("WebView lacks DOCUMENT_START_SCRIPT / WEB_MESSAGE_LISTENER", ApplyBrowserController.isSupported());
         Context ctx = InstrumentationRegistry.getInstrumentation().getContext();
+        for (String asset : new String[] { "www/_harness/index.html", "www/_harness/harness.js", "www/_harness/test-agent.js", "www/_shared/runtime.js", "www/_profiles/sample.json", "www/lever-basic/index.html" }) {
+            try {
+                ctx.getAssets().open(asset).close();
+            } catch (java.io.IOException e) {
+                throw new AssertionError("test asset missing from the APK: " + asset + " (run npm run build:android-test; check ignoreAssetsPattern)");
+            }
+        }
         try (
             FixtureServer a = new FixtureServer(ctx.getAssets(), "www", CSP);
             FixtureServer b = new FixtureServer(ctx.getAssets(), "www", CSP);
