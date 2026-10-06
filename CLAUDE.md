@@ -92,7 +92,14 @@ packages/learning    @job-automator/learning: types (zod), graph, sm2, readiness
                      learn_items), 337 problems, 12 projects; all AI-drafted, status draft. Content sources in
                      scripts/seed-source/v2 (dev syllabus per skill in v2/dev/*.ts); scripts build-problems,
                      check-paid-only, check-links --write-seed, check-content (validate without writing)
-packages/form-engine FormReader, classifier, answerer (one batched LLM call via a FormAnswerClient), writers, verifier
+packages/form-engine FormReader, classifier, answerer (one batched LLM call via a FormAnswerClient), writers, verifier;
+                     core.ts = the shared fill/verify/submit-gate/review-edit logic over a FormDriver (desktop FormEngine is
+                     its Playwright driver); agent/ = in-page agent for Android (bundle.generated.ts, rebuild with
+                     `npm run build:agent -w @job-automator/form-engine`, a test fails when stale); remote/ = Android host side
+                     (AgentChannel, RemoteDriver, fillApplication, submitReviewed; browser-safe entry remote/index.ts);
+                     adapters.ts = ATS "open the form" steps as data (desktop and Android)
+packages/capacitor-apply-browser  Capacitor 8 plugin ApplyBrowser (Java ApplyBrowserController: WebView, agent at document
+                     start in every frame, WebMessageListener bridge) + TS wrapper openApplyBrowser; docs/ANDROID_APPLY.md
 packages/automation  AutoApplyEngine: fill with autoSubmit off, onReadyForReview, submitReviewed; ATS adapters
 packages/scrapers    Pipeline: fetch, normalise (zod Job schema), dedupe, validate links, classify, publish
 packages/supabase    client wrappers (index.ts), migrations/, functions/, baseline/ (one-paste setup files), scripts/
@@ -176,7 +183,7 @@ F13: Outreach was rebuilt in v1.1.0 (see section 9) and shows in the sidebar as 
 the working module needs `VITE_FEATURES="outreach=on"`. Opportunity Board, Resource Vault and the Assistant stay
 hidden; the Assistant still needs rework or removal.
 
-Tests: 1,742 vitest tests pass (131 files, 5 Oct 2026, v1.2.0 branch; run with `--maxWorkers=2 --testTimeout=30000` on this laptop, the default
+Tests: 1,771 vitest tests pass (135 files, 6 Oct 2026, Android apply branch; 1,742 on 5 Oct; run with `--maxWorkers=2 --testTimeout=30000` on this laptop, the default
 parallelism times out component tests, and the three Chrome DOM suites can time out closing Chrome in `afterAll`);
 typecheck, lint (0 errors, ~190 warnings) and desktop/web builds pass.
 The built Electron app has been smoke-tested over CDP (window, live feed via IPC, Learn, Settings, Help, Activity, Admin
@@ -364,6 +371,13 @@ checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification
   (accent glyphs, grey selection, no indicator bar), Apple segmented control and capsule filter tabs, floating inset
   drawers, coloured icon tiles in Settings, soft focus halo, theme follows the system by default. The website keeps
   its own Archivo/4px brand styles (it does not use the preset).
+- **Android apply with review** (6 Oct 2026, branch `claude/android-auto-apply`): the Android app will be Capacitor
+  (reuses the React renderer); its apply path is built and tested ahead of the app shell (`apps/mobile` does not exist
+  yet). Design, API and limits: `docs/ANDROID_APPLY.md`. Checks: `npm run bench:forms -- --engine=agent` (196/196, Pixel 7,
+  CSP without unsafe-eval, no Playwright input), `agent.test.ts`, and `.github/workflows/android-apply.yml` (emulator API
+  34/35 fills all 22 fixtures through ApplyBrowserController). Android code cannot be compiled in assistant containers
+  (dl.google.com is blocked): rely on that workflow. Open product decisions for Android: one-device rule
+  (`register_device_session` deactivates other devices), Play Billing vs user choice billing for Pro/Max.
 - Next most useful work: owner action 0 (Learn v2 go-live), then owner actions in section 7 (consent screen, Resend domain, key rotation),
   then a live end-to-end pass (Google sign-in, reviewed submit, AI feedback), then the code follow-ups in section 7.
 
