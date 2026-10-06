@@ -32,7 +32,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install (dev dependencies too: NODE_ENV=production would otherwise skip the build tools)
+      - name: 'Install, with dev dependencies (NODE_ENV=production would skip the build tools)'
         run: npm ci --include=dev --no-audit --no-fund
 
       - name: Build (unsigned)
