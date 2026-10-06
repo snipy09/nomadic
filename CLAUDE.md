@@ -375,7 +375,7 @@ checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification
   (reuses the React renderer); its apply path is built and tested ahead of the app shell (`apps/mobile` does not exist
   yet). Design, API and limits: `docs/ANDROID_APPLY.md`. Checks: `npm run bench:forms -- --engine=agent` (196/196, Pixel 7,
   CSP without unsafe-eval, no Playwright input), `agent.test.ts`, and `.github/workflows/android-apply.yml` (emulator API
-  34/35 fills all 22 fixtures through ApplyBrowserController). Android code cannot be compiled in assistant containers
+  34/35 fills all 22 fixtures through ApplyBrowserController: 196/196 on Android 14 and 15, 6 Oct 2026). Android code cannot be compiled in assistant containers
   (dl.google.com is blocked): rely on that workflow. Open product decisions for Android: one-device rule
   (`register_device_session` deactivates other devices), Play Billing vs user choice billing for Pro/Max.
 - Next most useful work: owner action 0 (Learn v2 go-live), then owner actions in section 7 (consent screen, Resend domain, key rotation),

@@ -94,8 +94,16 @@ await session.close();
 | Android path in Chromium (Pixel 7, CSP, no Playwright input) | `npm run bench:forms -- --engine=agent` → `packages/form-bench/results/agent-engine.md` | 196/196, 0 wrong, 0 submits, walls 1/1 |
 | Agent tests | `packages/form-engine/src/__tests__/agent.test.ts` | channel routing, bundle freshness, browser-safe imports, CSP, cross-origin iframe, review gate, Workday steps, login wall |
 | Plugin wrapper | `packages/capacitor-apply-browser/src/__tests__/plugin.test.ts` | listener before load, routing, refusals |
-| Real Android WebView | `.github/workflows/android-apply.yml` (emulator API 34 and 35): `AgentFixturesTest` fills all 22 fixtures through `ApplyBrowserController`, two origins, CSP | see the workflow run |
+| Real Android WebView | `.github/workflows/android-apply.yml` (emulator API 34 and 35): `AgentFixturesTest` fills all 22 fixtures through `ApplyBrowserController`, two origins, CSP | Android 14 (WebView 113) and Android 15: 196/196, 0 wrong, 0 submits without review, walls 1/1, reviewed submit reaches the page (run 37524860832) |
 | Harness without an emulator | `npm run build:android-test -w @nomadic/capacitor-apply-browser` then `npx tsx packages/capacitor-apply-browser/android-test-harness/simulate.ts` | PASS |
+
+## Gotchas met while building it
+
+- AAPT drops asset directories whose names start with `_` by default. The test web root has `_harness`,
+  `_profiles` and the fixtures' `_shared`, so `android/build.gradle` overrides `ignoreAssetsPattern`.
+- GitHub's ubuntu runner has too little free disk for the emulator's default 7.4 GB data partition: the
+  workflow removes unused toolchains and sets `disk-size: 4096M`.
+- Assistant containers cannot reach `dl.google.com`, so Android code is only compiled and run in that workflow.
 
 ## Limits
 
