@@ -356,7 +356,8 @@ checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification
   (`LearnView initialTab`, `ProfileView initialSection`). Keyboard: G then H/L/P/R/J/A/W/S jumps to a page, `[` toggles
   the sidebar (`components/shell/shortcuts.ts`, ignored while typing or with a dialog open); the command palette groups
   results, shows shortcuts and has theme/sidebar/upgrade/sign-out actions. Global focus outline uses the `--nm-focus` token.
-- **v1.4.0 Apple design language** (6 Oct 2026, on `main`, not packaged yet): new palette in `packages/ui/src/tokens.ts`
+- **v1.4.0 Apple design language** (6 Oct 2026, on `main`; built unsigned by Actions run 37414936151, artifact
+  `Nomadic-1.4.0-windows-unsigned` with `Nomadic.Setup.1.4.0.exe` and portable `Nomadic.1.4.0.exe`, kept until 20 Oct 2026): new palette in `packages/ui/src/tokens.ts`
   + `styles.css` (kept in sync by `tokens.test.ts`, contrast AA checked), Apple type ramp (15/22/26/34 px, `font-bold`
   for large titles), preset `borderRadius` 6/8/12/16/20, Inter variable with optical sizes (`@fontsource-variable/inter`,
   imported in `renderer/index.css`, served from the app so CSP `font-src 'self'` covers it), macOS source-list sidebar
