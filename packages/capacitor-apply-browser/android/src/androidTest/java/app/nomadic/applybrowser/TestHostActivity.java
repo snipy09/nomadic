@@ -81,6 +81,22 @@ public class TestHostActivity extends AppCompatActivity implements ApplyBrowserC
         );
         host.addJavascriptInterface(new HarnessBridge(), "AndroidHarness");
         host.loadUrl(url);
+        heartbeat();
+    }
+
+    /** Every 5 s: is the harness script alive, and where is it? */
+    private void heartbeat() {
+        main.postDelayed(
+            () -> {
+                if (isFinishing() || isDestroyed()) return;
+                host.evaluateJavascript(
+                    "(function(){return [typeof AndroidHarness, document.readyState, String(window.__harnessState||'none'), String(document.scripts.length)].join(' ');})()",
+                    v -> Log.i(TAG, "heartbeat " + v)
+                );
+                heartbeat();
+            },
+            5000
+        );
     }
 
     @Override

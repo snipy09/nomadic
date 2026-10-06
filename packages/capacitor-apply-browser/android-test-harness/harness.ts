@@ -169,13 +169,18 @@ function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   return Promise.race([p, new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`${label} timed out after ${ms} ms`)), ms))]);
 }
 
+const stage = (s: string) => { (window as unknown as { __harnessState: string }).__harnessState = s; };
+stage('script loaded');
+
 async function main() {
+  stage('main');
   AndroidHarness.log(`harness started: ${navigator.userAgent}`);
   const agentScript = await (await fetch('/_harness/test-agent.js')).text();
   AndroidHarness.log(`test agent loaded (${agentScript.length} chars)`);
   const results: FixtureResult[] = [];
   for (const id of FIXTURES) {
     const t0 = Date.now();
+    stage(`fixture ${id}`);
     const r = await withTimeout(runFixture(id, agentScript), 120_000, id).catch((err): FixtureResult => ({
       id, status: 'error', fields: 0, correct: 0, wrong: 0, skipped: 0, submitClicked: false, wallsExpected: [], wallsReported: [], timeMs: Date.now() - t0, error: (err as Error).message, details: [],
     }));

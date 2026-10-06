@@ -97,7 +97,7 @@ jobs:
           working-directory: packages/capacitor-apply-browser/android
           script: |
             adb logcat -c
-            gradle connectedDebugAndroidTest --stacktrace; status=$?; adb logcat -d -v threadtime > logcat-full.txt; grep -E "NomadicAgentTest|TestRunner|AndroidRuntime|DEBUG|libc|cr_|chromium|ActivityManager.*(app.nomadic|died|Killing)|lowmemorykiller" logcat-full.txt | grep -v "com.google.android.gm" > agent-logcat.txt; echo '----- agent logcat (last 300 lines) -----'; tail -n 300 agent-logcat.txt | cut -c1-300; exit $status
+            gradle connectedDebugAndroidTest --stacktrace; status=$?; adb logcat -d -v threadtime > logcat-full.txt; grep -E "NomadicAgentTest|TestRunner|AndroidRuntime|DEBUG|libc|cr_|chromium|ActivityManager.*(app.nomadic|died|Killing)|lowmemorykiller" logcat-full.txt | grep -v "com.google.android.gm" > agent-logcat.txt; echo '----- agent logcat (last 150 lines) -----'; tail -n 150 agent-logcat.txt | cut -c1-300; PID=$(grep -m1 'TestRunner: run started' logcat-full.txt | awk '{print $3}'); echo "----- test process $PID (last 250 lines) -----"; grep -E "^\S+ \S+ +$PID " logcat-full.txt | grep -vE "StrictMode|nativeloader" | tail -n 250 | cut -c1-300; exit $status
 
       - name: Summary
         if: always()
