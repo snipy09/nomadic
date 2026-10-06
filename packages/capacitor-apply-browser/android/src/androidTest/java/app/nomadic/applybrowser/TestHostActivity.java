@@ -44,7 +44,32 @@ public class TestHostActivity extends AppCompatActivity implements ApplyBrowserC
     void startHarness(String url, Consumer<String> done) {
         onDone = done;
         host.getSettings().setJavaScriptEnabled(true);
-        host.setWebViewClient(new WebViewClient());
+        host.setWebViewClient(
+            new WebViewClient() {
+                @Override
+                public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                    Log.i(TAG, "host page started " + url);
+                }
+
+                @Override
+                public void onPageFinished(WebView view, String url) {
+                    Log.i(TAG, "host page finished " + url);
+                }
+
+                @Override
+                public void onReceivedError(WebView view, android.webkit.WebResourceRequest req, android.webkit.WebResourceError err) {
+                    Log.e(TAG, "host load error " + req.getUrl() + ": " + err.getErrorCode() + " " + err.getDescription());
+                }
+
+                @Override
+                public boolean onRenderProcessGone(WebView view, android.webkit.RenderProcessGoneDetail detail) {
+                    Log.e(TAG, "host renderer gone, crashed=" + detail.didCrash() + " priority=" + detail.rendererPriorityAtExit());
+                    Consumer<String> d = onDone;
+                    if (d != null) d.accept("{\"fatal\":\"host WebView renderer gone (crashed=" + detail.didCrash() + ")\"}");
+                    return true;
+                }
+            }
+        );
         host.setWebChromeClient(
             new android.webkit.WebChromeClient() {
                 @Override
@@ -90,6 +115,7 @@ public class TestHostActivity extends AppCompatActivity implements ApplyBrowserC
     @Override
     public void onClosed(String reason) {
         Log.w(TAG, "apply WebView closed: " + reason);
+        if ("crashed".equals(reason)) Log.e(TAG, "apply WebView renderer crashed");
     }
 
     // ── host JS -> controller (what the Capacitor plugin methods do) ──
@@ -98,6 +124,7 @@ public class TestHostActivity extends AppCompatActivity implements ApplyBrowserC
 
         @JavascriptInterface
         public void open(String url, String agentScript) {
+            Log.i(TAG, "open " + url + " (agent " + agentScript.length() + " chars)");
             main.post(() -> {
                 try {
                     controller.open(url, agentScript, "Test");
