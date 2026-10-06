@@ -26,7 +26,7 @@ export function JobDrawer({ job, saved, onClose, onToggleSave, onApply, onCopied
       {job && (
         <DrawerContent
           title={job.title}
-          description={[job.company, job.location, postedLabel(job.createdAt)].filter(Boolean).join(' · ')}
+          description={[job.company, job.location, postedLabel(job.createdAt), job.source ? `via ${job.source}` : ''].filter(Boolean).join(' · ')}
           size="lg"
           footer={
             <>

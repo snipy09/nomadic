@@ -103,57 +103,50 @@ export function PathScreen({ path, today, streak, forecast, roleName, percent, o
       </div>
 
       <aside className="order-first flex flex-col gap-3 xl:order-none xl:sticky xl:top-0 xl:self-start" aria-label="Your progress">
-        <div className="grid grid-cols-3 gap-3 xl:grid-cols-1">
-          <div className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3">
-            <span className={cn('flex size-10 shrink-0 items-center justify-center rounded-full [&_svg]:size-5', streak.current > 0 ? 'bg-warning-subtle text-warning' : 'bg-surface-sunken text-fg-subtle')} aria-hidden="true">
-              <Flame />
-            </span>
-            <div className="min-w-0">
-              <div className="text-title font-strong text-fg">{streak.current}</div>
-              <div className="truncate text-caption text-fg-subtle">day streak · best {streak.longest}</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3">
-            <ProgressRing value={percent} size={40} thickness={5} label="Roadmap progress" />
-            <div className="min-w-0">
-              <div className="text-title font-strong text-fg">{percent}%</div>
-              <div className="truncate text-caption text-fg-subtle">{path.done_days} of {path.study_days} days done</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3">
-            <span
-              className={cn(
-                'flex size-10 shrink-0 items-center justify-center rounded-full [&_svg]:size-5',
-                forecast.status === 'behind' ? 'bg-warning-subtle text-warning' : 'bg-success-subtle text-success-fg'
-              )}
-              aria-hidden="true"
-            >
-              {forecast.status === 'behind' ? <AlertTriangle /> : <CalendarCheck />}
-            </span>
-            <div className="min-w-0">
-              <div className="text-body-lg font-strong text-fg">{forecast.status === 'behind' ? 'Behind plan' : forecast.status === 'ahead' ? 'Ahead of plan' : 'On track'}</div>
-              <div className="truncate text-caption text-fg-subtle">
-                {forecast.projected_finish ? `Finish around ${formatDay(forecast.projected_finish, false)}` : 'All done'}
-              </div>
-            </div>
-          </div>
-        </div>
-
         {todayDay && (
-          <div className="hidden flex-col gap-2 rounded-xl border border-line bg-surface p-4 xl:flex">
-            <div className="text-caption font-strong uppercase tracking-wide text-fg-subtle">Today</div>
+          <div className="hidden flex-col gap-2 rounded-lg border border-line bg-surface p-4 xl:flex">
+            <div className="text-caption text-fg-subtle">Today · {todayDay.done} of {todayDay.total} tasks · {formatMinutes(todayDay.minutes)}</div>
             <div className="text-body-lg font-strong text-fg">{todayDay.title}</div>
-            <div className="h-2 overflow-hidden rounded-full bg-surface-sunken" aria-hidden="true">
+            <div className="h-1.5 overflow-hidden rounded-full bg-surface-sunken" aria-hidden="true">
               <div className="h-full rounded-full bg-success transition-[width] duration-slow" style={{ width: `${Math.round((todayDay.done / todayDay.total) * 100)}%` }} />
             </div>
-            <div className="text-caption text-fg-subtle">{todayDay.done} of {todayDay.total} tasks · {formatMinutes(todayDay.minutes)}</div>
-            <Button size="sm" onClick={() => onOpenDay(todayDay.date)}>{todayDay.state === 'done' ? 'Review today' : todayDay.done ? 'Continue' : 'Start today'}</Button>
+            <Button size="sm" variant="primary" className="mt-1" onClick={() => onOpenDay(todayDay.date)}>{todayDay.state === 'done' ? 'Review today' : todayDay.done ? 'Continue' : 'Start today'}</Button>
           </div>
         )}
 
+        <dl className="grid grid-cols-3 divide-x divide-line rounded-lg border border-line bg-surface xl:grid-cols-1 xl:divide-x-0 xl:divide-y">
+          <div className="flex items-center gap-3 px-4 py-3">
+            <ProgressRing value={percent} size={32} thickness={4} label="Roadmap progress" />
+            <div className="flex min-w-0 flex-col-reverse">
+              <dt className="truncate text-caption text-fg-subtle">{path.done_days} of {path.study_days} study days</dt>
+              <dd className="text-body-lg font-strong text-fg">{percent}% done</dd>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 px-4 py-3">
+            <span className={cn('flex size-8 shrink-0 items-center justify-center [&_svg]:size-5', streak.current > 0 ? 'text-warning' : 'text-fg-subtle')} aria-hidden="true">
+              <Flame />
+            </span>
+            <div className="flex min-w-0 flex-col-reverse">
+              <dt className="truncate text-caption text-fg-subtle">Best {streak.longest}</dt>
+              <dd className="text-body-lg font-strong text-fg">{streak.current} day streak</dd>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 px-4 py-3">
+            <span className={cn('flex size-8 shrink-0 items-center justify-center [&_svg]:size-5', forecast.status === 'behind' ? 'text-warning' : 'text-success')} aria-hidden="true">
+              {forecast.status === 'behind' ? <AlertTriangle /> : <CalendarCheck />}
+            </span>
+            <div className="flex min-w-0 flex-col-reverse">
+              <dt className="truncate text-caption text-fg-subtle">
+                {forecast.projected_finish ? `Finish around ${formatDay(forecast.projected_finish, false)}` : 'All done'}
+              </dt>
+              <dd className="text-body-lg font-strong text-fg">{forecast.status === 'behind' ? 'Behind plan' : forecast.status === 'ahead' ? 'Ahead of plan' : 'On track'}</dd>
+            </div>
+          </div>
+        </dl>
+
         {currentWeek && currentWeek.modules.length > 0 && (
-          <div className="hidden flex-col gap-2 rounded-xl border border-line bg-surface p-4 xl:flex">
-            <div className="text-caption font-strong uppercase tracking-wide text-fg-subtle">Week {currentWeek.number} covers</div>
+          <div className="hidden flex-col gap-2 rounded-lg border border-line bg-surface p-4 xl:flex">
+            <div className="text-caption text-fg-subtle">Week {currentWeek.number} covers</div>
             <ul className="flex flex-col gap-1.5">
               {currentWeek.modules.slice(0, 5).map((m) => (
                 <li key={m.id} className="flex items-center gap-2 text-body text-fg">
@@ -166,7 +159,7 @@ export function PathScreen({ path, today, streak, forecast, roleName, percent, o
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2 xl:flex-col">{planActions}</div>
+        <div className="flex flex-wrap gap-2 xl:flex-col xl:items-start">{planActions}</div>
       </aside>
     </div>
   );

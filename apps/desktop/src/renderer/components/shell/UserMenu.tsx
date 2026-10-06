@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, LogOut, Moon, Settings as SettingsIcon, Sun, Monitor } from 'lucide-react';
+import { ChevronDown, History, LogOut, Moon, Settings as SettingsIcon, Sun, Monitor } from 'lucide-react';
 import { Badge, cn, focusRing, type ThemePreference } from '@nomadic/ui';
 import { AppUser, TabType } from '../../types';
 import { getTierBadgeProps, normalizeTier } from '../../utils/tier-utils';
@@ -85,6 +85,9 @@ export const UserMenu: React.FC<UserMenuProps> = ({ user, onNavigate, onLogout, 
           </div>
           <button role="menuitem" type="button" className={cn(itemClass, 'mt-1')} onClick={() => { close(false); onNavigate('settings'); }}>
             <SettingsIcon /> Profile &amp; settings
+          </button>
+          <button role="menuitem" type="button" className={itemClass} onClick={() => { close(false); onNavigate('logs'); }}>
+            <History /> Activity log
           </button>
           <div role="group" aria-label="Theme" className="flex gap-1 px-1 py-1.5">
             {THEMES.map((t) => (

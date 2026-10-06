@@ -1,6 +1,6 @@
 import React, { useDeferredValue, useMemo, useState } from 'react';
 import { BarChart3, BrainCircuit, Cloud, FolderKanban, Layers, Monitor, Search, Server, Smartphone, Sparkles, Terminal } from 'lucide-react';
-import { Badge, Button, EmptyState, Input, Select, cn } from '@nomadic/ui';
+import { Badge, Button, EmptyState, FilterBar, Input, PageHeader, Select, cn } from '@nomadic/ui';
 import { projectProgress, type RoleFamilyId, type StackKind, type UserProject } from '@job-automator/learning';
 import { allProjects, resolveProject } from '../learn/catalog';
 import { ROLES } from '../learn/content';
@@ -55,17 +55,10 @@ export function ProjectLibrary({ mine, role, beginnerOnly, onOpen }: ProjectLibr
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="relative overflow-hidden rounded-2xl bg-accent px-6 py-6 text-accent-fg shadow-e2">
-        <div className="relative z-[1] flex flex-col gap-2">
-          <div className="text-caption font-strong uppercase tracking-wider opacity-80">Project Library</div>
-          <h1 className="text-headline font-strong">Build something real, step by step</h1>
-          <p className="max-w-2xl text-body-lg opacity-90">
-            {all.length.toLocaleString('en-IN')} guided projects: web, mobile, command line, DevOps, data and machine learning. Every one comes with stages, exact steps, starter
-            code, hints, checks and a finish kit for your resume.
-          </p>
-        </div>
-        <FolderKanban className="pointer-events-none absolute -bottom-6 -right-4 size-40 opacity-10" aria-hidden="true" />
-      </header>
+      <PageHeader
+        title="Projects"
+        description={`${all.length.toLocaleString('en-IN')} guided projects, each with stages, starter code, hints, checks and a finish kit for your resume.`}
+      />
 
       {started.length > 0 && (
         <section aria-labelledby="my-projects" className="flex flex-col gap-3">
@@ -80,7 +73,7 @@ export function ProjectLibrary({ mine, role, beginnerOnly, onOpen }: ProjectLibr
                   <button
                     type="button"
                     onClick={() => onOpen(p.id)}
-                    className="flex h-full w-full flex-col gap-2 rounded-xl border border-line bg-surface p-4 text-left shadow-e1 transition-[transform,box-shadow] duration-fast hover:-translate-y-0.5 hover:shadow-e2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                    className="flex h-full w-full flex-col gap-2 rounded-lg border border-line bg-surface p-4 text-left transition-[box-shadow,border-color] duration-fast hover:border-line-strong hover:shadow-e2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                     aria-label={`Continue ${p.title}`}
                   >
                     <span className="text-body-lg font-strong text-fg">{p.title}</span>
@@ -100,38 +93,16 @@ export function ProjectLibrary({ mine, role, beginnerOnly, onOpen }: ProjectLibr
 
       <section aria-labelledby="library" className="flex flex-col gap-4">
         <h2 id="library" className="sr-only">All projects</h2>
-        <div className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-3">
-          <Input
-            leftIcon={<Search />}
-            placeholder="Search by idea, stack or skill: expense tracker, React, FastAPI, pandas…"
-            value={filters.query}
-            onChange={(e) => set('query', e.target.value)}
-            aria-label="Search projects"
-          />
-          <div role="group" aria-label="Project type" className="flex flex-wrap gap-1.5">
-            {(['all', ...kinds] as const).map((k) => {
-              const on = filters.kind === k;
-              const n = k === 'all' ? [...counts.values()].reduce((a, b) => a + b, 0) : counts.get(k) ?? 0;
-              return (
-                <button
-                  key={k}
-                  type="button"
-                  aria-pressed={on}
-                  onClick={() => set('kind', k)}
-                  className={cn(
-                    'inline-flex h-8 items-center gap-1.5 rounded-lg border px-3 text-label font-strong transition-colors duration-fast [&_svg]:size-3.5',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
-                    on ? 'border-accent bg-accent text-accent-fg' : 'border-line bg-surface text-fg-muted hover:border-line-strong hover:text-fg'
-                  )}
-                >
-                  {k !== 'all' && KIND_ICON[k]}
-                  {k === 'all' ? 'All' : KIND_LABEL[k]}
-                  <span className={cn('rounded px-1 text-caption', on ? 'bg-white/20' : 'bg-surface-sunken')}>{n.toLocaleString('en-IN')}</span>
-                </button>
-              );
-            })}
-          </div>
-          <div className="grid gap-2 sm:grid-cols-3">
+        <div className="flex flex-col gap-3">
+          <FilterBar aria-label="Filter projects">
+            <Input
+              wrapperClassName="min-w-[240px] flex-1"
+              leftIcon={<Search />}
+              placeholder="Search by idea, stack or skill"
+              value={filters.query}
+              onChange={(e) => set('query', e.target.value)}
+              aria-label="Search projects"
+            />
             <Select
               value={filters.level}
               onValueChange={(v) => set('level', v as ProjectFilters['level'])}
@@ -145,6 +116,31 @@ export function ProjectLibrary({ mine, role, beginnerOnly, onOpen }: ProjectLibr
               options={[{ value: 'all', label: 'All roles' }, ...ROLES.map((r) => ({ value: r.id, label: r.name }))]}
             />
             <Select value={filters.hours} onValueChange={(v) => set('hours', v as ProjectFilters['hours'])} aria-label="Length" options={[...HOURS_OPTIONS]} />
+          </FilterBar>
+          <div role="group" aria-label="Project type" className="flex flex-wrap gap-1.5">
+            {(['all', ...kinds] as const).map((k) => {
+              const on = filters.kind === k;
+              const n = k === 'all' ? [...counts.values()].reduce((a, b) => a + b, 0) : counts.get(k) ?? 0;
+              // Types with nothing under the current filters are noise; keep the selected one so it can be cleared.
+              if (k !== 'all' && n === 0 && !on) return null;
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => set('kind', k)}
+                  className={cn(
+                    'inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-label transition-colors duration-fast [&_svg]:size-3.5',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
+                    on ? 'bg-accent-subtle font-strong text-accent-subtle-fg' : 'text-fg-muted hover:bg-surface-hover hover:text-fg'
+                  )}
+                >
+                  {k !== 'all' && KIND_ICON[k]}
+                  {k === 'all' ? 'All types' : KIND_LABEL[k]}
+                  <span className={cn('tabular-nums', on ? 'text-accent-subtle-fg' : 'text-fg-subtle')}>{n.toLocaleString('en-IN')}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -192,7 +188,7 @@ function ProjectCard({ card: c, locked, progress, onOpen }: { card: LibraryCard;
       type="button"
       onClick={() => onOpen(c.id)}
       aria-label={`Open ${c.title}`}
-      className="group flex h-full w-full flex-col gap-3 rounded-xl border border-line bg-surface p-4 text-left transition-[transform,box-shadow,border-color] duration-fast hover:-translate-y-0.5 hover:border-line-strong hover:shadow-e2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+      className="group flex h-full w-full flex-col gap-3 rounded-lg border border-line bg-surface p-4 text-left transition-[box-shadow,border-color] duration-fast hover:border-line-strong hover:shadow-e2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
     >
       <div className="flex items-start gap-3">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent-subtle text-accent-subtle-fg [&_svg]:size-5" aria-hidden="true">
@@ -203,7 +199,7 @@ function ProjectCard({ card: c, locked, progress, onOpen }: { card: LibraryCard;
           <div className="text-caption text-fg-subtle">{KIND_LABEL[kind]} · {cardHours(c)} h · {c.stages} stages</div>
         </div>
       </div>
-      <p className="line-clamp-3 text-body text-fg-muted">{c.pitch}</p>
+      <p className="line-clamp-2 text-body text-fg-muted">{c.pitch}</p>
       <div className="mt-auto flex flex-wrap items-center gap-1.5">
         <Badge size="sm" tone={LEVEL_TONE[c.level]}>{c.level[0].toUpperCase() + c.level.slice(1)}</Badge>
         {c.tech.slice(0, 3).map((t) => <Badge key={t} size="sm" tone="neutral">{t}</Badge>)}

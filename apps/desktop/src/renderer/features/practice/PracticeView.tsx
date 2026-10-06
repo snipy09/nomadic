@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { GraduationCap, RefreshCw } from 'lucide-react';
-import { Badge, Button, Card, EmptyState, Skeleton, Tabs, TabsList, TabsTrigger } from '@nomadic/ui';
+import { Badge, Button, Card, EmptyState, PageHeader, Skeleton, Tabs, TabsList, TabsTrigger } from '@nomadic/ui';
+import { weakTopics } from '@job-automator/learning';
 import { getPlan, normalizeTier } from '@nomadic/config';
 import type { AppUser } from '../../types';
 import type { PracticeEntry } from '../../../shared/ipc';
@@ -41,6 +42,8 @@ export function PracticeView({ currentUser, onOpenUpgrade, onLog }: PracticeView
   const filtered = useMemo(() => filterEntries(entries, effective), [entries, effective]);
   const topics = useMemo(() => topicOptions(entries), [entries]);
   const latest = useMemo(() => latestByEntry(data.attempts), [data.attempts]);
+  // The side column only appears once there is something to say; an empty card next to the list is noise.
+  const hasWeak = useMemo(() => weakTopics(data.attempts).length > 0, [data.attempts]);
   const remainingToday = Number.isFinite(dailyLimit) && data.usedToday !== null ? Math.max(0, dailyLimit - data.usedToday) : null;
   const limitReached = data.limitReached || remainingToday === 0;
 
@@ -53,17 +56,15 @@ export function PracticeView({ currentUser, onOpenUpgrade, onLog }: PracticeView
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-4 pb-24">
-      <header className="flex flex-wrap items-center gap-3">
-        <div className="mr-auto">
-          <h1 className="text-title font-strong text-fg">Practice</h1>
-          <p className="text-caption text-fg-subtle">
-            {data.loading ? 'Loading…' : `${entries.length} coding problems, interview questions and quizzes`}
-          </p>
-        </div>
-        <Badge tone={limitReached ? 'warning' : 'neutral'}>
-          {data.signedIn ? usageLabel(dailyLimit, data.usedToday) : 'Sign in to save attempts'}
-        </Badge>
-      </header>
+      <PageHeader
+        title="Practice"
+        description={data.loading ? 'Loading…' : `${entries.length.toLocaleString('en-IN')} coding problems, interview questions and quizzes`}
+        actions={
+          <Badge tone={limitReached ? 'warning' : 'neutral'}>
+            {data.signedIn ? usageLabel(dailyLimit, data.usedToday) : 'Sign in to save attempts'}
+          </Badge>
+        }
+      />
 
       {data.syncError && data.signedIn && (
         <Card variant="sunken" padding="sm" className="flex flex-wrap items-center justify-between gap-2 text-caption text-fg-muted">
@@ -106,14 +107,16 @@ export function PracticeView({ currentUser, onOpenUpgrade, onLog }: PracticeView
               onExit={() => setView('browse')}
             />
           ) : (
-            <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
-              <div className="xl:col-start-2 xl:row-start-1">
-                <WeakTopicsCard
-                  attempts={data.attempts}
-                  signedIn={data.signedIn}
-                  onPractice={(topic) => setFilters({ ...EMPTY_FILTERS, topic })}
-                />
-              </div>
+            <div className={hasWeak ? 'grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]' : 'flex flex-col'}>
+              {hasWeak && (
+                <div className="xl:col-start-2 xl:row-start-1">
+                  <WeakTopicsCard
+                    attempts={data.attempts}
+                    signedIn={data.signedIn}
+                    onPractice={(topic) => setFilters({ ...EMPTY_FILTERS, topic })}
+                  />
+                </div>
+              )}
               <div className="min-w-0 xl:col-start-1 xl:row-start-1">
                 {filtered.length === 0 ? (
                   <EmptyState

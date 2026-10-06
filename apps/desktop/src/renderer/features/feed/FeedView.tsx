@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Bookmark, Briefcase, ChevronLeft, ChevronRight, RefreshCw, Search, Sparkles, X } from 'lucide-react';
+import { Briefcase, ChevronLeft, ChevronRight, RefreshCw, Search, X } from 'lucide-react';
 import {
-  Badge, Button, Card, EmptyState, IconButton, Input, Select, Skeleton, Tabs, TabsList, TabsTrigger, useToast,
+  Badge, Button, Card, EmptyState, FilterBar, IconButton, Input, PageHeader, Select, Skeleton, Tabs, TabsList, TabsTrigger, useToast,
 } from '@nomadic/ui';
 import type { AppUser, Job, MasterProfile } from '../../types';
 import { isTabEnabled } from '../../features';
@@ -29,9 +29,7 @@ const TABS: Array<{ id: FeedTab; label: string }> = [
   { id: 'all', label: 'All' },
   { id: 'jobs', label: 'Jobs' },
   { id: 'internships', label: 'Internships' },
-  { id: 'internshala', label: 'Internshala' },
-  { id: 'remote', label: 'Remote' },
-  { id: 'high_match', label: 'High match' },
+  { id: 'high_match', label: 'Best matches' },
   { id: 'saved', label: 'Saved' },
   { id: 'hidden', label: 'Hidden' },
 ];
@@ -114,31 +112,14 @@ export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, on
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-4 pb-24">
-      <header className="flex flex-wrap items-end gap-3">
-        <div className="mr-auto">
-          <h1 className="text-headline font-strong text-fg">Job board</h1>
-          <p className="text-body text-fg-muted">
-            {role ? `Openings matched to your ${role.replace('-', ' ')} skills.` : 'Openings for students and freshers in India.'}
-          </p>
-        </div>
-        <Button variant="secondary" size="sm" leftIcon={<RefreshCw />} loading={feed.loading} onClick={feed.refresh}>Refresh</Button>
-      </header>
-
-      <dl className="grid grid-cols-3 gap-3" aria-label="Board summary">
-        {[
-          { label: 'Openings', value: feed.loading ? '…' : String(localTab ? visible.length : feed.total), icon: <Briefcase /> },
-          { label: `Strong matches on this page`, value: hasProfileSkills ? String(strongCount) : '–', icon: <Sparkles /> },
-          { label: 'Saved', value: String(feed.saved.length), icon: <Bookmark /> },
-        ].map((s) => (
-          <div key={s.label} className="flex items-center gap-3 rounded-lg border border-line bg-surface px-4 py-3">
-            <span className="flex size-9 items-center justify-center rounded-md bg-accent-subtle text-accent-subtle-fg [&_svg]:size-4" aria-hidden="true">{s.icon}</span>
-            <div className="flex min-w-0 flex-col-reverse">
-              <dt className="truncate text-caption text-fg-subtle">{s.label}</dt>
-              <dd className="text-title font-strong tabular-nums text-fg">{s.value}</dd>
-            </div>
-          </div>
-        ))}
-      </dl>
+      <PageHeader
+        title="Job board"
+        description={
+          feed.loading && shown.length === 0
+            ? 'Loading openings…'
+            : `${(localTab ? visible.length : feed.total).toLocaleString('en-IN')} openings${role ? ` · matched to your ${role.replace('-', ' ')} skills` : ' for students and freshers in India'}${hasProfileSkills && strongCount > 0 ? ` · ${strongCount} strong on this page` : ''}`
+        }
+      />
 
       {!hasProfileSkills && (
         <Card variant="sunken" padding="sm" className="text-caption text-fg-muted">
@@ -146,35 +127,38 @@ export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, on
         </Card>
       )}
 
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface p-2">
-        <Input
-          wrapperClassName="min-w-[240px] flex-1"
-          leftIcon={<Search />}
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-          placeholder="Search title, company, location or skill"
-          aria-label="Search jobs"
-          rightSlot={searchText ? <IconButton label="Clear search" icon={<X />} size="sm" variant="ghost" tooltip={false} onClick={() => setSearchText('')} /> : undefined}
-        />
-        <Select
-          aria-label="Location"
-          value={location}
-          onValueChange={(v) => setLocation(v as LocationFilter)}
-          options={[{ value: 'all', label: 'Any location' }, { value: 'india', label: 'India' }, { value: 'remote', label: 'Remote' }]}
-        />
-        <Select
-          aria-label="Sort by"
-          value={sort}
-          onValueChange={(v) => setSort(v as SortKey)}
-          options={[{ value: 'latest', label: 'Newest first' }, { value: 'best_match', label: 'Best match' }, { value: 'company', label: 'Company A–Z' }]}
-        />
-      </div>
+      <div className="flex flex-col gap-3">
+        <FilterBar aria-label="Filter jobs">
+          <Input
+            wrapperClassName="min-w-[220px] flex-1"
+            leftIcon={<Search />}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            placeholder="Search title, company, location or skill"
+            aria-label="Search jobs"
+            rightSlot={searchText ? <IconButton label="Clear search" icon={<X />} size="sm" variant="ghost" tooltip={false} onClick={() => setSearchText('')} /> : undefined}
+          />
+          <Select
+            aria-label="Location"
+            value={location}
+            onValueChange={(v) => setLocation(v as LocationFilter)}
+            options={[{ value: 'all', label: 'Any location' }, { value: 'india', label: 'India' }, { value: 'remote', label: 'Remote' }]}
+          />
+          <Select
+            aria-label="Sort by"
+            value={sort}
+            onValueChange={(v) => setSort(v as SortKey)}
+            options={[{ value: 'latest', label: 'Newest first' }, { value: 'best_match', label: 'Best match' }, { value: 'company', label: 'Company A–Z' }]}
+          />
+          <IconButton label="Refresh jobs" icon={<RefreshCw />} variant="secondary" loading={feed.loading} onClick={feed.refresh} />
+        </FilterBar>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as FeedTab)}>
-        <TabsList aria-label="Job filters" className="flex-wrap">
-          {TABS.map((t) => <TabsTrigger key={t.id} value={t.id} count={t.id === 'saved' ? feed.saved.length : t.id === 'hidden' ? feed.hidden.length : undefined}>{t.label}</TabsTrigger>)}
-        </TabsList>
-      </Tabs>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as FeedTab)}>
+          <TabsList aria-label="Job filters" className="flex-wrap">
+            {TABS.map((t) => <TabsTrigger key={t.id} value={t.id} count={t.id === 'saved' ? feed.saved.length || undefined : t.id === 'hidden' ? feed.hidden.length || undefined : undefined}>{t.label}</TabsTrigger>)}
+          </TabsList>
+        </Tabs>
+      </div>
 
       {feed.error ? (
         <EmptyState tone="danger" bordered title="Could not load jobs" description={feed.error} actions={<Button onClick={feed.refresh}>Try again</Button>} />

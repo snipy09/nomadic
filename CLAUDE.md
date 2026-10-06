@@ -336,6 +336,13 @@ checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification
   mobile, cli, devops, data, ml), listed in `gen/index.ts`; `test/v2-gen.test.ts` builds every project in strict
   mode. AI help per stage: renderer `features/projects/projectHelp.ts` + `ProjectHelpPanel.tsx`, IPC
   `learn-project-help`, main `askProjectHelp` → ai-proxy `project_help`, plan limit `aiProjectHelpPerDay`.
+- **v1.2.1 UI declutter** (6 Oct 2026, on `main`, not packaged yet): one sidebar (`components/Sidebar.tsx`: `getNavSections(workspaceMode)`
+  = Learn + Jobs groups, `getFooterItems(isAdmin)` = Settings, Help, Admin; plan + Upgrade link in the footer), no Learn/Seek
+  switch and no Upgrade button in the top bar (search field on the left, account menu with "Activity log" on the right);
+  `PageHeader` and `FilterBar` in `@nomadic/ui` (`components/PageHeader.tsx`) are the page title and the one-row filter bar
+  (selects keep their content width): use them on new screens. Job board: no stat cards, tabs All/Jobs/Internships/Best
+  matches/Saved/Hidden, simpler cards (source moved to the drawer). Projects: no hero banner, empty type chips hidden.
+  Practice: weak-topics column only when there are weak topics. Learn path: today card first, one combined progress card.
 - Next most useful work: owner action 0 (Learn v2 go-live), then owner actions in section 7 (consent screen, Resend domain, key rotation),
   then a live end-to-end pass (Google sign-in, reviewed submit, AI feedback), then the code follow-ups in section 7.
 

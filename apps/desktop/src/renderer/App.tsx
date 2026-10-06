@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Loader2 } from 'lucide-react';
 import {
-  TabType, ThemeMode, MasterProfile, HeartbeatStatus, AppUser, getApi, PersonaTrack, WorkspaceMode
+  TabType, MasterProfile, AppUser, getApi
 } from './types';
 import { Onboarding } from './features/onboarding/Onboarding';
-import { AppShell, Button, EmptyState, useTheme } from '@nomadic/ui';
+import { AppShell, Button, EmptyState, PageHeader, useTheme } from '@nomadic/ui';
 import { TopBar } from './components/TopBar';
 import { Sidebar } from './components/Sidebar';
 import { LearnView } from './features/learn/LearnView';
@@ -170,24 +170,6 @@ export default function App() {
     } else {
       // Shared tabs: opportunities, settings, logs
       prefs.setLastTab(activeTrack, newTab);
-    }
-  };
-
-  const handleTrackChange = (newTrack: PersonaTrack) => {
-    if (workspaceMode === 'learner_only') newTrack = 'learner';
-    if (workspaceMode === 'seeker_only') newTrack = 'seeker';
-    setActiveTrack(newTrack);
-    prefs.setTrack(newTrack);
-    const savedTab = prefs.getLastTab(newTrack);
-    if (savedTab) {
-      setActiveTab(savedTab);
-      return;
-    }
-
-    if (newTrack === 'learner') {
-      setActiveTab('learner-roadmaps');
-    } else {
-      setActiveTab('feed');
     }
   };
 
@@ -377,11 +359,12 @@ export default function App() {
       sidebarCollapsed={sidebarCollapsed}
       sidebar={
         <Sidebar
-          activeTrack={activeTrack}
+          workspaceMode={workspaceMode}
           activeTab={activeTab}
           onSelectTab={handleNavigate}
           currentUser={currentUser}
           onToggleCollapsed={toggleSidebar}
+          onOpenUpgrade={() => handleOpenUpgrade()}
         />
       }
       topbar={
@@ -389,12 +372,7 @@ export default function App() {
           currentUser={currentUser}
           onLogout={handleLogout}
           onNavigate={handleNavigate}
-          activeTrack={activeTrack}
-          setTrack={handleTrackChange}
-          workspaceMode={workspaceMode}
-          onOpenUpgrade={() => handleOpenUpgrade()}
           onOpenCommandPalette={() => setShowCommandPalette(true)}
-          onLog={addLog}
           theme={theme}
           onThemeChange={setTheme}
         />
@@ -477,15 +455,11 @@ export default function App() {
 
             {activeTab === 'logs' && (
               <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <h1 className="text-heading font-strong text-fg">Activity</h1>
-                    <p className="text-body text-fg-muted">What Nomadic did during this session: applications, sync and learning.</p>
-                  </div>
-                  <Button size="sm" variant="secondary" disabled={logs.length === 0} onClick={() => setLogs([])}>
-                    Clear
-                  </Button>
-                </div>
+                <PageHeader
+                  title="Activity"
+                  description="What Nomadic did during this session: applications, sync and learning."
+                  actions={<Button size="sm" variant="secondary" disabled={logs.length === 0} onClick={() => setLogs([])}>Clear</Button>}
+                />
                 {logs.length === 0 ? (
                   <EmptyState bordered title="No activity yet" description="Apply to a job or open a lesson and the steps show up here." />
                 ) : (
@@ -550,8 +524,7 @@ export default function App() {
             isOpen={showCommandPalette}
             onClose={() => setShowCommandPalette(false)}
             onSelectTab={handleNavigate}
-            activeTrack={activeTrack}
-            onToggleTrack={handleTrackChange}
+            isAdmin={currentUser?.role === 'admin'}
           />
         )}
 

@@ -27,3 +27,4 @@ export * from './components/ProgressRing';
 export * from './components/Stack';
 export * from './components/AppShell';
 export * from './components/Logo';
+export * from './components/PageHeader';

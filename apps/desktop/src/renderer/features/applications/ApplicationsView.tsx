@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { BellRing, Briefcase, LayoutGrid, List, Plus, RefreshCw, Search, X } from 'lucide-react';
 import {
-  Button, Card, EmptyState, IconButton, Input, Select, Skeleton, Tabs, TabsList, TabsTrigger, useToast,
+  Button, Card, EmptyState, FilterBar, IconButton, Input, PageHeader, Select, Skeleton, Tabs, TabsList, TabsTrigger, useToast,
 } from '@nomadic/ui';
 import type { Application } from '../../types';
 import { prefs } from '../../store/preferences';
@@ -130,14 +130,16 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({ onBrowseJobs
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-4 pb-24">
-      <header className="flex flex-wrap items-center gap-3">
-        <div className="mr-auto">
-          <h1 className="text-title font-strong text-fg">Applications</h1>
-          <p className="text-caption text-fg-subtle" aria-live="polite">{summary}</p>
-        </div>
-        <Button variant="secondary" size="sm" leftIcon={<RefreshCw />} loading={data.loading && data.apps.length > 0} onClick={data.refresh}>Refresh</Button>
-        <Button size="sm" leftIcon={<Plus />} onClick={() => setAdding(true)}>Add application</Button>
-      </header>
+      <PageHeader
+        title="Applications"
+        description={<span aria-live="polite">{summary}</span>}
+        actions={
+          <>
+            <IconButton label="Refresh applications" icon={<RefreshCw />} variant="secondary" loading={data.loading && data.apps.length > 0} onClick={data.refresh} />
+            <Button leftIcon={<Plus />} onClick={() => setAdding(true)}>Add application</Button>
+          </>
+        }
+      />
 
       {due.length > 0 && !data.error && (
         <Card padding="sm" variant="sunken" role="region" aria-label="Follow-ups due" className="flex flex-col gap-2">
@@ -160,7 +162,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({ onBrowseJobs
       )}
 
       {data.apps.length > 0 && !data.error && (
-        <div className="flex flex-wrap items-center gap-3">
+        <FilterBar aria-label="Filter applications">
           <Input
             wrapperClassName="min-w-[220px] flex-1"
             leftIcon={<Search />}
@@ -197,7 +199,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({ onBrowseJobs
             </TabsList>
           </Tabs>
           {isFiltered(filters) && <Button size="sm" variant="ghost" onClick={() => setFilters(DEFAULT_FILTERS)}>Clear filters</Button>}
-        </div>
+        </FilterBar>
       )}
 
       {body}

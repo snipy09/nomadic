@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Lock, Search, X } from 'lucide-react';
-import { Button, Combobox, IconButton, Input, Select } from '@nomadic/ui';
+import { Button, Combobox, FilterBar, IconButton, Input, Select } from '@nomadic/ui';
 import { roles } from '@job-automator/learning/seed/bundle.json';
 import type { RoleFamilyId } from '@job-automator/learning';
 import type { PracticeCatalog } from '../../../shared/ipc';
@@ -27,8 +27,8 @@ export function PracticeFilters({ value, onChange, catalog, topics, companyLocke
   const topicOptions = useMemo(() => topics.map((t) => ({ value: t.topic, label: t.topic, hint: String(t.count) })), [topics]);
 
   return (
-    <div className="flex flex-col gap-3" role="search" aria-label="Filter practice">
-      <div className="flex flex-wrap items-center gap-3">
+    <div role="search" aria-label="Filter practice">
+      <FilterBar>
         <Input
           wrapperClassName="min-w-[240px] flex-1"
           leftIcon={<Search />}
@@ -60,8 +60,6 @@ export function PracticeFilters({ value, onChange, catalog, topics, companyLocke
             { value: 'hard', label: 'Hard' },
           ]}
         />
-      </div>
-      <div className="flex flex-wrap items-center gap-3">
         <Select
           aria-label="Role"
           value={value.role || 'any'}
@@ -69,7 +67,7 @@ export function PracticeFilters({ value, onChange, catalog, topics, companyLocke
           options={ROLE_OPTIONS}
         />
         <Combobox
-          className="w-[220px]"
+          className="w-[200px]"
           aria-label="Topic"
           placeholder="Any topic"
           options={topicOptions}
@@ -83,7 +81,7 @@ export function PracticeFilters({ value, onChange, catalog, topics, companyLocke
           </Button>
         ) : (
           <Combobox
-            className="w-[220px]"
+            className="w-[200px]"
             aria-label="Company"
             placeholder="Any company"
             options={companyOptions}
@@ -97,7 +95,7 @@ export function PracticeFilters({ value, onChange, catalog, topics, companyLocke
             Clear filters
           </Button>
         )}
-      </div>
+      </FilterBar>
     </div>
   );
 }

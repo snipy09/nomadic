@@ -1,17 +1,16 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { ArrowRight, Code2, Search, Zap } from 'lucide-react';
+import { ArrowRight, Code2, History, Search } from 'lucide-react';
 import { Dialog, DialogContent, Kbd, cn } from '@nomadic/ui';
-import { TabType, PersonaTrack } from '../types';
+import { TabType } from '../types';
 import { VAULT_QUESTIONS } from '../data/resourceVault';
 import { isTabEnabled } from '../features';
-import { getNavSections } from './Sidebar';
+import { allNavItems } from './Sidebar';
 
 interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectTab: (tab: TabType) => void;
-  activeTrack: PersonaTrack;
-  onToggleTrack: (track: PersonaTrack) => void;
+  isAdmin?: boolean;
 }
 
 interface CommandItem {
@@ -23,9 +22,7 @@ interface CommandItem {
   run: () => void;
 }
 
-const LEARNER_TABS = new Set<string>(['learner-roadmaps', 'learner-resources', 'learner-interview-prep', 'learner-projects']);
-
-export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onSelectTab, activeTrack, onToggleTrack }) => {
+export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onSelectTab, isAdmin = false }) => {
   const [query, setQuery] = useState('');
   const [index, setIndex] = useState(0);
   const listId = useId();
@@ -36,30 +33,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
   }, [isOpen]);
 
   const commands = useMemo<CommandItem[]>(() => {
-    const go = (tab: TabType) => () => {
-      onToggleTrack(LEARNER_TABS.has(tab) ? 'learner' : tab === 'feed' || tab === 'applications' || tab === 'outreach' ? 'seeker' : activeTrack);
-      onSelectTab(tab);
-    };
-    // Navigation for both tracks, de-duplicated, honouring feature flags.
-    const seen = new Set<string>();
-    const nav: CommandItem[] = [];
-    (['learner', 'seeker'] as PersonaTrack[]).forEach((track) =>
-      getNavSections(track, false).forEach((s) =>
-        s.items.forEach((item) => {
-          if (seen.has(item.id)) return;
-          seen.add(item.id);
-          nav.push({ id: `nav-${item.id}`, group: 'Navigation', title: `Go to ${item.label}`, icon: item.icon, run: go(item.id) });
-        }),
-      ),
-    );
-    const next: PersonaTrack = activeTrack === 'learner' ? 'seeker' : 'learner';
-    const actions: CommandItem[] = [{
-      id: 'action-switch-track',
-      group: 'Actions',
-      title: next === 'seeker' ? 'Switch to Seek workspace' : 'Switch to Learn workspace',
-      icon: Zap,
-      run: () => { onToggleTrack(next); onSelectTab(next === 'learner' ? 'learner-roadmaps' : 'feed'); },
-    }];
+    const go = (tab: TabType) => () => onSelectTab(tab);
+    const nav: CommandItem[] = allNavItems(isAdmin).map((item) => (
+      { id: `nav-${item.id}`, group: 'Navigation', title: `Go to ${item.label}`, icon: item.icon, run: go(item.id) }
+    ));
+    const actions: CommandItem[] = [
+      { id: 'action-activity', group: 'Actions', title: 'Show activity log', subtitle: 'What Nomadic did this session', icon: History, run: go('logs') },
+    ];
     const questions: CommandItem[] = isTabEnabled('learner-resources')
       ? VAULT_QUESTIONS.slice(0, 15).map((q) => ({
           id: `q-${q.id}`,
@@ -71,7 +51,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
         }))
       : [];
     return [...nav, ...actions, ...questions];
-  }, [activeTrack, onSelectTab, onToggleTrack]);
+  }, [isAdmin, onSelectTab]);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();

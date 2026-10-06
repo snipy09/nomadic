@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bookmark, BookmarkCheck, Clock, Eye, EyeOff, MapPin } from 'lucide-react';
+import { Bookmark, BookmarkCheck, Eye, EyeOff } from 'lucide-react';
 import { Badge, Button, Checkbox, IconButton, ProgressRing, cn } from '@nomadic/ui';
 import { HIGH_MATCH, postedLabel, type ScoredJob } from './feedLogic';
 
@@ -59,14 +59,14 @@ export function MatchBadge({ job }: { job: ScoredJob }) {
 }
 
 function MatchRing({ job }: { job: ScoredJob }) {
-  if (!job.match) return <span className="text-caption text-fg-subtle" title={NO_MATCH_HINT}>No match data</span>;
+  if (!job.match) return null;
   const score = job.match.score;
   const est = job.match.estimated;
   const tone = score >= HIGH_MATCH ? 'success' : score >= 40 ? 'accent' : 'warning';
   return (
-    <div className="flex flex-col items-center gap-0.5" title={est ? ESTIMATED_HINT : undefined}>
-      <ProgressRing value={score} size={44} thickness={4} tone={tone} showValue label={`${est ? 'Estimated ' : ''}${score}% match`} />
-      <span className="text-caption text-fg-subtle">{est ? 'est. match' : 'match'}</span>
+    <div className="flex shrink-0 flex-col items-center" title={est ? ESTIMATED_HINT : 'How many of the listed skills you have'}>
+      <ProgressRing value={score} size={40} thickness={3.5} tone={tone} showValue label={`${est ? 'Estimated ' : ''}${score}% match`} />
+      <span className="mt-0.5 text-[10px] leading-3 text-fg-subtle">{est ? 'est.' : 'match'}</span>
     </div>
   );
 }
@@ -74,47 +74,37 @@ function MatchRing({ job }: { job: ScoredJob }) {
 export const JobCard = React.memo(function JobCard({ job, saved, selected, onToggleSelect, onToggleSave, hidden, onToggleHidden, onOpen, onApply, applyDisabled }: JobCardProps) {
   const posted = postedLabel(job.createdAt);
   const missing = job.match?.missing ?? [];
+  const meta = [job.location, job.employmentType === 'internship' ? 'Internship' : '', posted].filter(Boolean);
   return (
     <article
       data-selected={selected || undefined}
       className={cn(
-        'group relative flex w-full flex-col rounded-lg border border-line bg-surface text-fg transition-[border-color,box-shadow,transform] duration-fast ease-standard',
-        'hover:-translate-y-px hover:border-line-strong hover:shadow-e2 focus-within:border-line-strong',
+        'group relative flex w-full flex-col gap-3 rounded-lg border border-line bg-surface p-4 text-fg transition-[border-color,box-shadow] duration-fast ease-standard',
+        'hover:border-line-strong hover:shadow-e2 focus-within:border-line-strong',
         selected && 'border-accent ring-1 ring-inset ring-accent',
       )}
     >
-      <div className="flex items-start gap-3 p-4 pb-3">
+      <div className="flex items-start gap-3">
         <CompanyMonogram company={job.company} />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-caption font-strong uppercase tracking-wide text-fg-subtle">{job.company}</p>
-          <button type="button" onClick={onOpen} className="mt-0.5 block w-full rounded text-left outline-none focus-visible:ring-2 focus-visible:ring-accent">
+          <p className="truncate text-caption text-fg-muted">{job.company}</p>
+          <button type="button" onClick={onOpen} className="block w-full rounded text-left outline-none focus-visible:ring-2 focus-visible:ring-accent">
             <h3 className="line-clamp-2 text-body-lg font-strong text-fg group-hover:text-accent">{job.title}</h3>
           </button>
+          {meta.length > 0 && <p className="mt-1 truncate text-caption text-fg-subtle">{meta.join(' · ')}</p>}
         </div>
         <MatchRing job={job} />
       </div>
 
-      <div className="flex flex-wrap items-center gap-1.5 px-4 text-caption text-fg-muted">
-        {job.location && <span className="flex items-center gap-1 rounded bg-surface-sunken px-1.5 py-0.5"><MapPin className="size-3" aria-hidden="true" />{job.location}</span>}
-        {job.employmentType === 'internship' && <span className="rounded bg-accent-subtle px-1.5 py-0.5 text-accent-subtle-fg">Internship</span>}
-        {posted && <span className="flex items-center gap-1 px-1 text-fg-subtle"><Clock className="size-3" aria-hidden="true" />{posted}</span>}
-        {job.source && <span className="px-1 text-fg-subtle">via {job.source}</span>}
-      </div>
-
       {missing.length > 0 && (
-        <div className="mt-3 px-4">
-          <p className="mb-1 text-caption text-fg-subtle">Skills to add</p>
-          <ul className="flex flex-wrap gap-1" aria-label="Missing skills">
-            {missing.slice(0, 3).map((s) => (
-              <li key={s} className="rounded border border-dashed border-line-strong px-1.5 py-0.5 text-caption text-fg-muted">{s}</li>
-            ))}
-            {missing.length > 3 && <li className="px-1 py-0.5 text-caption text-fg-subtle">+{missing.length - 3} more</li>}
-          </ul>
-        </div>
+        <p className="line-clamp-1 text-caption text-fg-muted" title={missing.join(', ')}>
+          <span className="text-fg-subtle">To learn: </span>
+          {missing.slice(0, 2).join(', ')}{missing.length > 2 ? ` +${missing.length - 2}` : ''}
+        </p>
       )}
 
-      <div className="mt-auto flex items-center gap-1 px-3 pb-3 pt-4">
-        <Checkbox checked={selected} onCheckedChange={onToggleSelect} aria-label={`Select ${job.title} at ${job.company}`} className="mx-1" />
+      <div className="mt-auto flex items-center gap-1 border-t border-line pt-3">
+        <Checkbox checked={selected} onCheckedChange={onToggleSelect} aria-label={`Select ${job.title} at ${job.company}`} className="mr-1" />
         <IconButton
           label={saved ? 'Remove from saved' : 'Save job'}
           icon={saved ? <BookmarkCheck /> : <Bookmark />}
@@ -133,7 +123,7 @@ export const JobCard = React.memo(function JobCard({ job, saved, selected, onTog
           />
         )}
         <div className="ml-auto flex items-center gap-1.5">
-          <Button size="sm" variant="secondary" onClick={onOpen}>Details</Button>
+          <Button size="sm" variant="ghost" onClick={onOpen} aria-label={`Details for ${job.title}`}>Details</Button>
           <Button size="sm" onClick={onApply} disabled={applyDisabled}>Apply</Button>
         </div>
       </div>
