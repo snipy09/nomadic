@@ -136,7 +136,7 @@ public class TestHostActivity extends AppCompatActivity implements ApplyBrowserC
 
     // ── host JS -> controller (what the Capacitor plugin methods do) ──
 
-    private final class HarnessBridge {
+    public final class HarnessBridge {
 
         @JavascriptInterface
         public void open(String url, String agentScript) {
