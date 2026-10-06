@@ -22,7 +22,7 @@ function LearnPane() {
     <div>
       <p className="text-sm text-ink-soft">Target role</p>
       <p className="wide anim-type mt-1 text-2xl" style={delay(60)}>
-        Full-stack engineer
+        Frontend engineer
       </p>
       <ul className="mt-4 divide-y divide-rule border-y border-rule">
         {ROADMAP.map((node, i) => (
@@ -56,7 +56,7 @@ function FindPane() {
     <div>
       <div className="flex h-11 items-center border-2 border-ink bg-white px-3 text-[15px]">
         <span className="anim-type inline-block" style={delay(100)}>
-          full-stack, remote
+          react intern, bengaluru
         </span>
         <span aria-hidden className="anim-caret ml-0.5 h-5 w-0.5 bg-ink" />
       </div>
@@ -105,7 +105,7 @@ function ApplyPane() {
         ))}
       </dl>
       <p className="anim-fade mt-3 text-sm font-semibold" style={delay(250 + APPLY_FIELDS.length * 520 + 200)}>
-        All {APPLY_FIELDS.length} fields filled from your profile. You review and submit.
+        All {APPLY_FIELDS.length} fields filled. You review each one, tick, then submit.
       </p>
     </div>
   );
@@ -115,14 +115,14 @@ function TrackPane() {
   const total = BOARD_START.length;
   const counts = BOARD_STAGES.map((_, stage) => BOARD_START.filter((card) => card.stage === stage).length);
   const max = Math.max(...counts);
-  const next = BOARD_START.find((card) => card.stage === 3);
+  const next = BOARD_START.find((card) => card.stage === 2);
 
   return (
     <div>
       <p className="text-sm text-ink-soft">{total} applications on your board</p>
       <ul className="mt-3 space-y-2.5">
         {BOARD_STAGES.map((name, i) => (
-          <li key={name} className="grid grid-cols-[6.25rem_1fr_1.5rem] items-center gap-x-3">
+          <li key={name} className="grid grid-cols-[6.75rem_1fr_1.5rem] items-center gap-x-3">
             <span className="text-sm font-semibold">{name}</span>
             <div className="h-6 bg-rule">
               <div
@@ -136,7 +136,7 @@ function TrackPane() {
       </ul>
       {next && (
         <p className="anim-fade mt-5 border-t border-rule pt-3 text-sm" style={delay(900)}>
-          <span className="font-bold">Next up:</span> interview with {next.company}, {next.note.toLowerCase()}.
+          <span className="font-bold">Next up:</span> {next.company}, {next.note.charAt(0).toLowerCase() + next.note.slice(1)}.
         </p>
       )}
     </div>

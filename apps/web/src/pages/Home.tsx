@@ -36,8 +36,9 @@ function Hero() {
         <div className="mt-10 grid grid-cols-[minmax(0,1fr)] items-start gap-12 lg:mt-14 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-14">
           <div className="anim-fade min-w-0" style={delay(560)}>
             <p className="max-w-lg text-lg leading-relaxed text-white/90 sm:text-xl">
-              Nomadic is a desktop app. It teaches you the skills for the role you want, finds openings on company
-              hiring pages, fills in the application forms and keeps every application on one board.
+              Nomadic is a desktop app for engineering students and freshers in India. It plans what to learn for the
+              role you want, day by day, finds openings on company hiring pages, fills in the application forms for you
+              to review and keeps every application on one board.
             </p>
             <ComingSoon tone="dark" size="lg" className="mt-8" />
             <p className="mt-4 max-w-md text-white/85">
@@ -149,7 +150,7 @@ export default function Home() {
           step={1}
           first
           title="Learn what the role actually asks for."
-          intro="Pick a target role and Nomadic lays out a roadmap of milestones. Each one comes with practice projects, company interview question sets and textbook chapters. Select a milestone to see what it covers."
+          intro="Tell Nomadic the role you want and the hours you have, and it lays out a week-by-week path of study days: what to learn, named LeetCode problems, quizzes that come back for review, and guided projects from a library of about 4,100. Select a week to see its days."
         >
           <Roadmap />
         </RouteSection>
@@ -158,7 +159,7 @@ export default function Home() {
           id="find"
           step={2}
           title="See openings from the source."
-          intro="Nomadic reads Greenhouse, Lever, Ashby, Internshala and company career pages directly, so roles show up when they are posted. Each one is scored against the skills on your profile."
+          intro="Nomadic reads Greenhouse, Lever, Ashby, Internshala and company career pages directly and keeps the roles open to candidates in India. Each one is scored against your skills, including what you finished in Learn, with the skills you are missing listed."
         >
           <JobFinder />
         </RouteSection>
@@ -167,7 +168,7 @@ export default function Home() {
           id="apply"
           step={3}
           title="It fills the forms. You press submit."
-          intro="Your saved details go into each application for you. Review every one before it goes out, or let Nomadic run through the queue on its own."
+          intro="Nomadic opens the real form in your own browser and fills it from your profile, resume and saved answers, showing where every value came from. You check each field, tick that you reviewed it, and only then does it go out. Nothing is ever submitted without your review."
         >
           <ApplyDemo />
         </RouteSection>
@@ -176,7 +177,7 @@ export default function Home() {
           id="track"
           step={4}
           title="Every application on one board."
-          intro="Saves, submissions, assessments, interviews and offers all live in one place, so nothing slips."
+          intro="Every application lands on one board, from the ones that need your action to interviews and offers, with notes, status history and follow-up reminders, so nothing slips."
         >
           <Board />
         </RouteSection>

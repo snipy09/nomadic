@@ -76,7 +76,7 @@ export default function Board() {
       </div>
 
       <div className="overflow-x-auto">
-        <div className="grid min-w-[62rem] grid-cols-5 border-2 border-ink bg-white lg:min-w-0">
+        <div className="grid min-w-[52rem] grid-cols-4 border-2 border-ink bg-white lg:min-w-0">
           {BOARD_STAGES.map((name, stage) => {
             const column = cards.filter((card) => card.stage === stage);
             return (

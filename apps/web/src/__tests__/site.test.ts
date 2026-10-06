@@ -74,3 +74,16 @@ describe('privacy content', () => {
     expect(text).toContain('resumes');
   });
 });
+
+describe('product claims match the app', () => {
+  it('never promises unattended submission, unsupported platforms or unreleased outreach', () => {
+    const site = sourceFiles(SRC).map((f) => readFileSync(f, 'utf8')).join('\n').toLowerCase();
+    const plans = JSON.stringify(CONFIG_PLANS.map((p) => [p.name, p.summary, p.features])).toLowerCase();
+    for (const text of [site, plans]) {
+      expect(text).not.toMatch(/autonomous|run on its own|on its own\b|in the background for you/);
+      expect(text).not.toContain('linux');
+      expect(text).not.toMatch(/recruiter contacts/);
+    }
+    expect(site).toContain('nothing is ever submitted without your review');
+  });
+});

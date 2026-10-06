@@ -379,8 +379,11 @@ checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification
 - Marketing site `apps/web` (Vite 5, React 18, Tailwind 3.4): dev `npm run dev --workspace apps/web -- --port 5174`;
   check `npx tsc --noEmit` and `npm run build` in `apps/web` (client build + SSR build + `scripts/prerender.mjs`, which
   writes `dist/{index,download,terms,privacy,404}.html` and `sitemap.xml`; never add a `public/sitemap.xml`).
-  Copy and sample data live in `src/content.ts` (fictional companies only); titles/indexing in `src/seo.ts` (must not
-  import `src/jsonld.ts`). A new page needs a `PAGES` entry, a route in `src/App.tsx`, and prerender coverage.
+  Copy and sample data live in `src/content.ts` (fictional companies only; India locations; the Learn sample is a
+  week-by-week path like the app's); titles/indexing in `src/seo.ts` (must not import `src/jsonld.ts`). Product claims
+  must match the app: no unattended/autonomous submission, Windows first then macOS, Outreach not advertised while it
+  is "Soon"; `site.test.ts` "product claims match the app" guards this for the site and the plan copy in
+  `packages/config/src/plans.ts` (shown on Pricing and in the app's upgrade dialog). A new page needs a `PAGES` entry, a route in `src/App.tsx`, and prerender coverage.
   Design: Archivo variable font, ultramarine `#2338E0`, ink `#0A0F2C`, fog, marigold; no pills, no blur, 4px radius.
   Downloads are NOT public: every download CTA is `ComingSoon`; do not reintroduce a registration or alpha flow.
   Launch email list: `components/EmailSignup.tsx` → RPC `join_waitlist` (`src/waitlist.ts`, migration 023); read

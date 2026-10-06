@@ -14,64 +14,67 @@ export type RoadmapStatus = 'done' | 'active' | 'next' | 'later';
 
 export interface RoadmapNode {
   id: string;
+  /** "Week 1", shown above the title, as on the app's path. */
   level: string;
   title: string;
   status: RoadmapStatus;
   progress: number;
   description: string;
+  /** The week's study days, one topic each. */
   skills: string[];
 }
 
+/** A sample Frontend Engineer roadmap, shaped like the app's path: weeks of dated study days. */
 export const ROADMAP: RoadmapNode[] = [
   {
-    id: 'html-css',
-    level: 'Foundations',
-    title: 'HTML and CSS',
+    id: 'week-1',
+    level: 'Week 1',
+    title: 'Complexity and web foundations',
     status: 'done',
     progress: 100,
     description:
-      'Semantic document structure, flexbox and grid layouts, responsive design and accessibility basics.',
-    skills: ['Semantic HTML', 'CSS Grid', 'Flexbox', 'Accessibility'],
+      'Big-O from first principles, then semantic HTML and the box model. Every topic ends with a short quiz that comes back as a spaced review.',
+    skills: ['Time and space complexity', 'Complexity practice', 'Semantic HTML', 'CSS layout'],
   },
   {
-    id: 'react',
-    level: 'Practice',
-    title: 'React',
+    id: 'week-2',
+    level: 'Week 2',
+    title: 'Arrays and JavaScript',
     status: 'active',
-    progress: 85,
+    progress: 60,
     description:
-      'Components, state management, custom hooks, rendering and client-side routing, built through small practice projects.',
-    skills: ['Component architecture', 'Custom hooks', 'State management', 'TypeScript'],
+      'Prefix sums and two pointers on named LeetCode problems, alongside closures, the event loop and modules in JavaScript.',
+    skills: ['Prefix sums', 'Two pointers', 'Closures and scope', 'The event loop'],
   },
   {
-    id: 'backend',
-    level: 'Practice',
-    title: 'Backend APIs',
+    id: 'week-3',
+    level: 'Week 3',
+    title: 'Hashing and React',
     status: 'next',
     progress: 0,
     description:
-      'REST design, asynchronous handlers, HTTP verbs, middleware and request validation.',
-    skills: ['Node.js', 'Express', 'API routing', 'Auth handlers'],
+      'Hash maps for counting and lookups, then components, props, state and effects in React.',
+    skills: ['Hash maps', 'Components and props', 'State and effects', 'Revision day'],
   },
   {
-    id: 'postgres',
-    level: 'Projects',
-    title: 'PostgreSQL',
+    id: 'week-4',
+    level: 'Week 4',
+    title: 'Portfolio project',
     status: 'later',
     progress: 0,
     description:
-      'Relational modeling, transactions, indexing and query tuning, applied in a project with a real schema.',
-    skills: ['SQL schemas', 'Indexes', 'Foreign keys', 'Query tuning'],
+      'Build a responsive portfolio site stage by stage, with starter code, hints and checks, then a timed online-assessment mock.',
+    skills: ['Project: layout stage', 'Project: content stage', 'Project: deploy stage', 'OA mock test'],
   },
   {
-    id: 'production',
-    level: 'Interview ready',
-    title: 'Production and CI/CD',
+    id: 'week-5',
+    level: 'Week 5',
+    title: 'Strings and TypeScript',
     status: 'later',
     progress: 0,
     description:
-      'Containers, automated test pipelines, GitHub Actions, cloud deployment and monitoring.',
-    skills: ['Docker', 'GitHub Actions', 'Deployment', 'Monitoring'],
+      'Sliding windows and string problems, and types, generics and narrowing in TypeScript.',
+    skills: ['Sliding window', 'String problems', 'TypeScript basics', 'Generics'],
   },
 ];
 
@@ -94,45 +97,41 @@ export interface Job {
 }
 
 export const JOBS: Job[] = [
-  { id: 'arcline', company: 'Arcline', role: 'Full-Stack Software Engineer', where: 'Remote, global', source: 'Ashby', posted: '2 days ago', match: 96, skills: 'TypeScript, React, Node.js' },
-  { id: 'meridian', company: 'Meridian Labs', role: 'Backend Platform Engineer', where: 'Remote, US', source: 'Greenhouse', posted: '1 day ago', match: 94, skills: 'PostgreSQL, APIs, distributed systems' },
-  { id: 'tidewater', company: 'Tidewater', role: 'Frontend Systems Engineer', where: 'Remote, US and EU', source: 'Lever', posted: '3 days ago', match: 92, skills: 'Next.js, React, performance' },
-  { id: 'kestrel', company: 'Kestrel Data', role: 'Database and Infrastructure Specialist', where: 'Remote, global', source: 'Careers page', posted: 'Just now', match: 90, skills: 'PostgreSQL, Docker, Go' },
-  { id: 'fernwood', company: 'Fernwood', role: 'Software Engineering Intern', where: 'Bengaluru', source: 'Internshala', posted: '4 days ago', match: 88, skills: 'JavaScript, React' },
-  { id: 'lumen', company: 'Lumen Works', role: 'Platform Engineer', where: 'Remote, EU', source: 'Greenhouse', posted: '5 days ago', match: 85, skills: 'Kubernetes, Go, CI/CD' },
-  { id: 'halcyon', company: 'Halcyon', role: 'Desktop App Engineer', where: 'Remote, global', source: 'Lever', posted: '6 days ago', match: 83, skills: 'Electron, TypeScript' },
-  { id: 'northgate', company: 'Northgate', role: 'Full-Stack Developer', where: 'Remote, global', source: 'Ashby', posted: '1 week ago', match: 81, skills: 'React, Node.js, SQL' },
+  { id: 'arcline', company: 'Arcline', role: 'Frontend Developer Intern', where: 'Bengaluru', source: 'Ashby', posted: '2 days ago', match: 92, skills: 'React, JavaScript, CSS' },
+  { id: 'meridian', company: 'Meridian Labs', role: 'Software Engineer I', where: 'Hyderabad', source: 'Greenhouse', posted: '1 day ago', match: 88, skills: 'TypeScript, Node.js, SQL' },
+  { id: 'tidewater', company: 'Tidewater', role: 'React Developer', where: 'Remote, India', source: 'Lever', posted: '3 days ago', match: 85, skills: 'React, TypeScript, testing' },
+  { id: 'kestrel', company: 'Kestrel Data', role: 'Data Analyst Intern', where: 'Pune', source: 'Careers page', posted: 'Today', match: 71, skills: 'SQL, Excel, Python' },
+  { id: 'fernwood', company: 'Fernwood', role: 'Software Engineering Intern', where: 'Bengaluru', source: 'Internshala', posted: '4 days ago', match: 80, skills: 'JavaScript, React' },
+  { id: 'lumen', company: 'Lumen Works', role: 'Backend Engineer, Graduate', where: 'Gurugram', source: 'Greenhouse', posted: '5 days ago', match: 64, skills: 'Java, Spring, SQL' },
+  { id: 'halcyon', company: 'Halcyon', role: 'Full-Stack Developer', where: 'Chennai', source: 'Lever', posted: '6 days ago', match: 77, skills: 'React, Node.js, MongoDB' },
+  { id: 'northgate', company: 'Northgate', role: 'SDE Intern, Summer 2027', where: 'Remote, India', source: 'Ashby', posted: '1 week ago', match: 82, skills: 'DSA, Java or C++' },
 ];
 
 export const JOB_SOURCES = ['All', 'Ashby', 'Greenhouse', 'Lever', 'Internshala', 'Careers page'];
 
-export const APPLY_FORM_TITLE = 'Full-Stack Software Engineer at Arcline';
+export const APPLY_FORM_TITLE = 'Frontend Developer Intern at Arcline';
 
-export const APPLY_FIELDS: { label: string; value: string }[] = [
-  { label: 'Full name', value: 'Sam Rivera' },
-  { label: 'Email', value: 'sam.rivera@example.com' },
-  { label: 'Phone', value: '+91 90000 00000' },
-  { label: 'Resume', value: 'sam-rivera-fullstack.pdf' },
-  { label: 'Portfolio', value: 'portfolio.example.com' },
-  { label: 'Why this role', value: 'Saved answer: I build production React and Node apps.' },
+/** Where each filled value came from, as the app's review screen shows it. */
+export type FieldSource = 'Profile' | 'Resume' | 'Your answer' | 'AI draft';
+
+export const APPLY_FIELDS: { label: string; value: string; source: FieldSource }[] = [
+  { label: 'Full name', value: 'Riya Sharma', source: 'Profile' },
+  { label: 'Email', value: 'riya.sharma@example.com', source: 'Profile' },
+  { label: 'Phone', value: '+91 90000 00000', source: 'Profile' },
+  { label: 'Resume', value: 'riya-sharma-frontend.pdf', source: 'Resume' },
+  { label: 'Graduation year', value: '2027', source: 'Your answer' },
+  { label: 'Why this role', value: 'I build accessible React interfaces and want to…', source: 'AI draft' },
 ];
 
-export const AUTO_QUEUE: { company: string; role: string }[] = [
-  { company: 'Arcline', role: 'Full-Stack Software Engineer' },
-  { company: 'Meridian Labs', role: 'Backend Platform Engineer' },
-  { company: 'Tidewater', role: 'Frontend Systems Engineer' },
-  { company: 'Kestrel Data', role: 'Database and Infrastructure Specialist' },
-  { company: 'Northgate', role: 'Full-Stack Developer' },
+/** Common questions answered once on the Answers page and reused on every form. */
+export const SAVED_ANSWERS: { q: string; a: string }[] = [
+  { q: 'Notice period', a: 'Available from June 2027' },
+  { q: 'Degree and branch', a: 'B.Tech, Computer Science' },
+  { q: 'CGPA', a: '8.4 / 10' },
+  { q: 'Willing to relocate?', a: 'Yes, anywhere in India' },
 ];
 
-export const OUTREACH: { role: string; company: string; domain: string }[] = [
-  { role: 'Technical Recruiting Lead', company: 'Arcline', domain: 'arcline.example' },
-  { role: 'Engineering Talent Partner', company: 'Meridian Labs', domain: 'meridianlabs.example' },
-  { role: 'Head of People and Hiring', company: 'Tidewater', domain: 'tidewater.example' },
-  { role: 'Senior Technical Recruiter', company: 'Kestrel Data', domain: 'kestrel.example' },
-];
-
-export const BOARD_STAGES = ['Saved', 'Applied', 'Assessment', 'Interview', 'Offer'];
+export const BOARD_STAGES = ['Needs action', 'Applied', 'Interviewing', 'Offer'];
 
 export interface BoardCard {
   id: string;
@@ -143,14 +142,12 @@ export interface BoardCard {
 }
 
 export const BOARD_START: BoardCard[] = [
-  { id: 'fernwood', company: 'Fernwood', role: 'Product Systems Engineer', stage: 0, note: 'Saved from a careers page' },
-  { id: 'lumen', company: 'Lumen Works', role: 'Full-Stack Developer', stage: 0, note: 'Saved from Greenhouse' },
-  { id: 'northgate', company: 'Northgate', role: 'Platform Engineer', stage: 0, note: 'Saved from Ashby' },
-  { id: 'arcline', company: 'Arcline', role: 'Full-Stack Engineer', stage: 1, note: 'Submitted through Ashby' },
-  { id: 'kestrel', company: 'Kestrel Data', role: 'Infrastructure Specialist', stage: 1, note: 'Submitted on the careers page' },
-  { id: 'tidewater', company: 'Tidewater', role: 'Frontend Engineer', stage: 2, note: 'Due in 3 days' },
-  { id: 'meridian', company: 'Meridian Labs', role: 'Backend Platform Engineer', stage: 3, note: 'Tomorrow, 2:00 PM' },
-  { id: 'halcyon', company: 'Halcyon', role: 'Desktop App Engineer', stage: 4, note: 'Offer under review' },
+  { id: 'fernwood', company: 'Fernwood', role: 'Software Engineering Intern', stage: 0, note: 'Form paused at a CAPTCHA' },
+  { id: 'arcline', company: 'Arcline', role: 'Frontend Developer Intern', stage: 1, note: 'Reviewed and submitted' },
+  { id: 'kestrel', company: 'Kestrel Data', role: 'Data Analyst Intern', stage: 1, note: 'Follow up on Friday' },
+  { id: 'northgate', company: 'Northgate', role: 'SDE Intern', stage: 1, note: 'Online assessment due in 3 days' },
+  { id: 'meridian', company: 'Meridian Labs', role: 'Software Engineer I', stage: 2, note: 'Interview tomorrow, 2:00 PM' },
+  { id: 'halcyon', company: 'Halcyon', role: 'Full-Stack Developer', stage: 3, note: 'Offer letter to review' },
 ];
 
 export interface Plan {
@@ -230,11 +227,11 @@ export const SIGNUP = {
 export const FAQS: { q: string; a: string }[] = [
   {
     q: 'What is Nomadic?',
-    a: 'Nomadic is a desktop app that covers the whole job search. It teaches the skills for your target role, finds openings, fills in application forms and keeps track of every application, all in one place.',
+    a: 'Nomadic is a desktop app for Indian engineering students and freshers that covers the whole job search. It plans what to learn for your target role day by day, finds openings, fills in application forms for you to review and keeps track of every application, all in one place.',
   },
   {
     q: 'How does it work?',
-    a: 'Choose a target role and work through a roadmap of practice milestones. Nomadic then matches openings from company hiring sources to your profile, uses your saved details to fill in the repetitive parts of each application, and logs every application on your board.',
+    a: 'Answer a few questions about the role you want and the time you have, and Nomadic builds a week-by-week roadmap of study days with lessons, named LeetCode problems, quizzes and guided projects. It matches openings from company hiring pages to your skills, fills each application form from your saved details for you to review, and logs every application on your board.',
   },
   {
     q: 'Can I download it yet?',
@@ -242,23 +239,27 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Which operating systems does it run on?',
-    a: 'Nomadic is a native desktop app for Windows, macOS and Linux.',
+    a: 'Windows first. A macOS version follows after the beta.',
   },
   {
     q: 'Can Nomadic apply to jobs for me?',
-    a: 'It can handle the repetitive parts. In semi-automatic mode it fills in your saved details and you review each application before it goes out. In autonomous mode, available on Max, it works through applications that match your saved criteria. What it can do depends on the job portal and your settings.',
+    a: 'It does the typing, not the deciding. Nomadic opens the real form in your own browser, fills every field it can from your profile, resume and saved answers, and shows where each value came from. You edit what needs it and tick "I reviewed this"; only then is the application submitted. Nothing is ever submitted without your review, on any plan.',
   },
   {
     q: 'Where do the job listings come from?',
-    a: 'Directly from hiring sources: Greenhouse, Lever, Ashby, Internshala and supported company career pages.',
+    a: 'Directly from hiring sources: Greenhouse, Lever, Ashby, Internshala and supported company career pages, filtered to roles open to candidates in India.',
+  },
+  {
+    q: 'What can I learn with it?',
+    a: 'Roadmaps for frontend, backend, full-stack, data, machine learning, product, design and DevOps roles, with DSA, core CS and aptitude mixed in. Practice has around 1,800 company-tagged coding problems and interview questions, and the Projects library has about 4,100 guided projects with starter code, hints and checks.',
   },
   {
     q: 'Where is my data stored?',
-    a: 'On your computer. Your profile, resumes, notes and application history live in a local SQLite database. Only your account ID, plan status and bookmarked job links sync to our server so your plan keeps working.',
+    a: 'On your computer first: your profile, resumes, saved jobs, applications and learning progress live in a local database. They also sync to your account on servers in Mumbai, so they survive a reinstall. The privacy section above lists exactly what goes where.',
   },
   {
     q: 'Can I use it only for learning, or only for job hunting?',
-    a: 'Yes to both. The learning roadmaps work on their own, and so do job discovery, application tracking and automation if your skills and portfolio are already in place.',
+    a: 'Yes to both. Pick a learning-only or job-search-only workspace during setup, and change it any time in Settings.',
   },
   {
     q: 'What do the plans cost?',

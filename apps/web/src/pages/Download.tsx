@@ -6,10 +6,10 @@ import ComingSoon from '../components/ComingSoon';
 const delay = (ms: number) => ({ '--d': `${ms}ms` } as CSSProperties);
 
 const INCLUDED = [
-  { title: 'Learn', body: 'Roadmaps, practice projects, company question sets and textbooks.' },
-  { title: 'Find', body: 'Openings read straight from company hiring pages, scored against your profile.' },
-  { title: 'Apply', body: 'Application forms filled from your saved details, with you in control of submitting.' },
-  { title: 'Track', body: 'One board for every save, submission, assessment, interview and offer.' },
+  { title: 'Learn', body: 'A day-by-day roadmap for your target role, coding practice with company question sets, and about 4,100 guided projects.' },
+  { title: 'Find', body: 'Openings read straight from company hiring pages, open to candidates in India and scored against your skills.' },
+  { title: 'Apply', body: 'Forms filled in your own browser from your saved details. You review every field before anything is submitted.' },
+  { title: 'Track', body: 'One board for every application, with status history, notes and follow-up reminders.' },
 ];
 
 export default function Download() {
