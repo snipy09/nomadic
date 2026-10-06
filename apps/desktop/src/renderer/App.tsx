@@ -5,8 +5,8 @@ import {
 } from './types';
 import { Onboarding } from './features/onboarding/Onboarding';
 import { AppShell, Button, EmptyState, PageHeader, useTheme } from '@nomadic/ui';
-import { TopBar } from './components/TopBar';
 import { Sidebar } from './components/Sidebar';
+import { GO_WINDOW_MS, isTypingTarget, tabForGoKey } from './components/shell/shortcuts';
 import { LearnView } from './features/learn/LearnView';
 import { inferRole } from './features/feed/match';
 import { UpgradeDialog } from './features/billing/UpgradeDialog';
@@ -22,6 +22,7 @@ import { AuthScreen } from './features/auth/AuthScreen';
 import { useSessionRestore } from './features/auth/useSessionRestore';
 import { HelpView } from './features/help/HelpView';
 import { AnswersView } from './features/answers/AnswersView';
+import { HomeView } from './features/home/HomeView';
 import { UpdateRequiredScreen } from './features/updates/UpdateRequiredScreen';
 import { WhatsNewDialog } from './features/updates/WhatsNewDialog';
 import { useUpdatePolicy } from './features/updates/useUpdater';
@@ -33,6 +34,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { NomadicAssistant } from './components/NomadicAssistant';
 import { isTabEnabled, FEATURES } from './features';
 import { prefs } from './store/preferences';
+import { normalizeTier } from './utils/tier-utils';
 import { useAppStore } from './store/appStore';
 export default function App() {
   // Current user state (session pointer persisted via the preferences module)
@@ -58,6 +60,8 @@ export default function App() {
   const setWantsLogin = useAppStore((s) => s.setWantsLogin);
   const activeTab = useAppStore((s) => s.activeTab);
   const setActiveTab = useAppStore((s) => s.setActiveTab);
+  const tabIntent = useAppStore((s) => s.tabIntent);
+  const setTabIntent = useAppStore((s) => s.setTabIntent);
   const outreachTargetCompany = useAppStore((s) => s.outreachTargetCompany);
   const setOutreachTargetCompany = useAppStore((s) => s.setOutreachTargetCompany);
   const profile = useAppStore((s) => s.profile);
@@ -139,25 +143,40 @@ export default function App() {
 
   // A disabled feature's tab (e.g. a restored preference) falls back to the default view.
   useEffect(() => {
-    if (!isTabEnabled(activeTab)) setActiveTab(activeTrack === 'seeker' ? 'feed' : 'learner-roadmaps');
+    if (!isTabEnabled(activeTab)) setActiveTab('home');
   }, [activeTab, activeTrack]);
 
   useEffect(() => {
     loadProfileFromDb();
   }, []);
 
+  // Ctrl/Cmd+K opens search; G then a letter jumps to a page; [ collapses the sidebar (not while typing).
+  const goPending = React.useRef(0);
+  const navigateRef = React.useRef<(tab: TabType) => void>(() => {});
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setShowCommandPalette((prev) => !prev);
+        return;
       }
+      if (e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented || isTypingTarget(e.target)) return;
+      if (document.querySelector('[role="dialog"]')) return;
+      if (Date.now() - goPending.current < GO_WINDOW_MS) {
+        goPending.current = 0;
+        const tab = tabForGoKey(e.key);
+        if (tab && isTabEnabled(tab)) { e.preventDefault(); navigateRef.current(tab); }
+        return;
+      }
+      if (e.key === 'g' || e.key === 'G') { goPending.current = Date.now(); return; }
+      if (e.key === '[') { e.preventDefault(); toggleSidebar(); }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const handleNavigate = (newTab: TabType) => {
+  const handleNavigate = (newTab: TabType, intent?: string) => {
+    setTabIntent(intent ?? null);
     setActiveTab(newTab);
     if (['learner-roadmaps', 'learner-resources', 'learner-interview-prep', 'learner-projects'].includes(newTab)) {
       setActiveTrack('learner');
@@ -172,6 +191,8 @@ export default function App() {
       prefs.setLastTab(activeTrack, newTab);
     }
   };
+
+  navigateRef.current = handleNavigate;
 
   const handleLoginSuccess = async (user: AppUser) => {
     void queryClient.invalidateQueries({ queryKey: ENTITLEMENTS_KEY });
@@ -190,10 +211,9 @@ export default function App() {
       if (user.role === 'admin') {
         setActiveTab('admin-overview');
       } else {
-        setActiveTrack('learner');
-        setActiveTab('learner-roadmaps');
+        setActiveTab('home');
       }
-      addLog(`[Auth] Session active (${user.email}). Navigated to Learner Roadmaps.`);
+      addLog(`[Auth] Session active (${user.email}).`);
     } else {
       setShowOnboarding(true);
       addLog(`[Auth] New user (${user.email}) registered. Direct to onboarding.`);
@@ -213,8 +233,7 @@ export default function App() {
         (api as any).authLogout();
       }
     } catch {}
-    setActiveTrack('learner');
-    setActiveTab('learner-roadmaps');
+    setActiveTab('home');
     addLog('[Auth] Signed out successfully.');
   };
 
@@ -341,13 +360,8 @@ export default function App() {
               prefs.setUser(updated);
             }
           } catch {}
-          if (mode === 'seeker_only') {
-            setActiveTrack('seeker');
-            setActiveTab('feed');
-          } else {
-            setActiveTrack('learner');
-            setActiveTab('learner-roadmaps');
-          }
+          setActiveTrack(mode === 'seeker_only' ? 'seeker' : 'learner');
+          setActiveTab('home');
         }}
       />
     );
@@ -365,14 +379,8 @@ export default function App() {
           currentUser={currentUser}
           onToggleCollapsed={toggleSidebar}
           onOpenUpgrade={() => handleOpenUpgrade()}
-        />
-      }
-      topbar={
-        <TopBar
-          currentUser={currentUser}
+          onOpenSearch={() => setShowCommandPalette(true)}
           onLogout={handleLogout}
-          onNavigate={handleNavigate}
-          onOpenCommandPalette={() => setShowCommandPalette(true)}
           theme={theme}
           onThemeChange={setTheme}
         />
@@ -391,8 +399,13 @@ export default function App() {
               ? 'h-full flex-1 flex flex-col overflow-hidden'
               : 'max-w-6xl mx-auto animate-in fade-in duration-150 ease-out'
           }`}>
+            {activeTab === 'home' && (
+              <HomeView profile={profile} currentUser={currentUser} workspaceMode={workspaceMode} onNavigate={handleNavigate} />
+            )}
+
             {activeTab === 'learner-roadmaps' && (
               <LearnView
+                initialTab={tabIntent}
                 currentUser={currentUser}
                 suggestedRole={inferRole(profile.desiredTitle)}
                 onOpenUpgrade={handleOpenUpgrade}
@@ -489,6 +502,7 @@ export default function App() {
                 onLogout={handleLogout}
                 onRerunOnboarding={() => setShowOnboarding(true)}
                 onOpenUpgrade={() => handleOpenUpgrade('')}
+                initialSection={tabIntent}
               />
             )}
 
@@ -496,19 +510,9 @@ export default function App() {
               <AdminView currentUser={currentUser} />
             )}
 
-            {/* Safe Fallback: if activeTab does not match any known route, render FeedView */}
-            {!['learner-roadmaps', 'learner-resources', 'learner-interview-prep', 'learner-projects', 'opportunities', 'feed', 'outreach', 'applications', 'logs', 'help', 'answers', 'profile', 'settings'].includes(activeTab) && !Boolean(activeTab && activeTab.startsWith('admin')) && (
-              <FeedView
-                profile={profile}
-                onUpdateProfile={setProfile}
-                onLog={addLog}
-                onNavigateToOutreach={(company) => {
-                  setOutreachTargetCompany(company);
-                  setActiveTab('outreach');
-                }}
-                currentUser={currentUser}
-                onOpenUpgrade={handleOpenUpgrade}
-              />
+            {/* Safe fallback: an unknown tab (e.g. a stale preference) shows Home */}
+            {!['home', 'learner-roadmaps', 'learner-resources', 'learner-interview-prep', 'learner-projects', 'opportunities', 'feed', 'outreach', 'applications', 'logs', 'help', 'answers', 'profile', 'settings'].includes(activeTab) && !activeTab.startsWith('admin') && (
+              <HomeView profile={profile} currentUser={currentUser} workspaceMode={workspaceMode} onNavigate={handleNavigate} />
             )}
           </div>
 
@@ -525,6 +529,11 @@ export default function App() {
             onClose={() => setShowCommandPalette(false)}
             onSelectTab={handleNavigate}
             isAdmin={currentUser?.role === 'admin'}
+            theme={theme}
+            onThemeChange={setTheme}
+            onToggleSidebar={toggleSidebar}
+            onOpenUpgrade={normalizeTier(currentUser?.tier || currentUser?.subscription_tier) === 'max' ? undefined : () => handleOpenUpgrade()}
+            onLogout={handleLogout}
           />
         )}
 

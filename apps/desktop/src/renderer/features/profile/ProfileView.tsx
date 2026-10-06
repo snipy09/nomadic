@@ -33,13 +33,15 @@ interface ProfileViewProps {
   onRerunOnboarding?: () => void;
   onOpenUpgrade?: () => void;
   saving?: boolean;
+  /** Section to open first (e.g. 'resumes'). */
+  initialSection?: string | null;
 }
 
 const fromSaved = () => ({ workspaceMode: prefs.getWorkspaceMode(), opportunityType: prefs.getOppType() });
 
-export const ProfileView: React.FC<ProfileViewProps> = ({ profile, onSaveProfile, onLog, currentUser, onLogout, onRerunOnboarding, onOpenUpgrade, onNavigateTab }) => {
+export const ProfileView: React.FC<ProfileViewProps> = ({ profile, onSaveProfile, onLog, currentUser, onLogout, onRerunOnboarding, onOpenUpgrade, onNavigateTab, initialSection }) => {
   const { toast } = useToast();
-  const [section, setSection] = useState<Section>('profile');
+  const [section, setSection] = useState<Section>(() => NAV.find((n) => n.id === initialSection)?.id ?? 'profile');
   const [form, setForm] = useState<ProfileForm>(() => toForm(profile, currentUser, fromSaved()));
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);

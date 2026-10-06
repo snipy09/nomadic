@@ -53,6 +53,8 @@ interface LearnViewProps {
   suggestedRole?: string;
   onOpenUpgrade?: (feature?: string) => void;
   onLog?: (msg: string) => void;
+  /** Which tab to open first when a roadmap exists ('path', 'today' or 'progress'). */
+  initialTab?: string | null;
 }
 
 type Tab = 'path' | 'today' | 'progress';
@@ -73,7 +75,7 @@ const TABS: Array<{ value: Tab; label: string; icon: React.ReactNode }> = [
 const isTab = (name: string): name is Tab => TABS.some((t) => t.value === name);
 
 /** Learn v2: page-by-page intake → review → a week-by-week path of days, Today and Progress. */
-export function LearnView({ currentUser, suggestedRole, onOpenUpgrade, onLog }: LearnViewProps) {
+export function LearnView({ currentUser, suggestedRole, onOpenUpgrade, onLog, initialTab }: LearnViewProps) {
   const data = useLearning();
   const { toast } = useToast();
   const [screen, setScreen] = useState<Screen | null>(null);
@@ -112,7 +114,7 @@ export function LearnView({ currentUser, suggestedRole, onOpenUpgrade, onLog }: 
   useEffect(() => {
     if (data.status !== 'ready' || screen) return;
     if (data.draft) setScreen({ name: 'review' });
-    else if (roadmap && schedule) setScreen({ name: 'path' });
+    else if (roadmap && schedule) setScreen({ name: initialTab && isTab(initialTab) ? initialTab : 'path' });
     else setScreen({ name: 'intake' });
   }, [data.status, data.draft, roadmap, schedule, screen]);
 

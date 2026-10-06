@@ -9,6 +9,11 @@ export interface Shortcut {
 
 export const SHORTCUTS: Shortcut[] = [
   { keys: ['Ctrl', 'K'], action: 'Open search and commands', where: 'Anywhere (⌘ K on macOS)' },
+  { keys: ['G', 'H'], action: 'Go to Home', where: 'Anywhere outside a text field' },
+  { keys: ['G', 'L'], action: 'Go to Learn (P Practice, R Projects)', where: 'Anywhere outside a text field' },
+  { keys: ['G', 'J'], action: 'Go to Job board (A Applications, W Answers)', where: 'Anywhere outside a text field' },
+  { keys: ['G', 'S'], action: 'Go to Settings', where: 'Anywhere outside a text field' },
+  { keys: ['['], action: 'Collapse or expand the sidebar', where: 'Anywhere outside a text field' },
   { keys: ['↑', '↓'], action: 'Move between results', where: 'Search and commands' },
   { keys: ['Home', 'End'], action: 'First or last result', where: 'Search and commands' },
   { keys: ['Enter'], action: 'Run the selected command', where: 'Search and commands' },

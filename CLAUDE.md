@@ -343,6 +343,16 @@ checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification
   (selects keep their content width): use them on new screens. Job board: no stat cards, tabs All/Jobs/Internships/Best
   matches/Saved/Hidden, simpler cards (source moved to the drawer). Projects: no hero banner, empty type chips hidden.
   Practice: weak-topics column only when there are weak topics. Learn path: today card first, one combined progress card.
+- **v1.3.0 Home + modern shell** (6 Oct 2026, on `main`, not packaged yet): **Home** (`features/home/`: `HomeView`,
+  `homeLogic.ts` setup checklist by workspace mode, `useLearnSummary.ts` read-only Learn summary) is the landing page after
+  sign-in/onboarding and the fallback route; "Get set up" checklist (profile, roadmap, resume, common answers, first
+  application; hide stored by `prefs.setHomeChecklistHidden`), today's learning, applications + due follow-ups, best
+  matches. No top bar any more (`components/TopBar.tsx` deleted): the sidebar holds logo + collapse, search (Ctrl+K), Home,
+  the groups, Settings/Help/Admin and the account menu at the bottom (`UserMenu variant="sidebar"|"compact"`, opens
+  upwards, has Activity log and Upgrade plan). Deep links: `handleNavigate(tab, intent)` sets store `tabIntent`
+  (`LearnView initialTab`, `ProfileView initialSection`). Keyboard: G then H/L/P/R/J/A/W/S jumps to a page, `[` toggles
+  the sidebar (`components/shell/shortcuts.ts`, ignored while typing or with a dialog open); the command palette groups
+  results, shows shortcuts and has theme/sidebar/upgrade/sign-out actions. Global focus outline uses the `--nm-focus` token.
 - Next most useful work: owner action 0 (Learn v2 go-live), then owner actions in section 7 (consent screen, Resend domain, key rotation),
   then a live end-to-end pass (Google sign-in, reviewed submit, AI feedback), then the code follow-ups in section 7.
 

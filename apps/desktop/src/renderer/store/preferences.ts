@@ -23,6 +23,7 @@ const K = {
   oppWaitlist: 'nomadic_opp_board_waitlist',
   sidebarCollapsed: 'nomadic_sidebar_collapsed',
   applicationsView: 'nomadic_applications_view',
+  homeChecklistHidden: 'nomadic_home_checklist_hidden',
 } as const;
 
 export const prefs = {
@@ -68,6 +69,8 @@ export const prefs = {
   setSidebarCollapsed: (v: boolean) => write(K.sidebarCollapsed, v ? 'true' : 'false'),
   getApplicationsView: (): 'board' | 'list' => (read(K.applicationsView) === 'list' ? 'list' : 'board'),
   setApplicationsView: (v: 'board' | 'list') => write(K.applicationsView, v),
+  getHomeChecklistHidden: () => read(K.homeChecklistHidden) === 'true',
+  setHomeChecklistHidden: (v: boolean) => write(K.homeChecklistHidden, v ? 'true' : null),
   getOppWaitlist: () => read(K.oppWaitlist) === 'true',
   setOppWaitlist: () => write(K.oppWaitlist, 'true'),
 };

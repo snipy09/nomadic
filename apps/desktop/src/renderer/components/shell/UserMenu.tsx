@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, History, LogOut, Moon, Settings as SettingsIcon, Sun, Monitor } from 'lucide-react';
+import { ChevronDown, ChevronsUpDown, History, LogOut, Moon, Settings as SettingsIcon, Sun, Monitor, Zap } from 'lucide-react';
 import { Badge, cn, focusRing, type ThemePreference } from '@nomadic/ui';
 import { AppUser, TabType } from '../../types';
+import { getPlan } from '@nomadic/config';
 import { getTierBadgeProps, normalizeTier } from '../../utils/tier-utils';
 
 interface UserMenuProps {
@@ -10,6 +11,9 @@ interface UserMenuProps {
   onLogout: () => void;
   theme: ThemePreference;
   onThemeChange: (t: ThemePreference) => void;
+  /** `sidebar`: full-width row at the bottom of the sidebar, opening upwards; `compact` shows only the avatar. */
+  variant?: 'topbar' | 'sidebar' | 'compact';
+  onOpenUpgrade?: () => void;
 }
 
 const THEMES: Array<{ id: ThemePreference; label: string; icon: React.ReactNode }> = [
@@ -25,12 +29,14 @@ const itemClass = cn(
 );
 
 /** Account dropdown: WAI-ARIA menu button (Enter/Space/Down opens, arrows move, Escape closes and returns focus). */
-export const UserMenu: React.FC<UserMenuProps> = ({ user, onNavigate, onLogout, theme, onThemeChange }) => {
+export const UserMenu: React.FC<UserMenuProps> = ({ user, onNavigate, onLogout, theme, onThemeChange, variant = 'topbar', onOpenUpgrade }) => {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const tier = getTierBadgeProps(normalizeTier(user?.tier || user?.subscription_tier));
-  const initial = user?.fullName ? user.fullName[0].toUpperCase() : 'N';
+  const initial = (user?.fullName || user?.email || 'N')[0].toUpperCase();
+  const isMax = normalizeTier(user?.tier || user?.subscription_tier) === 'max';
+  const inSidebar = variant !== 'topbar';
 
   useEffect(() => {
     if (!open) return;
@@ -65,16 +71,35 @@ export const UserMenu: React.FC<UserMenuProps> = ({ user, onNavigate, onLogout, 
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-label={variant === 'compact' ? `Account: ${user?.fullName || user?.email || 'Nomadic user'}` : undefined}
         onClick={() => setOpen((v) => !v)}
-        onKeyDown={(e) => { if (e.key === 'ArrowDown' && !open) { e.preventDefault(); setOpen(true); } }}
-        className={cn('flex h-8 items-center gap-2 rounded-md border border-line pl-1 pr-2 text-body text-fg hover:bg-surface-hover', focusRing)}
+        onKeyDown={(e) => { if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && !open) { e.preventDefault(); setOpen(true); } }}
+        className={cn(
+          variant === 'topbar' && 'flex h-8 items-center gap-2 rounded-md border border-line pl-1 pr-2 text-body text-fg hover:bg-surface-hover',
+          variant === 'sidebar' && 'flex h-11 w-full items-center gap-2.5 rounded-md px-1.5 text-left text-body text-fg hover:bg-surface-hover',
+          variant === 'compact' && 'mx-auto flex size-9 items-center justify-center rounded-md hover:bg-surface-hover',
+          focusRing,
+        )}
       >
-        <span className="flex size-6 items-center justify-center rounded bg-accent text-caption font-strong text-accent-fg" aria-hidden="true">{initial}</span>
-        <span className="hidden max-w-[96px] truncate font-strong md:inline">{user?.fullName ? user.fullName.split(' ')[0] : 'Account'}</span>
-        <ChevronDown className="size-3 text-fg-subtle" aria-hidden="true" />
+        <span className={cn('flex shrink-0 items-center justify-center rounded bg-accent font-strong text-accent-fg', inSidebar ? 'size-7 text-label' : 'size-6 text-caption')} aria-hidden="true">{initial}</span>
+        {variant === 'topbar' && (
+          <>
+            <span className="hidden max-w-[96px] truncate font-strong md:inline">{user?.fullName ? user.fullName.split(' ')[0] : 'Account'}</span>
+            <ChevronDown className="size-3 text-fg-subtle" aria-hidden="true" />
+          </>
+        )}
+        {variant === 'sidebar' && (
+          <>
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate font-strong leading-tight">{user?.fullName || user?.email?.split('@')[0] || 'Account'}</span>
+              <span className="truncate text-caption text-fg-subtle">{getPlan(normalizeTier(user?.tier || user?.subscription_tier)).name} plan</span>
+            </span>
+            <ChevronsUpDown className="size-3.5 shrink-0 text-fg-subtle" aria-hidden="true" />
+          </>
+        )}
       </button>
       {open && (
-        <div role="menu" aria-label="Account" onKeyDown={onMenuKey} className="absolute right-0 top-full z-dropdown mt-2 w-60 rounded-lg border border-line bg-surface-raised p-1.5 shadow-e3">
+        <div role="menu" aria-label="Account" onKeyDown={onMenuKey} className={cn('absolute z-dropdown w-60 rounded-lg border border-line bg-surface-raised p-1.5 shadow-e3', inSidebar ? 'bottom-full left-0 mb-2' : 'right-0 top-full mt-2')}>
           <div className="border-b border-line px-2 pb-2 pt-1">
             <div className="truncate text-body font-strong text-fg">{user?.fullName || 'Nomadic user'}</div>
             <div className="truncate text-caption text-fg-subtle">{user?.email}</div>
@@ -89,6 +114,11 @@ export const UserMenu: React.FC<UserMenuProps> = ({ user, onNavigate, onLogout, 
           <button role="menuitem" type="button" className={itemClass} onClick={() => { close(false); onNavigate('logs'); }}>
             <History /> Activity log
           </button>
+          {!isMax && onOpenUpgrade && (
+            <button role="menuitem" type="button" className={cn(itemClass, 'text-accent hover:text-accent')} onClick={() => { close(false); onOpenUpgrade(); }}>
+              <Zap /> Upgrade plan
+            </button>
+          )}
           <div role="group" aria-label="Theme" className="flex gap-1 px-1 py-1.5">
             {THEMES.map((t) => (
               <button

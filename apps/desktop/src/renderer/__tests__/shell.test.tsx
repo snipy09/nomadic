@@ -61,6 +61,47 @@ describe('CommandPalette', () => {
   });
 });
 
+describe('CommandPalette actions', () => {
+  it('shows go-to shortcuts and runs theme, sidebar and sign-out actions', async () => {
+    const onThemeChange = vi.fn();
+    const onToggleSidebar = vi.fn();
+    const onLogout = vi.fn();
+    render(
+      <UIProvider>
+        <CommandPalette isOpen onClose={() => {}} onSelectTab={() => {}} theme="light" onThemeChange={onThemeChange} onToggleSidebar={onToggleSidebar} onLogout={onLogout} />
+      </UIProvider>,
+    );
+    const jobBoard = screen.getByRole('option', { name: /go to job board/i });
+    expect(jobBoard.textContent).toMatch(/GJ$/);
+    expect(screen.queryByRole('option', { name: /use light theme/i })).toBeNull();
+    await userEvent.click(screen.getByRole('option', { name: /use dark theme/i }));
+    expect(onThemeChange).toHaveBeenCalledWith('dark');
+    await userEvent.click(screen.getByRole('option', { name: /toggle sidebar/i }));
+    expect(onToggleSidebar).toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('option', { name: /sign out/i }));
+    expect(onLogout).toHaveBeenCalled();
+  });
+});
+
+describe('Sidebar account menu', () => {
+  it('opens upwards from the sidebar with settings, activity and sign out', async () => {
+    const onSelect = vi.fn();
+    const onLogout = vi.fn();
+    render(
+      <UIProvider>
+        <AppShell sidebar={<Sidebar activeTab="home" onSelectTab={onSelect} onToggleCollapsed={() => {}} onLogout={onLogout} currentUser={{ fullName: 'Asha Rao', email: 'a@b.co', tier: 'free' } as any} />}>x</AppShell>
+      </UIProvider>,
+    );
+    expect(screen.getByRole('button', { name: /^home$/i }).getAttribute('aria-current')).toBe('page');
+    await userEvent.click(screen.getByRole('button', { name: /asha rao/i }));
+    await userEvent.click(screen.getByRole('menuitem', { name: /activity log/i }));
+    expect(onSelect).toHaveBeenCalledWith('logs');
+    await userEvent.click(screen.getByRole('button', { name: /asha rao/i }));
+    await userEvent.click(screen.getByRole('menuitem', { name: /sign out/i }));
+    expect(onLogout).toHaveBeenCalled();
+  });
+});
+
 describe('UserMenu', () => {
   it('opens as a menu, closes on Escape and returns focus', async () => {
     render(

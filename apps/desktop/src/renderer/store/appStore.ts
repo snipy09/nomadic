@@ -29,6 +29,8 @@ interface AppState {
   workspaceMode: WorkspaceMode;
   activeTrack: PersonaTrack;
   activeTab: TabType;
+  /** A section to open inside the next page (e.g. 'resumes' in Settings, 'today' in Learn); read once and cleared. */
+  tabIntent: string | null;
   profile: MasterProfile;
   showUpgradeModal: boolean;
   upgradeFeature: string;
@@ -44,6 +46,7 @@ interface AppState {
   setWorkspaceMode: (u: Upd<WorkspaceMode>) => void;
   setActiveTrack: (u: Upd<PersonaTrack>) => void;
   setActiveTab: (u: Upd<TabType>) => void;
+  setTabIntent: (u: Upd<string | null>) => void;
   setProfile: (u: Upd<MasterProfile>) => void;
   setShowUpgradeModal: (u: Upd<boolean>) => void;
   setUpgradeFeature: (u: Upd<string>) => void;
@@ -71,7 +74,8 @@ export const useAppStore = create<AppState>((set) => {
     currentUser: prefs.getUser(),
     workspaceMode: prefs.getWorkspaceMode() ?? 'unified',
     activeTrack: initialTrack(),
-    activeTab: prefs.getLastTab(prefs.getTrack() ?? 'learner') ?? 'learner-roadmaps',
+    activeTab: prefs.getLastTab(prefs.getTrack() ?? 'learner') ?? 'home',
+    tabIntent: null,
     profile: emptyProfile(),
     showUpgradeModal: false,
     upgradeFeature: '',
@@ -87,6 +91,7 @@ export const useAppStore = create<AppState>((set) => {
     setWorkspaceMode: field('workspaceMode'),
     setActiveTrack: field('activeTrack'),
     setActiveTab: field('activeTab'),
+    setTabIntent: field('tabIntent'),
     setProfile: field('profile'),
     setShowUpgradeModal: field('showUpgradeModal'),
     setUpgradeFeature: field('upgradeFeature'),

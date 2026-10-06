@@ -69,17 +69,21 @@ export const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps
         )}
         {...rest}
       >
-        <div className={cn('flex items-start gap-3 px-5 pt-4', hideTitle ? 'pb-0' : 'pb-3')}>
-          <div className="flex min-w-0 flex-1 flex-col gap-1 pt-0.5">
-            <DialogPrimitive.Title className={cn('text-heading font-strong text-fg', hideTitle && 'sr-only')}>
-              {title}
-            </DialogPrimitive.Title>
-            {description && (
-              <DialogPrimitive.Description className="text-body text-fg-muted">{description}</DialogPrimitive.Description>
-            )}
+        {hideTitle && hideClose ? (
+          <DialogPrimitive.Title className="sr-only">{title}</DialogPrimitive.Title>
+        ) : (
+          <div className={cn('flex items-start gap-3 px-5 pt-4', hideTitle ? 'pb-0' : 'pb-3')}>
+            <div className="flex min-w-0 flex-1 flex-col gap-1 pt-0.5">
+              <DialogPrimitive.Title className={cn('text-heading font-strong text-fg', hideTitle && 'sr-only')}>
+                {title}
+              </DialogPrimitive.Title>
+              {description && (
+                <DialogPrimitive.Description className="text-body text-fg-muted">{description}</DialogPrimitive.Description>
+              )}
+            </div>
+            {!hideClose && <CloseButton className="-mr-2" />}
           </div>
-          {!hideClose && <CloseButton className="-mr-2" />}
-        </div>
+        )}
         <div className={cn('min-h-0 flex-1 overflow-y-auto px-5 pb-5', bodyClassName)}>{children}</div>
         {footer && <DialogFooter>{footer}</DialogFooter>}
       </DialogPrimitive.Content>
