@@ -103,6 +103,20 @@ describe('Sidebar account menu', () => {
 });
 
 describe('UserMenu', () => {
+  it('compact (collapsed sidebar) renders the menu outside the clipping sidebar', async () => {
+    const { container } = render(
+      <div style={{ overflow: 'hidden', width: 56 }}>
+        <UserMenu variant="compact" user={{ fullName: 'Asha Rao', email: 'a@b.co', role: 'user', tier: 'free' } as any} onNavigate={() => {}} onLogout={() => {}} theme="light" onThemeChange={() => {}} />
+      </div>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /account: asha rao/i }));
+    const menu = screen.getByRole('menu', { name: /account/i });
+    expect(container.contains(menu)).toBe(false);
+    expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: /profile/i }));
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
   it('opens as a menu, closes on Escape and returns focus', async () => {
     render(
       <UIProvider>
