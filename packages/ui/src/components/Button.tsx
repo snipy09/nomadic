@@ -6,23 +6,23 @@ import { Spinner } from './Spinner';
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'subtle' | 'danger';
 
 export const buttonVariants: Record<ButtonVariant, string> = {
-  primary: 'bg-accent text-accent-fg hover:bg-accent-hover active:bg-accent-active shadow-e1',
-  secondary:
-    'bg-surface text-fg border border-line-strong shadow-e1 hover:bg-surface-hover active:bg-surface-active',
-  ghost: 'text-fg-muted hover:bg-surface-hover hover:text-fg active:bg-surface-active',
-  subtle: 'bg-accent-subtle text-accent-subtle-fg hover:bg-accent-subtle/70 active:bg-accent-subtle/50',
-  danger: 'bg-danger text-white hover:bg-danger/90 active:bg-danger/80 shadow-e1',
+  // Apple button styles: filled (tint), gray "bordered" fill, plain, tinted, destructive.
+  primary: 'bg-accent text-accent-fg hover:bg-accent-hover active:bg-accent-active shadow-[inset_0_1px_0_rgb(255_255_255/0.12),0_1px_2px_rgb(0_0_0/0.12)]',
+  secondary: 'bg-fg/[0.06] text-fg hover:bg-fg/[0.09] active:bg-fg/[0.13]',
+  ghost: 'text-fg-muted hover:bg-fg/[0.06] hover:text-fg active:bg-fg/[0.1]',
+  subtle: 'bg-accent/10 text-accent-subtle-fg hover:bg-accent/15 active:bg-accent/20',
+  danger: 'bg-danger text-white hover:bg-danger/90 active:bg-danger/80',
 };
 
 export const buttonSizes: Record<Size, string> = {
-  sm: 'h-ctl-sm px-2.5 gap-1.5 text-label [&_svg]:size-3.5',
-  md: 'h-ctl-md px-3 gap-2 text-body [&_svg]:size-4',
-  lg: 'h-ctl-lg px-4 gap-2 text-body-lg [&_svg]:size-4',
+  sm: 'h-ctl-sm px-3 gap-1.5 text-label [&_svg]:size-3.5',
+  md: 'h-ctl-md px-3.5 gap-2 text-body [&_svg]:size-4',
+  lg: 'h-ctl-lg px-5 gap-2 text-body-lg [&_svg]:size-4',
 };
 
 export const buttonBase = cn(
   'relative inline-flex select-none items-center justify-center whitespace-nowrap rounded-md font-strong',
-  'transition-[background-color,border-color,color,box-shadow] duration-fast ease-standard',
+  'transition-[background-color,border-color,color,box-shadow,transform] duration-fast ease-standard active:scale-[0.98]',
   'disabled:pointer-events-none disabled:opacity-50 aria-disabled:cursor-not-allowed',
   '[&_svg]:shrink-0',
   focusRing,

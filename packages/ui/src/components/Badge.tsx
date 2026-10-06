@@ -12,7 +12,7 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const subtle: Record<Tone, string> = {
-  neutral: 'bg-surface-active text-fg-muted',
+  neutral: 'bg-fg/[0.06] text-fg-muted',
   accent: 'bg-accent-subtle text-accent-subtle-fg',
   success: 'bg-success-subtle text-success-fg',
   warning: 'bg-warning-subtle text-warning-fg',
@@ -29,7 +29,7 @@ const solid: Record<Tone, string> = {
   neutral: 'bg-fg text-canvas',
   accent: 'bg-accent text-accent-fg',
   success: 'bg-success text-canvas',
-  warning: 'bg-warning text-[#0A0F2C]',
+  warning: 'bg-warning text-black',
   danger: 'bg-danger text-white',
 };
 const dotColor: Record<Tone, string> = {
@@ -49,7 +49,7 @@ export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(function Badg
     <span
       ref={ref}
       className={cn(
-        'inline-flex max-w-full shrink-0 items-center gap-1 whitespace-nowrap rounded font-regular tabular-nums',
+        'inline-flex max-w-full shrink-0 items-center gap-1 whitespace-nowrap rounded-full font-regular tabular-nums',
         size === 'sm' ? 'h-4 px-1 text-[10px] leading-4' : 'h-5 px-1.5 text-label',
         variant === 'outline' && 'border',
         variant === 'subtle' && subtle[tone],

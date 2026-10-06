@@ -12,15 +12,20 @@ import { CrashReportsCard } from '../help/CrashReportsCard';
 
 type Section = 'profile' | 'preferences' | 'resumes' | 'answers' | 'portals' | 'account' | 'data' | 'updates';
 
+/** macOS System Settings style: each section has a small coloured icon tile. */
+const tile = (bg: string, icon: React.ReactNode) => (
+  <span className={`flex size-6 items-center justify-center rounded-[7px] text-white shadow-[inset_0_0_0_0.5px_rgb(0_0_0/0.08)] [&_svg]:!size-3.5 ${bg}`}>{icon}</span>
+);
+
 const NAV: Array<{ id: Section; label: string; icon: React.ReactNode }> = [
-  { id: 'profile', label: 'Profile', icon: <User /> },
-  { id: 'preferences', label: 'Workspace', icon: <Settings2 /> },
-  { id: 'resumes', label: 'Resumes', icon: <FileText /> },
-  { id: 'answers', label: 'Application answers', icon: <BookOpen /> },
-  { id: 'portals', label: 'Portal sign-ins', icon: <Globe /> },
-  { id: 'account', label: 'Account', icon: <ShieldCheck /> },
-  { id: 'data', label: 'Data & privacy', icon: <Database /> },
-  { id: 'updates', label: 'Updates', icon: <ArrowDownToLine /> },
+  { id: 'profile', label: 'Profile', icon: tile('bg-accent', <User />) },
+  { id: 'preferences', label: 'Workspace', icon: tile('bg-fg-subtle', <Settings2 />) },
+  { id: 'resumes', label: 'Resumes', icon: tile('bg-warning', <FileText />) },
+  { id: 'answers', label: 'Application answers', icon: tile('bg-success', <BookOpen />) },
+  { id: 'portals', label: 'Portal sign-ins', icon: tile('bg-accent', <Globe />) },
+  { id: 'account', label: 'Account', icon: tile('bg-fg-subtle', <ShieldCheck />) },
+  { id: 'data', label: 'Data & privacy', icon: tile('bg-danger', <Database />) },
+  { id: 'updates', label: 'Updates', icon: tile('bg-fg-subtle', <ArrowDownToLine />) },
 ];
 
 interface ProfileViewProps {
@@ -89,10 +94,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile, onSaveProfile
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex items-center gap-4 border-b border-line bg-surface px-6 py-3">
+      <header className="flex items-center gap-4 border-b border-line px-6 py-4">
         <ProgressRing value={percent} size={40} showValue label={`Profile ${percent}% complete`} />
         <div className="min-w-0 flex-1">
-          <h1 className="text-title font-strong text-fg">Profile &amp; settings</h1>
+          <h1 className="text-headline font-bold text-fg">Profile &amp; settings</h1>
           <p className="truncate text-caption text-fg-subtle">
             {missing.length ? `Add ${missing.join(', ').toLowerCase()} to complete your profile.` : 'Your profile is complete.'}
           </p>
@@ -104,7 +109,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ profile, onSaveProfile
         </Button>
       </header>
       <div className="flex min-h-0 flex-1">
-        <nav aria-label="Settings sections" className="w-52 shrink-0 overflow-y-auto border-r border-line bg-surface p-2">
+        <nav aria-label="Settings sections" className="w-56 shrink-0 overflow-y-auto border-r border-line p-2">
           <NavScope>
             <NavSection>
               {NAV.map((n) => (

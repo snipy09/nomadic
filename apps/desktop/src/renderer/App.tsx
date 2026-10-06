@@ -38,7 +38,7 @@ import { normalizeTier } from './utils/tier-utils';
 import { useAppStore } from './store/appStore';
 export default function App() {
   // Current user state (session pointer persisted via the preferences module)
-  const { theme, setTheme } = useTheme({ defaultTheme: 'light' });
+  const { theme, setTheme } = useTheme({ defaultTheme: 'system' });
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => prefs.getSidebarCollapsed());
   const toggleSidebar = () => setSidebarCollapsed((c) => { prefs.setSidebarCollapsed(!c); return !c; });
 

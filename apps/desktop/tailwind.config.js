@@ -5,30 +5,7 @@ module.exports = {
   content: ['./src/renderer/**/*.{ts,tsx,html}', '../../packages/ui/src/**/*.{ts,tsx}'],
   theme: {
     extend: {
-      fontFamily: {
-        sans: [
-          '-apple-system',
-          'BlinkMacSystemFont',
-          '"SF Pro Text"',
-          '"SF Pro Display"',
-          '"SF Pro"',
-          'system-ui',
-          '"Segoe UI"',
-          'Roboto',
-          'Helvetica',
-          'Arial',
-          'sans-serif',
-        ],
-        mono: [
-          '"SF Mono"',
-          'SFMono-Regular',
-          'ui-monospace',
-          'Menlo',
-          'Monaco',
-          'Consolas',
-          'monospace',
-        ],
-      },
+      // Font families come from the @nomadic/ui preset (SF Pro on macOS, bundled Inter elsewhere).
       colors: {
         powder: {
           50: '#f0f7ff',

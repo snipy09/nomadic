@@ -103,7 +103,7 @@ export function AnswersView({ profile, onSaveProfile, saving, onLog }: AnswersVi
     <div className="flex flex-col gap-6 pb-24">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-title font-strong text-fg">Answers</h1>
+          <h1 className="text-headline font-bold text-fg">Answers</h1>
           <p className="mt-1 max-w-2xl text-body text-fg-muted">
             Answer once and every application form uses it. You still review each form before it is sent.
           </p>

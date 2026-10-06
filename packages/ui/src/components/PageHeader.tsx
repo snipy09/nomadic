@@ -9,12 +9,12 @@ export interface PageHeaderProps extends Omit<React.HTMLAttributes<HTMLElement>,
   actions?: React.ReactNode;
 }
 
-/** The one page title style: same size, spacing and action placement on every screen. */
+/** The one page title style (an Apple large title): same size, spacing and action placement on every screen. */
 export function PageHeader({ title, description, actions, className, ...rest }: PageHeaderProps) {
   return (
     <header className={cn('flex flex-wrap items-end gap-x-4 gap-y-2', className)} {...rest}>
       <div className="mr-auto min-w-0">
-        <h1 className="text-title font-strong text-fg">{title}</h1>
+        <h1 className="text-headline font-bold text-fg">{title}</h1>
         {description && <p className="mt-0.5 text-body text-fg-muted">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}

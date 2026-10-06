@@ -9,7 +9,7 @@ import { FeedbackForm } from './FeedbackForm';
 export const HelpView: React.FC = () => (
   <div className="mx-auto flex max-w-3xl flex-col gap-4">
     <header className="flex flex-col gap-1">
-      <h1 className="text-title font-strong text-fg">Help</h1>
+      <h1 className="text-headline font-bold text-fg">Help</h1>
       <p className="text-body text-fg-muted">Shortcuts, links and a direct line to the team.</p>
     </header>
 

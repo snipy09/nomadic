@@ -18,7 +18,7 @@ export function CloseButton({ className, label = 'Close' }: { className?: string
       aria-label={label}
       className={cn(
         'inline-flex size-7 shrink-0 items-center justify-center rounded-md text-fg-subtle transition-colors duration-fast',
-        'hover:bg-surface-hover hover:text-fg',
+        'hover:bg-fg/[0.06] hover:text-fg',
         focusRing,
         className,
       )}
@@ -62,7 +62,7 @@ export const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps
         {...(description ? {} : { 'aria-describedby': undefined })}
         className={cn(
           'fixed inset-x-0 top-[12vh] z-modal mx-auto flex max-h-[76vh] w-[calc(100%-32px)] flex-col',
-          'rounded-xl border border-line bg-surface-raised text-fg shadow-e3 outline-none',
+          'rounded-xl border border-line/70 bg-surface-raised text-fg shadow-e3 outline-none',
           'data-[state=open]:animate-nm-pop-in data-[state=closed]:animate-nm-pop-out',
           widths[size],
           className,
@@ -94,7 +94,7 @@ export const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps
 export function DialogFooter({ className, ...rest }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn('flex shrink-0 items-center justify-end gap-2 rounded-b-xl border-t border-line bg-surface-sunken/60 px-5 py-3', className)}
+      className={cn('flex shrink-0 items-center justify-end gap-2 rounded-b-xl px-5 pb-4 pt-2', className)}
       {...rest}
     />
   );

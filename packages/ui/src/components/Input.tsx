@@ -4,11 +4,11 @@ import { useFieldProps } from './Field';
 
 /** Shared look for text-like controls (Input wrapper, Textarea, Select trigger, Combobox). */
 export const fieldShell = cn(
-  'w-full rounded-md border border-line-strong bg-surface text-fg shadow-e1',
+  'w-full rounded-md border border-line-strong/80 bg-surface text-fg',
   'transition-[border-color,box-shadow,background-color] duration-fast ease-standard',
-  'hover:border-fg-disabled',
+  'hover:border-line-strong',
 );
-export const fieldShellFocus = 'focus-within:border-accent focus-within:ring-[3px] focus-within:ring-focus/20';
+export const fieldShellFocus = 'focus-within:border-accent/70 focus-within:ring-[3.5px] focus-within:ring-focus/25';
 export const fieldShellInvalid =
   'border-danger hover:border-danger focus-within:border-danger focus-within:ring-danger/20';
 export const fieldShellDisabled = 'cursor-not-allowed bg-surface-sunken text-fg-disabled shadow-none hover:border-line-strong';

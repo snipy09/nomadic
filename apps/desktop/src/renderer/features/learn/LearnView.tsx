@@ -217,7 +217,7 @@ export function LearnView({ currentUser, suggestedRole, onOpenUpgrade, onLog, in
   const header = ready && activeTab && (
     <header className="flex flex-wrap items-center gap-3">
       <div className="mr-auto min-w-0">
-        <h1 className="text-title font-strong text-fg">Learn</h1>
+        <h1 className="text-headline font-bold text-fg">Learn</h1>
         <p className="truncate text-caption text-fg-subtle">
           {roleName} roadmap · {path!.weeks.filter((w) => w.days.length).length} weeks
           {data.pendingSync > 0 ? ' · saved on this device, syncs when you are online' : ''}

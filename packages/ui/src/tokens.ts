@@ -1,9 +1,9 @@
 /**
  * Nomadic design tokens.
  *
- * One accent (ultramarine, from the brand mark), a cool ink-tinted neutral scale,
- * two type weights (400 / 600), a 4 / 8 pt spacing grid, crisp radii, three
- * elevations and a small motion vocabulary.
+ * Apple design language: system neutrals, the SF Pro type stack (Inter where SF is not
+ * installed), large continuous-looking radii, soft layered shadows and spring-like motion.
+ * One tint colour (ultramarine, from the brand mark); weights 400 / 600, 700 for large titles.
  *
  * Colours are exposed to CSS as space-separated RGB channels
  * (`--nm-accent: 35 56 224`) so Tailwind can apply opacity
@@ -48,20 +48,21 @@ export const colorTokenNames = [
 export type ColorToken = (typeof colorTokenNames)[number];
 
 /** Hex values per theme. */
+/** Hex values per theme: Apple system neutrals (#F5F5F7 canvas, #1D1D1F text), the brand ultramarine as the tint colour. */
 export const colors: Record<ThemeName, Record<ColorToken, string>> = {
   light: {
-    canvas: '#F5F6FA',
+    canvas: '#F5F5F7',
     surface: '#FFFFFF',
     'surface-raised': '#FFFFFF',
-    'surface-sunken': '#EEF0F6',
-    'surface-hover': '#F1F2F7',
-    'surface-active': '#E7E9F1',
-    line: '#E3E6EF',
-    'line-strong': '#CBD0E2',
-    fg: '#0A0F2C',
-    'fg-muted': '#4A5170',
-    'fg-subtle': '#6B7290',
-    'fg-disabled': '#A9B0D0',
+    'surface-sunken': '#EFEFF2',
+    'surface-hover': '#F0F0F3',
+    'surface-active': '#E6E6EB',
+    line: '#E3E3E8',
+    'line-strong': '#D1D1D6',
+    fg: '#1D1D1F',
+    'fg-muted': '#5E5E63',
+    'fg-subtle': '#6E6E73',
+    'fg-disabled': '#C7C7CC',
     accent: '#2338E0',
     'accent-hover': '#1D30C4',
     'accent-active': '#1A2AB0',
@@ -69,47 +70,47 @@ export const colors: Record<ThemeName, Record<ColorToken, string>> = {
     'accent-subtle': '#ECEEFD',
     'accent-subtle-fg': '#1A2AB0',
     focus: '#2338E0',
-    success: '#12805C',
-    'success-subtle': '#E6F4EE',
-    'success-fg': '#0E6B4C',
-    warning: '#B86E00',
-    'warning-subtle': '#FDF3DC',
-    'warning-fg': '#8A5200',
-    danger: '#D22C3C',
-    'danger-subtle': '#FCEBEC',
-    'danger-fg': '#AE1F2E',
-    overlay: '#0A0F2C',
+    success: '#28A745',
+    'success-subtle': '#E3F5E8',
+    'success-fg': '#1B7A34',
+    warning: '#F59300',
+    'warning-subtle': '#FFF1DE',
+    'warning-fg': '#9A4A00',
+    danger: '#FF3B30',
+    'danger-subtle': '#FFEBEA',
+    'danger-fg': '#C0001A',
+    overlay: '#000000',
   },
   dark: {
-    canvas: '#0A0C14',
-    surface: '#11131D',
-    'surface-raised': '#181B27',
-    'surface-sunken': '#0D0F18',
-    'surface-hover': '#1C1F2C',
-    'surface-active': '#242838',
-    line: '#232636',
-    'line-strong': '#33374A',
-    fg: '#ECEEF6',
-    'fg-muted': '#A4AAC2',
-    'fg-subtle': '#7A809A',
-    'fg-disabled': '#4C5168',
+    canvas: '#000000',
+    surface: '#1C1C1E',
+    'surface-raised': '#323235',
+    'surface-sunken': '#151517',
+    'surface-hover': '#2A2A2D',
+    'surface-active': '#3A3A3C',
+    line: '#2E2E31',
+    'line-strong': '#48484A',
+    fg: '#F5F5F7',
+    'fg-muted': '#AEAEB2',
+    'fg-subtle': '#98989D',
+    'fg-disabled': '#5A5A5E',
     accent: '#3D51F2',
-    'accent-hover': '#5063F5',
+    'accent-hover': '#5466F5',
     'accent-active': '#3346E0',
     'accent-fg': '#FFFFFF',
-    'accent-subtle': '#1A1F44',
-    'accent-subtle-fg': '#AEB8FA',
+    'accent-subtle': '#1E2348',
+    'accent-subtle-fg': '#B4BDFB',
     focus: '#7C8BF7',
-    success: '#3CC68A',
-    'success-subtle': '#10261E',
-    'success-fg': '#6FDCAA',
-    warning: '#F2B33D',
-    'warning-subtle': '#2A2112',
-    'warning-fg': '#F7C96B',
-    danger: '#DA3442',
-    'danger-subtle': '#2E1418',
-    'danger-fg': '#F7868D',
-    overlay: '#03040A',
+    success: '#30D158',
+    'success-subtle': '#0F2A17',
+    'success-fg': '#4CD964',
+    warning: '#FF9F0A',
+    'warning-subtle': '#2E2108',
+    'warning-fg': '#FFB340',
+    danger: '#FF453A',
+    'danger-subtle': '#3A1311',
+    'danger-fg': '#FF6961',
+    overlay: '#000000',
   },
 };
 
@@ -122,27 +123,27 @@ export const brand = {
 } as const;
 
 export const fontFamily = {
-  sans: ['"Archivo Variable"', 'Archivo', 'system-ui', '-apple-system', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+  sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro Display"', '"Inter Variable"', 'Inter', '"Segoe UI Variable Text"', '"Segoe UI"', 'system-ui', 'sans-serif'],
   mono: ['ui-monospace', '"SF Mono"', 'SFMono-Regular', '"Cascadia Code"', 'Menlo', 'Consolas', 'monospace'],
 } as const;
 
-/** The only two weights in the system. */
-export const fontWeight = { regular: 400, strong: 600 } as const;
+/** Regular and semibold everywhere; bold only for large titles, as in Apple's type ramp. */
+export const fontWeight = { regular: 400, strong: 600, bold: 700 } as const;
 
 /**
  * Type scale, dense desktop first. [size, line-height, letter-spacing].
  * Names avoid Tailwind's defaults so adding the preset never restyles old screens.
  */
 export const fontSize = {
-  caption: ['11px', '16px', '0.01em'],
-  label: ['12px', '16px', '0'],
-  body: ['13px', '20px', '-0.003em'],
-  'body-lg': ['14px', '22px', '-0.006em'],
-  heading: ['16px', '24px', '-0.011em'],
-  title: ['20px', '28px', '-0.014em'],
-  headline: ['24px', '32px', '-0.018em'],
-  display: ['32px', '40px', '-0.022em'],
-} as const;
+  caption: ['11px', '16px', '0.006em'],
+  label: ['12px', '16px', '-0.002em'],
+  body: ['13px', '20px', '-0.006em'],
+  'body-lg': ['14px', '20px', '-0.01em'],
+  heading: ['15px', '22px', '-0.012em'],
+  title: ['22px', '28px', '-0.02em'],
+  headline: ['26px', '32px', '-0.022em'],
+  display: ['34px', '41px', '-0.026em'],
+} as const
 
 /** 4 / 8 pt grid in px. Matches Tailwind's default spacing (1 unit = 4px). */
 export const space = {
@@ -161,25 +162,25 @@ export const space = {
   16: 64,
 } as const;
 
-/** Radii in px. Small and crisp to echo the brand's 4px web corners. */
+/** Radii in px, Apple-like: generous and soft. Mapped onto Tailwind's rounded-* scale by the preset. */
 export const radius = {
-  sm: 4, // badges, kbd, checkboxes
-  md: 6, // buttons, inputs, menu items
-  lg: 8, // cards, popovers, tables
-  xl: 12, // dialogs, drawers
+  sm: 6, // badges, kbd, checkboxes
+  md: 8, // buttons, inputs, menu items
+  lg: 12, // cards, popovers, tables
+  xl: 16, // dialogs, drawers
   full: 9999,
 } as const;
 
 export const shadow: Record<ThemeName, { e1: string; e2: string; e3: string }> = {
   light: {
-    e1: '0 1px 2px 0 rgb(10 15 44 / 0.05)',
-    e2: '0 4px 12px -2px rgb(10 15 44 / 0.10), 0 2px 4px -2px rgb(10 15 44 / 0.06)',
-    e3: '0 20px 48px -12px rgb(10 15 44 / 0.25), 0 4px 12px -4px rgb(10 15 44 / 0.08)',
+    e1: '0 1px 2px 0 rgb(0 0 0 / 0.04), 0 1px 3px 0 rgb(0 0 0 / 0.04)',
+    e2: '0 6px 20px -4px rgb(0 0 0 / 0.10), 0 2px 6px -2px rgb(0 0 0 / 0.05)',
+    e3: '0 24px 60px -12px rgb(0 0 0 / 0.22), 0 8px 20px -6px rgb(0 0 0 / 0.08), 0 0 0 0.5px rgb(0 0 0 / 0.06)',
   },
   dark: {
-    e1: '0 1px 2px 0 rgb(0 0 0 / 0.35)',
-    e2: '0 8px 24px -4px rgb(0 0 0 / 0.55), 0 2px 6px -2px rgb(0 0 0 / 0.40)',
-    e3: '0 24px 64px -12px rgb(0 0 0 / 0.70), 0 4px 16px -4px rgb(0 0 0 / 0.50)',
+    e1: '0 1px 2px 0 rgb(0 0 0 / 0.5)',
+    e2: '0 8px 24px -4px rgb(0 0 0 / 0.6), 0 0 0 0.5px rgb(255 255 255 / 0.06)',
+    e3: '0 24px 64px -12px rgb(0 0 0 / 0.75), 0 0 0 0.5px rgb(255 255 255 / 0.08)',
   },
 };
 
@@ -188,7 +189,7 @@ export const motion = {
   duration: { fast: '120ms', base: '180ms', slow: '260ms' },
   easing: {
     standard: 'cubic-bezier(0.2, 0, 0, 1)',
-    out: 'cubic-bezier(0.2, 0.7, 0.1, 1)',
+    out: 'cubic-bezier(0.22, 1, 0.36, 1)',
     in: 'cubic-bezier(0.4, 0, 1, 1)',
   },
 } as const;

@@ -35,19 +35,20 @@ export const DrawerContent = React.forwardRef<HTMLDivElement, DrawerContentProps
         ref={ref}
         {...(description ? {} : { 'aria-describedby': undefined })}
         className={cn(
-          'fixed inset-y-0 z-modal flex w-full flex-col bg-surface-raised text-fg shadow-e3 outline-none',
+          // A floating inspector panel with rounded corners, inset from the window edge (macOS sheet style).
+          'fixed inset-y-2 z-modal flex w-[calc(100%-1rem)] flex-col overflow-hidden rounded-xl border border-line/70 bg-surface-raised text-fg shadow-e3 outline-none',
           side === 'right'
-            ? 'right-0 border-l border-line data-[state=open]:animate-nm-drawer-in-right data-[state=closed]:animate-nm-drawer-out-right'
-            : 'left-0 border-r border-line data-[state=open]:animate-nm-drawer-in-left data-[state=closed]:animate-nm-drawer-out-left',
+            ? 'right-2 data-[state=open]:animate-nm-drawer-in-right data-[state=closed]:animate-nm-drawer-out-right'
+            : 'left-2 data-[state=open]:animate-nm-drawer-in-left data-[state=closed]:animate-nm-drawer-out-left',
           widths[size],
           className,
         )}
         {...rest}
       >
-        <div className="flex shrink-0 flex-col gap-3 border-b border-line px-5 py-4">
+        <div className="flex shrink-0 flex-col gap-3 border-b border-line/70 px-5 py-4">
           <div className="flex items-start gap-3">
             <div className="flex min-w-0 flex-1 flex-col gap-1 pt-0.5">
-              <DialogPrimitive.Title className="text-heading font-strong text-fg">{title}</DialogPrimitive.Title>
+              <DialogPrimitive.Title className="text-title font-bold text-fg">{title}</DialogPrimitive.Title>
               {description && (
                 <DialogPrimitive.Description className="text-body text-fg-muted">{description}</DialogPrimitive.Description>
               )}
@@ -57,7 +58,7 @@ export const DrawerContent = React.forwardRef<HTMLDivElement, DrawerContentProps
           {headerExtra}
         </div>
         <div className={cn('min-h-0 flex-1 overflow-y-auto px-5 py-4', bodyClassName)}>{children}</div>
-        {footer && <DialogFooter className="rounded-none">{footer}</DialogFooter>}
+        {footer && <DialogFooter className="rounded-none border-t border-line/70 py-3">{footer}</DialogFooter>}
       </DialogPrimitive.Content>
     </DialogPrimitive.Portal>
   );

@@ -62,7 +62,7 @@ export function AppShell({
           <nav
             aria-label="Main"
             data-collapsed={sidebarCollapsed || undefined}
-            className="flex shrink-0 flex-col overflow-hidden border-r border-line bg-surface transition-[width] duration-base ease-standard"
+            className="flex shrink-0 flex-col overflow-hidden border-r border-line bg-fg/[0.035] backdrop-blur-xl transition-[width] duration-base ease-standard"
             style={{ width: sidebarCollapsed ? collapsedWidth : sidebarWidth }}
           >
             {sidebar}
@@ -94,7 +94,7 @@ export function NavSection({ title, className, children, ...rest }: NavSectionPr
       {title && (
         <div
           id={headingId}
-          className={cn('px-2.5 pb-1 pt-3 text-caption font-strong text-fg-subtle', collapsed && 'sr-only')}
+          className={cn('px-2.5 pb-1 pt-3 text-caption font-bold text-fg-subtle', collapsed && 'sr-only')}
         >
           {title}
         </div>
@@ -127,18 +127,18 @@ export const NavItem = React.forwardRef<HTMLButtonElement, NavItemProps>(functio
       aria-current={active ? 'page' : undefined}
       aria-label={collapsed ? label : undefined}
       className={cn(
-        'group relative flex h-8 w-full items-center gap-2.5 rounded-md px-2.5 text-left text-body text-fg-muted',
-        'transition-colors duration-fast ease-standard hover:bg-surface-hover hover:text-fg',
-        '[&_svg]:size-4 [&_svg]:shrink-0',
-        active && 'bg-surface-active font-strong text-fg hover:bg-surface-active',
+        // macOS source list: primary-colour labels, tinted glyphs, a soft grey selection.
+        'group relative flex h-8 w-full items-center gap-2.5 rounded-md px-2.5 text-left text-body text-fg',
+        'transition-colors duration-fast ease-standard hover:bg-fg/[0.05]',
+        '[&_svg]:size-[17px] [&_svg]:shrink-0',
+        active && 'bg-fg/[0.09] font-strong hover:bg-fg/[0.09]',
         collapsed && 'justify-center px-0',
         focusRing,
         className,
       )}
       {...rest}
     >
-      {active && <span className="absolute -left-2 top-1.5 h-5 w-0.5 rounded-full bg-accent" aria-hidden="true" />}
-      {icon && <span className={cn('flex', active ? 'text-accent' : 'text-fg-subtle group-hover:text-fg-muted')}>{icon}</span>}
+      {icon && <span className="flex text-accent">{icon}</span>}
       {!collapsed && <span className="min-w-0 flex-1 truncate">{label}</span>}
       {!collapsed && trailing}
     </button>

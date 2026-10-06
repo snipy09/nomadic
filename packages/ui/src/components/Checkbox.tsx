@@ -27,7 +27,7 @@ export const Checkbox = React.forwardRef<HTMLButtonElement, CheckboxProps>(funct
       aria-invalid={invalid || undefined}
       aria-describedby={descId}
       className={cn(
-        'peer flex size-4 shrink-0 items-center justify-center rounded border border-line-strong bg-surface text-accent-fg shadow-e1',
+        'peer flex size-4 shrink-0 items-center justify-center rounded-[5px] border border-line-strong bg-surface text-accent-fg',
         'transition-colors duration-fast ease-standard hover:border-fg-disabled',
         'data-[state=checked]:border-accent data-[state=checked]:bg-accent data-[state=indeterminate]:border-accent data-[state=indeterminate]:bg-accent',
         'disabled:cursor-not-allowed disabled:opacity-50',

@@ -6,7 +6,7 @@ const twMerge = extendTailwindMerge({
     classGroups: {
       'font-size': [{ text: ['caption', 'label', 'body', 'body-lg', 'heading', 'title', 'headline', 'display'] }],
       shadow: [{ shadow: ['e1', 'e2', 'e3'] }],
-      'font-weight': [{ font: ['regular', 'strong'] }],
+      'font-weight': [{ font: ['regular', 'strong', 'bold'] }],
     },
   },
 });
@@ -33,7 +33,7 @@ export function cn(...values: ClassValue[]): string {
  * Outline (not box-shadow) so it never fights elevation shadows, and it follows border-radius.
  */
 export const focusRing =
-  'outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus';
+  'outline-none focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-focus/45';
 
 /** Focus treatment for text fields: border + soft halo, shown on any focus (mouse included). */
 export const fieldFocus =

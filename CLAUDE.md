@@ -76,9 +76,12 @@ apps/desktop   Electron
 apps/web       Marketing site: Vite + React, prerendered pages, sitemap, per-page OG images, JSON-LD,
                /terms /privacy /refunds rendered from @nomadic/config
 packages/ui          @nomadic/ui design system: tokens, Tailwind preset, AppShell, NavItem, Button, Dialog, Drawer,
-                     Tabs, Select, Combobox, Toast, Skeleton, EmptyState, ProgressRing, etc. Use token classes
-                     (bg-surface, text-fg, text-fg-muted, border-line, text-body, text-caption, font-strong); never
-                     hardcoded slate/zinc colours or `dark:` variants.
+                     Tabs, Select, Combobox, Toast, Skeleton, EmptyState, ProgressRing, PageHeader, FilterBar, etc.
+                     Apple design language since 1.4.0 (system neutrals #F5F5F7/#1D1D1F, SF Pro on macOS and bundled
+                     Inter elsewhere, radii 6/8/12/16 via the preset's rounded-*, soft shadows, grey-filled secondary
+                     buttons, capsule badges/filters, green switches, page titles `text-headline font-bold`). Use token
+                     classes (bg-surface, text-fg, text-fg-muted, border-line, text-body, text-caption, font-strong,
+                     bg-fg/[0.06] for Apple grey fills); never hardcoded slate/zinc colours or `dark:` variants.
 packages/config      plans.ts (prices/limits), features.ts (flags), legal.ts (terms/privacy/refunds), tiers.ts
 packages/learning    @job-automator/learning: types (zod), graph, sm2, readiness/jobMatch, tagSkills,
                      practiceAttempts/weakTopics, v1 planner (unused by the app now), and src/v2 (Learn v2 engine:
@@ -353,6 +356,13 @@ checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification
   (`LearnView initialTab`, `ProfileView initialSection`). Keyboard: G then H/L/P/R/J/A/W/S jumps to a page, `[` toggles
   the sidebar (`components/shell/shortcuts.ts`, ignored while typing or with a dialog open); the command palette groups
   results, shows shortcuts and has theme/sidebar/upgrade/sign-out actions. Global focus outline uses the `--nm-focus` token.
+- **v1.4.0 Apple design language** (6 Oct 2026, on `main`, not packaged yet): new palette in `packages/ui/src/tokens.ts`
+  + `styles.css` (kept in sync by `tokens.test.ts`, contrast AA checked), Apple type ramp (15/22/26/34 px, `font-bold`
+  for large titles), preset `borderRadius` 6/8/12/16/20, Inter variable with optical sizes (`@fontsource-variable/inter`,
+  imported in `renderer/index.css`, served from the app so CSP `font-src 'self'` covers it), macOS source-list sidebar
+  (accent glyphs, grey selection, no indicator bar), Apple segmented control and capsule filter tabs, floating inset
+  drawers, coloured icon tiles in Settings, soft focus halo, theme follows the system by default. The website keeps
+  its own Archivo/4px brand styles (it does not use the preset).
 - Next most useful work: owner action 0 (Learn v2 go-live), then owner actions in section 7 (consent screen, Resend domain, key rotation),
   then a live end-to-end pass (Google sign-in, reviewed submit, AI feedback), then the code follow-ups in section 7.
 

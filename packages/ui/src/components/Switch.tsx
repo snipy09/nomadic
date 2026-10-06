@@ -37,7 +37,7 @@ export const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(function 
       className={cn(
         'relative inline-flex shrink-0 cursor-default items-center rounded-full border border-transparent p-px',
         'bg-line-strong transition-colors duration-base ease-standard',
-        'hover:bg-fg-disabled data-[state=checked]:bg-accent data-[state=checked]:hover:bg-accent-hover',
+        'hover:bg-fg-disabled data-[state=checked]:bg-success data-[state=checked]:hover:bg-success/90',
         'disabled:cursor-not-allowed disabled:opacity-50',
         track[size],
         focusRing,
@@ -47,7 +47,7 @@ export const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(function 
     >
       <SwitchPrimitive.Thumb
         className={cn(
-          'pointer-events-none block translate-x-0 rounded-full bg-white shadow-[0_1px_2px_rgb(10_15_44/0.25)]',
+          'pointer-events-none block translate-x-0 rounded-full bg-white shadow-[0_2px_4px_rgb(0_0_0/0.2),0_0_0_0.5px_rgb(0_0_0/0.04)]',
           'transition-transform duration-base ease-out',
           thumb[size],
         )}

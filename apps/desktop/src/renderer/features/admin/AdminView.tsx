@@ -35,7 +35,7 @@ export function AdminView({ currentUser }: AdminViewProps) {
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-4 pb-24">
       <header>
-        <h1 className="text-title font-strong text-fg">Admin</h1>
+        <h1 className="text-headline font-bold text-fg">Admin</h1>
         <p className="text-caption text-fg-subtle">Support lookups, plan and access changes, scraper health and learning content. Every change is audited.</p>
       </header>
       <Tabs value={tab} onValueChange={(v) => setTab(v as AdminTab)}>

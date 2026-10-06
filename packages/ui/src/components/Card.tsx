@@ -26,8 +26,8 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(function Card(
       data-selected={selected || undefined}
       className={cn(
         'relative flex flex-col rounded-lg border text-left text-fg',
-        variant === 'outline' && 'border-line bg-surface',
-        variant === 'raised' && 'border-line bg-surface shadow-e1',
+        variant === 'outline' && 'border-line/70 bg-surface shadow-e1',
+        variant === 'raised' && 'border-line/70 bg-surface shadow-e2',
         variant === 'sunken' && 'border-line bg-surface-sunken',
         interactive &&
           cn('cursor-default transition-[border-color,background-color,box-shadow] duration-fast ease-standard hover:border-line-strong hover:bg-surface-hover/50', focusRing),
@@ -53,7 +53,7 @@ export function CardHeader({ title, description, actions, icon, className, child
   return (
     <div className={cn('flex items-start gap-3 px-4 pb-0 pt-4', className)} {...rest}>
       {icon && (
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-line bg-surface-sunken text-fg-muted [&_svg]:size-4">
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent [&_svg]:size-4">
           {icon}
         </div>
       )}

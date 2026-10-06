@@ -6,7 +6,7 @@ type TabsVariant = 'underline' | 'segmented';
 const VariantContext = React.createContext<TabsVariant>('underline');
 
 export interface TabsProps extends React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root> {
-  /** `underline` for page sections, `segmented` for compact view switches. */
+  /** `underline` (drawn as Apple-style capsule filters) for page sections, `segmented` (Apple segmented control) for view switches. */
   variant?: TabsVariant;
 }
 
@@ -30,8 +30,8 @@ export const TabsList = React.forwardRef<HTMLDivElement, React.ComponentPropsWit
         ref={ref}
         className={cn(
           'flex shrink-0 items-center',
-          variant === 'underline' && 'gap-4 border-b border-line',
-          variant === 'segmented' && 'inline-flex w-fit gap-0.5 rounded-md bg-surface-sunken p-0.5 ring-1 ring-inset ring-line',
+          variant === 'underline' && 'gap-1',
+          variant === 'segmented' && 'inline-flex w-fit gap-0.5 rounded-[9px] bg-fg/[0.06] p-0.5',
           className,
         )}
         {...rest}
@@ -60,9 +60,9 @@ export const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>
         '[&_svg]:size-4 [&_svg]:shrink-0',
         focusRing,
         variant === 'underline' &&
-          'h-9 rounded-sm px-0.5 data-[state=active]:text-fg after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:rounded-full after:bg-transparent after:transition-colors after:duration-fast data-[state=active]:after:bg-accent',
+          'h-7 rounded-full px-3 font-regular hover:bg-fg/[0.05] data-[state=active]:bg-fg/[0.08] data-[state=active]:font-strong data-[state=active]:text-fg',
         variant === 'segmented' &&
-          'h-7 rounded px-3 data-[state=active]:bg-surface data-[state=active]:text-fg data-[state=active]:shadow-e1',
+          'h-7 rounded-[7px] px-3 data-[state=active]:bg-surface-raised data-[state=active]:text-fg data-[state=active]:shadow-[0_1px_3px_rgb(0_0_0/0.12),0_0_0_0.5px_rgb(0_0_0/0.05)]',
         className,
       )}
       {...rest}
@@ -70,7 +70,7 @@ export const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>
       {icon}
       {children}
       {count != null && (
-        <span className="rounded bg-surface-active px-1.5 text-caption font-regular tabular-nums text-fg-muted group-data-[state=active]:bg-accent-subtle group-data-[state=active]:text-accent-subtle-fg">
+        <span className="rounded-full bg-fg/[0.07] px-1.5 text-caption font-regular tabular-nums text-fg-muted group-data-[state=active]:bg-accent group-data-[state=active]:text-accent-fg">
           {count}
         </span>
       )}

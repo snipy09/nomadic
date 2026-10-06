@@ -1,4 +1,5 @@
 @import '@nomadic/ui/styles.css';
+@import '@fontsource-variable/inter/opsz.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,11 +7,7 @@
 @layer base {
   * {
     box-sizing: border-box;
-    border-color: theme('colors.slate.200');
-  }
-
-  .dark * {
-    border-color: theme('colors.slate.800');
+    border-color: rgb(var(--nm-line));
   }
 
   html,
@@ -19,20 +16,21 @@
     height: 100%;
     margin: 0;
     padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: var(--nm-font-sans);
+    font-optical-sizing: auto;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
 
   body {
-    @apply font-sans antialiased bg-slate-50 text-slate-900 selection:bg-slate-900 selection:text-white;
+    background-color: rgb(var(--nm-canvas));
+    color: rgb(var(--nm-fg));
     transition: background-color 0.2s ease, color 0.2s ease;
-    letter-spacing: -0.011em;
   }
 
-  .dark body {
-    @apply bg-slate-950 text-slate-100 selection:bg-white selection:text-slate-950;
+  ::selection {
+    background-color: rgb(var(--nm-accent) / 0.22);
   }
 
   a:focus-visible,
@@ -41,8 +39,9 @@
   textarea:focus-visible,
   select:focus-visible,
   [tabindex]:focus-visible {
-    outline: 2px solid rgb(var(--nm-focus));
-    outline-offset: 2px;
+    /* macOS-style focus ring: a soft tinted halo hugging the control. */
+    outline: 3px solid rgb(var(--nm-focus) / 0.45);
+    outline-offset: 1px;
   }
 }
 

@@ -67,7 +67,7 @@ export function Tooltip({
           sideOffset={sideOffset}
           collisionPadding={8}
           className={cn(
-            'z-tooltip flex max-w-[280px] select-none items-center gap-2 rounded-md bg-fg px-2 py-1 text-label text-canvas shadow-e2',
+            'z-tooltip flex max-w-[280px] select-none items-center gap-2 rounded-md bg-fg/90 px-2 py-1 text-label text-canvas shadow-e2 backdrop-blur-md',
             'data-[state=delayed-open]:animate-nm-fade-in data-[state=instant-open]:animate-nm-fade-in data-[state=closed]:animate-nm-fade-out',
             className,
           )}

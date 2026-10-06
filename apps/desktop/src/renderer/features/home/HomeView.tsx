@@ -58,7 +58,7 @@ export function HomeView({ profile, currentUser, workspaceMode, onNavigate }: Ho
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6 pb-16">
       <header>
-        <h1 className="text-title font-strong text-fg">{greeting()}{first ? `, ${first}` : ''}</h1>
+        <h1 className="text-headline font-bold text-fg">{greeting()}{first ? `, ${first}` : ''}</h1>
         <p className="mt-0.5 text-body text-fg-muted">
           {longDate()}{learn.hasRoadmap ? ` · ${learn.roleName} roadmap` : ''}
         </p>
