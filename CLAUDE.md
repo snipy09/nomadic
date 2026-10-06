@@ -364,6 +364,10 @@ checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification
   (accent glyphs, grey selection, no indicator bar), Apple segmented control and capsule filter tabs, floating inset
   drawers, coloured icon tiles in Settings, soft focus halo, theme follows the system by default. The website keeps
   its own Archivo/4px brand styles (it does not use the preset).
+- **First-run tour** (6 Oct 2026, branch `claude/wizardly-darwin-5i35ic`, not packaged): after sign-in/onboarding a
+  spotlight walkthrough (`features/tour/ProductTour.tsx`, steps by workspace mode in `tourLogic.ts`) points at sidebar
+  items marked `data-tour="<tab id>"` (plus `search`). Shown once per account on this computer (`prefs.getTourSeen(email)`);
+  What's New waits until it closes. Replay: Help → "Take the tour", or "Take the tour" in the command palette.
 - Next most useful work: owner action 0 (Learn v2 go-live), then owner actions in section 7 (consent screen, Resend domain, key rotation),
   then a live end-to-end pass (Google sign-in, reviewed submit, AI feedback), then the code follow-ups in section 7.
 

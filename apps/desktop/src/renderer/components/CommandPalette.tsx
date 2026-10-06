@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { ArrowRight, Code2, History, LogOut, Monitor, Moon, PanelLeft, Search, Sun, Zap } from 'lucide-react';
+import { ArrowRight, Code2, Compass, History, LogOut, Monitor, Moon, PanelLeft, Search, Sun, Zap } from 'lucide-react';
 import { Dialog, DialogContent, Kbd, cn, type ThemePreference } from '@nomadic/ui';
 import { TabType } from '../types';
 import { VAULT_QUESTIONS } from '../data/resourceVault';
@@ -17,6 +17,7 @@ interface CommandPaletteProps {
   onToggleSidebar?: () => void;
   onOpenUpgrade?: () => void;
   onLogout?: () => void;
+  onStartTour?: () => void;
 }
 
 interface CommandItem {
@@ -29,7 +30,7 @@ interface CommandItem {
   run: () => void;
 }
 
-export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onSelectTab, isAdmin = false, theme, onThemeChange, onToggleSidebar, onOpenUpgrade, onLogout }) => {
+export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onSelectTab, isAdmin = false, theme, onThemeChange, onToggleSidebar, onOpenUpgrade, onLogout, onStartTour }) => {
   const [query, setQuery] = useState('');
   const [index, setIndex] = useState(0);
   const listId = useId();
@@ -56,6 +57,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
         ? themes.filter((t) => t.id !== theme).map((t) => ({ id: `action-theme-${t.id}`, group: 'Actions' as const, title: `Use ${t.label} theme`, icon: t.icon, run: () => onThemeChange(t.id) }))
         : []),
       ...(onOpenUpgrade ? [{ id: 'action-upgrade', group: 'Actions' as const, title: 'Upgrade plan', subtitle: 'Pro and Max', icon: Zap, run: onOpenUpgrade }] : []),
+      ...(onStartTour ? [{ id: 'action-tour', group: 'Actions' as const, title: 'Take the tour', subtitle: 'A walk through the main pages', icon: Compass, run: onStartTour }] : []),
       ...(onLogout ? [{ id: 'action-logout', group: 'Actions' as const, title: 'Sign out', icon: LogOut, run: onLogout }] : []),
     ];
     const questions: CommandItem[] = isTabEnabled('learner-resources')
