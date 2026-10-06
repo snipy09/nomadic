@@ -14,6 +14,7 @@ import {
   type SubmitOutcome,
 } from '../../../form-engine/src/index.js';
 import type { MasterProfile } from '../../../form-engine/src/profile.js';
+import { ANY_CONTROL, adapterSpecById, type AdapterSpec, type PortalId } from '../../../form-engine/src/adapters.js';
 
 export interface SpecializedBotResult {
   success: boolean;
@@ -26,7 +27,7 @@ export interface SpecializedBotResult {
   submitOutcome?: SubmitOutcome;
 }
 
-export type PortalId = 'ashby' | 'greenhouse' | 'lever' | 'internshala' | 'workday' | 'generic';
+export type { PortalId };
 
 export interface PortalAdapter {
   id: PortalId;
@@ -67,39 +68,6 @@ async function anyVisible(page: Page, selectors: string[]): Promise<boolean> {
   return false;
 }
 
-const GENERIC_FORM = ['form input[type="email"]', 'form input[type="file"]', 'input[name*="email" i]', 'iframe#grnhse_iframe'];
-
-export const ashbyAdapter: PortalAdapter = {
-  id: 'ashby',
-  matches: (u) => /jobs\.ashbyhq\.com/i.test(u),
-  async prepare(page) {
-    if (await anyVisible(page, ['#_systemfield_name', '#_systemfield_email', 'form.ashby-application-form input'])) return;
-    await clickFirstVisible(page, ['a[role="tab"]:has-text("Application")', 'a:has-text("Apply for this job")', 'button:has-text("Apply for this job")', 'a:has-text("Apply for this role")', 'button:has-text("Apply")']);
-  },
-};
-
-export const greenhouseAdapter: PortalAdapter = {
-  id: 'greenhouse',
-  matches: (u) => /greenhouse\.io|gh_jid=/i.test(u),
-  async prepare(page) {
-    if (await anyVisible(page, ['#application_form', '#application-form', 'iframe#grnhse_iframe', '#first_name'])) return;
-    await clickFirstVisible(page, ['#apply_button', 'a[href*="#app"]', 'button:has-text("Apply for this job")', 'a:has-text("Apply for this job")', 'button:has-text("Apply")']);
-  },
-};
-
-export const leverAdapter: PortalAdapter = {
-  id: 'lever',
-  matches: (u) => /jobs\.lever\.co/i.test(u),
-  async prepare(page) {
-    if (await anyVisible(page, ['#application-form', 'form[data-qa="application-form"]'])) return;
-    await clickFirstVisible(page, ['a.postings-btn[href$="/apply"]', 'a[href$="/apply"]', 'a:has-text("Apply for this job")'], 800);
-    await page.waitForLoadState('domcontentloaded').catch(() => {});
-  },
-};
-
-/** Any visible question control (radio and select inputs may be styled, so their labels count too). */
-const ANY_CONTROL = ['form textarea', 'form select', 'form input[type="radio"] + label', 'form label:has(input[type="radio"])', 'form input[type="text"]', 'form input[type="number"]', 'form input[type="file"]', '.select2-container', '.chosen-container'];
-
 /** Wait until the page settles on a form (after a click that navigates or opens a modal). */
 async function waitForForm(page: Page, timeoutMs = 12000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
@@ -110,41 +78,31 @@ async function waitForForm(page: Page, timeoutMs = 12000): Promise<void> {
   }
 }
 
-export const internshalaAdapter: PortalAdapter = {
-  id: 'internshala',
-  matches: (u) => /internshala\.com/i.test(u),
-  async prepare(page) {
-    const onForm = () => /\/application\/form\//i.test(page.url());
-    const modalOpen = () => anyVisible(page, ['#easy_apply_modal form', '#application_modal form', '.modal.show form', '#application-form', '#cover_letter']);
-    if (!onForm() && !(await modalOpen())) {
-      await clickFirstVisible(page, ['#easy_apply_button', '#apply_now_button', 'button:has-text("Apply now")', 'a:has-text("Apply now")', '.buttons_container .btn-primary'], 600);
-    }
-    // Some postings show a resume step first.
-    await clickFirstVisible(page, ['#proceed_to_application', 'button:has-text("Proceed to application")', 'a:has-text("Proceed to application")'], 600);
-    // "Apply now" often navigates to /application/form/...: read only once that page has its questions.
-    await waitForForm(page);
-  },
-};
+/** A Playwright adapter running the shared steps in packages/form-engine/src/adapters.ts. */
+function fromSpec(spec: AdapterSpec): PortalAdapter {
+  return {
+    id: spec.id,
+    matches: (u) => (spec.urlPattern ? spec.urlPattern.test(u) : true),
+    multiStep: spec.multiStep,
+    async prepare(page) {
+      const onForm = (spec.formUrl?.test(page.url()) ?? false) || (await anyVisible(page, spec.formVisible));
+      if (onForm && !spec.after && !spec.waitForForm) return;
+      if (!onForm) {
+        for (const step of spec.open) await clickFirstVisible(page, step.selectors, step.waitMs);
+        if (spec.settleAfterOpen) await page.waitForLoadState('domcontentloaded').catch(() => {});
+      }
+      for (const step of spec.after || []) await clickFirstVisible(page, step.selectors, step.waitMs);
+      if (spec.waitForForm) await waitForForm(page);
+    },
+  };
+}
 
-export const workdayAdapter: PortalAdapter = {
-  id: 'workday',
-  matches: (u) => /myworkdayjobs\.com|workday\.com/i.test(u),
-  multiStep: true,
-  async prepare(page) {
-    if (await anyVisible(page, ['[data-automation-id="applyFlowPage"]', '[data-automation-id="signInContent"]'])) return;
-    await clickFirstVisible(page, ['a[data-automation-id="adventureButton"]', 'button:has-text("Apply")', 'a:has-text("Apply")'], 800);
-    await clickFirstVisible(page, ['a[data-automation-id="applyManually"]', 'button:has-text("Apply Manually")', 'a:has-text("Apply Manually")'], 800);
-  },
-};
-
-export const genericAdapter: PortalAdapter = {
-  id: 'generic',
-  matches: () => true,
-  async prepare(page) {
-    if (await anyVisible(page, GENERIC_FORM)) return;
-    await clickFirstVisible(page, ['button:has-text("Apply now")', 'a:has-text("Apply now")', 'button:has-text("Apply for this job")', 'a:has-text("Apply for this job")', '[data-qa="apply-button"]', '.apply-button']);
-  },
-};
+export const ashbyAdapter = fromSpec(adapterSpecById('ashby'));
+export const greenhouseAdapter = fromSpec(adapterSpecById('greenhouse'));
+export const leverAdapter = fromSpec(adapterSpecById('lever'));
+export const internshalaAdapter = fromSpec(adapterSpecById('internshala'));
+export const workdayAdapter = fromSpec(adapterSpecById('workday'));
+export const genericAdapter = fromSpec(adapterSpecById('generic'));
 
 export const PORTAL_ADAPTERS: PortalAdapter[] = [ashbyAdapter, greenhouseAdapter, leverAdapter, internshalaAdapter, workdayAdapter];
 

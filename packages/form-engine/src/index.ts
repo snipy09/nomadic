@@ -3,7 +3,7 @@ export * from './profile.js';
 export { DomFormReader, type ReaderOptions } from './reader.js';
 export { RuleClassifier } from './classifier.js';
 export { COMMON_QUESTIONS, matchCommonQuestion, type CommonQuestion } from './commonQuestions.js';
-export { ProfileAnswerer, MemoryAnswerCache, questionFingerprint, splitPhone, type AnswerCache, type AnswererOptions } from './answerer.js';
+export { ProfileAnswerer, MemoryAnswerCache, questionFingerprint, splitPhone, type AnswerCache, type AnswererOptions, type ResumeResolver } from './answerer.js';
 export { GroqClient, parseJsonLoose, isFormAnswerClient, type LlmClient, type FormAnswerClient, type FormAnswerRequest, type FormAnswerCandidate, type AnswerLlm } from './llm.js';
 export { DEFAULT_POLICY, POLICY_OPTION_PATTERNS, type FormPolicy, type PolicyAction } from './policy.js';
 export { pickOption, yesNo, type OptionQuery } from './options.js';
@@ -13,3 +13,6 @@ export { FormEngine, clickNext, clickSubmit, isConfirmation, mergeReports, type 
 export { ensureResumeFile, existingResumePath, buildPdf } from './resume-pdf.js';
 export { ATS_FIELD_ALIASES, aliasKeyForAttrs } from './aliases.js';
 export * from './writers/index.js';
+export { sha1Hex } from './hash.js';
+export { fillForm, fillFormSteps, submitForm, recomputeReport, wallReason, outcomeKey, applyReviewedValues, type FormDriver, type CoreDeps, type Answered } from './core.js';
+export { ADAPTER_SPECS, ANY_CONTROL, adapterSpecFor, adapterSpecById, splitHasText, type AdapterSpec, type AdapterStep, type PortalId } from './adapters.js';

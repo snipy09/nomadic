@@ -1,0 +1,14 @@
+// Standalone build of the plugin (CI). Inside the Capacitor app, the app's settings include this module instead.
+def findCapacitor() {
+    File dir = rootDir
+    while (dir != null) {
+        File cap = new File(dir, 'node_modules/@capacitor/android/capacitor')
+        if (cap.exists()) return cap
+        dir = dir.parentFile
+    }
+    throw new GradleException('node_modules/@capacitor/android not found: run npm install at the repo root')
+}
+
+rootProject.name = 'nomadic-capacitor-apply-browser'
+include ':capacitor-android'
+project(':capacitor-android').projectDir = findCapacitor()

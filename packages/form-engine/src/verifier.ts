@@ -5,25 +5,17 @@
  */
 import type { Page } from 'playwright';
 import type { FieldOutcome, FormField, Verifier, VerifyIssue } from './contracts.js';
-import { norm, prepareFrame, resolveField } from './dom.js';
-import { readFieldValue, valuesMatch } from './writers/common.js';
+import { prepareFrame, resolveField } from './dom.js';
+import { readFieldValue } from './writers/common.js';
+import { sameValue } from './values.js';
+import { fieldErrorInPage, pageErrorsInPage } from './agent/inpage.js';
 import { fileAttached } from './writers/file.js';
 
 async function fieldError(page: Page, field: FormField): Promise<string> {
   const h = await resolveField(page, field);
   if (!h) return '';
   try {
-    return await h.evaluate((el: Element) => {
-      const c = el.closest('[data-field], .field, .application-question, fieldset, .form-group, [data-automation-id^="formField"], .text-input-wrapper, .select__container, li') || el.parentElement;
-      if (!c) return '';
-      const errs = Array.from(c.querySelectorAll('[role="alert"], .error, .error-message, [class*="errorMessage"], [class*="error-message"], [class*="_error"], .invalid-feedback, [data-automation-id="errorMessage"]'))
-        .filter((e) => {
-          const r = (e as HTMLElement).getBoundingClientRect();
-          return r.width > 0 && r.height > 0 && (e.textContent || '').trim();
-        })
-        .map((e) => (e.textContent || '').replace(/\s+/g, ' ').trim());
-      return errs.join(' | ');
-    });
+    return await h.evaluate(fieldErrorInPage);
   } catch {
     return '';
   } finally {
@@ -35,28 +27,10 @@ export async function pageErrors(page: Page): Promise<string[]> {
   const out: string[] = [];
   for (const frame of page.frames()) {
     await prepareFrame(frame);
-    const errs = await frame.evaluate(() => Array.from(document.querySelectorAll('[role="alert"], .error-message, [class*="errorCallout"], [data-automation-id="errorMessage"]'))
-      .filter((e) => {
-        const r = (e as HTMLElement).getBoundingClientRect();
-        return r.width > 0 && r.height > 0 && (e.textContent || '').trim();
-      })
-      .map((e) => (e.textContent || '').replace(/\s+/g, ' ').trim())).catch(() => [] as string[]);
+    const errs = await frame.evaluate(pageErrorsInPage).catch(() => [] as string[]);
     out.push(...errs);
   }
   return [...new Set(out)];
-}
-
-function sameValue(field: FormField, actual: string, expected: string): boolean {
-  if (field.kind === 'file') return actual === '@file';
-  if (field.kind === 'checkbox' && !field.multiple) return actual === expected;
-  if (field.kind === 'checkbox') {
-    const a = new Set(actual.split('|').filter(Boolean).map(norm));
-    const e = new Set(expected.split('|').filter(Boolean).map(norm));
-    return a.size === e.size && [...e].every((x) => a.has(x));
-  }
-  if (['select', 'radio', 'combobox'].includes(field.kind)) return actual !== '' && (norm(actual) === norm(expected) || norm(actual).includes(norm(expected)) || norm(expected).includes(norm(actual)));
-  if (field.kind === 'richtext') return norm(actual).includes(norm(expected).slice(0, 40));
-  return valuesMatch(actual, expected, field.inputType);
 }
 
 export class DomVerifier implements Verifier {

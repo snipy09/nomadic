@@ -1,0 +1,24 @@
+{
+  "name": "@nomadic/capacitor-apply-browser",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Android apply WebView for Nomadic: injects the form agent into every frame and bridges it to the app (apply with review).",
+  "main": "src/index.ts",
+  "capacitor": {
+    "android": {
+      "src": "android"
+    }
+  },
+  "scripts": {
+    "build:android-test": "node android-test-harness/build.mjs"
+  },
+  "peerDependencies": {
+    "@capacitor/core": "^8.5.0"
+  },
+  "devDependencies": {
+    "@capacitor/android": "8.5.2",
+    "@capacitor/core": "8.5.2",
+    "esbuild": "^0.28.2"
+  }
+}

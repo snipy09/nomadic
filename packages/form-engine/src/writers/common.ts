@@ -4,74 +4,22 @@
  */
 import type { ElementHandle, Page } from 'playwright';
 import type { Answer, FormField, WriteResult } from '../contracts.js';
-import { frameAt, norm, prepareFrame, resolveField, sleep } from '../dom.js';
+import { frameAt, prepareFrame, resolveField, sleep } from '../dom.js';
+import { readValueInPage } from '../agent/inpage.js';
 
 export type Answered = Extract<Answer, { status: 'answered' }>;
 
 export const fail = (field: FormField, error: string, actual?: string): WriteResult => ({ fieldId: field.id, ok: false, error, actual });
 export const success = (field: FormField, actual: string): WriteResult => ({ fieldId: field.id, ok: true, actual });
 
-/** Compare a read-back value with the intended one. */
-export function valuesMatch(actual: string, expected: string, inputType?: string): boolean {
-  if (norm(actual) === norm(expected)) return true;
-  const digits = (s: string) => s.replace(/\D/g, '');
-  if ((inputType === 'tel' || /^\+?[\d\s().-]{7,}$/.test(expected)) && digits(actual) === digits(expected) && digits(expected).length >= 7) return true;
-  if (inputType === 'number' && parseFloat(actual) === parseFloat(expected)) return true;
-  return false;
-}
+export { valuesMatch } from '../values.js';
 
 /** Read the current value of any field kind (runs in the page). */
 export async function readFieldValue(page: Page, field: FormField): Promise<string> {
   const h = await resolveField(page, field);
   if (!h) return '';
   try {
-    return await h.evaluate((el: Element, f: { kind: string; multiple?: boolean; optionSelectors: string[] }) => {
-      const clean = (s: string | null | undefined) => String(s || '').replace(/\s+/g, ' ').trim();
-      const root = el.getRootNode() as Document | ShadowRoot;
-      const labelOf = (inp: Element): string => {
-        const id = inp.getAttribute('id');
-        if (id) {
-          const l = root.querySelector(`label[for="${CSS.escape(id)}"]`);
-          if (l) return clean(l.textContent);
-        }
-        const w = inp.closest('label');
-        if (w) return clean(w.textContent);
-        return clean(inp.getAttribute('aria-label') || (inp as HTMLInputElement).value || inp.textContent);
-      };
-      const isOn = (o: Element) => {
-        if (o instanceof HTMLInputElement) return o.checked;
-        return o.getAttribute('aria-pressed') === 'true' || o.getAttribute('aria-checked') === 'true' || o.getAttribute('aria-selected') === 'true' || /(^|\s)(active|selected|_active_|_selected_|is-selected|checked)(\s|$)/.test(o.className);
-      };
-      if (f.kind === 'radio' || f.kind === 'checkbox') {
-        const opts = f.optionSelectors.map((s) => root.querySelector(s)).filter((x): x is Element => !!x);
-        if (f.kind === 'checkbox' && !f.multiple) return String(!!(opts[0] || el) && isOn(opts[0] || el));
-        const on = opts.filter(isOn).map((o) => (o instanceof HTMLInputElement ? labelOf(o) : clean(o.textContent)));
-        return f.kind === 'radio' ? on[0] || '' : on.join('|');
-      }
-      if (el instanceof HTMLSelectElement) {
-        const o = el.options[el.selectedIndex];
-        return el.value && o ? clean(o.text) : '';
-      }
-      if (el instanceof HTMLInputElement && el.type === 'file') return el.files && el.files.length ? '@file' : '';
-      if (el.tagName === 'BUTTON') return clean(el.getAttribute('value') || '') || clean(el.textContent);
-      if ((el as HTMLElement).isContentEditable) return clean((el as HTMLElement).innerText);
-      if (f.kind === 'combobox' && el instanceof HTMLInputElement) {
-        // react-select & co: the chosen value renders in a sibling "single-value" node, not in the input.
-        let shell: Element | null = el;
-        for (let i = 0; i < 5 && shell; i++) {
-          shell = shell.parentElement;
-          const sv = shell?.querySelector('[class*="single-value"], [class*="singleValue"], [class*="multi-value"]');
-          if (sv) {
-            if (clean(sv.textContent)) return clean(sv.textContent);
-            const hidden = shell?.querySelector('input[type="hidden"]') as HTMLInputElement | null;
-            if (hidden && hidden.value) return clean(hidden.value);
-            break;
-          }
-          if (shell?.matches('[data-field], .field, form')) break;
-        }
-      }
-      return (el as HTMLInputElement).value ?? '';
-    }, { kind: field.kind, multiple: field.multiple, optionSelectors: (field.options || []).map((o) => o.selector || '').filter(Boolean) });
+    return await h.evaluate(readValueInPage, { kind: field.kind, multiple: field.multiple, optionSelectors: (field.options || []).map((o) => o.selector || '').filter(Boolean) });
   } catch {
     return '';
   } finally {

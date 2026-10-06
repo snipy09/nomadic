@@ -58,6 +58,8 @@ export interface FormField {
   frameIndex: number;
   /** URL of the frame that owns the field (for diagnostics). */
   frameUrl?: string;
+  /** Android agent: id of the frame's agent instance (the host routes requests by it). */
+  frameId?: string;
   /** Chain of selectors of open shadow-root hosts, outermost first. */
   shadowHostPath?: string[];
   /** Value currently in the control (as read). */

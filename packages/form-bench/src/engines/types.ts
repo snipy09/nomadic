@@ -1,4 +1,4 @@
-import type { Page } from 'playwright';
+import type { BrowserContext, BrowserContextOptions, Page } from 'playwright';
 import type { MasterProfile } from '../../../form-engine/src/profile.ts';
 import type { AnswerKey } from '../fixtures/kit.ts';
 import type { EngineFieldRef } from '../score.ts';
@@ -14,5 +14,11 @@ export interface EngineRunInfo {
 
 export interface BenchEngine {
   name: string;
+  /** Browser context for each fixture (default: 1280x900 desktop). */
+  contextOptions?: BrowserContextOptions;
+  /** Content-Security-Policy header for fixture pages (default: none). */
+  csp?: string;
+  /** Called with each fixture's fresh context before its page is created and loaded. */
+  setupContext?(context: BrowserContext): Promise<void>;
   run(page: Page, profile: MasterProfile, key: AnswerKey): Promise<EngineRunInfo>;
 }

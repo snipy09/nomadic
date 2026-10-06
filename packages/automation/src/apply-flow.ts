@@ -5,7 +5,7 @@
  * (login, CAPTCHA, email verification) is present.
  */
 import type { Page } from 'playwright';
-import { FormEngine, detectWalls, questionFingerprint, type FieldOutcome, type FillReport, type FormEngineEvent } from '../../form-engine/src/index.js';
+import { FormEngine, applyReviewedValues, detectWalls, outcomeKey, recomputeReport, type FillReport, type FormEngineEvent } from '../../form-engine/src/index.js';
 import type { MasterProfile } from '../../form-engine/src/profile.js';
 import { adapterById, adapterFor, genericAdapter, runPortalAdapter } from './bots/portal-adapter.js';
 import { injectStealthScripts, handleCloudflareTurnstile } from './stealth-evasion.js';
@@ -174,74 +174,24 @@ export async function runFormEngineApply(
   }
 }
 
-/** Stable key of a filled question: the answer fingerprint, or one computed from label, kind and options. */
-export function outcomeKey(o: FieldOutcome): string {
-  return o.answer && 'fingerprint' in o.answer && o.answer.fingerprint ? o.answer.fingerprint : questionFingerprint(o.field);
-}
-
-function recomputeReport(report: FillReport): void {
-  report.filled = report.fields.filter((o) => o.status === 'filled').length;
-  report.needsUser = report.fields.filter((o) => o.status === 'needs_user').length;
-  report.failed = report.fields.filter((o) => o.status === 'failed').length;
-  report.skipped = report.fields.filter((o) => o.status === 'skipped').length;
-  report.unresolvedRequired = report.fields.filter((o) => o.field.required && (o.status === 'needs_user' || o.status === 'failed'));
-  report.readyToSubmit = !report.walls.length && !report.unresolvedRequired.length && report.fields.length > 0;
-}
+export { outcomeKey };
 
 /**
  * Write the values the candidate set during review into the held form (keyed by `outcomeKey`).
  * Unchanged values are left alone; file fields are never rewritten. Mutates and returns `report`.
  */
-export async function writeReviewedValues(
+export function writeReviewedValues(
   page: Page,
   engine: Pick<FormEngine, 'writers' | 'emit'>,
   report: FillReport,
   overrides: Record<string, string>
 ): Promise<{ report: FillReport; written: number; errors: string[] }> {
-  let written = 0;
-  const errors: string[] = [];
-  for (const o of report.fields) {
-    const value = overrides[outcomeKey(o)];
-    if (value === undefined || o.field.kind === 'file') continue;
-    const current = o.answer?.status === 'answered' ? o.answer.value : undefined;
-    if (o.status === 'filled' && current === value) continue;
-    const writer = engine.writers.get(o.field.kind);
-    if (!writer) {
-      o.status = 'failed';
-      o.reason = `no writer for ${o.field.kind}`;
-      errors.push(`${o.field.label}: ${o.reason}`);
-      continue;
-    }
-    const answer = {
-      fieldId: o.field.id,
-      status: 'answered' as const,
-      value,
-      values: o.field.multiple ? value.split('|').filter(Boolean) : undefined,
-      source: 'custom' as const,
-      fingerprint: outcomeKey(o),
-    };
-    let write;
-    try {
-      write = await writer.write(page, o.field, answer);
-    } catch (err) {
-      write = { fieldId: o.field.id, ok: false, error: (err as Error).message };
-    }
-    o.answer = answer;
-    o.write = write;
-    o.attempts += 1;
-    if (write.ok) {
-      o.status = 'filled';
-      o.reason = undefined;
-      written++;
-      engine.emit('event', { type: 'field_filled', fieldId: o.field.id, label: o.field.label, kind: o.field.kind, value, source: 'custom', attempt: o.attempts } satisfies FormEngineEvent);
-    } else {
-      o.status = o.field.required ? 'failed' : 'needs_user';
-      o.reason = write.error || 'write failed';
-      errors.push(`${o.field.label}: ${o.reason}`);
-    }
-  }
-  recomputeReport(report);
-  return { report, written, errors };
+  return applyReviewedValues(
+    { canWrite: (kind) => engine.writers.has(kind), write: (field, answer) => engine.writers.get(field.kind)!.write(page, field, answer) },
+    report,
+    overrides,
+    (ev) => engine.emit('event', ev),
+  );
 }
 
 /**

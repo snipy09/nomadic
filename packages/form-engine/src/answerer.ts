@@ -9,7 +9,6 @@
  *    in the profile, and may decline (null) -> needs_user.
  *  - Unknown short questions -> needs_user (required) or skip (optional).
  */
-import crypto from 'crypto';
 import type { Answer, AnswerContext, Answerer, Classification, FormField } from './contracts.js';
 import type { MasterProfile } from './profile.js';
 import { profileFullName, profileRequiresSponsorship } from './profile.js';
@@ -17,7 +16,7 @@ import { DEFAULT_POLICY, POLICY_OPTION_PATTERNS, type FormPolicy } from './polic
 import { yesNo, type OptionQuery } from './options.js';
 import type { AnswerLlm, FormAnswerRequest } from './llm.js';
 import { GroqClient, isFormAnswerClient } from './llm.js';
-import { ensureResumeFile } from './resume-pdf.js';
+import { sha1Hex } from './hash.js';
 import { norm } from './dom.js';
 import { matchCommonQuestion } from './commonQuestions.js';
 
@@ -40,15 +39,21 @@ export interface AnswererOptions {
    */
   llm?: AnswerLlm | null;
   cache?: AnswerCache;
-  /** Directory for generated resume PDFs (tests). */
-  resumeDir?: string;
+  /**
+   * Resume file for an upload field (a path the field writer can attach), or null when the profile has none.
+   * `generate`: the policy allows building a PDF from profile facts. Without a resolver, resume uploads need the user.
+   * FormEngine (Node) passes `ensureResumeFile`; the Android app passes the stored resume's id.
+   */
+  resolveResume?: ResumeResolver;
 }
+
+export type ResumeResolver = (profile: MasterProfile, generate: boolean) => string | null;
 
 /** Stable fingerprint of a question: normalized label + kind + options. */
 export function questionFingerprint(field: Pick<FormField, 'label' | 'kind' | 'options'>): string {
   const opts = (field.options || []).map((o) => norm(o.label)).sort().join('|');
   const basis = `${norm(field.label).replace(/[^a-z0-9 ]/g, '')}::${field.kind}::${opts}`;
-  return 'q_' + crypto.createHash('sha1').update(basis).digest('hex').slice(0, 16);
+  return 'q_' + sha1Hex(basis).slice(0, 16);
 }
 
 type Answered = Extract<Answer, { status: 'answered' }>;
@@ -204,7 +209,7 @@ export class ProfileAnswerer implements Answerer {
         return entry ? this.choice(field, { value: entry[1] }, 'custom') : this.unknown(field, '"How did you hear about us" is not in your profile (add it to custom answers)');
       }
       case 'resume': {
-        const file = ensureResumeFile(p, this.policy.generateResumeWhenMissing, this.opts.resumeDir);
+        const file = this.opts.resolveResume?.(p, this.policy.generateResumeWhenMissing) ?? null;
         return file ? this.ok(field, file, 'profile') : this.unknown(field, 'No resume file in your profile');
       }
       case 'cover_letter':

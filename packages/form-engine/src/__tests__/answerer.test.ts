@@ -7,6 +7,9 @@ import type { Answer, FormField } from '../contracts.js';
 import type { FormAnswerClient, FormAnswerRequest, LlmClient } from '../llm.js';
 import { pickOption } from '../options.js';
 import { DEFAULT_POLICY } from '../policy.js';
+import { ensureResumeFile } from '../resume-pdf.js';
+import { sha1Hex } from '../hash.js';
+import crypto from 'crypto';
 import { sampleProfile } from './helpers.js';
 
 const mk = (label: string, extra: Partial<FormField> = {}): FormField => ({
@@ -16,7 +19,7 @@ const yn = [{ label: 'Yes', value: 'Yes' }, { label: 'No', value: 'No' }];
 
 async function answerAll(fields: FormField[], profile: any = sampleProfile(), opts: ConstructorParameters<typeof ProfileAnswerer>[0] = { llm: null }) {
   const classes = new RuleClassifier().classify(fields);
-  return new ProfileAnswerer(opts).answer(fields, classes, profile);
+  return new ProfileAnswerer({ resolveResume: (p, g) => ensureResumeFile(p, g), ...opts }).answer(fields, classes, profile);
 }
 const byId = (answers: Answer[], id: string) => answers.find((a) => a.fieldId === id)!;
 const val = (a: Answer) => (a.status === 'answered' ? a.value : a.status);
@@ -41,7 +44,7 @@ describe('ProfileAnswerer', () => {
     ], profile);
     expect(answers[0]).toMatchObject({ status: 'answered', value: 'Final-year CSE student who builds web apps.', source: 'custom' });
     expect(val(answers[1])).toBe('Final-year CSE student who builds web apps.');
-    expect(answers[2].source).not.toBe('custom');
+    expect((answers[2] as { source?: string }).source).not.toBe('custom');
     expect(llmCalls).toBe(0);
   });
 
@@ -80,7 +83,7 @@ describe('ProfileAnswerer', () => {
   });
 
   it('prefers the answer saved for the exact question over a label match', async () => {
-    const field = mk('Notice period', { kind: 'select', options: [{ label: '30 days' }, { label: '60 days' }] });
+    const field = mk('Notice period', { kind: 'select', options: [{ label: '30 days', value: '30' }, { label: '60 days', value: '60' }] });
     const fp = questionFingerprint(field);
     const p = { ...sampleProfile(), cachedAnswers: { 'notice period': 'Immediately', [fp]: '30 days' } };
     const { answers } = await answerAll([field], p);
@@ -218,7 +221,7 @@ describe('ProfileAnswerer', () => {
     const own = `${dir}/mine.pdf`;
     fs.writeFileSync(own, '%PDF-1.4');
     expect(val((await answerAll([mk('Resume', { kind: 'file' })], { ...sampleProfile(), resumeFilePath: own })).answers[0])).toBe(own);
-    const gen = (await answerAll([mk('Resume', { kind: 'file' })], sampleProfile(), { llm: null, resumeDir: dir })).answers[0];
+    const gen = (await answerAll([mk('Resume', { kind: 'file' })], sampleProfile(), { llm: null, resolveResume: (p, g) => ensureResumeFile(p, g, dir) })).answers[0];
     expect(gen.status).toBe('answered');
     const pdf = fs.readFileSync((gen as any).value, 'latin1');
     expect(pdf.startsWith('%PDF-1.4')).toBe(true);
@@ -242,5 +245,17 @@ describe('pickOption', () => {
     expect(pickOption(['No (Please specify)', 'Yes, I am available'], { value: 'Yes' })).toBe(1);
     expect(pickOption(['Austin, Minnesota, United States', 'Austin, Texas, United States'], { value: 'Austin, TX, USA', match: ['Austin.*Texas', 'Austin'] })).toBe(1);
     expect(pickOption(['Red', 'Blue'], { value: 'Green' })).toBe(-1);
+  });
+});
+
+describe('sha1Hex', () => {
+  it('matches Node crypto for ASCII, Unicode and block-boundary inputs', () => {
+    const inputs = ['', 'a', 'abc', 'why do you want to work here::textarea::', 'Café ✱ naïve résumé 日本語 👋', 'x'.repeat(55), 'x'.repeat(56), 'x'.repeat(64), 'y'.repeat(1000)];
+    for (const s of inputs) expect(sha1Hex(s)).toBe(crypto.createHash('sha1').update(s).digest('hex'));
+  });
+  it('keeps question fingerprints identical to the Node digest', () => {
+    const f = mk('Are you authorized to work in India?', { kind: 'radio', options: yn });
+    const basis = 'are you authorized to work in india::radio::no|yes';
+    expect(questionFingerprint(f)).toBe('q_' + crypto.createHash('sha1').update(basis).digest('hex').slice(0, 16));
   });
 });

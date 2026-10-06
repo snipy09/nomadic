@@ -1,0 +1,112 @@
+name: Android apply
+
+# Builds the ApplyBrowser Capacitor plugin and runs the form agent on an Android emulator:
+# all 22 form-bench fixtures are filled in a real Android System WebView through
+# ApplyBrowserController (agent injected at document start in every frame, CSP without
+# unsafe-eval, cross-origin iframe), then scored like `npm run bench:forms`. The test fails on
+# any wrong or missing field, any submission without review, or a missed sign-in wall.
+
+on:
+  push:
+    branches: [main, 'claude/android-**']
+    paths:
+      - 'packages/form-engine/**'
+      - 'packages/form-bench/**'
+      - 'packages/capacitor-apply-browser/**'
+      - '.github/workflows/android-apply.yml'
+  pull_request:
+    paths:
+      - 'packages/form-engine/**'
+      - 'packages/form-bench/**'
+      - 'packages/capacitor-apply-browser/**'
+      - '.github/workflows/android-apply.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-apply-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  emulator:
+    name: Agent on Android ${{ matrix.api-level }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level: [34, 35]
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Agent bundle is up to date
+        run: npm run check:agent -w @job-automator/form-engine
+
+      - name: Build test assets (fixtures, harness, test agent)
+        run: npm run build:android-test -w @nomadic/capacitor-apply-browser
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14.3'
+
+      - name: Compile plugin and instrumentation tests
+        working-directory: packages/capacitor-apply-browser/android
+        run: gradle assembleDebug assembleDebugAndroidTest --stacktrace
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Fill all fixtures on the emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          working-directory: packages/capacitor-apply-browser/android
+          script: |
+            adb logcat -c
+            gradle connectedDebugAndroidTest --stacktrace; status=$?; adb logcat -d -s NomadicAgentTest:* chromium:E AndroidRuntime:E TestRunner:* > agent-logcat.txt; exit $status
+
+      - name: Summary
+        if: always()
+        run: |
+          f=packages/capacitor-apply-browser/android/agent-logcat.txt
+          if [ -f "$f" ]; then
+            echo '### Android ${{ matrix.api-level }}: agent on fixtures' >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            grep -E 'NomadicAgentTest' "$f" | sed -E 's/^.*NomadicAgentTest[^:]*: //' | cut -c1-400 >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-apply-${{ matrix.api-level }}-${{ github.run_id }}
+          path: |
+            packages/capacitor-apply-browser/android/agent-logcat.txt
+            packages/capacitor-apply-browser/android/build/outputs/androidTest-results/
+            packages/capacitor-apply-browser/android/build/reports/androidTests/
+          if-no-files-found: ignore

@@ -30,16 +30,20 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Form benchmark (new engine, mock LLM)
         run: npm run bench:forms -- --engine=new --llm=mock --out=nightly
+      - name: Form benchmark (Android agent path, mock LLM)
+        if: always()
+        run: npm run bench:forms -- --engine=agent --llm=mock --out=nightly-agent
       - name: Post score
         if: always()
         run: |
-          f=packages/form-bench/results/nightly.md
-          if [ -f "$f" ]; then cat "$f" >> "$GITHUB_STEP_SUMMARY"; else echo "form benchmark produced no report" >> "$GITHUB_STEP_SUMMARY"; fi
+          for f in packages/form-bench/results/nightly.md packages/form-bench/results/nightly-agent.md; do
+            if [ -f "$f" ]; then cat "$f" >> "$GITHUB_STEP_SUMMARY"; else echo "form benchmark produced no report ($f)" >> "$GITHUB_STEP_SUMMARY"; fi
+          done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: form-bench-${{ github.run_id }}
-          path: packages/form-bench/results/nightly.*
+          path: packages/form-bench/results/nightly*
           if-no-files-found: ignore
 
   scrapers:

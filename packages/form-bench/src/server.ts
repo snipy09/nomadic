@@ -23,7 +23,7 @@ export interface FixtureServers {
   close(): Promise<void>;
 }
 
-function serve(root: string, getOriginB: () => string): http.Server {
+function serve(root: string, getOriginB: () => string, csp?: string): http.Server {
   return http.createServer((req, res) => {
     try {
       const urlPath = decodeURIComponent(new URL(req.url || '/', 'http://x').pathname);
@@ -36,7 +36,9 @@ function serve(root: string, getOriginB: () => string): http.Server {
       const ext = path.extname(file).toLowerCase();
       let body: Buffer | string = fs.readFileSync(file);
       if (ext === '.html') body = body.toString('utf8').split('{{ORIGIN_B}}').join(getOriginB());
-      res.writeHead(200, { 'content-type': TYPES[ext] || 'application/octet-stream', 'cache-control': 'no-store' });
+      const headers: Record<string, string> = { 'content-type': TYPES[ext] || 'application/octet-stream', 'cache-control': 'no-store' };
+      if (csp && ext === '.html') headers['content-security-policy'] = csp;
+      res.writeHead(200, headers);
       res.end(body);
     } catch (err) {
       res.writeHead(500);
@@ -45,11 +47,11 @@ function serve(root: string, getOriginB: () => string): http.Server {
   });
 }
 
-export async function startFixtureServers(root: string): Promise<FixtureServers> {
+export async function startFixtureServers(root: string, opts: { csp?: string } = {}): Promise<FixtureServers> {
   const abs = path.resolve(root);
   let originB = '';
-  const a = serve(abs, () => originB);
-  const b = serve(abs, () => originB);
+  const a = serve(abs, () => originB, opts.csp);
+  const b = serve(abs, () => originB, opts.csp);
   await new Promise<void>((r) => a.listen(0, '127.0.0.1', () => r()));
   await new Promise<void>((r) => b.listen(0, '127.0.0.1', () => r()));
   const originA = `http://127.0.0.1:${(a.address() as AddressInfo).port}`;

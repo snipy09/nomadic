@@ -6,5 +6,12 @@
   "dependencies": {
     "playwright": "^1.62.1",
     "zod": "^3.25.76"
+  },
+  "scripts": {
+    "build:agent": "node scripts/build-agent.mjs",
+    "check:agent": "node scripts/build-agent.mjs --check"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }

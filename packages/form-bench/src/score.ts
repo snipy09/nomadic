@@ -38,7 +38,7 @@ function frameFor(page: Page, entry: KeyEntry): Frame | null {
 }
 
 /** In-page reader (must be self-contained: it is serialized into the page). */
-function readInPage(spec: { selector: string; read: string; shadow?: string[] }): ActualValue {
+export function readInPage(spec: { selector: string; read: string; shadow?: string[] }): ActualValue {
   (window as any).__benchCommit?.();
   let root: Document | ShadowRoot = document;
   for (const h of spec.shadow || []) {
