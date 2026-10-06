@@ -390,12 +390,18 @@ checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification
   signups with SQL in the Supabase dashboard. `src/supabase.ts` is unused and points at an old project.
   Motion: `Reveal`/`CountUp`/`anim-*`, gated by `html.js`, off under `prefers-reduced-motion`; the preloader is inline
   in `index.html` (once per session). Logo: `components/Logo.tsx`, SVG sources in `public/logo*.svg`.
-- Web deploy (Vercel project `nomadic-app`, live at https://nomadicai.vercel.app): no auto-deploy. Push to `main`, then
-  create a deployment from git source (github snipy09/nomadic ref main, framework vite, rootDirectory `apps/web`,
-  buildCommand `npm run build`, outputDirectory `dist`, `forceNew: "1"`, no `teamId`) via the Vercel MCP
-  `create_deployment`, or POST the same body to `https://api.vercel.com/v13/deployments?forceNew=1` with the Vercel
-  CLI token (never print it). Poll until READY (~1 min). Smoke test: `/`, `/download`, `/terms`, `/privacy` → 200,
-  unknown path → 404, `/sitemap.xml` and `/robots.txt` served.
+- Web deploy (Vercel project `nomadic-app`, live at https://nomadicai.vercel.app): the Vercel Git integration deploys
+  every push to `main` that touches the site (`apps/web`, `packages/config`, root `package.json`/lockfile or
+  `vercel.json`; other pushes are skipped by `ignoreCommand`). It builds from the repo root using the root
+  `vercel.json` (install without scripts, `npm run build --workspace @nomadic/web`, output `apps/web/dist`, same headers
+  as `apps/web/vercel.json`); before 6 Oct 2026 there was no root config and every Git deploy failed. Check a push with
+  `gh api repos/snipy09/nomadic/commits/<sha>/status` (context `Vercel`). Manual fallback: the Vercel MCP
+  `create_deployment` from git source (ref main, rootDirectory `apps/web`, buildCommand `npm run build`, outputDirectory
+  `dist`, `forceNew: "1"`, no `teamId`). Assistant cloud containers cannot reach `*.vercel.app` (proxy 403). Smoke test:
+  `/`, `/download`, `/terms`, `/privacy` → 200, unknown path → 404, `/sitemap.xml` and `/robots.txt` served.
+- Windows build without the laptop: Actions → "Build Windows (unsigned)" (`.github/workflows/build-windows.yml`,
+  workflow_dispatch) builds the installer and portable exe on `windows-latest` with the Google OAuth secrets and uploads
+  them as an artifact for 14 days (unsigned: SmartScreen warns). Signed releases: `release.yml` (needs the certificate).
 - Leftovers cleaned 4 Oct 2026 (old installer, `install.ps1`, old `logo.png` removed). The 92 MB installer is still
   in git history (`docs/SECURITY_CLEANUP.md` has the rewrite steps). Flag new leftovers; do not delete unasked.
 

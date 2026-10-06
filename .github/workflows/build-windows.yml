@@ -32,8 +32,8 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install
-        run: npm ci --no-audit --no-fund
+      - name: Install (dev dependencies too: NODE_ENV=production would otherwise skip the build tools)
+        run: npm ci --include=dev --no-audit --no-fund
 
       - name: Build (unsigned)
         working-directory: apps/desktop
