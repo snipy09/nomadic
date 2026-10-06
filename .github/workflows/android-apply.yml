@@ -71,6 +71,12 @@ jobs:
         working-directory: packages/capacitor-apply-browser/android
         run: gradle assembleDebug assembleDebugAndroidTest --stacktrace
 
+      - name: Free disk space for the emulator
+        # The emulator needs ~7.4 GB for its data partition; the runner image leaves less than that.
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/local/share/boost "$ANDROID_HOME/ndk"
+          df -h /
+
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -84,6 +90,9 @@ jobs:
           arch: x86_64
           target: google_apis
           disable-animations: true
+          cores: 4
+          ram-size: 4096M
+          disk-size: 4096M
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
           working-directory: packages/capacitor-apply-browser/android
           script: |
