@@ -1,0 +1,61 @@
+name: Build Windows (unsigned)
+
+# Manual build of the current desktop app for testing: the NSIS installer and the portable .exe,
+# uploaded as a workflow artifact (kept 14 days). Unsigned, so Windows SmartScreen warns on first run.
+# Signed public releases stay in release.yml (tags v*.*.*, needs the code-signing secrets).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      NODE_ENV: production
+      # Google sign-in is baked into the main bundle by build-main.mjs when these are set.
+      GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Build (unsigned)
+        working-directory: apps/desktop
+        run: npm run package:win -- --publish never
+
+      - name: Version and checksums
+        id: meta
+        shell: pwsh
+        run: |
+          $v = node -p "require('./apps/desktop/package.json').version"
+          "version=$v" >> $env:GITHUB_OUTPUT
+          Get-ChildItem apps/desktop/dist-electron -Filter *.exe |
+            Get-FileHash -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } |
+            Set-Content apps/desktop/dist-electron/SHA256SUMS.txt
+          Get-Content apps/desktop/dist-electron/SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nomadic-${{ steps.meta.outputs.version }}-windows-unsigned
+          path: |
+            apps/desktop/dist-electron/*.exe
+            apps/desktop/dist-electron/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
