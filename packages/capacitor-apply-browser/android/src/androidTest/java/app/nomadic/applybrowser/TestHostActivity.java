@@ -45,6 +45,15 @@ public class TestHostActivity extends AppCompatActivity implements ApplyBrowserC
         onDone = done;
         host.getSettings().setJavaScriptEnabled(true);
         host.setWebViewClient(new WebViewClient());
+        host.setWebChromeClient(
+            new android.webkit.WebChromeClient() {
+                @Override
+                public boolean onConsoleMessage(android.webkit.ConsoleMessage m) {
+                    Log.i(TAG, "host console " + m.messageLevel() + ": " + m.message() + " (" + m.sourceId() + ":" + m.lineNumber() + ")");
+                    return true;
+                }
+            }
+        );
         host.addJavascriptInterface(new HarnessBridge(), "AndroidHarness");
         host.loadUrl(url);
     }

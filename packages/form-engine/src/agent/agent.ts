@@ -108,17 +108,7 @@ export interface InstalledAgent {
   handle(req: AgentRequest): Promise<unknown>;
 }
 
-/** Install once per document and connect to the bridge if the WebView provides one. */
-export function install(extra: ExtraHandlers = {}): InstalledAgent {
-  const w = window as unknown as { __nomadicAgent?: InstalledAgent; nomadicBridge?: BridgeObject };
-  if (w.__nomadicAgent) return w.__nomadicAgent;
-  extraHandlers = extra;
-  const frameId = randomId();
-  const agent: InstalledAgent = { frameId, handle: handleRequest };
-  Object.defineProperty(window, '__nomadicAgent', { value: agent, configurable: false, enumerable: false, writable: false });
-
-  const bridge = w.nomadicBridge;
-  if (!bridge) return agent;
+function connect(bridge: BridgeObject, frameId: string): void {
   const post = (m: AgentMessage) => { try { bridge.postMessage(JSON.stringify(m)); } catch { /* frame going away */ } };
   bridge.onmessage = (event) => {
     let req: AgentRequest;
@@ -133,5 +123,26 @@ export function install(extra: ExtraHandlers = {}): InstalledAgent {
   const state = () => post({ t: 'state', frameId, url: location.href, readyState: document.readyState });
   document.addEventListener('readystatechange', state);
   window.addEventListener('pagehide', () => post({ t: 'bye', frameId }));
+}
+
+/** Install once per document and connect to the bridge if the WebView provides one. */
+export function install(extra: ExtraHandlers = {}): InstalledAgent {
+  const w = window as unknown as { __nomadicAgent?: InstalledAgent; nomadicBridge?: BridgeObject };
+  if (w.__nomadicAgent) return w.__nomadicAgent;
+  extraHandlers = extra;
+  const frameId = randomId();
+  const agent: InstalledAgent = { frameId, handle: handleRequest };
+  Object.defineProperty(window, '__nomadicAgent', { value: agent, configurable: false, enumerable: false, writable: false });
+
+  // The WebView normally defines nomadicBridge before document-start scripts run; if it shows up a
+  // little later, connect then (checked every 50 ms for 10 s).
+  if (w.nomadicBridge) connect(w.nomadicBridge, frameId);
+  else {
+    const started = Date.now();
+    const timer = setInterval(() => {
+      if (w.nomadicBridge) { clearInterval(timer); connect(w.nomadicBridge, frameId); }
+      else if (Date.now() - started > 10_000) clearInterval(timer);
+    }, 50);
+  }
   return agent;
 }

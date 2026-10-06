@@ -97,7 +97,7 @@ jobs:
           working-directory: packages/capacitor-apply-browser/android
           script: |
             adb logcat -c
-            gradle connectedDebugAndroidTest --stacktrace; status=$?; adb logcat -d -s NomadicAgentTest:* chromium:E AndroidRuntime:E TestRunner:* > agent-logcat.txt; exit $status
+            gradle connectedDebugAndroidTest --stacktrace; status=$?; adb logcat -d -s NomadicAgentTest:* chromium:I cr_AwContents:* AndroidRuntime:E TestRunner:* > agent-logcat.txt; echo '----- agent logcat (last 400 lines) -----'; tail -n 400 agent-logcat.txt; exit $status
 
       - name: Summary
         if: always()

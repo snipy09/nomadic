@@ -70,7 +70,11 @@ function extra<T>(ch: AgentChannel, frameId: string, cmd: Extra, args: object = 
 async function openFixture(id: string, key: AnswerKey, agentScript: string): Promise<AgentChannel> {
   const channel = new AgentChannel(transport);
   AndroidHarness.open(`${location.origin}/${id}/index.html`, agentScript);
-  if (!(await channel.waitForTop('complete', 30_000))) throw new Error(`${id}: page did not load`);
+  if (!(await channel.waitForTop('complete', 30_000))) {
+    channel.close();
+    throw new Error(`${id}: no agent reported a loaded page (frames: ${JSON.stringify(channel.frames())})`);
+  }
+  AndroidHarness.log(`${id}: page loaded, frames ${channel.frames().map((f) => (f.top ? 'top ' : '') + f.url).join(' | ')}`);
   const wantFrames = new Set(Object.values(key.fields).map((e) => e.frame).filter((f): f is string => !!f));
   const deadline = Date.now() + 15_000;
   while (Date.now() < deadline) {
@@ -161,15 +165,24 @@ async function reviewAndSubmit(agentScript: string) {
   return { ok: !unreviewed.submitted && !submittedEarly && done.submitted && submitted, unreviewedRefused: !unreviewed.submitted, submittedEarly, engineSubmitted: done.submitted, pageSubmitted: submitted, error: done.error };
 }
 
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([p, new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`${label} timed out after ${ms} ms`)), ms))]);
+}
+
 async function main() {
+  AndroidHarness.log(`harness started: ${navigator.userAgent}`);
   const agentScript = await (await fetch('/_harness/test-agent.js')).text();
+  AndroidHarness.log(`test agent loaded (${agentScript.length} chars)`);
   const results: FixtureResult[] = [];
   for (const id of FIXTURES) {
-    const r = await runFixture(id, agentScript);
+    const t0 = Date.now();
+    const r = await withTimeout(runFixture(id, agentScript), 120_000, id).catch((err): FixtureResult => ({
+      id, status: 'error', fields: 0, correct: 0, wrong: 0, skipped: 0, submitClicked: false, wallsExpected: [], wallsReported: [], timeMs: Date.now() - t0, error: (err as Error).message, details: [],
+    }));
     AndroidHarness.log(`${id.padEnd(26)} fields ${r.fields} correct ${r.correct} wrong ${r.wrong} skipped ${r.skipped} ${r.timeMs}ms ${r.status}${r.submitClicked ? ' SUBMIT-CLICKED' : ''}${r.error ? ' ERROR ' + r.error : ''}`);
     results.push(r);
   }
-  const review = await reviewAndSubmit(agentScript);
+  const review = await withTimeout(reviewAndSubmit(agentScript), 120_000, 'review flow').catch((err) => ({ ok: false, error: (err as Error).message }));
   AndroidHarness.close();
   const sum = (k: 'fields' | 'correct' | 'wrong' | 'skipped') => results.reduce((n, r) => n + r[k], 0);
   const summary = {
