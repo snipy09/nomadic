@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Briefcase, ChevronLeft, ChevronRight, RefreshCw, Search, X } from 'lucide-react';
+import { Briefcase, ChevronLeft, ChevronRight, LayoutGrid, RefreshCw, Search, X } from 'lucide-react';
 import {
   Badge, Button, Card, EmptyState, FilterBar, IconButton, Input, PageHeader, Select, Skeleton, Tabs, TabsList, TabsTrigger, useToast,
 } from '@nomadic/ui';
@@ -26,6 +26,8 @@ interface FeedViewProps {
   onOpenUpgrade?: (feature?: string) => void;
   /** Search to start with (News → "See jobs" opens the board filtered to that company). */
   initialSearch?: string | null;
+  /** Phone: a link to the Tracker in the page header. */
+  onOpenTracker?: () => void;
 }
 
 const TABS: Array<{ id: FeedTab; label: string }> = [
@@ -48,7 +50,7 @@ function useDebounced<T>(value: T, ms = 300): T {
   return v;
 }
 
-export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, onLog, onNavigateToOutreach, currentUser, onOpenUpgrade, initialSearch }) => {
+export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, onLog, onNavigateToOutreach, currentUser, onOpenUpgrade, initialSearch, onOpenTracker }) => {
   const { toast } = useToast();
   const [tab, setTab] = useState<FeedTab>(initialTab);
   const [searchText, setSearchText] = useState(initialSearch ?? '');
@@ -136,6 +138,7 @@ export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, on
     <div className="mx-auto flex max-w-6xl flex-col gap-4 pb-24">
       <PageHeader
         title="Job board"
+        actions={onOpenTracker ? <Button size="sm" variant="secondary" leftIcon={<LayoutGrid />} onClick={onOpenTracker}>Tracker</Button> : undefined}
         description={
           feed.loading && shown.length === 0
             ? 'Loading openings…'

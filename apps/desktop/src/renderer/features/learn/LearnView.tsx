@@ -370,7 +370,7 @@ export function LearnView({ currentUser, suggestedRole, onOpenUpgrade, onLog, in
           }
         />
         <Drawer open={adjustOpen} onOpenChange={setAdjustOpen}>
-          <DrawerContent title="Adjust your plan" description="Tell the planner what changed. You see the new plan before anything is saved." size="lg">
+          <DrawerContent side={IS_MOBILE ? 'bottom' : undefined} title="Adjust your plan" description="Tell the planner what changed. You see the new plan before anything is saved." size="lg">
             <AdjustPanel
               current={roadmap!}
               onPropose={async (instruction) => {

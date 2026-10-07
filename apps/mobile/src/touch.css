@@ -1,0 +1,22 @@
+/* Android app only: touch sizes for the few controls that do not use the ctl-* sizes. */
+[role='tab'] {
+  min-height: 36px;
+}
+[role='tablist'] {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  max-width: 100%;
+}
+[role='tablist']::-webkit-scrollbar {
+  display: none;
+}
+/* No grey flash on tap; the app draws its own pressed states. */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+/* Choice chips (answers, Learn intake): toggle buttons get a full-size tap target. */
+button[aria-pressed],
+button[role='radio'] {
+  min-height: 40px;
+}

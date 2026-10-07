@@ -13,7 +13,8 @@ export interface DrawerContentProps
   extends Omit<React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>, 'title'> {
   title: React.ReactNode;
   description?: React.ReactNode;
-  side?: 'right' | 'left';
+  /** 'bottom' is a phone bottom sheet (full width, up to 90% of the screen). */
+  side?: 'right' | 'left' | 'bottom';
   size?: keyof typeof widths;
   footer?: React.ReactNode;
   /** Extra header content under the title (tabs, meta). */
@@ -39,8 +40,10 @@ export const DrawerContent = React.forwardRef<HTMLDivElement, DrawerContentProps
           'fixed inset-y-2 z-modal flex w-[calc(100%-1rem)] flex-col overflow-hidden rounded-xl border border-line/70 bg-surface-raised text-fg shadow-e3 outline-none',
           side === 'right'
             ? 'right-2 data-[state=open]:animate-nm-drawer-in-right data-[state=closed]:animate-nm-drawer-out-right'
-            : 'left-2 data-[state=open]:animate-nm-drawer-in-left data-[state=closed]:animate-nm-drawer-out-left',
-          widths[size],
+            : side === 'left'
+              ? 'left-2 data-[state=open]:animate-nm-drawer-in-left data-[state=closed]:animate-nm-drawer-out-left'
+              : 'inset-x-0 bottom-0 top-auto max-h-[90dvh] w-full rounded-b-none rounded-t-2xl border-x-0 border-b-0 pb-[env(safe-area-inset-bottom)] data-[state=open]:animate-nm-sheet-in data-[state=closed]:animate-nm-sheet-out',
+          side === 'bottom' ? 'max-w-none' : widths[size],
           className,
         )}
         {...rest}

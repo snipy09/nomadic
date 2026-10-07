@@ -115,6 +115,9 @@ module.exports = {
         'nm-drawer-out-right': { from: { transform: 'none', opacity: '1' }, to: { transform: 'translateX(var(--nm-motion-drawer))', opacity: '0' } },
         'nm-drawer-in-left': { from: { transform: 'translateX(calc(var(--nm-motion-drawer) * -1))', opacity: '0' }, to: { transform: 'none', opacity: '1' } },
         'nm-drawer-out-left': { from: { transform: 'none', opacity: '1' }, to: { transform: 'translateX(calc(var(--nm-motion-drawer) * -1))', opacity: '0' } },
+        // Bottom sheet (Android app): slides up from the bottom edge.
+        'nm-sheet-in': { from: { transform: 'translateY(100%)' }, to: { transform: 'none' } },
+        'nm-sheet-out': { from: { transform: 'none' }, to: { transform: 'translateY(100%)' } },
         'nm-toast-in': {
           from: { opacity: '0', transform: 'translateY(calc(var(--nm-motion-shift) * 2))' },
           to: { opacity: '1', transform: 'none' },
@@ -132,6 +135,8 @@ module.exports = {
         'nm-drawer-out-right': 'nm-drawer-out-right var(--nm-dur-base) var(--nm-ease-in) both',
         'nm-drawer-in-left': 'nm-drawer-in-left var(--nm-dur-slow) var(--nm-ease-out) both',
         'nm-drawer-out-left': 'nm-drawer-out-left var(--nm-dur-base) var(--nm-ease-in) both',
+        'nm-sheet-in': 'nm-sheet-in var(--nm-dur-slow) var(--nm-ease-out) both',
+        'nm-sheet-out': 'nm-sheet-out var(--nm-dur-base) var(--nm-ease-in) both',
         'nm-toast-in': 'nm-toast-in var(--nm-dur-slow) var(--nm-ease-out) both',
         'nm-toast-out': 'nm-toast-out var(--nm-dur-fast) var(--nm-ease-in) both',
         'nm-spin': 'nm-spin var(--nm-motion-spin) linear infinite',

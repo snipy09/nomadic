@@ -8,6 +8,7 @@ import {
 import { AuditList } from './AuditPanel';
 import { ConfirmChangeDialog } from './shared';
 import { useAdminQuery } from './useAdminQuery';
+import { IS_MOBILE } from '../../platform';
 
 interface UserDrawerProps {
   user: AdminUserRow | null;
@@ -79,7 +80,7 @@ function UserDrawerBody({ user, selfId, onChanged }: { user: AdminUserRow; selfI
   };
 
   return (
-    <DrawerContent
+    <DrawerContent side={IS_MOBILE ? 'bottom' : undefined}
       title={user.fullName || user.email}
       description={user.email}
       size="lg"

@@ -4,6 +4,7 @@ import { Badge, Button, Drawer, DrawerContent } from '@nomadic/ui';
 import { getApi } from '../../types';
 import { postedLabel, type ScoredJob } from './feedLogic';
 import { MatchBadge } from './JobCard';
+import { IS_MOBILE } from '../../platform';
 
 interface JobDrawerProps {
   job: ScoredJob | null;
@@ -25,7 +26,7 @@ export function JobDrawer({ job, saved, onClose, onToggleSave, onApply, onCopied
   return (
     <Drawer open={Boolean(job)} onOpenChange={(o) => { if (!o) onClose(); }}>
       {job && (
-        <DrawerContent
+        <DrawerContent side={IS_MOBILE ? 'bottom' : undefined}
           title={job.title}
           description={[job.company, job.location, postedLabel(job.createdAt), job.source ? `via ${job.source}` : ''].filter(Boolean).join(' · ')}
           size="lg"

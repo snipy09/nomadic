@@ -8,6 +8,7 @@ import {
 } from './adminLogic';
 import { AdminErrorState, ConfirmChangeDialog, LoadingRows } from './shared';
 import { useAdminQuery } from './useAdminQuery';
+import { IS_MOBILE } from '../../platform';
 
 interface LessonEditorDrawerProps {
   lesson: AdminLessonItem | null;
@@ -69,7 +70,7 @@ function LessonEditor({ lesson, onSaved, onClose }: { lesson: AdminLessonItem; o
   const statusOptions = allowedLessonStatuses(lesson.status).map((s) => ({ value: s, label: CONTENT_STATUS_LABELS[s] }));
 
   return (
-    <DrawerContent
+    <DrawerContent side={IS_MOBILE ? 'bottom' : undefined}
       title="Edit lesson"
       description={`${lesson.id} · skill ${lesson.skillId}`}
       size="xl"

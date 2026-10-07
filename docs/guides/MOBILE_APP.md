@@ -7,7 +7,9 @@ Status: built 7 Oct 2026, version 0.1.0, debug APK from CI (`.github/workflows/a
 Everything except Practice, Projects, the apply engine and Outreach:
 
 - Sign in, sign up, password reset, email verification (Google sign-in: not yet, see Limits).
-- Onboarding (6 steps: the resume step is desktop only).
+- Onboarding of its own (`features/onboarding/MobileOnboarding.tsx`): a welcome that says what the phone does and
+  what stays on the computer, then About you, Your goal (tap-to-pick job type, role and skills) and Your roadmap (the
+  same short intake as the desktop, skippable). No resume, links, answers or workspace steps.
 - **News** (first tab, `features/news/`, IPC `get-news` → main `services/news.ts`): hiring updates per company
   (careers-site snapshots from the feed scraper, migration 031, and companies that posted 2+ roles on the job board
   this week) and upcoming hackathons, each with its source and a link; "See jobs" opens Jobs filtered to the company.
@@ -16,7 +18,7 @@ Everything except Practice, Projects, the apply engine and Outreach:
   keeps Home as its dashboard.
 - Learn (intake, roadmap, path, today, day pages, topics, quizzes, progress). Project pages inside Learn point to the
   desktop.
-- Job board: feed, match %, filters, Saved, Hidden. The apply action is **"Auto apply from desktop"**: it saves the
+- Job board: feed, match %, filters, Saved, Hidden, and a Tracker button in the header. The apply action is **"Auto apply from desktop"**: it saves the
   job to the account and says where to find it on the computer (Job board → Saved → Apply with review).
 - Tracker (list as cards by default, board, notes, follow-ups), Application answers, Settings (profile, workspace,
   answers, account, data & privacy), Help, Activity log, Admin (admins), plans and upgrade.
@@ -51,7 +53,10 @@ The APK runs the desktop renderer **and the desktop's main-process services** in
   tracker channels, and phone versions of system channels (`src/host/boot.ts`).
 - The renderer checks `IS_MOBILE` (`renderer/platform.ts`, `VITE_PLATFORM=android`): hidden tabs, the bottom tab bar
   (`components/shell/MobileShell.tsx`: News, Learn, Jobs, Tracker, More), the More page, Settings as a grouped list,
-  "Auto apply from desktop", no batch selection, list-first tracker, no keyboard-shortcut help.
+  "Auto apply from desktop", no batch selection, list-first tracker, no keyboard-shortcut help, bottom sheets
+  (`DrawerContent side="bottom"`) for job, application, plan-adjust and admin details.
+- Touch sizing: `apps/mobile/tailwind.config.cjs` sets the shared `ctl-*` control sizes to 40/44/48 px (desktop
+  28/32/36), and `apps/mobile/src/touch.css` sizes tab pills, choice chips and tab-list scrolling.
 - CSP: the desktop policy plus `'wasm-unsafe-eval'` (WebAssembly for sql.js; JS eval stays blocked).
 
 ## One computer and one phone

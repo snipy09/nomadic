@@ -4,6 +4,7 @@ import {
   TabType, MasterProfile, AppUser, getApi
 } from './types';
 import { Onboarding } from './features/onboarding/Onboarding';
+import { MobileOnboarding } from './features/onboarding/MobileOnboarding';
 import { AppShell, Button, EmptyState, PageHeader, useTheme } from '@nomadic/ui';
 import { Sidebar } from './components/Sidebar';
 import { GO_WINDOW_MS, isTypingTarget, tabForGoKey } from './components/shell/shortcuts';
@@ -342,8 +343,9 @@ export default function App() {
 
   // If new user (has NOT completed onboarding) or user requested setup, show Onboarding
   if (!userHasCompletedOnboarding || showOnboarding) {
+    const SetupFlow = IS_MOBILE ? MobileOnboarding : Onboarding;
     return (
-      <Onboarding
+      <SetupFlow
         initialProfile={profile}
         currentUser={currentUser}
         onComplete={(completedProfile) => {
@@ -432,6 +434,7 @@ export default function App() {
                 currentUser={currentUser}
                 onOpenUpgrade={handleOpenUpgrade}
                 initialSearch={tabIntent?.startsWith('search:') ? tabIntent.slice(7) : null}
+                onOpenTracker={IS_MOBILE ? () => handleNavigate('applications') : undefined}
               />
             )}
 

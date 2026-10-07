@@ -5,6 +5,7 @@
 import { App as CapApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { Capacitor } from '@capacitor/core';
+import './touch.css';
 
 declare const __APP_VERSION__: string;
 

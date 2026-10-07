@@ -4,6 +4,7 @@ import { Button, Drawer, DrawerContent, Field, Input, Textarea } from '@nomadic/
 import { getApi, type Application } from '../../types';
 import { NOTES_MAX, addDays, formatDate, formatDateTime, historyNewestFirst, localDay, modeLabel, postingUrl, stageOf, statusLabel } from './applicationsLogic';
 import { FollowUpBadge, MoveSelect, StatusBadge } from './ApplicationCard';
+import { IS_MOBILE } from '../../platform';
 
 interface ApplicationDrawerProps {
   app: Application | null;
@@ -56,7 +57,7 @@ export function ApplicationDrawer({ app, onClose, onMove, onSaveNotes, onSetFoll
   return (
     <Drawer open={Boolean(app)} onOpenChange={(o) => { if (!o) onClose(); }}>
       {app && (
-        <DrawerContent
+        <DrawerContent side={IS_MOBILE ? 'bottom' : undefined}
           title={app.title}
           description={app.company}
           size="lg"
