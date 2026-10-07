@@ -143,7 +143,7 @@ Key flows:
 - **Supabase project `nomadic`**: ref `grqkiddfwoyicktpgdea`, region ap-south-1 (Mumbai), free plan, org "Nomadic".
   URL `https://grqkiddfwoyicktpgdea.supabase.co`. The anon key is public by design and is the build default in
   `apps/desktop/build-main.mjs`, scrapers and web. The service-role key is never in the app or repo.
-- **Applied migrations**: 001–012, 014–030 (028 Learn v2 state and 029 AI roadmap quotas pasted by the owner on
+- **Applied migrations**: 001–012, 014–032 (028 Learn v2 state and 029 AI roadmap quotas pasted by the owner on
   5 Oct 2026, verified; Learn v2 content seed pasted too: 109 skills, 109 lessons, 55 resources; the 624 v1.2.0 quiz items were added
   through the connector on 5 Oct 2026, so 864 practice items are live and match the seed by content hash) (013 does not exist; 023 is the web waitlist; 024 no Max downgrade on
   payment, 025 payment history, 026 account sync of hidden jobs and follow-up dates, 027 outreach directory and
@@ -151,7 +151,7 @@ Key flows:
   dropped by an owner paste (`DROP TABLE IF EXISTS public.hr_contacts;`; the connector times out on DROP).
   028 = Learn v2 state documents + v2 event types; 029 = AI roadmap quotas (`ai_limits` with roadmap columns,
   outreach metrics of 027 kept); 030 = AI project help quota (metric `ai_project_help`, `ai_project_help_limits`
-  5/40/150, applied through the Supabase connector on 5 Oct 2026 and verified). 031 (feed sources: `companies`, `company_openings`, `company_hiring_snapshots`, `hackathons`, read-only for clients) and 032 (one computer + one phone per account: device classes by fingerprint prefix `mobile-`) are in the repo, not applied yet (`baseline/apply_031.sql`, `apply_032.sql`; the connector has no permission, owner pastes). Next free number is 033. Security advisor: no errors; remaining notices are by design (deny-all tables;
+  5/40/150, applied through the Supabase connector on 5 Oct 2026 and verified). 031 (feed sources: `companies`, `company_openings`, `company_hiring_snapshots`, `hackathons`, read-only for clients) and 032 (one computer + one phone per account: device classes by fingerprint prefix `mobile-`) were applied through the Supabase connector on 7 Oct 2026 and verified (device_class, per-class register/heartbeat, 4 read-only feed tables with RLS; 031 applied without its no-op `DROP POLICY IF EXISTS` lines because the tables were new). The connector must be signed in to the Supabase account that owns the "Nomadic" org (another account sees only old projects). Next free number is 033. Security advisor: no errors; remaining notices are by design (deny-all tables;
   session-checked SECURITY DEFINER RPCs callable by anon).
 - **Learn content seeded** from the bundle (checksums verified; quiz items re-checked 5 Oct 2026).
 - **Accounts**: the owner account (`sajalmishra0908@gmail.com`) has role `admin` (granted 5 Oct 2026 by SQL, with an
@@ -208,9 +208,8 @@ screens). The owner has signed in on the packaged v1.0.6 app and run apply up to
 ## 7. What is left
 
 Owner actions:
-00. **Paste `packages/supabase/baseline/apply_032.sql`** (one computer + one phone) before anyone signs in on the Android
-   app, and `apply_031.sql` (feed tables) before `npm run scrape:feed -- --publish`. First feed run: `"Run feed
-   scraper.cmd" -DryRun` and fix/null the companies it lists as FAILED (`packages/scrapers/src/feed/companies.ts`).
+00. (Done 7 Oct 2026) 031 and 032 are live. Left: first feed run on the laptop, `"Run feed scraper.cmd" -DryRun`, fix/null
+   the companies it lists as FAILED (`packages/scrapers/src/feed/companies.ts`), then run it without `-DryRun` to fill News.
 0. **Learn v2 go-live** (merged into `main` with 1.1.0): 028, 029, the content seed and the ai-proxy redeploy are
    done (5 Oct 2026). v1.2.0's 624 quiz items are live (5 Oct 2026: 864 practice items, content hash checked against the
    seed). Left: on the laptop run `npm run check-paid-only -w
@@ -398,7 +397,7 @@ checklist in `docs/plans/OUTREACH_PLAN.md` section 11; the Assistant); OS notifi
   (`register_device_session` deactivates other devices), Play Billing vs user choice billing for Pro/Max.
 - **Android app** (7 Oct 2026, on `main`, `apps/mobile`, v0.1.0): see docs/guides/MOBILE_APP.md. Saved jobs sync both ways
   (pull on Job board open/focus/Saved tab, throttled 2 min; local migration 11 `saved_jobs.synced_at`). Owner: paste
-  032 before anyone signs in on a phone (else the desktop is signed out), then install the CI debug APK.
+  032 (applied 7 Oct 2026), then install the CI debug APK.
   On the phone the first tab is **News** (`features/news/`, IPC `get-news`, main `services/news.ts`: company hiring
   snapshots + job-board bursts + hackathons, all sourced) and the old Home dashboard is "Dashboard" under More (tab
   `dashboard`); the desktop is unchanged (Home = dashboard) by the owner's choice. The phone has its own onboarding
