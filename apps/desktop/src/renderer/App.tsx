@@ -23,6 +23,7 @@ import { useSessionRestore } from './features/auth/useSessionRestore';
 import { HelpView } from './features/help/HelpView';
 import { AnswersView } from './features/answers/AnswersView';
 import { HomeView } from './features/home/HomeView';
+import { NewsView } from './features/news/NewsView';
 import { UpdateRequiredScreen } from './features/updates/UpdateRequiredScreen';
 import { WhatsNewDialog } from './features/updates/WhatsNewDialog';
 import { useUpdatePolicy } from './features/updates/useUpdater';
@@ -371,7 +372,10 @@ export default function App() {
 
   const pages = (
     <>
-            {activeTab === 'home' && (
+            {/* Phone: Home is the News page and the dashboard sits under More. Desktop keeps its Home dashboard. */}
+            {activeTab === 'home' && IS_MOBILE && <NewsView onNavigate={handleNavigate} />}
+
+            {(activeTab === 'dashboard' || (activeTab === 'home' && !IS_MOBILE)) && (
               <HomeView profile={profile} currentUser={currentUser} workspaceMode={workspaceMode} onNavigate={handleNavigate} />
             )}
 
@@ -427,6 +431,7 @@ export default function App() {
                 }}
                 currentUser={currentUser}
                 onOpenUpgrade={handleOpenUpgrade}
+                initialSearch={tabIntent?.startsWith('search:') ? tabIntent.slice(7) : null}
               />
             )}
 
@@ -483,8 +488,10 @@ export default function App() {
             )}
 
             {/* Safe fallback: an unknown tab (e.g. a stale preference) shows Home */}
-            {!['home', 'learner-roadmaps', 'learner-resources', 'learner-interview-prep', 'learner-projects', 'opportunities', 'feed', 'outreach', 'applications', 'logs', 'help', 'answers', 'profile', 'settings', 'more'].includes(activeTab) && !activeTab.startsWith('admin') && (
-              <HomeView profile={profile} currentUser={currentUser} workspaceMode={workspaceMode} onNavigate={handleNavigate} />
+            {!['home', 'learner-roadmaps', 'learner-resources', 'learner-interview-prep', 'learner-projects', 'opportunities', 'feed', 'outreach', 'applications', 'logs', 'help', 'answers', 'profile', 'settings', 'more', 'dashboard'].includes(activeTab) && !activeTab.startsWith('admin') && (
+              IS_MOBILE
+                ? <NewsView onNavigate={handleNavigate} />
+                : <HomeView profile={profile} currentUser={currentUser} workspaceMode={workspaceMode} onNavigate={handleNavigate} />
             )}
 
             {activeTab === 'more' && (

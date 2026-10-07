@@ -24,6 +24,8 @@ interface FeedViewProps {
   onNavigateToOutreach?: (company: string, jobTitle: string) => void;
   currentUser?: AppUser | null;
   onOpenUpgrade?: (feature?: string) => void;
+  /** Search to start with (News → "See jobs" opens the board filtered to that company). */
+  initialSearch?: string | null;
 }
 
 const TABS: Array<{ id: FeedTab; label: string }> = [
@@ -46,10 +48,10 @@ function useDebounced<T>(value: T, ms = 300): T {
   return v;
 }
 
-export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, onLog, onNavigateToOutreach, currentUser, onOpenUpgrade }) => {
+export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, onLog, onNavigateToOutreach, currentUser, onOpenUpgrade, initialSearch }) => {
   const { toast } = useToast();
   const [tab, setTab] = useState<FeedTab>(initialTab);
-  const [searchText, setSearchText] = useState('');
+  const [searchText, setSearchText] = useState(initialSearch ?? '');
   const search = useDebounced(searchText);
   const [sort, setSort] = useState<SortKey>('latest');
   const [location, setLocation] = useState<LocationFilter>('all');

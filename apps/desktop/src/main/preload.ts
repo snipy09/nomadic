@@ -35,6 +35,7 @@ const apiObj: NomadicApi = {
   runScrapers: () => invoke('run-scrapers'),
   getCloudFeed: (userId) => invoke('get-cloud-feed', userId),
   getCloudFeedPage: (options) => invoke('get-cloud-feed-page', options),
+  getNews: () => invoke('get-news'),
   launchSemiAuto: (jobUrls) => invoke('launch-semi-auto', jobUrls),
   launchAutonomous: (jobUrls) => invoke('launch-autonomous', jobUrls),
   cancelAutonomousApply: () => invoke('cancel-autonomous-apply'),

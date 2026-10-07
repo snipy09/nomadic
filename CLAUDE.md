@@ -198,7 +198,7 @@ F13: Outreach was rebuilt in v1.1.0 (see section 9) and shows in the sidebar as 
 the working module needs `VITE_FEATURES="outreach=on"`. Opportunity Board, Resource Vault and the Assistant stay
 hidden; the Assistant still needs rework or removal.
 
-Tests: 1,807 vitest tests pass (139 files, 7 Oct 2026; 1,771 on 6 Oct; run with `--maxWorkers=2 --testTimeout=30000` on this laptop, the default
+Tests: 1,819 vitest tests pass (141 files, 7 Oct 2026; 1,771 on 6 Oct; run with `--maxWorkers=2 --testTimeout=30000` on this laptop, the default
 parallelism times out component tests, and the three Chrome DOM suites can time out closing Chrome in `afterAll`);
 typecheck, lint (0 errors, ~190 warnings) and desktop/web builds pass.
 The built Electron app has been smoke-tested over CDP (window, live feed via IPC, Learn, Settings, Help, Activity, Admin
@@ -399,6 +399,9 @@ checklist in `docs/plans/OUTREACH_PLAN.md` section 11; the Assistant); OS notifi
 - **Android app** (7 Oct 2026, on `main`, `apps/mobile`, v0.1.0): see docs/guides/MOBILE_APP.md. Saved jobs sync both ways
   (pull on Job board open/focus/Saved tab, throttled 2 min; local migration 11 `saved_jobs.synced_at`). Owner: paste
   032 before anyone signs in on a phone (else the desktop is signed out), then install the CI debug APK.
+  On the phone the first tab is **News** (`features/news/`, IPC `get-news`, main `services/news.ts`: company hiring
+  snapshots + job-board bursts + hackathons, all sourced) and the old Home dashboard is "Dashboard" under More (tab
+  `dashboard`); the desktop is unchanged (Home = dashboard) by the owner's choice.
 - Next most useful work: owner action 0 (Learn v2 go-live), then owner actions in section 7 (consent screen, Resend domain, key rotation),
   then a live end-to-end pass (Google sign-in, reviewed submit, AI feedback), then the code follow-ups in section 7.
 

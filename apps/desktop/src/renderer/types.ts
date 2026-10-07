@@ -146,8 +146,10 @@ export type TabType =
   | 'settings'
   | 'help'
   | 'account'
-  /** Android app: the "More" page (Answers, Settings, Help, ...). */
-  | 'more';
+  /** Android app: the "More" page (Dashboard, Answers, Settings, Help, ...). */
+  | 'more'
+  /** The setup checklist, today's learning, applications and best matches (Home shows News). */
+  | 'dashboard';
 
 export type ThemeMode = 'dark' | 'light' | 'system';
 
@@ -180,7 +182,7 @@ export interface AppUser {
 
 
 export type {
-  HiddenJob, HideJobInput,
+  HiddenJob, HideJobInput, NewsItem, NewsKind, NewsResult, NewsSourceState,
   FeedbackInput, FeedbackKind, FeedbackResult, TelemetryState, UpdateChannel, UpdatePolicyResult, UpdaterInfo, UpdaterStatus, WhatsNewInfo,
 } from '../shared/ipc';
 import type {
@@ -206,6 +208,7 @@ export interface ElectronAPI {
   clearRememberedAnswers?: NomadicApi['clearRememberedAnswers'];
   runScrapers: () => Promise<{ success: boolean; jobs: Job[]; error?: string }>;
   getCloudFeed: (userId: string) => Promise<{ success: boolean; jobs: Job[]; error?: string }>;
+  getNews?: NomadicApi['getNews'];
   getCloudFeedPage?: (options?: { page?: number; pageSize?: number; search?: string; filterTab?: string; source?: string }) => Promise<{ success: boolean; jobs: Job[]; totalCount?: number; error?: string }>;
   launchSemiAuto: (jobUrls: string[]) => Promise<{ success: boolean; error?: string; incompleteProfile?: boolean }>;
   launchAutonomous: (jobUrls: string[]) => Promise<{

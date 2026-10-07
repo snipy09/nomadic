@@ -8,7 +8,12 @@ Everything except Practice, Projects, the apply engine and Outreach:
 
 - Sign in, sign up, password reset, email verification (Google sign-in: not yet, see Limits).
 - Onboarding (6 steps: the resume step is desktop only).
-- Home (setup checklist, today's learning, applications, best matches).
+- **News** (first tab, `features/news/`, IPC `get-news` → main `services/news.ts`): hiring updates per company
+  (careers-site snapshots from the feed scraper, migration 031, and companies that posted 2+ roles on the job board
+  this week) and upcoming hackathons, each with its source and a link; "See jobs" opens Jobs filtered to the company.
+  Until 031 is applied and the feed scraper has run, only the job-board hiring items show.
+- Dashboard (under More): the old Home (setup checklist, today's learning, applications, best matches). The desktop
+  keeps Home as its dashboard.
 - Learn (intake, roadmap, path, today, day pages, topics, quizzes, progress). Project pages inside Learn point to the
   desktop.
 - Job board: feed, match %, filters, Saved, Hidden. The apply action is **"Auto apply from desktop"**: it saves the
@@ -45,7 +50,7 @@ The APK runs the desktop renderer **and the desktop's main-process services** in
 - Registered: auth, profile, feed (saved/hidden), billing, learner (Learn v2 + AI roadmap), admin, data safety, the
   tracker channels, and phone versions of system channels (`src/host/boot.ts`).
 - The renderer checks `IS_MOBILE` (`renderer/platform.ts`, `VITE_PLATFORM=android`): hidden tabs, the bottom tab bar
-  (`components/shell/MobileShell.tsx`: Home, Learn, Jobs, Tracker, More), the More page, Settings as a grouped list,
+  (`components/shell/MobileShell.tsx`: News, Learn, Jobs, Tracker, More), the More page, Settings as a grouped list,
   "Auto apply from desktop", no batch selection, list-first tracker, no keyboard-shortcut help.
 - CSP: the desktop policy plus `'wasm-unsafe-eval'` (WebAssembly for sql.js; JS eval stays blocked).
 

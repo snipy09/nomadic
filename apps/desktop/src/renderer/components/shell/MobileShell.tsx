@@ -1,5 +1,5 @@
 import React from 'react';
-import { Briefcase, ChevronRight, Compass, Home, LayoutGrid, LifeBuoy, ListChecks, LogOut, Menu, MessageSquareText, Settings as SettingsIcon, Shield, Sparkles } from 'lucide-react';
+import { Briefcase, ChevronRight, Compass, LayoutDashboard, LayoutGrid, LifeBuoy, ListChecks, LogOut, Menu, MessageSquareText, Newspaper, Settings as SettingsIcon, Shield, Sparkles } from 'lucide-react';
 import { cn } from '@nomadic/ui';
 import type { AppUser, TabType } from '../../types';
 
@@ -16,10 +16,10 @@ interface MobileTab {
   owns: (tab: TabType) => boolean;
 }
 
-const MORE_PAGES: ReadonlySet<TabType> = new Set<TabType>(['more', 'answers', 'settings', 'profile', 'help', 'logs', 'account']);
+const MORE_PAGES: ReadonlySet<TabType> = new Set<TabType>(['more', 'dashboard', 'answers', 'settings', 'profile', 'help', 'logs', 'account']);
 
 export const MOBILE_TABS: MobileTab[] = [
-  { id: 'home', label: 'Home', icon: Home, owns: (t) => t === 'home' },
+  { id: 'home', label: 'News', icon: Newspaper, owns: (t) => t === 'home' },
   { id: 'learner-roadmaps', label: 'Learn', icon: Compass, owns: (t) => t === 'learner-roadmaps' },
   { id: 'feed', label: 'Jobs', icon: Briefcase, owns: (t) => t === 'feed' },
   { id: 'applications', label: 'Tracker', icon: LayoutGrid, owns: (t) => t === 'applications' },
@@ -101,6 +101,9 @@ export function MoreView({ user, onNavigate, onOpenUpgrade, onLogout }: MoreView
         <h1 className="text-headline font-bold text-fg">More</h1>
         <p className="truncate text-caption text-fg-subtle">{user.email}</p>
       </div>
+      <ul className="overflow-hidden rounded-lg bg-surface shadow-e1" aria-label="Your progress">
+        {row('Dashboard', LayoutDashboard, 'bg-accent', () => onNavigate('dashboard'))}
+      </ul>
       <ul className="overflow-hidden rounded-lg bg-surface shadow-e1" aria-label="Your account">
         {row('Application answers', MessageSquareText, 'bg-success', () => onNavigate('answers'))}
         {row('Settings', SettingsIcon, 'bg-fg-subtle', () => onNavigate('settings'))}

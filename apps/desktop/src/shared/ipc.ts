@@ -144,6 +144,42 @@ export interface RememberedAnswerUpdate {
   answer: string | null;
 }
 
+/** News page (Home): hiring updates per company and upcoming hackathons, each from a real source with a link. */
+export type NewsKind = 'hiring' | 'hackathon';
+export type NewsSourceState = 'ok' | 'not_ready' | 'error';
+
+export interface NewsItem {
+  id: string;
+  kind: NewsKind;
+  title: string;
+  /** One line of facts from the source ("3 internships · 5 entry level"); null when there are none. */
+  detail: string | null;
+  /** Company name for hiring items (opens the job board filtered to it). */
+  company: string | null;
+  /** Where the facts come from. */
+  url: string;
+  sourceLabel: string;
+  /** When: the snapshot day, the newest posting, or the hackathon start. */
+  at: string | null;
+  /** Hiring: roles new since the last check (null = not known). */
+  newRoles?: number | null;
+  /** Hackathons. */
+  startsAt?: string | null;
+  endsAt?: string | null;
+  registrationEndsAt?: string | null;
+  mode?: 'online' | 'in_person' | 'hybrid' | 'unknown';
+  city?: string | null;
+}
+
+export interface NewsResult {
+  success: boolean;
+  items: NewsItem[];
+  /** Per source: 'not_ready' when its table is not published yet (migration 031 not applied or never scraped). */
+  sources: { snapshots: NewsSourceState; jobs: NewsSourceState; hackathons: NewsSourceState };
+  fetchedAt: string;
+  error?: string;
+}
+
 export interface FeedJob {
   title: string;
   company: string;
@@ -1126,6 +1162,7 @@ export interface IpcChannels {
   'get-saved-jobs': Channel<[], SavedJob[]>;
   'save-job': Channel<[job: SaveJobInput], SuccessResult>;
   'remove-saved-job': Channel<[applyUrl: string], SuccessResult>;
+  'get-news': Channel<[], NewsResult>;
   'get-hidden-jobs': Channel<[], HiddenJob[]>;
   'hide-job': Channel<[job: HideJobInput], SuccessResult>;
   'unhide-job': Channel<[applyUrl: string], SuccessResult>;
@@ -1249,7 +1286,7 @@ export const IPC_CHANNELS = [
   'get-master-profile', 'save-master-profile', 'get-resumes', 'save-resume', 'delete-resume',
   'set-default-resume', 'pick-resume-file', 'read-document-text', 'draft-profile-answers',
   'remembered-answers-list', 'remembered-answers-update', 'remembered-answers-clear',
-  'run-scrapers', 'get-cloud-feed-page', 'get-cloud-feed', 'get-saved-jobs', 'save-job', 'remove-saved-job',
+  'run-scrapers', 'get-cloud-feed-page', 'get-cloud-feed', 'get-saved-jobs', 'save-job', 'remove-saved-job', 'get-news',
   'get-hidden-jobs', 'hide-job', 'unhide-job',
   'get-applications', 'update-application-status', 'update-application-notes', 'update-application-follow-up', 'delete-application', 'save-application',
   'launch-semi-auto', 'launch-autonomous', 'cancel-autonomous-apply', 'start-batch-copilot',
@@ -1311,6 +1348,7 @@ export interface NomadicApi {
   runScrapers: Invoke<'run-scrapers'>;
   getCloudFeed: Invoke<'get-cloud-feed'>;
   getCloudFeedPage: Invoke<'get-cloud-feed-page'>;
+  getNews: Invoke<'get-news'>;
   launchSemiAuto: Invoke<'launch-semi-auto'>;
   launchAutonomous: Invoke<'launch-autonomous'>;
   cancelAutonomousApply: Invoke<'cancel-autonomous-apply'>;
