@@ -101,7 +101,10 @@ packages/form-engine FormReader, classifier, answerer (one batched LLM call via 
 packages/capacitor-apply-browser  Capacitor 8 plugin ApplyBrowser (Java ApplyBrowserController: WebView, agent at document
                      start in every frame, WebMessageListener bridge) + TS wrapper openApplyBrowser; docs/ANDROID_APPLY.md
 packages/automation  AutoApplyEngine: fill with autoSubmit off, onReadyForReview, submitReviewed; ATS adapters
-packages/scrapers    Pipeline: fetch, normalise (zod Job schema), dedupe, validate links, classify, publish
+packages/scrapers    Pipeline: fetch, normalise (zod Job schema), dedupe, validate links, classify, publish;
+                     feed/ = Home feed scraper (`npm run scrape:feed`): 66 famous companies' India openings (full time
+                     + internships, own careers APIs/ATS) with daily hiring snapshots, and hackathons (Devfolio, Unstop,
+                     Devpost, HackerEarth); robots.txt obeyed; writes migration 031 tables
 packages/supabase    client wrappers (index.ts), migrations/, functions/, baseline/ (one-paste setup files), scripts/
 packages/form-bench  22 ATS fixtures and scorer (`npm run bench:forms`)
 ```
@@ -136,7 +139,7 @@ Key flows:
   dropped by an owner paste (`DROP TABLE IF EXISTS public.hr_contacts;`; the connector times out on DROP).
   028 = Learn v2 state documents + v2 event types; 029 = AI roadmap quotas (`ai_limits` with roadmap columns,
   outreach metrics of 027 kept); 030 = AI project help quota (metric `ai_project_help`, `ai_project_help_limits`
-  5/40/150, applied through the Supabase connector on 5 Oct 2026 and verified). Next free number is 031. Security advisor: no errors; remaining notices are by design (deny-all tables;
+  5/40/150, applied through the Supabase connector on 5 Oct 2026 and verified). 031 (feed sources: `companies`, `company_openings`, `company_hiring_snapshots`, `hackathons`, read-only for clients) is in the repo (`baseline/apply_031.sql`). Next free number is 032. Security advisor: no errors; remaining notices are by design (deny-all tables;
   session-checked SECURITY DEFINER RPCs callable by anon).
 - **Learn content seeded** from the bundle (checksums verified; quiz items re-checked 5 Oct 2026).
 - **Accounts**: the owner account (`sajalmishra0908@gmail.com`) has role `admin` (granted 5 Oct 2026 by SQL, with an
@@ -183,7 +186,7 @@ F13: Outreach was rebuilt in v1.1.0 (see section 9) and shows in the sidebar as 
 the working module needs `VITE_FEATURES="outreach=on"`. Opportunity Board, Resource Vault and the Assistant stay
 hidden; the Assistant still needs rework or removal.
 
-Tests: 1,771 vitest tests pass (135 files, 6 Oct 2026, Android apply branch; 1,742 on 5 Oct; run with `--maxWorkers=2 --testTimeout=30000` on this laptop, the default
+Tests: 1,792 vitest tests pass (136 files, 7 Oct 2026; 1,771 on 6 Oct; run with `--maxWorkers=2 --testTimeout=30000` on this laptop, the default
 parallelism times out component tests, and the three Chrome DOM suites can time out closing Chrome in `afterAll`);
 typecheck, lint (0 errors, ~190 warnings) and desktop/web builds pass.
 The built Electron app has been smoke-tested over CDP (window, live feed via IPC, Learn, Settings, Help, Activity, Admin

@@ -15,11 +15,11 @@ no longer lists are expired, and a row per source goes to `scrape_runs` (Admin â
    the app.
 3. Try a dry run first (nothing is written): `npx tsx packages/scrapers/src/cli.ts run` after `npm ci --ignore-scripts`.
 
-## Desktop launchers (jobs and contacts, summary after every run)
+## Desktop launchers (jobs, contacts and feed, summary after every run)
 
 `Desktop\Nomadic Content\Scraper` (finds the repo at `Desktop\Nomadic`; source copies in `scripts\desktop-scraper\`) holds
 double-click launchers for `scripts\scrape-desktop.ps1`: `Run job scraper.cmd`, `Run contact scraper.cmd`,
-`Schedule every 6 hours.cmd` (runs jobs, then contacts) and `Remove schedule.cmd`. Add `-DryRun` to scrape and report
+`Run feed scraper.cmd`, `Schedule every 6 hours.cmd` (runs jobs, then contacts, then feed) and `Remove schedule.cmd`. Add `-DryRun` to scrape and report
 without writing to Supabase.
 
 Contacts (`-Mode contacts`, CLI `contacts --publish`): recruiters/HR, hiring managers, founders, employees and team
@@ -27,6 +27,25 @@ inboxes from public pages only (HN "Who is hiring", job pages, company team/cont
 guessed emails, MX-checked) into `outreach_contacts`, which the app's Outreach directory reads. Summaries:
 `latest-contacts.txt` and `contacts-<time>.txt`. Options: `--sources hn,jobs,pages`, `--region all`, `--months N`,
 `--max-pages N`.
+
+Feed (`-Mode feed`, CLI `feed --publish`, needs migration 031): the Home feed's sources
+(`packages/scrapers/src/feed`, plan in `docs/HOME_FEED_PLAN.md`).
+- Companies: 66 famous companies (`feed/companies.ts`: big tech, Indian product, fintech, finance, semiconductors,
+  IT services). Those with a public listing (their own careers API or ATS: Greenhouse, Lever, Ashby, Workday,
+  SmartRecruiters, Eightfold, Oracle Recruiting Cloud, amazon.jobs, Google careers) are read for India-open roles,
+  full time and internships, into `company_openings`, plus one `company_hiring_snapshots` row per company per IST
+  day (open, internships, entry level, new since last run; the first run is a `baseline`). The others (TCS, Infosys,
+  Flipkart, Apple, Meta, ...) are stored in `companies` for follows; their hiring windows are curated in Admin.
+- Hackathons: Devfolio, Unstop, Devpost and HackerEarth, open or upcoming, online or in India, into `hackathons`
+  (the same event on two sites is kept once).
+- robots.txt is obeyed per host (agent `NomadicFeedBot`), 1 s between requests to a host, `--max-pages` per listing
+  (default 10). A failing company or source is reported (`FAILED (robots.txt)` or the HTTP error) and its stored rows
+  are left alone; a listing cut off by `--max-pages` closes nothing.
+- Options: `--sources companies,hackathons`, `--companies google,amazon`, `--hackathon-sources devfolio,unstop`,
+  `--region all`, `--max-pages N`. Summaries: `latest-feed.txt`, `feed-<time>.txt`.
+- First run: `"Run feed scraper.cmd" -DryRun`, then fix or null (`careers: null`) every company the summary lists as
+  FAILED in `feed/companies.ts`. Board ids, Workday tenants and Oracle site numbers were written without network
+  access to those sites and are unverified until that run.
 
 Jobs (`-Mode jobs`, the default): each run publishes with `--max-new 100`: at most 100 jobs that are not in Supabase yet are added (best score first, the rest
 next run), jobs already there are refreshed (so expiry works as before), and a job another source already published

@@ -9,10 +9,15 @@ Run contact scraper.cmd    Double-click to collect hiring contacts now: recruite
                            (HN "Who is hiring", job pages, company team/contact pages). No LinkedIn scraping,
                            no guessed emails, domains MX-checked. Published to Supabase outreach_contacts,
                            which the app's Outreach directory reads. Then opens the summary.
-Schedule every 6 hours.cmd Runs both automatically (only while the laptop is on and signed in).
+Run feed scraper.cmd       Double-click to refresh the Home feed sources: openings (full time + internships)
+                           at 66 famous companies, read from their own careers sites / ATS boards, a daily
+                           hiring snapshot per company, and upcoming hackathons (Devfolio, Unstop, Devpost,
+                           HackerEarth). Obeys robots.txt. Needs migration 031. Then opens the summary.
+Schedule every 6 hours.cmd Runs all three automatically (only while the laptop is on and signed in).
 Remove schedule.cmd        Stops the automatic runs.
 reports\                   Jobs: latest-summary.txt, scrape-<date-time>.txt, history.csv.
                            Contacts: latest-contacts.txt, contacts-<date-time>.txt.
+                           Feed: latest-feed.txt, feed-<date-time>.txt.
                            errors.log if a run failed.
 
 First run asks for the Supabase service_role / secret key (Supabase dashboard > Project Settings >
@@ -23,3 +28,5 @@ Extra options can be added after the file name in a terminal, e.g.:
   "Run job scraper.cmd" --sources internshala,lever
   "Run contact scraper.cmd" --sources hn,jobs --region all --max-pages 80
   "Run contact scraper.cmd" -DryRun        (scrape and report only, nothing written to Supabase)
+  "Run feed scraper.cmd" -DryRun           (first run: lists companies whose careers board failed)
+  "Run feed scraper.cmd" --companies google,amazon --sources companies

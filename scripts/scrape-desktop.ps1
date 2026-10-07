@@ -4,12 +4,14 @@
 #                   refreshed, duplicates of published jobs are skipped (summary: latest-summary.txt)
 #   -Mode contacts  public hiring contacts (recruiters/HR, hiring managers, founders, employees, team inboxes)
 #                   into outreach_contacts (summary: latest-contacts.txt)
+#   -Mode feed      Home feed sources: openings at famous companies (full time + internships) with daily hiring
+#                   snapshots, and upcoming hackathons (summary: latest-feed.txt)
 #   -SummaryDir     where the per-run summaries and history go
 #   -DryRun         scrape and report only, write nothing to Supabase (no key needed)
 #   -Quiet          scheduled run: never prompt, never open Notepad
 # Extra arguments go to the scraper CLI (e.g. --sources internshala,lever, or --sources hn,jobs for contacts).
 param(
-  [ValidateSet('jobs', 'contacts')][string]$Mode = 'jobs',
+  [ValidateSet('jobs', 'contacts', 'feed')][string]$Mode = 'jobs',
   [string]$SummaryDir = '',
   [int]$MaxNew = 100,
   [switch]$DryRun,
@@ -63,7 +65,11 @@ if (-not (Test-Path (Join-Path $repo 'node_modules\tsx'))) {
 
 # ── Run ────────────────────────────────────────────────────────────────────────
 $publish = @(); if (-not $DryRun) { $publish = @('--publish') }
-if ($Mode -eq 'contacts') {
+if ($Mode -eq 'feed') {
+  Add-Content -Path $log -Value "[scrape] $(Get-Date -Format s) starting feed$(if ($DryRun) { ' (dry run)' })"
+  $cliArgs = @('tsx', 'packages\scrapers\src\cli.ts', 'feed') + $publish + @('--summary-dir', $SummaryDir, '--json', 'scrape-output\feed-report.json') + $Rest
+  $latest = Join-Path $SummaryDir 'latest-feed.txt'
+} elseif ($Mode -eq 'contacts') {
   Add-Content -Path $log -Value "[scrape] $(Get-Date -Format s) starting contacts$(if ($DryRun) { ' (dry run)' })"
   $cliArgs = @('tsx', 'packages\scrapers\src\cli.ts', 'contacts') + $publish + @('--summary-dir', $SummaryDir, '--json', 'scrape-output\contacts-report.json') + $Rest
   $latest = Join-Path $SummaryDir 'latest-contacts.txt'

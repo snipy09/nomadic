@@ -14,6 +14,10 @@
  *                   [--max-pages 40] [--summary-dir DIR] [--json report.json]
  *                Public hiring contacts (recruiters, managers, founders, employees, team inboxes)
  *                from HN "Who is hiring?" posts, published job descriptions and company sites.
+ *   scrape feed  [--sources companies,hackathons] [--companies google,amazon] [--hackathon-sources devfolio,unstop]
+ *                [--publish] [--region india|all] [--max-pages 10] [--summary-dir DIR] [--json report.json]
+ *                Home feed sources: openings at famous companies (full time + internships) with a daily
+ *                hiring snapshot per company, and upcoming hackathons (Devfolio, Unstop, Devpost, HackerEarth).
  *
  * Publishing needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment.
  */
@@ -32,6 +36,9 @@ import {
 import { supabaseJobReader } from './contacts/job-descriptions.js';
 import { CONTACT_SOURCE_IDS, formatContactSummary, runContactScrape, type ContactSourceId } from './contacts/run.js';
 import { SupabaseContactStore } from './contacts/store.js';
+import { FEED_SOURCE_IDS, formatFeedSummary, runFeedScrape, type FeedSourceId } from './feed/run.js';
+import { HACKATHON_SOURCES, type HackathonSource } from './feed/schema.js';
+import { SupabaseFeedStore } from './feed/store.js';
 import { getScraperSupabase } from './env-helper.js';
 import { parseRegion, type Region } from './pipeline/region.js';
 import { runPipeline } from './pipeline/run.js';
@@ -93,6 +100,8 @@ async function main(argv: string[]): Promise<number> {
       source: { type: 'string' },
       months: { type: 'string' },
       'max-pages': { type: 'string' },
+      companies: { type: 'string' },
+      'hackathon-sources': { type: 'string' },
     },
   });
 
@@ -101,6 +110,19 @@ async function main(argv: string[]): Promise<number> {
       sources: list(values.sources),
       publish: values.publish,
       months: values.months,
+      maxPages: values['max-pages'],
+      region: parseRegion(values.region ?? process.env.SCRAPER_REGION),
+      summaryDir: values['summary-dir'],
+      json: values.json,
+    });
+  }
+
+  if (command === 'feed') {
+    return runFeed({
+      sources: list(values.sources),
+      companies: list(values.companies),
+      hackathonSources: list(values['hackathon-sources']),
+      publish: values.publish,
       maxPages: values['max-pages'],
       region: parseRegion(values.region ?? process.env.SCRAPER_REGION),
       summaryDir: values['summary-dir'],
@@ -135,7 +157,7 @@ async function main(argv: string[]): Promise<number> {
   }
 
   if (command !== 'run' && command !== 'bench') {
-    console.error(`Unknown command "${command}". Use run, bench, runs, sources or contacts.`);
+    console.error(`Unknown command "${command}". Use run, bench, runs, sources, contacts or feed.`);
     return 2;
   }
 
@@ -305,6 +327,77 @@ async function runContacts(args: ContactsArgs): Promise<number> {
   }
   if (process.env.GITHUB_STEP_SUMMARY) writeFileSync(process.env.GITHUB_STEP_SUMMARY, '```\n' + summary + '```\n', { flag: 'a' });
   return report.sources.every((s) => !s.ok) ? 1 : 0;
+}
+
+interface FeedArgs {
+  sources?: string[];
+  companies?: string[];
+  hackathonSources?: string[];
+  publish: boolean;
+  maxPages?: string;
+  region: Region;
+  summaryDir?: string;
+  json?: string;
+}
+
+async function runFeed(args: FeedArgs): Promise<number> {
+  const sources = (args.sources ?? [...FEED_SOURCE_IDS]) as FeedSourceId[];
+  const badSources = sources.filter((s) => !(FEED_SOURCE_IDS as readonly string[]).includes(s));
+  if (badSources.length > 0) {
+    console.error(`Unknown feed source(s): ${badSources.join(', ')}. Use ${FEED_SOURCE_IDS.join(', ')}.`);
+    return 2;
+  }
+  const hackathonSources = args.hackathonSources as HackathonSource[] | undefined;
+  const badHack = (hackathonSources ?? []).filter((s) => !(HACKATHON_SOURCES as readonly string[]).includes(s));
+  if (badHack.length > 0) {
+    console.error(`Unknown hackathon source(s): ${badHack.join(', ')}. Use ${HACKATHON_SOURCES.join(', ')}.`);
+    return 2;
+  }
+  const maxPages = positiveInt(args.maxPages, 'max-pages');
+  if (maxPages === null) return 2;
+
+  console.log(`[scrape feed] ${sources.join(', ')}${args.publish ? ' — publishing' : ' — dry run'} — region ${args.region}`);
+  const report = await runFeedScrape({
+    sources,
+    companies: args.companies,
+    hackathonSources,
+    region: args.region,
+    publish: args.publish,
+    store: args.publish ? new SupabaseFeedStore(serviceClientFromEnv()) : undefined,
+    maxPages,
+    log: (message) => console.log(message),
+  });
+
+  const summary = formatFeedSummary(report);
+  console.log('\n' + summary);
+  if (!args.publish) {
+    if (report.openings.length > 0) {
+      console.table(report.openings.slice(0, 15).map((o) => ({ company: o.companySlug, title: o.title, kind: o.kind, level: o.level, location: o.location })));
+    }
+    if (report.hackathons.length > 0) {
+      console.table(report.hackathons.slice(0, 15).map((h) => ({ source: h.source, title: h.title, mode: h.mode, city: h.city ?? '', starts: h.startsAt?.slice(0, 10) ?? '' })));
+    }
+  }
+  for (const c of report.companies) if (!c.ok) annotate('warning', `feed company ${c.slug} failed: ${c.error}`);
+  for (const s of report.hackathonSources) if (!s.ok) annotate('warning', `feed hackathons ${s.source} failed: ${s.error}`);
+
+  if (args.json) {
+    const path = resolve(args.json);
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, JSON.stringify(report, null, 2));
+    console.log(`report written to ${path}`);
+  }
+  if (args.summaryDir) {
+    const dir = resolve(args.summaryDir);
+    mkdirSync(dir, { recursive: true });
+    const stamp = report.startedAt.slice(0, 19).replace(/[:T]/g, '-');
+    writeFileSync(resolve(dir, `feed-${stamp}.txt`), summary);
+    writeFileSync(resolve(dir, 'latest-feed.txt'), summary);
+    console.log(`summary written to ${resolve(dir, `feed-${stamp}.txt`)}`);
+  }
+  if (process.env.GITHUB_STEP_SUMMARY) writeFileSync(process.env.GITHUB_STEP_SUMMARY, '```\n' + summary + '```\n', { flag: 'a' });
+  const all = [...report.companies.map((c) => c.ok), ...report.hackathonSources.map((s) => s.ok)];
+  return all.length > 0 && all.every((ok) => !ok) ? 1 : 0;
 }
 
 const isDirectRun = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
