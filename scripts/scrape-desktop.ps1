@@ -1,5 +1,5 @@
 # Scrapes jobs or hiring contacts and publishes them to Supabase from this computer (Windows), with a per-run
-# summary. Used by the launchers in Desktop\Nomadic Content\Scraper (docs/SCRAPER_LAPTOP.md).
+# summary. Used by the launchers in Desktop\Nomadic Content\Scraper (docs/guides/SCRAPER_LAPTOP.md).
 #   -Mode jobs      at most -MaxNew jobs that are not in Supabase yet are added per run; jobs already there are
 #                   refreshed, duplicates of published jobs are skipped (summary: latest-summary.txt)
 #   -Mode contacts  public hiring contacts (recruiters/HR, hiring managers, founders, employees, team inboxes)

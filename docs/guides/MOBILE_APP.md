@@ -74,6 +74,6 @@ desktop out.**
 - Google sign-in: needs an Android OAuth client (package `com.nomadic.career` + signing SHA-1) and a redirect back to
   the app; email + password works (set a password with "Forgot password" if the account was Google-only).
 - Release signing: needs an upload keystore (owner); the CI APK is a debug build, installable by sideloading.
-- Play Store: Play Billing vs user choice billing for Pro/Max is an open decision (docs/ANDROID_APPLY.md).
+- Play Store: Play Billing vs user choice billing for Pro/Max is an open decision (docs/guides/ANDROID_APPLY.md).
 - Offline: the app needs a connection to sign in and to load the feed; the local cache keeps the last data.
 - Android apply with review (packages/capacitor-apply-browser) is built but not wired into this app (by decision).

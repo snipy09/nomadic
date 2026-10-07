@@ -1,4 +1,4 @@
--- 031: Sources for the Home feed (docs/HOME_FEED_PLAN.md), written by the feed scraper
+-- 031: Sources for the Home feed (docs/plans/HOME_FEED_PLAN.md), written by the feed scraper
 -- (packages/scrapers/src/feed, `npm run scrape:feed -- --publish`, service role).
 --
 -- companies                  famous companies people can follow; has_careers_feed is false for companies whose

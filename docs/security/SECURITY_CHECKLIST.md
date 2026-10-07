@@ -109,6 +109,6 @@ key, i.e. from Edge Functions. None of them may ever be granted to anon/authenti
 - ☐ Apply `020` and deploy `ai-proxy` (DATABASE_SETUP §7) before shipping the build that calls it; until then AI
   feedback and AI form answers report "not available" and the form engine leaves open-ended questions to the user.
 - ☐ Rotate the service-role key if it was ever on a customer machine, and the code-signing cert per
-  `docs/SECURITY_CLEANUP.md`.
+  `docs/security/SECURITY_CLEANUP.md`.
 - ☐ Electron hardening and secrets-in-keychain were done in the main-process work stream (Step 3.2);
   re-check them with this list before the first public release.

@@ -1,5 +1,6 @@
 @echo off
-cd /d "%~dp0"
+rem This launcher lives in scripts\windows; run from the repo root.
+cd /d "%~dp0..\.."
 echo ===================================================
 echo   Nomadic Admin Dashboard (Localhost Control)
 echo ===================================================

@@ -1,4 +1,4 @@
--- 032: One desktop and one phone per account (Android app, docs/MOBILE_APP.md).
+-- 032: One desktop and one phone per account (Android app, docs/guides/MOBILE_APP.md).
 --
 -- Until now an account had one active device: signing in on a phone would end the desktop session.
 -- Devices now come in two classes, decided by the fingerprint the app sends: the Android app sends

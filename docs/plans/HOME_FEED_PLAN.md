@@ -56,7 +56,7 @@ L ≈ 1–2 weeks (solo).
 
 ### Step 1. Data supply (M) — scraper built 7 Oct 2026
 Built: `packages/scrapers/src/feed` + migration 031 (`companies`, `company_openings`, `company_hiring_snapshots`,
-`hackathons`); see `docs/SCRAPER_LAPTOP.md` "Feed". Left: first live run on the laptop, fix failing boards, admin
+`hackathons`); see `docs/guides/SCRAPER_LAPTOP.md` "Feed". Left: first live run on the laptop, fix failing boards, admin
 form for hiring windows. The original notes for this step follow.
 - Owner: set `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` repo secrets so `scrape.yml` runs daily. Without it the
   feed is thin; this is the main blocker.
@@ -145,7 +145,7 @@ Desktop already uses the Apple design language (1.4.0). For the feed, inbox and 
 - Reuse `@nomadic/ui` tokens; add `SegmentedControl`, `SwipeRow`, `Sheet`, `LargeTitleHeader`, `InboxStack` there with
   tests.
 
-### Step 7. Phone app shell (L) — built 7 Oct 2026 (apps/mobile, docs/MOBILE_APP.md; push notifications not yet)
+### Step 7. Phone app shell (L) — built 7 Oct 2026 (apps/mobile, docs/guides/MOBILE_APP.md; push notifications not yet)
 - Owner decision first: change the one-device rule to **one desktop + one phone** (`register_device_session` keyed by
   platform). New migration; security checklist updated.
 - `apps/mobile`: Capacitor 8, reuses the renderer. The renderer calls `window.api` (Electron main) today, so add

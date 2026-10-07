@@ -29,7 +29,7 @@ guessed emails, MX-checked) into `outreach_contacts`, which the app's Outreach d
 `--max-pages N`.
 
 Feed (`-Mode feed`, CLI `feed --publish`, needs migration 031): the Home feed's sources
-(`packages/scrapers/src/feed`, plan in `docs/HOME_FEED_PLAN.md`).
+(`packages/scrapers/src/feed`, plan in `docs/plans/HOME_FEED_PLAN.md`).
 - Companies: 66 famous companies (`feed/companies.ts`: big tech, Indian product, fintech, finance, semiconductors,
   IT services). Those with a public listing (their own careers API or ATS: Greenhouse, Lever, Ashby, Workday,
   SmartRecruiters, Eightfold, Oracle Recruiting Cloud, amazon.jobs, Google careers) are read for India-open roles,

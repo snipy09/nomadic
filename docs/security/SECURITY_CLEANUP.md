@@ -1,6 +1,6 @@
 # Security cleanup: purge history and rotate credentials
 
-Step 0.2 of `REVAMP_PLAN.md` removed two files from the working tree. They are
+Step 0.2 of `docs/plans/REVAMP_PLAN.md` removed two files from the working tree. They are
 **still in git history**, and so is every credential that was ever committed.
 This runbook lists the exact commands to purge history and the credentials to
 rotate. **None of these commands have been run.** Rewriting history is
@@ -20,7 +20,7 @@ Credentials also present in tracked files (current tree and history):
 | Google OAuth client secret (`GOCSPX-...`, split into parts) | `apps/desktop/build-main.mjs` | High: rotate |
 | Two Gemini API keys (base64-encoded `AQ.` keys) | `apps/desktop/build-main.mjs` (`GEMINI_API_KEY_1`, `GEMINI_API_KEY_2` fallbacks) | High: rotate |
 | Password of `nomadic-dev.pfx` | wherever it was shared (not found in the repo) | High: treat as known |
-| Supabase **anon** key + project URL (project `jympejesevicwleptfzq`) | `build-nomadic.ps1` / `build-jobmaxxer.ps1` (history only, removed in this step), `apps/desktop/build-main.mjs`, `apps/desktop/src/main/index.ts`, `apps/desktop/src/renderer/browserApiShim.ts`, `packages/scrapers/src/env-helper.ts`, `scripts/test-query.mjs`, `packages/supabase/scripts/purge-stale-data.ts`, `apps/web/src/supabase.ts` (URL only) | Low: public by design (see below) |
+| Supabase **anon** key + project URL (project `jympejesevicwleptfzq`) | `build-nomadic.ps1` / `build-jobmaxxer.ps1` (history only, removed in this step), `apps/desktop/build-main.mjs`, `apps/desktop/src/main/index.ts`, `apps/desktop/src/renderer/browserApiShim.ts`, `packages/scrapers/src/env-helper.ts`, `scripts/dev/test-query.mjs`, `packages/supabase/scripts/purge-stale-data.ts`, `apps/web/src/supabase.ts` (URL only) | Low: public by design (see below) |
 | Seeded admin password placeholder `CHANGE-ME-strong-pass` | `packages/supabase/migrations/002_secure_rls.sql` | Check the production admin password was changed |
 
 A scan of the full history (all branches, every patch) found **no Supabase

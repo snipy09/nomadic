@@ -2,7 +2,7 @@
 //
 // Baseline is intentionally lenient: the codebase predates linting, so rules that
 // flag existing patterns are warnings, not errors. Tighten rule-by-rule as code is
-// cleaned up (see REVAMP_PLAN.md). `npm run lint` must exit 0 (no errors).
+// cleaned up (see docs/plans/REVAMP_PLAN.md). `npm run lint` must exit 0 (no errors).
 import { defineConfig } from 'eslint/config';
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';

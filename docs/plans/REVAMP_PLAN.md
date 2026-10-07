@@ -173,10 +173,10 @@ Product story after the revamp: **Learn the skills, see which jobs you match, ap
 
 # Step-by-step execution prompts for Claude
 
-How to use: give Claude **one step at a time**, in order. Each prompt is self-contained. Start every step in a fresh session on its own git branch, and do not start the next step until the "Done when" checks pass and the work is merged. Every step ends with: typecheck, lint and tests green, then a short summary of what changed. Read `REVAMP_PLAN.md` first in every session.
+How to use: give Claude **one step at a time**, in order. Each prompt is self-contained. Start every step in a fresh session on its own git branch, and do not start the next step until the "Done when" checks pass and the work is merged. Every step ends with: typecheck, lint and tests green, then a short summary of what changed. Read `docs/plans/REVAMP_PLAN.md` first in every session.
 
 Shared rules to paste at the top of each session:
-> Repo: `C:\Users\sajal\OneDrive\Desktop\Nomadic` (Electron desktop app, React/Vite web app, packages for automation, scrapers, email-verifier, supabase). Read `REVAMP_PLAN.md`. Work on branch `revamp/<step-name>`. Make small commits. Do not change behaviour outside this step's scope. Do not delete old code until the replacement passes its tests/benchmark. Run `npx tsc --noEmit` and `npm test` before finishing. Never commit secrets or certificates.
+> Repo: `C:\Users\sajal\OneDrive\Desktop\Nomadic` (Electron desktop app, React/Vite web app, packages for automation, scrapers, email-verifier, supabase). Read `docs/plans/REVAMP_PLAN.md`. Work on branch `revamp/<step-name>`. Make small commits. Do not change behaviour outside this step's scope. Do not delete old code until the replacement passes its tests/benchmark. Run `npx tsc --noEmit` and `npm test` before finishing. Never commit secrets or certificates.
 
 ## Step 0.1: Fix tests and add CI
 > Fix the 4 failing test files (e.g. `apps/desktop/src/main/__tests__/job-roles-dataset.test.ts` fails with "Cannot find package 'react'"). Use a vitest workspace/projects config so renderer tests run with the desktop app's dependencies (jsdom environment where needed). Add `.github/workflows/ci.yml` running install, typecheck, lint and tests on push and PR. Add ESLint and Prettier if missing, with a lenient baseline so CI passes today.

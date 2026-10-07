@@ -1,15 +1,17 @@
 # Nomadic: complete project context
 
 Read this first. It is the single source of context for anyone (person or AI assistant) working on this repo.
-Last full update: 5 October 2026 (v1.2.0: Learn path + Projects page; v1.1.0: Outreach + Learn v2; live
-database brought up to date: owner admin, 864 quiz items). Keep it current when something important changes.
+Last full update: 7 October 2026 (Android app `apps/mobile` v0.1.0; feed scraper + migration 031; one computer + one
+phone per account, migration 032; repo folders tidied: docs/guides|plans|security, scripts/windows|dev, brand/).
+Earlier: v1.4.0 Apple design, v1.3.0 Home, v1.2.0 Learn path + Projects. Keep it current when something important changes.
 New session or new assistant account? Read sections 9–11 at the end first (handoff state, how to build and test,
 how the owner wants work done).
 
 ## 1. What Nomadic is
 
-A **Windows desktop app** (Electron) for **Indian engineering students** looking for placements, internships and
-first jobs. One app covers the whole path:
+A **Windows desktop app** (Electron) plus an **Android app** (Capacitor, `apps/mobile`: everything except Practice,
+Projects, apply and Outreach; job actions say "Auto apply from desktop" and save the job for the desktop) for
+**Indian engineering students** looking for placements, internships and first jobs. The desktop covers the whole path:
 
 1. **Onboarding** (4–5 short steps) ends with a **personal learning roadmap** (core feature).
 2. **Learn (v2)**: a page-by-page intake (one question per page: role, aim, duration, schedule, level, DSA
@@ -47,7 +49,7 @@ jobmaxxer were removed).
 
 ## 2. Product decisions (summary; full list in `docs/DECISIONS.md`)
 
-- India-first job sources; Windows only at launch (macOS after beta).
+- India-first job sources; desktop is Windows only at launch (macOS after beta); the Android app (7 Oct 2026) has no apply, Practice, Projects or Outreach.
 - Hidden behind feature flags (`packages/config/src/features.ts`): Outreach, Opportunity Board, Resource Vault,
   AI Assistant. Enable with `VITE_FEATURES="outreach=on,..."` at build time.
 - Learn: curated, link-checked free resources; AI-drafted lessons only after review. No code runner at launch.
@@ -73,7 +75,7 @@ apps/desktop   Electron
                    file allowed to touch localStorage, UI prefs only), features/<name>/ (one folder per feature:
                    pure logic module + hooks + components), components/ (remaining legacy screens), browserApiShim.ts
                    (browser preview mock; no real data)
-apps/mobile    Android app (Capacitor 8, `com.nomadic.career`, docs/MOBILE_APP.md): the desktop renderer plus the desktop
+apps/mobile    Android app (Capacitor 8, `com.nomadic.career`, docs/guides/MOBILE_APP.md): the desktop renderer plus the desktop
                main-process services run in the WebView (src/host: Electron/Node stand-ins, sql.js in IndexedDB, phone
                device id `mobile-…`); no apply engine, Outreach, Practice or Projects (`renderer/platform.ts` IS_MOBILE);
                job actions say "Auto apply from desktop" (saves to the account). APK built by `.github/workflows/android-app.yml`
@@ -103,7 +105,7 @@ packages/form-engine FormReader, classifier, answerer (one batched LLM call via 
                      (AgentChannel, RemoteDriver, fillApplication, submitReviewed; browser-safe entry remote/index.ts);
                      adapters.ts = ATS "open the form" steps as data (desktop and Android)
 packages/capacitor-apply-browser  Capacitor 8 plugin ApplyBrowser (Java ApplyBrowserController: WebView, agent at document
-                     start in every frame, WebMessageListener bridge) + TS wrapper openApplyBrowser; docs/ANDROID_APPLY.md
+                     start in every frame, WebMessageListener bridge) + TS wrapper openApplyBrowser; docs/guides/ANDROID_APPLY.md
 packages/automation  AutoApplyEngine: fill with autoSubmit off, onReadyForReview, submitReviewed; ATS adapters
 packages/scrapers    Pipeline: fetch, normalise (zod Job schema), dedupe, validate links, classify, publish;
                      feed/ = Home feed scraper (`npm run scrape:feed`): 66 famous companies' India openings (full time
@@ -111,11 +113,17 @@ packages/scrapers    Pipeline: fetch, normalise (zod Job schema), dedupe, valida
                      Devpost, HackerEarth); robots.txt obeyed; writes migration 031 tables
 packages/supabase    client wrappers (index.ts), migrations/, functions/, baseline/ (one-paste setup files), scripts/
 packages/form-bench  22 ATS fixtures and scorer (`npm run bench:forms`)
+docs/                DECISIONS.md, FEATURES.md, README.md (index); guides/ (DATABASE_SETUP, RELEASE, SCRAPER_LAPTOP, MOBILE_APP,
+                     ANDROID_APPLY, SUPABASE_SQL_PASTE), plans/ (SAAS, LEARN_V2 plan + handoff, OUTREACH, HOME_FEED, REVAMP),
+                     security/ (SECURITY_CHECKLIST, SECURITY_CLEANUP), architecture.excalidraw
+scripts/             desktop-scraper/ (laptop launchers), windows/ (Build Nomadic.bat + build-nomadic.ps1, Run-*.bat, ocr.ps1;
+                     they cd to the repo root), dev/ (one-off scripts), scrape-desktop.ps1, scrape-laptop.*, sign-windows.js
+brand/               profile-icon/, github-profile/ (videos/carousels stay outside the repo)
 ```
 
 Key flows:
 - **Sign-in**: `authenticate_user` returns a single-use `login_ticket`; `register_device_session` registers one
-  active device (requires the ticket when `app_security.require_login_ticket` is on); heartbeat + `sync_pull`.
+  active device per class (computer, or phone when the fingerprint starts `mobile-`, migration 032) (requires the ticket when `app_security.require_login_ticket` is on); heartbeat + `sync_pull`.
   Google sign-in: PKCE in the desktop, ID token verified by the `google-sign-in` Edge Function, which calls the
   service-role-only `google_sign_in` and returns the same row incl. a ticket.
 - **Apply**: renderer `features/apply/useApplyRunner` → `startBatchCoPilot` (fills forms one at a time, streams
@@ -169,7 +177,7 @@ Key flows:
   `/usr/lib/postgresql/16/bin`, shim `packages/supabase/scripts/local-supabase-shim.sql`, then
   `baseline/supabase_full_setup.sql` and later migrations (stub `vault.decrypted_secrets` locally).
 
-## 5. Security model (details: `docs/SECURITY_CHECKLIST.md`)
+## 5. Security model (details: `docs/security/SECURITY_CHECKLIST.md`)
 
 - RLS on every public table; no client policies except read-only published content and active jobs.
 - Clients call only allow-listed RPCs, each re-checking `session_token + user_id + device_fingerprint + is_active`.
@@ -200,6 +208,9 @@ screens). The owner has signed in on the packaged v1.0.6 app and run apply up to
 ## 7. What is left
 
 Owner actions:
+00. **Paste `packages/supabase/baseline/apply_032.sql`** (one computer + one phone) before anyone signs in on the Android
+   app, and `apply_031.sql` (feed tables) before `npm run scrape:feed -- --publish`. First feed run: `"Run feed
+   scraper.cmd" -DryRun` and fix/null the companies it lists as FAILED (`packages/scrapers/src/feed/companies.ts`).
 0. **Learn v2 go-live** (merged into `main` with 1.1.0): 028, 029, the content seed and the ai-proxy redeploy are
    done (5 Oct 2026). v1.2.0's 624 quiz items are live (5 Oct 2026: 864 practice items, content hash checked against the
    seed). Left: on the laptop run `npm run check-paid-only -w
@@ -210,7 +221,7 @@ Owner actions:
    `Desktop\Nomadic Content\Scraper\Run job scraper.cmd` (contacts: `Run contact scraper.cmd` → `outreach_contacts`; sources
    in `scripts/desktop-scraper/`) (`scripts/scrape-desktop.ps1 -Mode jobs|contacts`: `--max-new 100` new jobs per run,
    duplicates of published jobs skipped, a summary in `reports\` per run; first run asks for the service role key,
-   which no `.env` on this laptop had on 4 Oct 2026) or `scripts\scrape-laptop.cmd` (`docs/SCRAPER_LAPTOP.md`) and/or set the GitHub Actions secrets
+   which no `.env` on this laptop had on 4 Oct 2026) or `scripts\scrape-laptop.cmd` (`docs/guides/SCRAPER_LAPTOP.md`) and/or set the GitHub Actions secrets
    (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`). The pipeline keeps only jobs open to candidates in India by default
    (`--region all` to keep everything).
 2. ~~Create the admin account~~: done 5 Oct 2026 (owner account has role `admin`, audit-logged).
@@ -260,7 +271,7 @@ placeholder defaults: remove it; form-engine DOM tests and `npm run bench:forms`
 `PLAYWRIGHT_CHROMIUM_EXECUTABLE` set to an installed Chrome on this laptop (else they skip/fail to launch);
 resume parsing/versions; multi-step form edits in apply; GST tax invoices (need a GSTIN; today receipts only); skill tagging in the
 scraper pipeline (the app tags at runtime, so optional); event sync beyond learning; F13 decisions (Outreach launch
-checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification for due follow-ups (today an in-app list).
+checklist in `docs/plans/OUTREACH_PLAN.md` section 11; the Assistant); OS notification for due follow-ups (today an in-app list).
 
 ## 8. Conventions
 
@@ -282,7 +293,7 @@ checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification
 
 - Branch `main` (remote github.com/snipy09/nomadic) holds everything (Outreach and Learn v2 merged); there are no open feature branches to merge.
   v1.2.0 (Learn path, Projects page with ~4,100 projects, AI project help) was fast-forwarded into `main` on 5 Oct 2026.
-- **v1.1.0 Outreach** (`docs/OUTREACH_PLAN.md`): targets everyone who can refer (recruiter/HR, hiring manager,
+- **v1.1.0 Outreach** (`docs/plans/OUTREACH_PLAN.md`): targets everyone who can refer (recruiter/HR, hiring manager,
   founder, employee, alumni, team inbox). Contacts scraper `packages/scrapers/src/contacts/` (public pages only, no
   LinkedIn scraping or guessed emails, MX check; `npm run scrape:contacts -- --publish` with the service key) writes
   `outreach_contacts` (027, service role only), read via `outreach_list_contacts` / `outreach_report_contact`.
@@ -335,8 +346,8 @@ checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification
   and label keys; `services/form-answers.ts`; matched in `packages/form-engine/src/answerer.ts` `lookupUserAnswer`).
   Messages such as "* Please try again." in the review list come from the portal's own page, not from Nomadic.
 - **Learn v2: built** (4 Oct 2026, branch `claude/learn-v2-handoff-046pu4`, version 1.0.14, not packaged: the
-  build ran in a Linux container). Plan `docs/LEARN_V2_PLAN.md`; what was built and what is left:
-  `docs/LEARN_V2_HANDOFF.md` ("Status"). Engine `packages/learning/src/v2`; main `services/learn-v2.ts`,
+  build ran in a Linux container). Plan `docs/plans/LEARN_V2_PLAN.md`; what was built and what is left:
+  `docs/plans/LEARN_V2_HANDOFF.md` ("Status"). Engine `packages/learning/src/v2`; main `services/learn-v2.ts`,
   `services/github-check.ts`, local migration 9 (`learn_state`, widened `learning_events`); renderer
   `features/learn/` (LearnView router, IntakeFields, ReviewScreen + AdjustPanel, Today, Week, Roadmap, Topic,
   Progress, `learnModel.ts`, `quizLogic.ts`, `catalog.ts`) and `features/projects/`. v1 PathScreen, GoalSetup,
@@ -380,12 +391,12 @@ checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification
   its own Archivo/4px brand styles (it does not use the preset).
 - **Android apply with review** (6 Oct 2026, branch `claude/android-auto-apply`): the Android app will be Capacitor
   (reuses the React renderer); its apply path is built and tested ahead of the app shell (`apps/mobile` does not exist
-  yet). Design, API and limits: `docs/ANDROID_APPLY.md`. Checks: `npm run bench:forms -- --engine=agent` (196/196, Pixel 7,
+  yet). Design, API and limits: `docs/guides/ANDROID_APPLY.md`. Checks: `npm run bench:forms -- --engine=agent` (196/196, Pixel 7,
   CSP without unsafe-eval, no Playwright input), `agent.test.ts`, and `.github/workflows/android-apply.yml` (emulator API
   34/35 fills all 22 fixtures through ApplyBrowserController: 196/196 on Android 14 and 15, 6 Oct 2026). Android code cannot be compiled in assistant containers
   (dl.google.com is blocked): rely on that workflow. Open product decisions for Android: one-device rule
   (`register_device_session` deactivates other devices), Play Billing vs user choice billing for Pro/Max.
-- **Android app** (7 Oct 2026, on `main`, `apps/mobile`, v0.1.0): see docs/MOBILE_APP.md. Saved jobs sync both ways
+- **Android app** (7 Oct 2026, on `main`, `apps/mobile`, v0.1.0): see docs/guides/MOBILE_APP.md. Saved jobs sync both ways
   (pull on Job board open/focus/Saved tab, throttled 2 min; local migration 11 `saved_jobs.synced_at`). Owner: paste
   032 before anyone signs in on a phone (else the desktop is signed out), then install the CI debug APK.
 - Next most useful work: owner action 0 (Learn v2 go-live), then owner actions in section 7 (consent screen, Resend domain, key rotation),
@@ -393,6 +404,9 @@ checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification
 
 ## 10. Build, package, test and deploy
 
+- Android: `npm run build -w @nomadic/mobile` (web bundle); `npm run dev -w @nomadic/mobile` to try it in a browser at
+  phone size. The APK is built only in CI (`android-app.yml`: assembleDebug + emulator smoke test, artifact
+  `nomadic-android-debug-<run>`); details in `docs/guides/MOBILE_APP.md`.
 - Desktop dev: `npm run dev:desktop`. Package Windows: `cd apps/desktop; npm run package:win` (about 10 minutes;
   outputs `dist-electron/Nomadic.<ver>.exe` portable, `Nomadic.Setup.<ver>.exe`, and `win-unpacked/NomadicOS.exe`).
   Kill running `NomadicOS` processes first or the files stay locked.
@@ -428,7 +442,7 @@ checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification
   workflow_dispatch) builds the installer and portable exe on `windows-latest` with the Google OAuth secrets and uploads
   them as an artifact for 14 days (unsigned: SmartScreen warns). Signed releases: `release.yml` (needs the certificate).
 - Leftovers cleaned 4 Oct 2026 (old installer, `install.ps1`, old `logo.png` removed). The 92 MB installer is still
-  in git history (`docs/SECURITY_CLEANUP.md` has the rewrite steps). Flag new leftovers; do not delete unasked.
+  in git history (`docs/security/SECURITY_CLEANUP.md` has the rewrite steps). Flag new leftovers; do not delete unasked.
 
 ## 11. Working with the owner
 

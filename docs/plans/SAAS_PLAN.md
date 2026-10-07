@@ -1,6 +1,6 @@
 # Nomadic: path to a SaaS-grade desktop app
 
-Builds on `REVAMP_PLAN.md` (which stays the execution script for Phases 3 to 5). This document adds what that plan
+Builds on `docs/plans/REVAMP_PLAN.md` (which stays the execution script for Phases 3 to 5). This document adds what that plan
 does not cover: the quality bar, the missing SaaS pillars, the order, and how we know we are done.
 
 ## 1. Where we are
@@ -24,7 +24,7 @@ A release is shippable only if every line is true. These become CI gates where p
 1. **Reliability:** crash-free sessions >= 99.5%; apply flow never submits without the user's review; no data loss on kill -9 or power cut (SQLite WAL + event log).
 2. **Performance:** cold start < 3 s on a mid laptop; feed first paint < 1 s from cache; 60 fps scrolling at 5k jobs (virtualised); renderer bundle < 2 MB gzip, no datasets bundled.
 3. **Correctness:** form benchmark >= agreed score on 22 fixtures (never regress); scraper dead-link rate < 3%; match score unit-tested.
-4. **Security:** every item in `docs/SECURITY_CHECKLIST.md` closed; secrets only in OS keychain; IPC inputs zod-validated; dependency audit clean in CI.
+4. **Security:** every item in `docs/security/SECURITY_CHECKLIST.md` closed; secrets only in OS keychain; IPC inputs zod-validated; dependency audit clean in CI.
 5. **UX:** every screen has loading, empty, error-with-recovery states; keyboard-only usable; WCAG AA contrast; works at 1024 px and up; light and dark.
 6. **Trust:** privacy section matches real data flows; one-click export and delete account; AI never invents links, salaries or profile data.
 7. **Operability:** every user-visible failure has a Sentry event, a log line, and an in-app message saying what to do next.

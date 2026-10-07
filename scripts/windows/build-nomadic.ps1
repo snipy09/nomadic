@@ -4,16 +4,16 @@
   into your Downloads folder. Run this on Windows (the packaged app needs native
   Windows binaries).
 
-  USAGE (PowerShell, from the repo root):
+  USAGE (PowerShell, from the repo root; or double-click scripts\windows\Build Nomadic.bat):
 
     # Credentials come from the environment or from the repo's .env file:
-    .\build-nomadic.ps1
+    .\scripts\windows\build-nomadic.ps1
 
     # Or pass them explicitly:
-    .\build-nomadic.ps1 -SupabaseUrl "https://xxxx.supabase.co" -SupabaseAnonKey "your-anon-key"
+    .\scripts\windows\build-nomadic.ps1 -SupabaseUrl "https://xxxx.supabase.co" -SupabaseAnonKey "your-anon-key"
 
     # Just to see the UI build (login won't reach the server):
-    .\build-nomadic.ps1 -SkipCredsCheck
+    .\scripts\windows\build-nomadic.ps1 -SkipCredsCheck
 
   CODE SIGNING (optional):
     Set these environment variables before running (never commit the .pfx):
@@ -34,7 +34,8 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$root = $PSScriptRoot
+# This script lives in scripts\windows; the repo root is two folders up.
+$root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 Set-Location $root
 
 # --- 0. Load .env (only for variables that are not already set) ---------------

@@ -18,7 +18,7 @@ Required repository secrets (Settings → Secrets and variables → Actions):
 | `SENTRY_DSN` | Optional; injected as `VITE_SENTRY_DSN` at build time |
 
 The build fails if the signing secrets are missing (`WIN_SIGN_REQUIRED=1`) or if the tag does not
-match the app version. The certificate is never committed (see `docs/SECURITY_CLEANUP.md`).
+match the app version. The certificate is never committed (see `docs/security/SECURITY_CLEANUP.md`).
 
 **Auto-update** (`electron-updater`, wired in `apps/desktop/src/main/services/updater.ts`):
 - `build.publish` points at GitHub (`snipy09/nomadic`) and `generateUpdatesFilesForAllChannels` writes

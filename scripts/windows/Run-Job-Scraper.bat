@@ -1,7 +1,8 @@
 @echo off
 title Nomadic - Job Radar Scraper
 color 0A
-cd /d "%~dp0"
+rem This launcher lives in scripts\windows; run from the repo root.
+cd /d "%~dp0..\.."
 echo ========================================================================
 echo  ⚡ NOMADIC: Running Local Job Scraper & Supabase Publisher
 echo ========================================================================

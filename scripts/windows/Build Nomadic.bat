@@ -6,7 +6,8 @@ REM  into your Downloads folder. Supabase credentials are read from the
 REM  environment or from the repo's .env file (see .env.example).
 REM  Code signing is optional: set WIN_CSC_LINK and WIN_CSC_KEY_PASSWORD.
 REM ===================================================================
-cd /d "%~dp0"
+rem This launcher lives in scripts\windows; run from the repo root.
+cd /d "%~dp0..\.."
 echo Building Nomadic - this can take several minutes on the first run...
 echo.
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build-nomadic.ps1"
