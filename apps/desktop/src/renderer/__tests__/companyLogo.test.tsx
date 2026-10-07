@@ -3,7 +3,7 @@ import React from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, fireEvent, render } from '@testing-library/react';
 import { COMPANIES } from '@job-automator/scrapers/src/feed/companies';
-import { baseDomain, companyKey, companyLogoDomain, companyLogoUrl, knownCompanyDomain } from '../features/feed/companyLogo';
+import { baseDomain, companyKey, companyLogoDomain, companyLogoUrl, knownCompanyDomain } from '../features/feed/companyLogoDomain';
 import { CompanyLogo, resetCompanyLogoCache } from '../features/feed/CompanyLogo';
 
 afterEach(() => {

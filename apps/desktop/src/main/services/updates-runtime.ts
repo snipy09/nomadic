@@ -13,6 +13,7 @@ export function currentAppVersion(): string {
 
 let controller: UpdaterController | null = null;
 const CHECK_EVERY_MS = 6 * 60 * 60 * 1000;
+const MAC_UPDATES_REASON = 'On Mac, install a new version from its DMG.';
 
 /** Creates the updater after the window exists and runs one check (never a download). */
 export async function initUpdates(): Promise<void> {
@@ -20,12 +21,15 @@ export async function initUpdates(): Promise<void> {
   controller = createUpdaterController({
     updater: autoUpdater,
     isPackaged: app.isPackaged,
+    unsupportedReason: process.platform === 'darwin' ? MAC_UPDATES_REASON : undefined,
     currentVersion: currentAppVersion(),
     emit: (status) => sendToRenderer('updater-status', status),
     onDownloaded: (version, notes) => updateAppSettings({ pendingReleaseNotes: { version, notes } }),
   });
   controller.setChannel(getAppSettings().updateChannel);
-  if (app.isPackaged) {
+  if (process.platform === 'darwin') {
+    log('[Updates] Skipped: the Mac app is updated by installing a new DMG.');
+  } else if (app.isPackaged) {
     void controller.check();
     setInterval(() => void controller?.check(), CHECK_EVERY_MS).unref?.();
   } else {

@@ -10,6 +10,7 @@ Start with [`../CLAUDE.md`](../CLAUDE.md) (complete project context). Then:
 | [`guides/DATABASE_SETUP.md`](guides/DATABASE_SETUP.md) | Supabase setup, live status, Edge Function deploys |
 | [`guides/SUPABASE_SQL_PASTE.md`](guides/SUPABASE_SQL_PASTE.md) | Learn v2 go-live SQL, in paste order |
 | [`guides/RELEASE.md`](guides/RELEASE.md) | Desktop packaging, signing and update channels |
+| [`guides/MAC_APP.md`](guides/MAC_APP.md) | Mac test builds (DMG): build, install, first launch, limits |
 | [`guides/MOBILE_APP.md`](guides/MOBILE_APP.md) | Android app: what is in it, how it works, build, limits |
 | [`guides/ANDROID_APPLY.md`](guides/ANDROID_APPLY.md) | Android apply-with-review engine (plugin, agent, tests) |
 | [`guides/SCRAPER_LAPTOP.md`](guides/SCRAPER_LAPTOP.md) | Running the job, contacts and feed scrapers from a laptop |

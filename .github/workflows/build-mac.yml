@@ -1,0 +1,99 @@
+name: Build macOS (unsigned)
+
+# Builds the desktop app as a .dmg for Apple Silicon (arm64) and Intel (x64) Macs, launches each
+# packaged app once (smoke test over CDP, read only) and uploads the DMGs as an artifact for 14 days.
+# No Apple Developer ID yet: the app is ad-hoc signed (build-resources/mac-adhoc-sign.cjs), so on
+# first launch macOS asks the user to allow it (docs/guides/MAC_APP.md). Automatic updates are off
+# on Mac until builds are signed and notarized.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/build-mac.yml'
+      - 'apps/desktop/build-resources/**'
+      - 'apps/desktop/scripts/smoke-cdp.mjs'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-mac-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            lipo: arm64
+            runner: macos-15
+          - arch: x64
+            lipo: x86_64
+            runner: macos-15-intel
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      NODE_ENV: production
+      # Do not look for signing certificates in the runner's keychain.
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      # Google sign-in is baked into the main bundle by build-main.mjs when these are set.
+      GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 'Install, with dev dependencies (NODE_ENV=production would skip the build tools)'
+        run: npm ci --include=dev --no-audit --no-fund
+
+      - name: Build the DMG (ad-hoc signed)
+        working-directory: apps/desktop
+        run: npm run package:mac -- --${{ matrix.arch }} --publish never
+
+      - name: Smoke test (install from the DMG, launch, read the first screen)
+        run: |
+          set -euo pipefail
+          dmg=$(ls apps/desktop/dist-electron/*.dmg)
+          mnt="$RUNNER_TEMP/nomadic-dmg"
+          hdiutil attach "$dmg" -nobrowse -readonly -mountpoint "$mnt"
+          ls "$mnt"
+          test -L "$mnt/Applications"
+          cp -R "$mnt/Nomadic.app" "$RUNNER_TEMP/"
+          hdiutil detach "$mnt"
+          app="$RUNNER_TEMP/Nomadic.app"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          lipo -archs "$app/Contents/MacOS/Nomadic" | tee /dev/stderr | grep -qw "${{ matrix.lipo }}"
+          "$app/Contents/MacOS/Nomadic" --remote-debugging-port=9333 > "$RUNNER_TEMP/app.log" 2>&1 &
+          pid=$!
+          if ! node apps/desktop/scripts/smoke-cdp.mjs 9333; then
+            echo "::group::App log"; cat "$RUNNER_TEMP/app.log"; echo "::endgroup::"
+            kill "$pid" 2>/dev/null || true
+            exit 1
+          fi
+          kill -0 "$pid"
+          kill "$pid" 2>/dev/null || true
+          echo "::group::App log"; cat "$RUNNER_TEMP/app.log"; echo "::endgroup::"
+
+      - name: Version and checksums
+        id: meta
+        working-directory: apps/desktop/dist-electron
+        run: |
+          echo "version=$(node -p "require('../package.json').version")" >> "$GITHUB_OUTPUT"
+          shasum -a 256 *.dmg | tee SHA256SUMS-${{ matrix.arch }}.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nomadic-${{ steps.meta.outputs.version }}-mac-${{ matrix.arch }}
+          path: |
+            apps/desktop/dist-electron/*.dmg
+            apps/desktop/dist-electron/SHA256SUMS-*.txt
+          if-no-files-found: error
+          retention-days: 14

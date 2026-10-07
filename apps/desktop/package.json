@@ -13,6 +13,7 @@
     "compile": "node build-main.mjs && vite build",
     "build": "node build-main.mjs && vite build",
     "package:win": "node build-main.mjs && vite build && electron-builder --win nsis portable",
+    "package:mac": "node build-main.mjs && vite build && electron-builder --mac dmg -c.npmRebuild=false",
     "typecheck": "tsc --noEmit"
   },
   "build": {
@@ -31,6 +32,7 @@
       }
     ],
     "generateUpdatesFilesForAllChannels": true,
+    "afterPack": "./build-resources/mac-adhoc-sign.cjs",
     "files": [
       "out/**/*",
       "assets/**/*",
@@ -72,10 +74,17 @@
     },
     "mac": {
       "target": "dmg",
+      "icon": "build-resources/icon.icns",
+      "category": "public.app-category.productivity",
+      "minimumSystemVersion": "11.0",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build-resources/entitlements.mac.plist",
       "entitlementsInherit": "build-resources/entitlements.mac.plist"
+    },
+    "dmg": {
+      "artifactName": "Nomadic-${version}-${arch}.${ext}",
+      "title": "Nomadic ${version}"
     },
     "linux": {
       "target": "AppImage"

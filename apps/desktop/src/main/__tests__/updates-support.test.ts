@@ -110,11 +110,11 @@ class FakeUpdater extends EventEmitter implements UpdaterLike {
 }
 
 describe('updater controller', () => {
-  const make = (isPackaged = true) => {
+  const make = (isPackaged = true, unsupportedReason?: string) => {
     const updater = new FakeUpdater();
     const emitted: unknown[] = [];
     const onDownloaded = vi.fn();
-    const ctl = createUpdaterController({ updater, isPackaged, currentVersion: '1.0.6', emit: (s) => emitted.push(s), onDownloaded });
+    const ctl = createUpdaterController({ updater, isPackaged, unsupportedReason, currentVersion: '1.0.6', emit: (s) => emitted.push(s), onDownloaded });
     return { updater, ctl, emitted, onDownloaded };
   };
 
@@ -162,6 +162,15 @@ describe('updater controller', () => {
     await ctl.check();
     expect(updater.checkForUpdates).not.toHaveBeenCalled();
     expect(ctl.getStatus().state).toBe('unsupported');
+  });
+
+  it('reports the reason and never checks when the build cannot update itself (Mac)', async () => {
+    const { updater, ctl } = make(true, 'Install a new version from its DMG.');
+    await ctl.check();
+    await ctl.download();
+    expect(updater.checkForUpdates).not.toHaveBeenCalled();
+    expect(updater.downloadUpdate).not.toHaveBeenCalled();
+    expect(ctl.getStatus()).toMatchObject({ state: 'unsupported', message: 'Install a new version from its DMG.' });
   });
 
   it('turns release notes HTML into text', () => {
