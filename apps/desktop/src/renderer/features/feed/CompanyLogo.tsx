@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { cn } from '@nomadic/ui';
-import { MIN_LOGO_PX, companyLogoDomain, companyLogoUrl } from './companyLogo';
+import { MIN_LOGO_PX, companyLogoDomain, companyLogoUrl } from './companyLogoDomain';
 
 const MONOGRAM_TONES = [
   'bg-accent-subtle text-accent-subtle-fg',

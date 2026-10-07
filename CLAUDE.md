@@ -405,7 +405,7 @@ checklist in `docs/plans/OUTREACH_PLAN.md` section 11; the Assistant); OS notifi
   touch-size controls (mobile Tailwind `ctl-*` = 40/44/48 px). Desktop changes stay out unless the owner asks.
 - **Company logos** (7 Oct 2026, desktop + Android, shared renderer): `features/feed/CompanyLogo.tsx` (white plate over the
   monogram; monogram stays when there is no logo, a <32 px placeholder or an error; failed domains are not retried in the
-  session) and `features/feed/companyLogo.ts` (domain = curated name → domain list covering every feed company, parity-tested
+  session) and `features/feed/companyLogoDomain.ts` (domain = curated name → domain list covering every feed company, parity-tested
   against `packages/scrapers/src/feed/companies.ts`, else the base domain of the posting URL unless it is a job board/ATS/form;
   never guessed). Images come from Google's favicon service (`www.google.com/s2/favicons`, no referrer), disclosed in the
   Privacy Policy (LEGAL_VERSION 2026-10-07). Used on job cards and drawer, Home, News, tracker (board, list, drawer,
