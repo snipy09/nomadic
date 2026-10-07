@@ -5,7 +5,9 @@ import type { UpdateChannel } from './app-settings.js';
 // the user asking; the update installs on quit once downloaded. Channels:
 // `stable` reads latest.yml from full releases, `beta` reads beta.yml and accepts
 // pre-releases (versions like 1.2.0-beta.1). Signature checks are electron-updater's
-// (Windows: the installer must be signed by build.win.publisherName).
+// (Windows: the installer must be signed by build.win.publisherName). macOS builds are
+// unsigned for now and Squirrel.Mac only installs signed updates, so the Mac app reports
+// updates as unsupported and new versions are installed from a new DMG.
 
 /** The part of electron-updater's AppUpdater this module uses (lets tests pass a fake). */
 export interface UpdaterLike {
@@ -24,6 +26,8 @@ export interface UpdaterDeps {
   updater: UpdaterLike;
   /** app.isPackaged: electron-updater only works in an installed build. */
   isPackaged: boolean;
+  /** Set when this build cannot update itself (unsigned macOS builds); shown as the reason. */
+  unsupportedReason?: string;
   currentVersion: string;
   emit: (status: UpdaterStatus) => void;
   /** Called with the release notes when an update finished downloading. */
@@ -50,9 +54,10 @@ export function releaseNotesToText(notes: unknown): string {
 
 export function createUpdaterController(deps: UpdaterDeps) {
   const { updater } = deps;
-  let status: UpdaterStatus = deps.isPackaged
+  const supported = deps.isPackaged && !deps.unsupportedReason;
+  let status: UpdaterStatus = supported
     ? { state: 'idle', currentVersion: deps.currentVersion }
-    : { state: 'unsupported', currentVersion: deps.currentVersion, message: 'Updates work only in the installed app.' };
+    : { state: 'unsupported', currentVersion: deps.currentVersion, message: deps.unsupportedReason ?? 'Updates work only in the installed app.' };
   let channel: UpdateChannel = 'stable';
 
   const set = (next: Omit<UpdaterStatus, 'currentVersion'>) => {
@@ -87,7 +92,7 @@ export function createUpdaterController(deps: UpdaterDeps) {
       updater.allowPrerelease = next === 'beta';
     },
     async check(): Promise<UpdaterStatus> {
-      if (!deps.isPackaged) return status;
+      if (!supported) return status;
       try {
         await updater.checkForUpdates();
       } catch (err: unknown) {
@@ -96,7 +101,7 @@ export function createUpdaterController(deps: UpdaterDeps) {
       return status;
     },
     async download(): Promise<UpdaterStatus> {
-      if (!deps.isPackaged || status.state !== 'available') return status;
+      if (!supported || status.state !== 'available') return status;
       try {
         set({ state: 'downloading', version: status.version, percent: 0 });
         await updater.downloadUpdate();

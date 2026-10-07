@@ -113,7 +113,7 @@ packages/scrapers    Pipeline: fetch, normalise (zod Job schema), dedupe, valida
                      Devpost, HackerEarth); robots.txt obeyed; writes migration 031 tables
 packages/supabase    client wrappers (index.ts), migrations/, functions/, baseline/ (one-paste setup files), scripts/
 packages/form-bench  22 ATS fixtures and scorer (`npm run bench:forms`)
-docs/                DECISIONS.md, FEATURES.md, README.md (index); guides/ (DATABASE_SETUP, RELEASE, SCRAPER_LAPTOP, MOBILE_APP,
+docs/                DECISIONS.md, FEATURES.md, README.md (index); guides/ (DATABASE_SETUP, RELEASE, SCRAPER_LAPTOP, MOBILE_APP, MAC_APP,
                      ANDROID_APPLY, SUPABASE_SQL_PASTE), plans/ (SAAS, LEARN_V2 plan + handoff, OUTREACH, HOME_FEED, REVAMP),
                      security/ (SECURITY_CHECKLIST, SECURITY_CLEANUP), architecture.excalidraw
 scripts/             desktop-scraper/ (laptop launchers), windows/ (Build Nomadic.bat + build-nomadic.ps1, Run-*.bat, ocr.ps1;
@@ -449,6 +449,12 @@ checklist in `docs/plans/OUTREACH_PLAN.md` section 11; the Assistant); OS notifi
   `create_deployment` from git source (ref main, rootDirectory `apps/web`, buildCommand `npm run build`, outputDirectory
   `dist`, `forceNew: "1"`, no `teamId`). Assistant cloud containers cannot reach `*.vercel.app` (proxy 403). Smoke test:
   `/`, `/download`, `/terms`, `/privacy` → 200, unknown path → 404, `/sitemap.xml` and `/robots.txt` served.
+- Mac build (7 Oct 2026, test builds only): Actions → "Build macOS (unsigned)" (`.github/workflows/build-mac.yml`,
+  workflow_dispatch, also on pushes touching it or `apps/desktop/build-resources/`) builds `Nomadic-<ver>-arm64.dmg`
+  (`macos-15`) and `-x64.dmg` (`macos-15-intel`), installs, launches and reads the first screen over CDP
+  (`apps/desktop/scripts/smoke-cdp.mjs`), artifacts kept 14 days. No Developer ID: `build-resources/mac-adhoc-sign.cjs`
+  (afterPack) ad-hoc signs; users click Open Anyway once. Updates report "unsupported" on darwin
+  (`services/updates-runtime.ts`). Locally on a Mac: `npm run package:mac -- --arm64`. Guide: `docs/guides/MAC_APP.md`.
 - Windows build without the laptop: Actions → "Build Windows (unsigned)" (`.github/workflows/build-windows.yml`,
   workflow_dispatch) builds the installer and portable exe on `windows-latest` with the Google OAuth secrets and uploads
   them as an artifact for 14 days (unsigned: SmartScreen warns). Signed releases: `release.yml` (needs the certificate).
