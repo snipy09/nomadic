@@ -8,8 +8,8 @@ import { dateRange, deadline, emptyReason, filterNews, type NewsFilter } from '.
 import { useNews } from './useNews';
 
 /**
- * Home: the News page. Hiring updates per company (careers-site snapshots and the job board) and upcoming
- * hackathons, each with its source and a link. The old dashboard lives on as "Dashboard" (More on the phone).
+ * The News page: hiring updates per company (careers-site snapshots and the job board) and upcoming hackathons,
+ * each with its source and a link. Home on the phone (dashboard under More); a Jobs page on the desktop.
  */
 
 interface NewsViewProps {
