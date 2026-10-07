@@ -325,37 +325,95 @@ export async function extractDetailUrlsFromListing(listingUrl: string): Promise<
   }
 }
 
-const INTERNSHALA_LISTING_URLS = [
-  'https://internshala.com/internships/work-from-home-computer-science-internships/',
-  'https://internshala.com/internships/computer-science-internship/',
-  'https://internshala.com/jobs/developer-jobs/',
+/** Listing pages read per run: tech internships, fresher jobs and the categories engineering students search. */
+const INTERNSHALA_INTERNSHIP_CATEGORIES = [
+  'computer-science',
+  'web-development',
+  'software-development',
+  'full-stack-development',
+  'front-end-development',
+  'backend-development',
+  'python-django',
+  'java',
+  'javascript-development',
+  'react-js-development',
+  'node-js-development',
+  'android-app-development',
+  'mobile-app-development',
+  'flutter-development',
+  'data-science',
+  'data-analytics',
+  'machine-learning',
+  'artificial-intelligence-ai',
+  'cloud-computing',
+  'cyber-security',
+  'devops',
+  'ui-ux-design',
+  'product-management',
+  'business-analytics',
+  'electronics',
+  'electrical',
+  'mechanical',
+  'engineering',
 ];
+const INTERNSHALA_JOB_CATEGORIES = [
+  'software-development',
+  'web-development',
+  'full-stack-development',
+  'front-end-development',
+  'backend-development',
+  'python-django',
+  'java',
+  'android-app-development',
+  'data-science',
+  'data-analytics',
+  'machine-learning',
+  'cloud-computing',
+  'cyber-security',
+  'software-testing',
+  'computer-science',
+  'engineering',
+];
+
+export const INTERNSHALA_LISTING_URLS = [
+  'https://internshala.com/internships/work-from-home-computer-science-internships/',
+  ...INTERNSHALA_INTERNSHIP_CATEGORIES.map((c) => `https://internshala.com/internships/${c}-internship/`),
+  'https://internshala.com/fresher-jobs/',
+  ...INTERNSHALA_JOB_CATEGORIES.map((c) => `https://internshala.com/jobs/${c}-jobs/`),
+];
+
+/** Page N of a listing: /internships/java-internship/page-2/. */
+export function listingPageUrl(listingUrl: string, page: number): string {
+  return page <= 1 ? listingUrl : `${listingUrl.replace(/\/+$/, '')}/page-${page}/`;
+}
 
 /**
  * Builds a posting from an Internshala detail URL using only what the slug tells us.
  * e.g. /internship/detail/full-stack-development-internship-in-bangalore-at-xyz12345
+ * The city in the slug ("-in-bangalore") becomes the location; work-from-home slugs are remote.
  * Salary is left empty: the listing page does not expose it and we never invent one.
  */
 export function internshalaJobFromDetailUrl(detailUrl: string, createdAt: string): InternshalaJob {
   const slug = detailUrl.split('/detail/')[1] || '';
-  const parts = slug.split('-at-');
-  const rolePart = parts[0] ? parts[0].replace(/-/g, ' ') : 'Software Development Intern';
-  const companyPart = parts[1] ? parts[1].replace(/[0-9]+$/, '').replace(/-/g, ' ') : 'Tech Partner';
-
-  const title = (rolePart.charAt(0).toUpperCase() + rolePart.slice(1)).trim() || 'Software Engineering Intern';
-  const company = (companyPart.charAt(0).toUpperCase() + companyPart.slice(1)).trim() || 'Tech Innovator';
+  const at = slug.lastIndexOf('-at-');
+  const rolePart = (at > 0 ? slug.slice(0, at) : slug).replace(/-/g, ' ');
+  const companyPart = at > 0 ? slug.slice(at + 4).replace(/[0-9]+$/, '').replace(/-/g, ' ') : '';
   const isJob = detailUrl.includes('/job/detail/');
+  const place = rolePart.match(/^(.*?\b(?:internship|job|jobs))\s+in\s+([a-z ]+)$/);
+  const role = (place ? place[1] : rolePart).replace(/^work from home\s+/, '').trim();
+  const city = place ? place[2].trim().replace(/\b\w/g, (ch) => ch.toUpperCase()) : '';
+  const capital = (text: string) => (text.charAt(0).toUpperCase() + text.slice(1)).trim();
 
   return {
-    company,
-    title,
-    location: 'India / Remote',
+    company: capital(companyPart),
+    title: capital(role),
+    location: city ? `${city}, India` : 'India / Remote',
     applyUrl: detailUrl,
     canonicalUrl: detailUrl,
     source: 'Internshala',
     // The listing page has no description; leave it empty rather than write filler text.
     description: '',
-    jobHash: computeJobHash(company, title, detailUrl),
+    jobHash: computeJobHash(companyPart, role, detailUrl),
     employmentType: isJob ? 'job' : 'internship',
     workplaceType: 'hybrid',
     experienceLevel: 'entry',
@@ -363,26 +421,41 @@ export function internshalaJobFromDetailUrl(detailUrl: string, createdAt: string
   };
 }
 
+export interface InternshalaListingOptions {
+  /** Pages read per listing (1 = first page only). */
+  maxPages?: number;
+  /** Pause between requests, to stay gentle on the site. */
+  delayMs?: number;
+  extract?: (url: string) => Promise<string[]>;
+  sleep?: (ms: number) => Promise<void>;
+}
+
 /**
- * Internshala only: crawls public listing pages and returns one posting per detail URL.
- * Never returns category index URLs.
+ * Internshala only: crawls public listing pages one at a time and returns one posting per detail URL.
+ * A listing stops paging at the first page that adds nothing new. Never returns category index URLs.
+ * Postings without a company in the slug are dropped (no placeholder names).
  */
 export async function scrapeInternshalaListings(
-  listingUrls: string[] = INTERNSHALA_LISTING_URLS
+  listingUrls: string[] = INTERNSHALA_LISTING_URLS,
+  options: InternshalaListingOptions = {}
 ): Promise<InternshalaJob[]> {
-  const now = Date.now();
-  const extracted = await Promise.allSettled(listingUrls.map(url => extractDetailUrlsFromListing(url)));
-
+  const maxPages = Math.max(1, options.maxPages ?? 1);
+  const delayMs = options.delayMs ?? 1500;
+  const extract = options.extract ?? extractDetailUrlsFromListing;
+  const sleep = options.sleep ?? ((ms: number) => new Promise((r) => setTimeout(r, ms)));
   const detailUrls = new Set<string>();
-  for (const res of extracted) {
-    if (res.status === 'fulfilled' && Array.isArray(res.value)) {
-      res.value.forEach(u => detailUrls.add(u));
+  let requests = 0;
+  for (const listing of listingUrls) {
+    for (let page = 1; page <= maxPages; page++) {
+      if (requests++ > 0) await sleep(delayMs);
+      const found = await extract(listingPageUrl(listing, page)).catch(() => [] as string[]);
+      const before = detailUrls.size;
+      found.forEach((u) => detailUrls.add(u));
+      if (detailUrls.size === before) break;
     }
   }
-
-  return [...detailUrls].map((url, idx) =>
-    internshalaJobFromDetailUrl(url, new Date(now - idx * 60000).toISOString())
-  );
+  const createdAt = new Date().toISOString();
+  return [...detailUrls].map((url) => internshalaJobFromDetailUrl(url, createdAt)).filter((job) => job.company && job.title);
 }
 
 /**
@@ -439,7 +512,12 @@ export async function scrapeJobicy(count: number = 25): Promise<InternshalaJob[]
  * as separate sources instead.
  */
 export async function scrapeInternshala(): Promise<InternshalaJob[]> {
-  const [internshala, jobicy] = await Promise.allSettled([scrapeInternshalaListings(), scrapeJobicy()]);
+  const legacyListings = [
+    'https://internshala.com/internships/work-from-home-computer-science-internships/',
+    'https://internshala.com/internships/computer-science-internship/',
+    'https://internshala.com/jobs/developer-jobs/',
+  ];
+  const [internshala, jobicy] = await Promise.allSettled([scrapeInternshalaListings(legacyListings, { delayMs: 0 }), scrapeJobicy()]);
   const jobs: InternshalaJob[] = [];
   if (internshala.status === 'fulfilled') jobs.push(...internshala.value);
   else console.warn('[Internshala Live Parser] Warning:', internshala.reason?.message);

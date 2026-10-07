@@ -256,7 +256,10 @@ describe('legacy adapters', () => {
 describe('selectSources (tiers)', () => {
   it('defaults to tier 1 + 2; tier 3 is opt-in', () => {
     const ids = selectSources({ env: {} }).map((s) => s.id);
-    expect(ids).toEqual(['greenhouse', 'lever', 'ashby', 'remotive', 'internshala', 'rss', 'arbeitnow', 'jobicy']);
+    expect(ids).toEqual(['greenhouse', 'lever', 'ashby', 'remotive', 'internshala', 'careers', 'unstop', 'rss', 'arbeitnow', 'jobicy']);
+    // Adzuna needs its app id and key; with them it joins the default set.
+    expect(selectSources({ env: { ADZUNA_APP_ID: 'id', ADZUNA_APP_KEY: 'key' } }).some((s) => s.id === 'adzuna')).toBe(true);
+    expect(selectSources({ sources: ['adzuna'], env: {} }).map((s) => s.id)).toEqual(['adzuna']);
     expect(selectSources({ includeTier3: true, env: {} }).some((s) => s.tier === 3)).toBe(true);
     expect(selectSources({ env: { SCRAPER_ENABLE_TIER3: '1' } }).some((s) => s.id === 'naukri')).toBe(true);
   });
@@ -275,6 +278,9 @@ describe('selectSources (tiers)', () => {
       ashby: 1,
       remotive: 1,
       internshala: 1,
+      careers: 1,
+      unstop: 1,
+      adzuna: 1,
       rss: 2,
       arbeitnow: 2,
       jobicy: 2,

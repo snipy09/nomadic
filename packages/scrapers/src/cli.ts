@@ -6,6 +6,7 @@
  *                [--no-link-check] [--limit-per-source N] [--json report.json] [--fail-on-alert]
  *                [--region india|all]   (default india, or SCRAPER_REGION)
  *                [--max-new N]          at most N jobs not yet published per run (known jobs are still refreshed)
+ *                [--max-age-days 30]    skip jobs the source says were posted longer ago (0 = keep all)
  *                [--summary-dir DIR]    write a plain-text summary per run plus history.csv to DIR
  *   scrape bench [--sources a,b] [--include-tier3] [--out results/baseline.md]
  *   scrape runs  [--limit 20] [--source greenhouse]
@@ -19,9 +20,14 @@
  *                Home feed sources: openings at famous companies (full time + internships) with a daily
  *                hiring snapshot per company, and upcoming hackathons (Devfolio, Unstop, Devpost, HackerEarth).
  *
+ *   scrape discover [--out state/boards.json] [--summary-dir DIR]
+ *                Finds Greenhouse/Lever/Ashby/SmartRecruiters boards with India-open jobs for the companies in
+ *                sources/india-companies.ts (and famous ones without a readable listing). The job board and the
+ *                company snapshots read the file named by SCRAPER_BOARDS_FILE.
+ *
  * Publishing needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment.
  */
-import { appendFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
+import { appendFileSync, existsSync, mkdirSync, renameSync, writeFileSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { parseArgs } from 'util';
@@ -44,6 +50,8 @@ import { parseRegion, type Region } from './pipeline/region.js';
 import { runPipeline } from './pipeline/run.js';
 import { SupabaseJobStore, getRecentScrapeRuns } from './pipeline/store.js';
 import { SOURCES, selectSources, type Tier } from './sources/registry.js';
+import { discoverBoards, formatDiscoverySummary, loadDiscoveredBoards } from './sources/boards.js';
+import { PoliteFetcher } from './feed/http.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -92,6 +100,7 @@ async function main(argv: string[]): Promise<number> {
       'limit-per-source': { type: 'string' },
       region: { type: 'string' },
       'max-new': { type: 'string' },
+      'max-age-days': { type: 'string' },
       'summary-dir': { type: 'string' },
       json: { type: 'string' },
       out: { type: 'string' },
@@ -130,6 +139,10 @@ async function main(argv: string[]): Promise<number> {
     });
   }
 
+  if (command === 'discover') {
+    return runDiscover({ out: values.out ?? process.env.SCRAPER_BOARDS_FILE, summaryDir: values['summary-dir'] });
+  }
+
   if (command === 'sources') {
     for (const s of SOURCES) {
       console.log(`${s.id.padEnd(12)} tier ${s.tier}${s.tier === 3 ? ' (opt-in)' : ''}  ${s.label}`);
@@ -157,7 +170,7 @@ async function main(argv: string[]): Promise<number> {
   }
 
   if (command !== 'run' && command !== 'bench') {
-    console.error(`Unknown command "${command}". Use run, bench, runs, sources, contacts or feed.`);
+    console.error(`Unknown command "${command}". Use run, bench, runs, sources, contacts, feed, news, discover, auto or status.`);
     return 2;
   }
 
@@ -188,9 +201,16 @@ async function main(argv: string[]): Promise<number> {
   }
   if (maxNew && !publish) console.log('note: --max-new only applies when publishing (it compares against Supabase).');
 
+  const maxAgeDays = values['max-age-days'] ? Number(values['max-age-days']) : 30;
+  if (!Number.isInteger(maxAgeDays) || maxAgeDays < 0) {
+    console.error('--max-age-days must be a whole number (0 keeps every job).');
+    return 2;
+  }
+
   const report = await runPipeline({
     sources,
     maxNew,
+    maxAgeDays,
     publish,
     store,
     linkCheck: isBench ? true : !values['no-link-check'],
@@ -234,7 +254,7 @@ async function main(argv: string[]): Promise<number> {
     const dir = resolve(values['summary-dir']);
     mkdirSync(dir, { recursive: true });
     const stamp = report.startedAt.slice(0, 19).replace(/[:T]/g, '-');
-    const summary = formatRunSummary(report, { maxNew, region });
+    const summary = formatRunSummary(report, { maxNew, region, maxAgeDays });
     writeFileSync(resolve(dir, `scrape-${stamp}.txt`), summary);
     writeFileSync(resolve(dir, 'latest-summary.txt'), summary);
     const history = resolve(dir, 'history.csv');
@@ -398,6 +418,33 @@ async function runFeed(args: FeedArgs): Promise<number> {
   if (process.env.GITHUB_STEP_SUMMARY) writeFileSync(process.env.GITHUB_STEP_SUMMARY, '```\n' + summary + '```\n', { flag: 'a' });
   const all = [...report.companies.map((c) => c.ok), ...report.hackathonSources.map((s) => s.ok)];
   return all.length > 0 && all.every((ok) => !ok) ? 1 : 0;
+}
+
+async function runDiscover(args: { out?: string; summaryDir?: string }): Promise<number> {
+  if (!args.out) {
+    console.error('discover needs --out FILE (or SCRAPER_BOARDS_FILE).');
+    return 2;
+  }
+  const out = resolve(args.out);
+  const previous = loadDiscoveredBoards(out);
+  console.log(`[discover] probing company boards (${previous.length} known) — results go to ${out}`);
+  const report = await discoverBoards({
+    http: new PoliteFetcher({ minDelayMs: 500 }),
+    now: new Date(),
+    previous,
+    log: (message) => console.log(message),
+  });
+  mkdirSync(dirname(out), { recursive: true });
+  writeFileSync(`${out}.tmp`, JSON.stringify(report.file, null, 2));
+  renameSync(`${out}.tmp`, out);
+  const summary = formatDiscoverySummary(report);
+  console.log('\n' + summary);
+  if (args.summaryDir) {
+    const dir = resolve(args.summaryDir);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(resolve(dir, 'latest-discover.txt'), summary);
+  }
+  return report.found === 0 && report.errors.length > 0 ? 1 : 0;
 }
 
 const isDirectRun = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);

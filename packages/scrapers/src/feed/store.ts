@@ -10,7 +10,7 @@ import type { Hackathon, Opening, RoleFamily } from './schema.js';
 export interface CompanyRow {
   slug: string;
   name: string;
-  domain: string;
+  domain: string | null;
   careers_url: string;
   category: string;
   has_careers_feed: boolean;
@@ -69,7 +69,7 @@ export interface HackathonRow {
 export const toCompanyRow = (c: CompanyDef, at: string): CompanyRow => ({
   slug: c.slug,
   name: c.name,
-  domain: c.domain,
+  domain: c.domain || null,
   careers_url: c.careersUrl,
   category: c.category,
   has_careers_feed: c.careers !== null,

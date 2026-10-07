@@ -29,6 +29,8 @@ export interface SourceStats {
   invalidSamples: string[];
   /** Valid jobs dropped by the region filter (e.g. US-only roles when region is india). */
   outOfRegion: number;
+  /** Valid jobs dropped because the source says they were posted more than `maxAgeDays` ago. */
+  tooOld: number;
   duplicates: number;
   linkOk: number;
   linkFailed: number;
@@ -92,6 +94,11 @@ export interface PipelineOptions {
   maxNew?: number;
   /** 'india' keeps only jobs open to candidates in India (see region.ts). Default 'all'. */
   region?: Region;
+  /**
+   * Drop jobs the source says were posted more than this many days ago (0/undefined = keep all). Jobs without a
+   * posting date are aged by the database instead (migration 033: 30 days after first seen).
+   */
+  maxAgeDays?: number;
   now?: () => Date;
   log?: (message: string) => void;
 }
@@ -137,6 +144,7 @@ function emptyStats(source: SourceDefinition): SourceStats {
     invalid: 0,
     invalidSamples: [],
     outOfRegion: 0,
+    tooOld: 0,
     duplicates: 0,
     linkOk: 0,
     linkFailed: 0,
@@ -165,6 +173,7 @@ export async function runPipeline(options: PipelineOptions = {}): Promise<Pipeli
   const startedAt = now().toISOString();
   const statsBySource = new Map<string, SourceStats>();
   const officialSources = new Set(sources.filter((s) => s.officialApi).map((s) => s.id));
+  const oldest = options.maxAgeDays ? new Date(now().getTime() - options.maxAgeDays * 86_400_000).toISOString() : null;
   const truncated = new Set<string>();
 
   // ── 1. Fetch + normalize (all sources in parallel) ─────────────────────────
@@ -177,7 +186,7 @@ export async function runPipeline(options: PipelineOptions = {}): Promise<Pipeli
       try {
         const candidates = await withTimeout(
           source.fetchCandidates({ fetch: fetchImpl, now: now(), warn: (msg) => stats.warnings.push(msg) }),
-          options.sourceTimeoutMs ?? 90_000,
+          source.timeoutMs ?? options.sourceTimeoutMs ?? 90_000,
           source.id
         );
         stats.fetched = candidates.length;
@@ -193,6 +202,10 @@ export async function runPipeline(options: PipelineOptions = {}): Promise<Pipeli
             continue;
           }
           const job = parsed.job;
+          if (oldest && job.postedAt && job.postedAt < oldest) {
+            stats.tooOld++;
+            continue;
+          }
           if (options.region === 'india' && !source.indiaOnly && !isIndiaEligible(job)) {
             stats.outOfRegion++;
             continue;
@@ -223,7 +236,7 @@ export async function runPipeline(options: PipelineOptions = {}): Promise<Pipeli
       if (stats.invalid > 0)
         log(`[${source.id}] dropped ${stats.invalid} invalid record(s): ${stats.invalidSamples[0]}`);
       log(
-        `[${source.id}] fetched=${stats.fetched} valid=${stats.valid}${stats.outOfRegion ? ` outside-region=${stats.outOfRegion}` : ''}${stats.error ? ` error=${stats.error}` : ''} (${stats.durationMs}ms)`
+        `[${source.id}] fetched=${stats.fetched} valid=${stats.valid}${stats.outOfRegion ? ` outside-region=${stats.outOfRegion}` : ''}${stats.tooOld ? ` older-than-${options.maxAgeDays}d=${stats.tooOld}` : ''}${stats.error ? ` error=${stats.error}` : ''} (${stats.durationMs}ms)`
       );
       return valid;
     })

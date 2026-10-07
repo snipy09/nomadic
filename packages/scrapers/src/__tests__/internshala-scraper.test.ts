@@ -207,7 +207,8 @@ describe('Internshala Scraper Resilience & URL Normalization', () => {
       expect(jobs).toHaveLength(2);
 
       const first = jobs[0];
-      expect(first.title).toBe('Frontend developer internship in bangalore');
+      expect(first.title).toBe('Frontend developer internship');
+      expect(first.location).toBe('Bangalore, India');
       expect(first.company).toBe('Acme labs');
       expect(first.applyUrl).toBe('https://internshala.com/internship/detail/frontend-developer-internship-in-bangalore-at-acme-labs1234');
       expect(first.source).toBe('Internshala');
@@ -247,8 +248,50 @@ describe('Internshala Scraper Resilience & URL Normalization', () => {
 
     it('returns an empty list when every listing page fails', async () => {
       vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
-      await expect(scrapeInternshalaListings()).resolves.toEqual([]);
+      await expect(scrapeInternshalaListings(undefined, { delayMs: 0, maxPages: 3 })).resolves.toEqual([]);
     });
   });
 
+  describe('listing crawl', () => {
+    it('pages each listing until a page adds nothing, with a pause between requests', async () => {
+      const pages: Record<string, string[]> = {
+        'https://internshala.com/internships/java-internship/': [
+          'https://internshala.com/internship/detail/java-development-internship-in-pune-at-acme-labs123',
+        ],
+        'https://internshala.com/internships/java-internship/page-2/': [
+          'https://internshala.com/internship/detail/work-from-home-java-internship-at-beta-soft456',
+        ],
+        'https://internshala.com/internships/java-internship/page-3/': [
+          'https://internshala.com/internship/detail/work-from-home-java-internship-at-beta-soft456',
+        ],
+      };
+      const asked: string[] = [];
+      const sleeps: number[] = [];
+      const jobs = await scrapeInternshalaListings(['https://internshala.com/internships/java-internship/'], {
+        maxPages: 5,
+        delayMs: 7,
+        extract: async (url) => {
+          asked.push(url);
+          return pages[url] ?? [];
+        },
+        sleep: async (ms) => {
+          sleeps.push(ms);
+        },
+      });
+      expect(asked).toHaveLength(3);
+      expect(sleeps).toEqual([7, 7]);
+      expect(jobs.map((j) => [j.title, j.company, j.location])).toEqual([
+        ['Java development internship', 'Acme labs', 'Pune, India'],
+        ['Java internship', 'Beta soft', 'India / Remote'],
+      ]);
+    });
+
+    it('drops postings whose slug names no company', async () => {
+      const jobs = await scrapeInternshalaListings(['https://internshala.com/jobs/java-jobs/'], {
+        delayMs: 0,
+        extract: async () => ['https://internshala.com/job/detail/java-developer-job-12345'],
+      });
+      expect(jobs).toEqual([]);
+    });
+  });
 });

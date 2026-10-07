@@ -1,7 +1,8 @@
 import { isIndiaEligible, type Region } from '../pipeline/region.js';
 import type { FetchLike } from '../sources/ats.js';
 import { fetchCompanyOpenings, type RawOpening } from './careers.js';
-import { COMPANIES, type CompanyDef } from './companies.js';
+import { feedCompanies } from '../sources/boards.js';
+import type { CompanyDef } from './companies.js';
 import { HACKATHON_FETCHERS, hackathonKey } from './hackathons.js';
 import { BlockedByRobotsError, PoliteFetcher } from './http.js';
 import {
@@ -32,6 +33,8 @@ export interface FeedRunOptions {
   sources: FeedSourceId[];
   /** Company slugs to read; all companies with a careers listing when unset. */
   companies?: string[];
+  /** The company directory; default: the famous companies plus boards found by `discover` (state/boards.json). */
+  directory?: CompanyDef[];
   hackathonSources?: HackathonSource[];
   region: Region;
   publish: boolean;
@@ -206,13 +209,14 @@ export async function runFeedScrape(options: FeedRunOptions): Promise<FeedRunRep
 
   // ── Companies ──────────────────────────────────────────────────────────────
   if (want.has('companies')) {
-    const picked = options.companies?.length ? COMPANIES.filter((c) => options.companies!.includes(c.slug)) : COMPANIES;
-    const unknown = (options.companies ?? []).filter((s) => !COMPANIES.some((c) => c.slug === s));
+    const directory = options.directory ?? feedCompanies();
+    const picked = options.companies?.length ? directory.filter((c) => options.companies!.includes(c.slug)) : directory;
+    const unknown = (options.companies ?? []).filter((s) => !directory.some((c) => c.slug === s));
     if (unknown.length) warnings.push(`unknown company slug(s): ${unknown.join(', ')}`);
     report.curatedOnly = picked.filter((c) => !c.careers).map((c) => c.slug);
     const readable = picked.filter((c) => c.careers);
 
-    if (options.publish) report.totals.written.companies = await options.store!.upsertCompanies(COMPANIES.map((c) => toCompanyRow(c, startedAt)));
+    if (options.publish) report.totals.written.companies = await options.store!.upsertCompanies(directory.map((c) => toCompanyRow(c, startedAt)));
     const known = options.store ? await options.store.knownOpeningIds(readable.map((c) => c.slug)) : null;
 
     const kept = new Map<string, Opening[]>();

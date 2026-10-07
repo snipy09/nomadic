@@ -42,7 +42,7 @@ export function formatRunTable(report: PipelineReport): string {
 }
 
 /** Plain-text summary written after every run (opens in Notepad). */
-export function formatRunSummary(report: PipelineReport, opts: { maxNew?: number; region?: string } = {}): string {
+export function formatRunSummary(report: PipelineReport, opts: { maxNew?: number; region?: string; maxAgeDays?: number } = {}): string {
   const t = report.totals;
   const secs = Math.max(0, Math.round((Date.parse(report.finishedAt) - Date.parse(report.startedAt)) / 1000));
   const local = (iso: string) => new Date(iso).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
@@ -61,6 +61,9 @@ export function formatRunSummary(report: PipelineReport, opts: { maxNew?: number
     `Dead/closed links:     ${t.linkFailed}`,
     `Expired (no longer listed or dead): ${t.expired + t.legacyExpired}`,
     `Fetched in total:      ${t.fetched} (${t.valid} valid)`,
+    ...(report.sources.some((s) => s.tooOld)
+      ? [`Older than ${opts.maxAgeDays ?? 30} days:    ${report.sources.reduce((n, s) => n + s.tooOld, 0)} (not added)`]
+      : []),
     '',
     'BY SOURCE',
     formatRunTableWithNew(report),

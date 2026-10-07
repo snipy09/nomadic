@@ -13,6 +13,9 @@ export const SOURCE_IDS = [
   'ashby',
   'remotive',
   'internshala',
+  'careers',
+  'unstop',
+  'adzuna',
   // Tier 2: RSS and niche boards
   'rss',
   'arbeitnow',

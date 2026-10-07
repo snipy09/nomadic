@@ -16,6 +16,11 @@ import {
   type FetchLike,
 } from './ats.js';
 import { internshalaToCandidate, rawJobToCandidate } from './legacy.js';
+import { COMPANIES } from '../feed/companies.js';
+import { ADZUNA_ENV, fetchAdzuna } from './adzuna.js';
+import { feedCompanies, loadDiscoveredBoards, mergeBoards } from './boards.js';
+import { fetchCareersJobs } from './careers-jobs.js';
+import { fetchUnstopJobs } from './unstop-jobs.js';
 
 export type Tier = 1 | 2 | 3;
 
@@ -34,6 +39,10 @@ export interface SourceDefinition {
   officialApi: boolean;
   /** Lists only jobs in India, so the region filter does not apply. */
   indiaOnly?: boolean;
+  /** Environment variables the source needs; without them it is left out unless named explicitly. */
+  requiresEnv?: readonly string[];
+  /** Longer than the default 90 s for sources that page politely through many listings. */
+  timeoutMs?: number;
   fetchCandidates(ctx: SourceContext): Promise<JobCandidate[]>;
 }
 
@@ -56,6 +65,22 @@ export const LEVER_BOARDS: BoardConfig[] = DEFAULT_TOP_TECH_BOARDS.filter((b) =>
 export const ASHBY_BOARDS: BoardConfig[] = DEFAULT_TOP_TECH_BOARDS.filter((b) => b.type === 'ashby').map(
   ({ name, boardId }) => ({ name, boardId })
 );
+
+/** The feed's famous companies on one ATS, as boards for the job board. */
+function feedBoards(kind: 'greenhouse' | 'lever' | 'ashby'): BoardConfig[] {
+  return COMPANIES.flatMap((c) => (c.careers?.kind === kind ? [{ name: c.name, boardId: c.careers.board }] : []));
+}
+
+/** Built-in boards + the feed's companies + boards found by `discover` (state/boards.json), read at run time. */
+export function boardsFor(kind: 'greenhouse' | 'lever' | 'ashby'): BoardConfig[] {
+  const builtIn = { greenhouse: GREENHOUSE_BOARDS, lever: LEVER_BOARDS, ashby: ASHBY_BOARDS }[kind];
+  return mergeBoards([...builtIn, ...feedBoards(kind)], loadDiscoveredBoards(), kind);
+}
+
+const envInt = (name: string, fallback: number) => {
+  const n = Number(process.env[name]);
+  return Number.isInteger(n) && n > 0 ? n : fallback;
+};
 
 export const RSS_FEEDS = [{ name: 'Jobspresso Tech', url: 'https://jobspresso.co/feed/' }];
 
@@ -82,24 +107,27 @@ export const SOURCES: SourceDefinition[] = [
     label: 'Greenhouse API',
     tier: 1,
     officialApi: true,
+    timeoutMs: 15 * 60_000,
     fetchCandidates: (ctx) =>
-      fetchBoards(GREENHOUSE_BOARDS, (b) => fetchGreenhouseBoard(ctx.fetch, b), boardWarning(ctx, 'greenhouse')),
+      fetchBoards(boardsFor('greenhouse'), (b) => fetchGreenhouseBoard(ctx.fetch, b), boardWarning(ctx, 'greenhouse')),
   },
   {
     id: 'lever',
     label: 'Lever API',
     tier: 1,
     officialApi: true,
+    timeoutMs: 15 * 60_000,
     fetchCandidates: (ctx) =>
-      fetchBoards(LEVER_BOARDS, (b) => fetchLeverBoard(ctx.fetch, b), boardWarning(ctx, 'lever')),
+      fetchBoards(boardsFor('lever'), (b) => fetchLeverBoard(ctx.fetch, b), boardWarning(ctx, 'lever')),
   },
   {
     id: 'ashby',
     label: 'Ashby API',
     tier: 1,
     officialApi: true,
+    timeoutMs: 15 * 60_000,
     fetchCandidates: (ctx) =>
-      fetchBoards(ASHBY_BOARDS, (b) => fetchAshbyBoard(ctx.fetch, b), boardWarning(ctx, 'ashby')),
+      fetchBoards(boardsFor('ashby'), (b) => fetchAshbyBoard(ctx.fetch, b), boardWarning(ctx, 'ashby')),
   },
   {
     id: 'remotive',
@@ -114,7 +142,44 @@ export const SOURCES: SourceDefinition[] = [
     tier: 1,
     officialApi: false,
     indiaOnly: true,
-    fetchCandidates: async () => (await scrapeInternshalaListings()).map(internshalaToCandidate),
+    timeoutMs: 20 * 60_000,
+    fetchCandidates: async () =>
+      (await scrapeInternshalaListings(undefined, { maxPages: envInt('SCRAPER_INTERNSHALA_PAGES', 5) })).map(internshalaToCandidate),
+  },
+  {
+    id: 'careers',
+    label: 'Company careers sites',
+    tier: 1,
+    officialApi: true,
+    timeoutMs: 20 * 60_000,
+    fetchCandidates: (ctx) =>
+      fetchCareersJobs(ctx.fetch, { companies: feedCompanies(), maxPages: envInt('SCRAPER_MAX_PAGES', 10), now: ctx.now, warn: ctx.warn }),
+  },
+  {
+    id: 'unstop',
+    label: 'Unstop',
+    tier: 1,
+    officialApi: false,
+    indiaOnly: true,
+    timeoutMs: 15 * 60_000,
+    fetchCandidates: (ctx) => fetchUnstopJobs(ctx.fetch, { maxPages: envInt('SCRAPER_UNSTOP_PAGES', 34), now: ctx.now, warn: ctx.warn }),
+  },
+  {
+    id: 'adzuna',
+    label: 'Adzuna',
+    tier: 1,
+    officialApi: true,
+    requiresEnv: ADZUNA_ENV,
+    timeoutMs: 10 * 60_000,
+    fetchCandidates: (ctx) =>
+      fetchAdzuna(ctx.fetch, {
+        appId: process.env.ADZUNA_APP_ID ?? '',
+        appKey: process.env.ADZUNA_APP_KEY ?? '',
+        maxCalls: envInt('ADZUNA_MAX_CALLS', 40),
+        pagesPerQuery: envInt('ADZUNA_PAGES_PER_QUERY', 10),
+        now: ctx.now,
+        warn: ctx.warn,
+      }),
   },
   // ── Tier 2 ────────────────────────────────────────────────────────────────
   {
@@ -210,10 +275,11 @@ export function selectSources(
     }
     return registry.filter((s) => selection.sources!.includes(s.id));
   }
+  const hasEnv = (s: SourceDefinition) => (s.requiresEnv ?? []).every((name) => Boolean(env[name]?.trim()));
   const tier3 = selection.includeTier3 || env.SCRAPER_ENABLE_TIER3 === '1' || env.SCRAPER_ENABLE_TIER3 === 'true';
   return registry.filter((s) => {
     if (selection.tiers && selection.tiers.length > 0 && !selection.tiers.includes(s.tier)) return false;
     if (s.tier === 3 && !tier3) return false;
-    return true;
+    return hasEnv(s);
   });
 }
