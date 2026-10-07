@@ -145,5 +145,7 @@ Last updated: 7 October 2026. What was built when, with the files involved. Newe
   `packages/app-core` (Electron main process, IPC contract) and `packages/app-ui` (React screens). Windows-only startup
   (GPU workarounds, sandbox fallback, NSIS/portable) moved into `apps/desktop`; the Mac app has its own entry (sandbox +
   GPU on, macOS menu, keeps running when the last window closes) and DMG packaging. CI builds all three apps on every push.
+  Shared build helpers: `packages/app-core/tooling/electron-main.mjs`, `packages/app-ui/tooling/` (first named `build/`,
+  which the root `.gitignore` ignores; CI was red on `main` for one push until they were renamed).
   Dead code removed: `ai-pilot-engine`, `semantic-dom-extractor`, `form-command-interpreter`, `question-classifier`,
   `standalone-tester`, `ai-url-auditor`, `test-conn`, `DependenciesView`, the web's unused `src/supabase.ts`; `animejs` dropped.

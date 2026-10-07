@@ -55,3 +55,5 @@ CI (`ci.yml`) runs the same on every push, including a build of each app.
 - Submitting an application without the user's review; publishing invented data.
 - Editing a shipped migration (local or Supabase); renaming generated project ids or feed company slugs.
 - Non-ASCII text in `scripts/scraper-folder` (PowerShell 5.1 reads UTF-8 without BOM as ANSI).
+- A source folder named `build/`, `out/` or `dist/`: the root `.gitignore` ignores them, so the files never reach git
+  (shared build helpers live in `tooling/` for that reason). Check a new folder with `git check-ignore -v <path>`.
