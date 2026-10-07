@@ -12,7 +12,7 @@ UI talks to. The Android app (`apps/android`) runs most of these services inside
 - `src/main/preload.ts`: builds `window.api`.
 - `src/shared/`: the typed IPC contract (`ipc.ts`), CSP, shared data (job roles, question vault) used by the UI too.
 - `data/practice/`: practice question sets, copied next to the main bundle at build.
-- `build/electron-main.mjs`: the esbuild build each Electron app calls from its `build-main.mjs`.
+- `tooling/electron-main.mjs`: the esbuild build each Electron app calls from its `build-main.mjs`.
 
 Rules: this package never imports `@nomadic/app-ui`. Changes here affect Windows and Mac (and Android where the
 service is registered in `apps/android/src/host/boot.ts`); CI builds all three apps. Tests: `src/main/__tests__`

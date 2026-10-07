@@ -1,8 +1,8 @@
 // Bundles this app's Electron main process (src/main.ts) and the shared preload into out/main.
-// Shared build rules: packages/app-core/build/electron-main.mjs.
+// Shared build rules: packages/app-core/tooling/electron-main.mjs.
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { buildElectronMain } from '../../packages/app-core/build/electron-main.mjs';
+import { buildElectronMain } from '../../packages/app-core/tooling/electron-main.mjs';
 
 const appDir = path.dirname(fileURLToPath(import.meta.url));
 

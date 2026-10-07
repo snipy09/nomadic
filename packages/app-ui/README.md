@@ -8,7 +8,7 @@ Each app calls `mountApp()` from `src/mount.tsx` in its own renderer entry and s
   and the shell (`components/shell/`).
 - `src/store/`: Zustand store; `preferences.ts` is the only file that touches `localStorage`.
 - `src/types.ts`: the UI's view of the IPC contract (re-exports `@nomadic/app-core/shared/ipc`).
-- `build/electron-renderer.mjs` (Vite config for the Electron apps), `build/tailwind-base.cjs` (Tailwind settings
+- `tooling/electron-renderer.mjs` (Vite config for the Electron apps), `tooling/tailwind-base.cjs` (Tailwind settings
   every app extends).
 
 Rules: platform-only screens belong in the app's folder; when a shared screen must differ, read `platform.ts`.

@@ -1,6 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 const path = require('path');
-const { sharedContent, ...base } = require('../../packages/app-ui/build/tailwind-base.cjs');
+const { sharedContent, ...base } = require('../../packages/app-ui/tooling/tailwind-base.cjs');
 
 module.exports = {
   ...base,

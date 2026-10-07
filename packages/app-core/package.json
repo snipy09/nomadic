@@ -7,7 +7,7 @@
   "exports": {
     "./main/*": "./src/main/*.ts",
     "./shared/*": "./src/shared/*.ts",
-    "./build/*": "./build/*",
+    "./tooling/*": "./tooling/*",
     "./data/*": "./data/*"
   },
   "scripts": {

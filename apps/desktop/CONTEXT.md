@@ -12,7 +12,7 @@ Only what is specific to Windows. Changes here cannot affect the Mac or Android 
 | `src/sandbox-fallback.ts` | When a sandboxed child exits with STATUS_DLL_NOT_FOUND, writes `%APPDATA%\Nomadic\sandbox-fallback.json` for this version and restarts once without the sandbox (the portable build restarts through its NSIS launcher with TEMP set to `%TEMP%\NomadicRestart`). `NOMADIC_DISABLE_SANDBOX=true` forces it off. Tests in `src/__tests__/`. |
 | `renderer/` | `index.html`, `main.tsx` (calls `mountApp()` from `packages/app-ui`), `public/assets` (logos). Windows-only screens would go here. |
 | `vite.config.ts` | Shared renderer config with `VITE_PLATFORM=windows`, dev port 5173. |
-| `build-main.mjs` | Bundles `src/main.ts` + the shared preload (shared rules in `packages/app-core/build/electron-main.mjs`). |
+| `build-main.mjs` | Bundles `src/main.ts` + the shared preload (shared rules in `packages/app-core/tooling/electron-main.mjs`). |
 | `package.json` → `build` | electron-builder: NSIS installer (`Nomadic.Setup.<ver>.exe`) + portable (`Nomadic.<ver>.exe`), `executableName` NomadicOS, `icon.ico`, GitHub releases as the update feed (Stable/Beta channels). |
 | `assets/` | `icon.ico`, `logo-icon.png`, `logo.png` (the site mark from `apps/web/public/logo-icon.svg`). |
 | `update-policy.json` | Forced-update floor published with each release (`release.yml`). |

@@ -49,12 +49,12 @@ packages/
                src/shared/ipc.ts       the typed IPC contract (IPC_CHANNELS, Channel map, NomadicApi); admin.ts, csp.ts,
                                        applicationAnswers.ts, profileExtras.ts; data/ (job roles, question vault)
                data/practice/          LeetCode company sets (copied next to the main bundle at build)
-               build/electron-main.mjs shared esbuild build for an app's main process + preload
+               tooling/electron-main.mjs shared esbuild build for an app's main process + preload
   app-ui/      @nomadic/app-ui: the React UI shared by all three apps.
                src/mount.tsx (mountApp), App.tsx (shell + routing by activeTab), platform.ts, store/ (Zustand;
                preferences.ts is the ONLY file allowed to touch localStorage), features/<name>/ (logic + hooks +
                components per feature), components/ (older screens), browserApiShim.ts (browser preview mock).
-               build/electron-renderer.mjs (Vite config for desktop/mac), build/tailwind-base.cjs (shared Tailwind).
+               tooling/electron-renderer.mjs (Vite config for desktop/mac), tooling/tailwind-base.cjs (shared Tailwind).
   ui/          @nomadic/ui design system (tokens, Tailwind preset, AppShell, Button, Dialog, Drawer, Tabs, …).
                Apple design language since 1.4.0; use token classes (bg-surface, text-fg, text-fg-muted, border-line,
                text-body, text-caption, font-strong, bg-fg/[0.06]); never hardcoded slate/zinc colours or dark: variants.
@@ -80,9 +80,9 @@ brand/         profile icon and GitHub profile assets (videos and carousels stay
 
 ## How an app is built
 
-- **Windows / Mac**: `node build-main.mjs` (calls `packages/app-core/build/electron-main.mjs` with the app's
+- **Windows / Mac**: `node build-main.mjs` (calls `packages/app-core/tooling/electron-main.mjs` with the app's
   `src/main.ts`) bundles the main process + preload into `out/main`; `vite build` (config from
-  `packages/app-ui/build/electron-renderer.mjs`, `VITE_PLATFORM=windows|mac`) builds the UI into `out/renderer`;
+  `packages/app-ui/tooling/electron-renderer.mjs`, `VITE_PLATFORM=windows|mac`) builds the UI into `out/renderer`;
   electron-builder packages `out/`, `assets/` and production dependencies. `@nomadic/app-core` and `@nomadic/app-ui`
   are devDependencies of the apps: they are compiled in, never shipped as folders.
 - **Android**: `vite build` in `apps/android` (aliases replace Electron/Node modules with `src/host`), then

@@ -4,7 +4,7 @@ Last updated: 7 October 2026. Supabase project, migrations applied, Edge Functio
 
 - **Supabase project `nomadic`**: ref `grqkiddfwoyicktpgdea`, region ap-south-1 (Mumbai), free plan, org "Nomadic".
   URL `https://grqkiddfwoyicktpgdea.supabase.co`. The anon key is public by design and is the build default in
-  `packages/app-core/build/electron-main.mjs`, scrapers and web. The service-role key is never in the app or repo.
+  `packages/app-core/tooling/electron-main.mjs`, scrapers and web. The service-role key is never in the app or repo.
 - **Applied migrations**: 001–012, 014–032 (028 Learn v2 state and 029 AI roadmap quotas pasted by the owner on
   5 Oct 2026, verified; Learn v2 content seed pasted too: 109 skills, 109 lessons, 55 resources; the 624 v1.2.0 quiz items were added
   through the connector on 5 Oct 2026, so 864 practice items are live and match the seed by content hash) (013 does not exist; 023 is the web waitlist; 024 no Max downgrade on
