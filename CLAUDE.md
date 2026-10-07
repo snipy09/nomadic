@@ -433,6 +433,10 @@ checklist in `docs/plans/OUTREACH_PLAN.md` section 11; the Assistant); OS notifi
   "Contest"). Owner's ask behind it: "top 1000 companies' latest updates (e.g. Google hiring Sept–Dec for these roles)":
   covered by news articles (any company; ~430 named companies get a company tag) plus snapshots for every company with a
   readable or discovered board; there is no single source for hiring windows of 1,000 companies. Live checks: owner action 000.
+- **First-run tour** (6 Oct 2026, merged 7 Oct, desktop only, not packaged): after sign-in/onboarding a
+  spotlight walkthrough (`features/tour/ProductTour.tsx`, steps by workspace mode in `tourLogic.ts`) points at sidebar
+  items marked `data-tour="<tab id>"` (plus `search`). Shown once per account on this computer (`prefs.getTourSeen(email)`);
+  What's New waits until it closes. Replay: Help → "Take the tour", or "Take the tour" in the command palette.
 - Next most useful work: owner action 0 (Learn v2 go-live), then owner actions in section 7 (consent screen, Resend domain, key rotation),
   then a live end-to-end pass (Google sign-in, reviewed submit, AI feedback), then the code follow-ups in section 7.
 

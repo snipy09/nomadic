@@ -1,18 +1,28 @@
 import React from 'react';
 import { ExternalLink } from 'lucide-react';
-import { Card, CardContent, CardHeader, Kbd } from '@nomadic/ui';
+import { Button, Card, CardContent, CardHeader, Kbd } from '@nomadic/ui';
 import { getApi } from '../../types';
 import { HELP_LINKS, SHORTCUTS } from './helpContent';
 import { FeedbackForm } from './FeedbackForm';
 import { IS_MOBILE } from '../../platform';
 
 /** In-app Help: keyboard shortcuts, where to read more, and feedback. */
-export const HelpView: React.FC = () => (
+export const HelpView: React.FC<{ onStartTour?: () => void }> = ({ onStartTour }) => (
   <div className="mx-auto flex max-w-3xl flex-col gap-4">
     <header className="flex flex-col gap-1">
       <h1 className="text-headline font-bold text-fg">Help</h1>
       <p className="text-body text-fg-muted">{IS_MOBILE ? 'Links and a direct line to the team.' : 'Shortcuts, links and a direct line to the team.'}</p>
     </header>
+
+    {onStartTour && (
+      <Card>
+        <CardHeader
+          title="Tour of Nomadic"
+          description="A one-minute walk through the main pages."
+          actions={<Button size="sm" variant="secondary" onClick={onStartTour}>Take the tour</Button>}
+        />
+      </Card>
+    )}
 
     {!IS_MOBILE && <Card>
       <CardHeader title="Keyboard shortcuts" />

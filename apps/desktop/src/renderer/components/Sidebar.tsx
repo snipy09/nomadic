@@ -105,6 +105,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const item = ({ id, label, icon: Icon, soon }: NavDef) => (
     <NavItem
       key={id}
+      data-tour={id}
       label={label}
       icon={<Icon />}
       shortcut={goShortcut(id)}
@@ -118,6 +119,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <button
       type="button"
       onClick={onOpenSearch}
+      data-tour="search"
       aria-label="Search pages and commands"
       className={cn(
         'flex h-8 w-full items-center gap-2.5 rounded-md text-body text-fg-subtle transition-colors duration-fast hover:bg-surface-hover hover:text-fg [&_svg]:size-4',

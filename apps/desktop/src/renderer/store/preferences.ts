@@ -24,6 +24,7 @@ const K = {
   sidebarCollapsed: 'nomadic_sidebar_collapsed',
   applicationsView: 'nomadic_applications_view',
   homeChecklistHidden: 'nomadic_home_checklist_hidden',
+  tourSeen: (email: string) => `nomadic_tour_seen_${email.trim().toLowerCase()}`,
 } as const;
 
 export const prefs = {
@@ -72,6 +73,9 @@ export const prefs = {
   setApplicationsView: (v: 'board' | 'list') => write(K.applicationsView, v),
   getHomeChecklistHidden: () => read(K.homeChecklistHidden) === 'true',
   setHomeChecklistHidden: (v: boolean) => write(K.homeChecklistHidden, v ? 'true' : null),
+  /** The first-run walkthrough, once per account on this computer. */
+  getTourSeen: (email: string) => read(K.tourSeen(email)) === 'true',
+  setTourSeen: (email: string) => write(K.tourSeen(email), 'true'),
   getOppWaitlist: () => read(K.oppWaitlist) === 'true',
   setOppWaitlist: () => write(K.oppWaitlist, 'true'),
 };

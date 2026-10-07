@@ -24,6 +24,7 @@ import { useSessionRestore } from './features/auth/useSessionRestore';
 import { HelpView } from './features/help/HelpView';
 import { AnswersView } from './features/answers/AnswersView';
 import { HomeView } from './features/home/HomeView';
+import { ProductTour } from './features/tour/ProductTour';
 import { NewsView } from './features/news/NewsView';
 import { UpdateRequiredScreen } from './features/updates/UpdateRequiredScreen';
 import { WhatsNewDialog } from './features/updates/WhatsNewDialog';
@@ -225,6 +226,19 @@ export default function App() {
   };
 
   const [signedOutNotice, setSignedOutNotice] = useState<string | null>(null);
+
+  // First-run walkthrough (desktop): once per account on this computer, after onboarding; replayable from Help and search.
+  const [tourOpen, setTourOpen] = useState(false);
+  const tourEmail = currentUser?.email ?? '';
+  useEffect(() => {
+    if (!IS_MOBILE && tourEmail && !prefs.getTourSeen(tourEmail)) setTourOpen(true);
+  }, [tourEmail]);
+  const startTour = () => { setShowCommandPalette(false); setTourOpen(true); };
+  const closeTour = () => {
+    setTourOpen(false);
+    if (tourEmail) prefs.setTourSeen(tourEmail);
+    addLog('[Tour] Walkthrough closed.');
+  };
 
   const handleLogout = () => {
     queryClient.removeQueries({ queryKey: ENTITLEMENTS_KEY });
@@ -465,7 +479,7 @@ export default function App() {
               </div>
             )}
 
-            {activeTab === 'help' && <HelpView />}
+            {activeTab === 'help' && <HelpView onStartTour={IS_MOBILE ? undefined : startTour} />}
 
             {activeTab === 'answers' && (
               <AnswersView profile={profile} onSaveProfile={handleSaveProfile} saving={savingProfile} onLog={addLog} />
@@ -547,7 +561,7 @@ export default function App() {
       }
     >
       <>
-        <WhatsNewDialog />
+        {tourOpen ? <ProductTour workspaceMode={workspaceMode} onClose={closeTour} /> : <WhatsNewDialog />}
         {/* Dynamic Sub-view Container */}
         <div key={activeTab} className={`w-full ${
             activeTab === 'profile' || activeTab === 'settings' || Boolean(activeTab && activeTab.startsWith('admin'))
@@ -575,6 +589,7 @@ export default function App() {
             onToggleSidebar={toggleSidebar}
             onOpenUpgrade={normalizeTier(currentUser?.tier || currentUser?.subscription_tier) === 'max' ? undefined : () => handleOpenUpgrade()}
             onLogout={handleLogout}
+            onStartTour={startTour}
           />
         )}
 
