@@ -1,19 +1,19 @@
 # Nomadic for Mac (test builds)
 
-The desktop app builds as a `.dmg` for Apple Silicon and Intel Macs. Builds are **not signed with an
+The Mac app (`apps/mac`, its own folder since 7 Oct 2026; context in `apps/mac/CONTEXT.md`) builds as a `.dmg` for Apple Silicon and Intel Macs. Builds are **not signed with an
 Apple Developer ID and not notarized** (that needs the Apple Developer Program, $99 a year), so they
 are for testing, not for public download. The product decision stays: Windows first, macOS after beta.
 
 ## Build
 
 - GitHub → Actions → **Build macOS (unsigned)** → Run workflow (`.github/workflows/build-mac.yml`). It
-  also runs on any push that changes the workflow, `apps/desktop/build-resources/` or the smoke script.
+  also runs on any push that changes the workflow or `apps/mac/`.
 - Two jobs: `arm64` on `macos-15` and `x64` on `macos-15-intel`. Each builds
   `Nomadic-<version>-<arch>.dmg`, installs the app from it, checks the signature and architecture,
-  launches it and reads the first screen over CDP (`apps/desktop/scripts/smoke-cdp.mjs`, read only).
+  launches it and reads the first screen over CDP (`apps/mac/scripts/smoke-cdp.mjs`, read only).
 - Artifacts (14 days): `Nomadic-<version>-mac-arm64` and `Nomadic-<version>-mac-x64`, each with the
   DMG and its SHA-256.
-- On a Mac: `cd apps/desktop && npm run package:mac -- --arm64` (or `--x64`); output in `dist-electron/`.
+- On a Mac: `cd apps/mac && npm run package:mac -- --arm64` (or `--x64`); output in `dist-electron/`.
 
 ## Which file
 
@@ -48,4 +48,4 @@ are for testing, not for public download. The product decision stays: Windows fi
 Apple Developer ID Application certificate as `CSC_LINK`/`CSC_KEY_PASSWORD`, notarization with
 `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` (electron-builder `mac.notarize`), a `zip`
 target next to `dmg` for electron-updater, and then remove the Mac exception in
-`apps/desktop/src/main/services/updates-runtime.ts`.
+`packages/app-core/src/main/services/updates-runtime.ts`.

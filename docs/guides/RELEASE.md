@@ -20,7 +20,7 @@ Required repository secrets (Settings → Secrets and variables → Actions):
 The build fails if the signing secrets are missing (`WIN_SIGN_REQUIRED=1`) or if the tag does not
 match the app version. The certificate is never committed (see `docs/security/SECURITY_CLEANUP.md`).
 
-**Auto-update** (`electron-updater`, wired in `apps/desktop/src/main/services/updater.ts`):
+**Auto-update** (`electron-updater`, wired in `packages/app-core/src/main/services/updater.ts`):
 - `build.publish` points at GitHub (`snipy09/nomadic`) and `generateUpdatesFilesForAllChannels` writes
   `latest.yml` and `beta.yml`. A version with a pre-release part (`1.2.0-beta.1`) is published as a GitHub
   pre-release and only reaches users on the **Beta** channel (Settings → Updates); **Stable** users get full releases.
@@ -42,7 +42,7 @@ match the app version. The certificate is never committed (see `docs/security/SE
 
 ## Sentry (opt-in crash reports)
 
-Wired in `apps/desktop/src/main/services/telemetry.ts` (main) and `renderer/features/help/crashReporting.ts`
+Wired in `packages/app-core/src/main/services/telemetry.ts` (main) and `packages/app-ui/src/features/help/crashReporting.ts`
 (renderer), using `@sentry/electron`. Off by default; the user turns it on in Settings → Data & privacy.
 
 - `SENTRY_DSN` (repository secret) is injected at build time into the main process. A DSN only allows sending

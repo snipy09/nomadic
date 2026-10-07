@@ -1,7 +1,7 @@
 # Apply with review on Android
 
 Status (6 Oct 2026): engine, agent and Capacitor plugin are built and tested. The Android app shell
-(`apps/mobile`, Capacitor) does not exist yet. When it does, it uses the API below; nothing in the
+(`apps/android`, Capacitor) does not exist yet. When it does, it uses the API below; nothing in the
 apply path has to be rebuilt.
 
 ## Why not the desktop approach

@@ -8,7 +8,7 @@ Status: plan (7 Oct 2026). Nothing here is built yet. Next free Supabase migrati
   Nov–Jan for x roles", "XYZ hackathon in Bengaluru on 14 Nov"), people like and follow companies to get more about
   them, and a notification module (feed + Learn) delivers 20+ items a day.
 - **Surfaces**: one shared engine (data, ranking, notifications) used by the desktop Home and the phone app
-  (`apps/mobile`, Capacitor, Android first, iOS-style UI). The desktop Home keeps the "Get set up" checklist as a
+  (`apps/android`, Capacitor, Android first, iOS-style UI). The desktop Home keeps the "Get set up" checklist as a
   collapsible card above the feed.
 - **Apply is out of scope.** No apply engine work in this plan. On the phone every job card shows
   **"Auto apply from desktop"**: tapping it adds the job to a synced "Apply on desktop" queue (a tracker row with
@@ -79,7 +79,7 @@ form for hiring windows. The original notes for this step follow.
 - `hiring_burst` generator: SQL function run by `pg_cron` every 3 h over `jobs` (≥ 5 new roles for one company in
   48 h, grouped by role family from the skill catalogue). Idempotent per company per day.
 - Client RPC `feed_page(session…, cursor, filter)` returns items + the user's like/save state; session-checked,
-  added to the allow-list (section 5 of CLAUDE.md).
+  added to the allow-list (context/security.md).
 - Ranking (pure, in `packages/learning` or a new `packages/feed`, unit-tested): score = followed company (+3) +
   role match with the user's target role (+2) + city match (+1) + skill match (from `features/feed/match.ts`) +
   freshness decay (half-life 48 h) + deadline soon (+2 within 72 h); hide expired and hidden. Deterministic, no AI.
@@ -145,10 +145,10 @@ Desktop already uses the Apple design language (1.4.0). For the feed, inbox and 
 - Reuse `@nomadic/ui` tokens; add `SegmentedControl`, `SwipeRow`, `Sheet`, `LargeTitleHeader`, `InboxStack` there with
   tests.
 
-### Step 7. Phone app shell (L) — built 7 Oct 2026 (apps/mobile, docs/guides/MOBILE_APP.md; push notifications not yet)
+### Step 7. Phone app shell (L) — built 7 Oct 2026 (apps/android, docs/guides/MOBILE_APP.md; push notifications not yet)
 - Owner decision first: change the one-device rule to **one desktop + one phone** (`register_device_session` keyed by
   platform). New migration; security checklist updated.
-- `apps/mobile`: Capacitor 8, reuses the renderer. The renderer calls `window.api` (Electron main) today, so add
+- `apps/android`: Capacitor 8, reuses the renderer. The renderer calls `window.api` (Electron main) today, so add
   `MobileApi` implementing `NomadicApi` directly over Supabase RPCs, with local storage (IndexedDB) for Learn state
   and the notification cache. Channels the phone does not need (apply, outreach SMTP, browser sign-ins) return a
   typed "Available on desktop" error and the UI shows **"Auto apply from desktop"**.
@@ -168,7 +168,7 @@ Desktop already uses the Apple design language (1.4.0). For the feed, inbox and 
 - Seed: 50 companies with careers URLs, 20 hiring windows, current hackathons, all reviewed in Admin.
 - Live check with the owner account only: follow 8 companies, confirm 12+ inbox items in 24 h, push cap held, quiet
   hours held, no item without a source link.
-- Update CLAUDE.md, `docs/FEATURES.md`, `docs/DECISIONS.md`, web copy (`site.test.ts` product claims).
+- Update `context/` (status, history), `docs/FEATURES.md`, `docs/DECISIONS.md`, web copy (`site.test.ts` product claims).
 
 ## 4. Order and dependencies
 

@@ -1,123 +1,109 @@
 # Nomadic
 
-Nomadic helps Indian engineering students go from learning to getting hired: a personal learning roadmap,
+Nomadic helps engineering students in India go from learning to getting hired: a personal learning roadmap,
 practice, a job board matched to their skills, applications filled in for them to review, and a tracker for every
-application. It ships as a **Windows desktop app** and an **Android app**.
+application. Three apps share one codebase: **Windows**, **macOS** (test builds) and **Android**.
 
-| | Desktop (Windows) | Android |
-|---|---|---|
-| Learn: roadmap, path, today, topics, quizzes, progress | ✓ | ✓ |
-| Job board with match %, Saved, Hidden | ✓ | ✓ |
-| Apply with review (fills the real form, you approve every field) | ✓ | "Auto apply from desktop": saves the job for the desktop |
-| Tracker, Application answers, Settings, Help, Admin | ✓ | ✓ |
-| Practice (~1,800 company problems, mock mode, AI feedback) | ✓ | – |
-| Projects (~4,100 guided projects, repo check, AI help) | ✓ | – |
-| Outreach (behind a feature flag, shown as "Soon") | ✓ | – |
+| | Windows | macOS | Android |
+|---|---|---|---|
+| Learn: roadmap, path, today, topics, quizzes, progress | ✓ | ✓ | ✓ |
+| Job board with match %, Saved, Hidden; News | ✓ | ✓ | ✓ (News is Home) |
+| Apply with review (fills the real form, you approve every field) | ✓ | ✓ | "Auto apply from desktop" |
+| Tracker, Application answers, Settings, Help, Admin | ✓ | ✓ | ✓ |
+| Practice (~1,800 company problems, mock mode, AI feedback) | ✓ | ✓ | – |
+| Projects (~4,100 guided projects, repo check, AI help) | ✓ | ✓ | – |
+| Outreach (behind a feature flag, shown as "Soon") | ✓ | ✓ | – |
 
-Jobs saved on one device show up on the other (both sync through the account). Nothing is ever submitted without
-the user's review. Plans: Free, Pro ₹249/month, Max ₹599/month; limits are enforced on the server.
+Nothing is ever submitted without the user's review. Plans: Free, Pro ₹249/month, Max ₹599/month; limits are enforced
+on the server.
 
-> New here (person or AI)? Read [`CLAUDE.md`](CLAUDE.md) first: the complete project context, decisions,
-> architecture, live infrastructure and what is left. The docs index is [`docs/README.md`](docs/README.md).
+> **New here (person or AI)? Start with [`context/README.md`](context/README.md)**: product, architecture, where each
+> kind of change goes, conventions, status and how the owner works. Each app has its own `CONTEXT.md`.
 
 ## Repository layout
 
 ```
 apps/
-  desktop/            Electron app: src/main (IPC handlers, services, local SQLite), src/renderer (React,
-                      features/<name>/), src/shared (typed IPC contract)
-  mobile/             Android app (Capacitor 8): the desktop renderer and services run in the WebView;
-                      src/host = Electron/Node stand-ins, IndexedDB database, phone device id; android/ = native project
-  web/                Marketing site (Vite + React, prerendered), live at https://nomadicai.vercel.app
+  desktop/      Windows app (Electron): Windows startup + NSIS/portable packaging        → apps/desktop/CONTEXT.md
+  mac/          macOS app (Electron): Mac startup, menu, DMG packaging                   → apps/mac/CONTEXT.md
+  android/      Android app (Capacitor 8): WebView host + native project                 → apps/android/CONTEXT.md
+  web/          Marketing site (Vite + React, prerendered), https://nomadicai.vercel.app
 packages/
-  ui/                 Design system: tokens, Tailwind preset, accessible components (Apple design language)
-  config/             Plans and prices, feature flags, legal text (single source of truth)
-  learning/           Skill graph, SM-2, matching, Learn v2 engine, generated project library, seed content
-  form-engine/        Reads, classifies, answers and verifies application forms (desktop + Android agent)
-  automation/         Browser automation for apply with review (desktop)
+  app-core/     Shared Electron main process: services, IPC handlers + typed contract, local SQLite, security
+  app-ui/       Shared React UI: every screen, mountApp(), platform flags
+  ui/           Design system: tokens, Tailwind preset, accessible components (Apple design language)
+  config/       Plans and prices, feature flags, legal text (single source of truth)
+  learning/     Skill graph, SM-2, matching, Learn v2 engine, generated project library, seed content
+  form-engine/  Reads, classifies, answers and verifies application forms (computer + Android agent)
+  automation/   Browser automation for apply with review in the user's own Chrome/Edge/Brave
   capacitor-apply-browser/  Android apply WebView plugin (built and tested; not wired into the app yet)
-  scrapers/           Job pipeline, contacts scraper (Outreach) and feed scraper (company openings, hackathons)
-  supabase/           Client wrappers, migrations, Edge Functions, one-paste setup files
-  form-bench/         Form-filling benchmark (22 ATS fixtures)
-  email-verifier/     Email checks and SMTP sending (Outreach)
-docs/
-  DECISIONS.md, FEATURES.md   Product decisions and feature status
-  guides/             How to: database setup, release, laptop scraper, Android app, Android apply, SQL to paste
-  plans/              Designs and plans: SaaS quality bar, Learn v2, Outreach, Home feed, original revamp
-  security/           Security checklist and git history cleanup
-  architecture.excalidraw     Architecture diagram
-scripts/
-  scraper-folder/     The Desktop scraper folder (launchers, settings.ini, auto schedule); built with every scraper
-                      bundled by `npm run build:scraper-folder`, installed by windows/Install scraper folder.cmd
-  windows/            Windows launchers: Build Nomadic.bat (+ build-nomadic.ps1), Install scraper folder.cmd, OCR helper
-  dev/                One-off developer scripts
-  scrape-laptop.*, sign-windows.js
-brand/                Profile icon and GitHub profile assets (videos and carousels are kept outside the repo)
+  scrapers/     Job pipeline and sources, company feed, hackathons, hiring news, contacts, scraper-folder scheduler
+  supabase/     Client wrappers, migrations, Edge Functions, one-paste setup files
+  email-verifier/  Email checks and SMTP sending (Outreach)
+  form-bench/   Form-filling benchmark (22 ATS fixtures)
+context/        Project context (start here)
+docs/           Decisions, feature list, how-to guides, plans, security
+scripts/        scraper-folder/ (the Desktop scraper folder), windows/ (build + install launchers), dev/
+brand/          Profile icon and GitHub profile assets
 ```
+
+A change inside one `apps/` folder only affects that app. A change in `packages/app-ui` or `packages/app-core` affects
+every app, and CI builds all three on every push.
 
 ## Getting started
 
-Requirements: Node.js 22, npm 10. Packaging the desktop app needs Windows; the Android APK is built by CI.
+Requirements: Node.js 22 (`.nvmrc`), npm 10. Packaging needs Windows (Windows app) or a Mac (Mac app); the Android APK
+is built by CI.
 
 ```bash
-npm install
-cp .env.example .env            # optional: the builds default to the live Supabase project's public key
-npm run dev:desktop             # Electron app with hot reload
-npm run dev:web                 # marketing site
-npm run dev -w @nomadic/mobile  # Android app in a browser (open it at phone size, e.g. 390×844)
+npm ci
+cp .env.example .env     # optional: builds default to the live Supabase project's public key
+npm run dev:desktop      # Windows app (Electron) with hot reload
+npm run dev:mac          # Mac app (on a Mac)
+npm run dev:android      # Android app in a browser (open it at phone size, e.g. 390×844)
+npm run dev:web          # marketing site
 ```
 
 ## Checks
 
 ```bash
-npm run typecheck                          # root, desktop, web and mobile
+npm run typecheck        # root, desktop, mac, web and android
 npm run lint
-npm test                                   # all vitest projects (on a slow machine: --maxWorkers=2 --testTimeout=30000)
-npm run build:desktop && npm run build:web
-npm run build -w @nomadic/mobile           # Android web bundle
-npm run bench:forms                        # form-filling benchmark
+npm test                 # all vitest projects (slow machine: --maxWorkers=2 --testTimeout=30000)
+npm run build:desktop && npm run build:mac && npm run build:android && npm run build:web
+npm run bench:forms      # form-filling benchmark
 ```
 
-CI: `ci.yml` (typecheck, lint, tests on every push), `android-app.yml` (builds the debug APK and smoke-tests it on
-an emulator; the APK is a run artifact), `android-apply.yml` (Android form agent on emulators), `build-windows.yml`
-(unsigned Windows build on demand), `release.yml` (signed release), `nightly-bench.yml`, `scrape.yml`,
-`scraper-folder.yml` (builds the Desktop scraper folder as a downloadable artifact).
+CI: `ci.yml` (typecheck, lint, tests and a build of each app on every push), `build-windows.yml` (unsigned Windows
+build on demand), `release.yml` (signed Windows release), `build-mac.yml` (DMGs on demand), `android-app.yml` (debug APK +
+emulator smoke test), `android-apply.yml`, `nightly-bench.yml`, `scrape.yml`, `scraper-folder.yml`.
 
 ## Data pipelines
 
-- **All scrapers on a schedule**: the Desktop scraper folder (`Desktop\Nomadic Content\Scraper`, source in
-  `scripts/scraper-folder`, [`docs/guides/SCRAPER_LAPTOP.md`](docs/guides/SCRAPER_LAPTOP.md)) runs every scraper
-  below on its own interval (settings.ini) through a Windows scheduled task and publishes to Supabase.
-- **Jobs** (`jobs` table): `npm run scrape:publish` or `scrape.yml` once the repository secrets `SUPABASE_URL` and
-  `SUPABASE_SERVICE_ROLE_KEY` are set. Sources: Internshala, Unstop, company careers sites, Greenhouse/Lever/Ashby
-  boards (built in plus those `discover` finds for ~370 India-hiring companies), Remotive, Jobicy, Arbeitnow, RSS,
-  Adzuna (with a key). Jobs expire 30 days after posting (migration 033).
-- **Feed sources** (migration 031): `npm run scrape:feed -- --publish` reads India-open openings (full time and
-  internships) from 66 famous companies' own careers sites and ATS boards (plus discovered boards), with daily hiring
-  snapshots, plus hackathons from Devfolio, Unstop, Devpost, HackerEarth, Hack2skill and MLH, and Codeforces contests
-  (migration 033). robots.txt is obeyed.
-- **Hiring news** (migration 033 `news_items`): `npm run scrape:news -- --publish` reads Indian publishers' RSS feeds
-  and keeps hiring plans, campus drives, layoffs, funding and expansion, with facts read from the text.
-- **Contacts** (Outreach): `npm run scrape:contacts -- --publish`, public pages only.
+The Desktop scraper folder (`Desktop\Nomadic Content\Scraper`, source in `scripts/scraper-folder`) runs every scraper
+on its own interval and publishes to Supabase: jobs (Internshala, Unstop, company careers sites, Greenhouse/Lever/Ashby
+boards, Adzuna, …; 30-day job age), company hiring snapshots, hackathons and Codeforces contests, hiring news from
+Indian publishers, and Outreach contacts. Details: [`context/scrapers.md`](context/scrapers.md),
+[`docs/guides/SCRAPER_LAPTOP.md`](docs/guides/SCRAPER_LAPTOP.md).
 
 ## Backend (Supabase)
 
-- Project `nomadic`, region Mumbai. Accounts are custom `users_profile` rows (not Supabase Auth); one active
-  computer and one active phone per account (migration 032).
-- Row-level security on every table; clients call only session-checked `SECURITY DEFINER` functions on an
-  explicit allow-list ([`docs/security/SECURITY_CHECKLIST.md`](docs/security/SECURITY_CHECKLIST.md)).
-- Migrations: `packages/supabase/migrations` (001–032, no 013; 031 and 032 still to be pasted live, see
-  `packages/supabase/baseline/apply_031.sql` and `apply_032.sql`). New project setup:
+- Project `nomadic`, region Mumbai. Accounts are custom `users_profile` rows; one active computer and one active
+  phone per account (migration 032).
+- Row-level security on every table; clients call only session-checked `SECURITY DEFINER` functions on an explicit
+  allow-list ([`docs/security/SECURITY_CHECKLIST.md`](docs/security/SECURITY_CHECKLIST.md)).
+- Migrations: `packages/supabase/migrations` (001–033 live, no 013; next is 034). New project setup:
   [`docs/guides/DATABASE_SETUP.md`](docs/guides/DATABASE_SETUP.md).
 - Edge Functions: `ai-proxy` (Gemini, per-plan daily limits), `send-email-code` (Resend), `google-sign-in`,
   `razorpay-webhook` (not deployed yet). Keys live in Supabase Vault, never in the apps.
 
 ## Releasing
 
-- Desktop: [`docs/guides/RELEASE.md`](docs/guides/RELEASE.md). `npm run package:desktop` or double-click
+- Windows: [`docs/guides/RELEASE.md`](docs/guides/RELEASE.md). `npm run package:desktop` on Windows, or
   `scripts/windows/Build Nomadic.bat` (copies the .exe files to Downloads). Current version 1.4.0.
-- Android: [`docs/guides/MOBILE_APP.md`](docs/guides/MOBILE_APP.md). Debug APK from the `android-app.yml` run
-  artifacts; release signing and the Play Store are not set up yet.
+- macOS: [`docs/guides/MAC_APP.md`](docs/guides/MAC_APP.md). Unsigned test DMGs from `build-mac.yml`.
+- Android: [`docs/guides/MOBILE_APP.md`](docs/guides/MOBILE_APP.md). Debug APK from `android-app.yml`; release
+  signing and the Play Store are not set up yet.
 
 ## Legal
 

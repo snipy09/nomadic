@@ -27,7 +27,7 @@ The target is anyone at the company who can move an application forward, not onl
 `unknown` is kept when a public post gives an address but does not say who it belongs to. The app never guesses a
 kind it cannot see; the student can change it.
 
-Each kind has its own message template (`apps/desktop/src/renderer/features/outreach/outreachLogic.ts`). A
+Each kind has its own message template (`packages/app-ui/src/features/outreach/outreachLogic.ts`). A
 referral request to an employee asks for less of their time than a pitch to a hiring manager, and a note to an
 alumnus starts with the college.
 

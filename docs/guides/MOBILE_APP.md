@@ -1,4 +1,6 @@
-# Nomadic for Android (apps/mobile)
+# Nomadic for Android (apps/android)
+
+Folder context for changes: `apps/android/CONTEXT.md`.
 
 Status: built 7 Oct 2026, version 0.1.0, debug APK from CI (`.github/workflows/android-app.yml`). Not on the Play Store.
 
@@ -37,10 +39,10 @@ removed if it had been uploaded (unsaved on the other device) and uploaded if it
 
 ## How it works
 
-The APK runs the desktop renderer **and the desktop's main-process services** inside the Android WebView:
+The APK runs the shared UI (`packages/app-ui`) **and the shared main-process services** (`packages/app-core`) inside the Android WebView:
 
 - `src/host/electron.ts`: `ipcMain` / `ipcRenderer` / `contextBridge` / `shell` / `dialog` / `app` in one JS
-  context. The desktop IPC modules (`apps/desktop/src/main/ipc/*`) register as on the desktop, with the same zod
+  context. The desktop IPC modules (`packages/app-core/src/main/ipc/*`) register as on the desktop, with the same zod
   validation; the desktop preload builds `window.api`. Unregistered channels return a desktop-only result.
 - `src/host/db.ts` replaces `main/db.ts`: the same SQLite schema and migrations (`main/local-db/schema.ts`, sql.js)
   stored in IndexedDB. Like the desktop it is a cache and outbox; the server is the source of truth.
@@ -51,12 +53,12 @@ The APK runs the desktop renderer **and the desktop's main-process services** in
   scrapers (only `computeRelevanceScore` / `extractProfileKeywords` are used, from `scrapers/src/relevance.ts`).
 - Registered: auth, profile, feed (saved/hidden), billing, learner (Learn v2 + AI roadmap), admin, data safety, the
   tracker channels, and phone versions of system channels (`src/host/boot.ts`).
-- The renderer checks `IS_MOBILE` (`renderer/platform.ts`, `VITE_PLATFORM=android`): hidden tabs, the bottom tab bar
+- The renderer checks `IS_MOBILE` (`packages/app-ui/src/platform.ts`, `VITE_PLATFORM=android`): hidden tabs, the bottom tab bar
   (`components/shell/MobileShell.tsx`: News, Learn, Jobs, Tracker, More), the More page, Settings as a grouped list,
   "Auto apply from desktop", no batch selection, list-first tracker, no keyboard-shortcut help, bottom sheets
   (`DrawerContent side="bottom"`) for job, application, plan-adjust and admin details.
-- Touch sizing: `apps/mobile/tailwind.config.cjs` sets the shared `ctl-*` control sizes to 40/44/48 px (desktop
-  28/32/36), and `apps/mobile/src/touch.css` sizes tab pills, choice chips and tab-list scrolling.
+- Touch sizing: `apps/android/tailwind.config.cjs` sets the shared `ctl-*` control sizes to 40/44/48 px (desktop
+  28/32/36), and `apps/android/src/touch.css` sizes tab pills, choice chips and tab-list scrolling.
 - CSP: the desktop policy plus `'wasm-unsafe-eval'` (WebAssembly for sql.js; JS eval stays blocked).
 
 ## One computer and one phone
@@ -70,14 +72,14 @@ desktop out.**
 
 ## Build
 
-- Web bundle: `npm run build -w @nomadic/mobile` (Vite, `apps/mobile/vite.config.ts`). Phone-size check in a browser:
-  `npx vite preview` in `apps/mobile` and open it at 390×844.
-- Android: `cd apps/mobile && npx cap sync android && cd android && ./gradlew assembleDebug` (JDK 21, Android SDK).
+- Web bundle: `npm run build -w @nomadic/android` (Vite, `apps/android/vite.config.ts`). Phone-size check in a browser:
+  `npx vite preview` in `apps/android` and open it at 390×844.
+- Android: `cd apps/android && npx cap sync android && cd android && ./gradlew assembleDebug` (JDK 21, Android SDK).
   Assistant containers cannot reach dl.google.com: CI builds it.
 - CI (`android-app.yml`, on pushes touching the app, or run by hand): builds `app-debug.apk` (artifact
   `nomadic-android-debug-<run>`, 14 days), installs it on an API 34 emulator and fails unless the app logs
   `[Nomadic] host ready` without `start failed` or a crash; logcat, a UI dump and a screenshot are uploaded.
-- Version: `apps/mobile/package.json` → `versionName`; `versionCode` is the CI run number.
+- Version: `apps/android/package.json` → `versionName`; `versionCode` is the CI run number.
 
 ## Limits and next steps
 
