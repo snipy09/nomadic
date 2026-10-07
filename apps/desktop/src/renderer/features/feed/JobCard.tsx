@@ -2,6 +2,7 @@ import React from 'react';
 import { Bookmark, BookmarkCheck, Eye, EyeOff } from 'lucide-react';
 import { Badge, Button, Checkbox, IconButton, ProgressRing, cn } from '@nomadic/ui';
 import { HIGH_MATCH, postedLabel, type ScoredJob } from './feedLogic';
+import { CompanyLogo } from './CompanyLogo';
 
 interface JobCardProps {
   job: ScoredJob;
@@ -19,37 +20,6 @@ interface JobCardProps {
   applyLabel?: string;
   /** Batch selection for apply (desktop only). */
   selectable?: boolean;
-}
-
-const MONOGRAM_TONES = [
-  'bg-accent-subtle text-accent-subtle-fg',
-  'bg-success-subtle text-success-fg',
-  'bg-warning-subtle text-warning-fg',
-  'bg-danger-subtle text-danger-fg',
-  'bg-surface-sunken text-fg',
-];
-
-/** Stable colour per company so the same company always looks the same. */
-export function monogramTone(company: string): string {
-  let h = 0;
-  for (let i = 0; i < company.length; i++) h = (h * 31 + company.charCodeAt(i)) >>> 0;
-  return MONOGRAM_TONES[h % MONOGRAM_TONES.length];
-}
-
-export function CompanyMonogram({ company, size = 'md' }: { company: string; size?: 'md' | 'lg' }) {
-  const letter = (company.trim()[0] || '?').toUpperCase();
-  return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        'flex shrink-0 items-center justify-center rounded-md font-strong',
-        size === 'lg' ? 'size-12 text-title' : 'size-10 text-heading',
-        monogramTone(company),
-      )}
-    >
-      {letter}
-    </span>
-  );
 }
 
 const NO_MATCH_HINT = 'No skills to compare: add skills to your profile, or this listing names no skills or known role';
@@ -89,7 +59,7 @@ export const JobCard = React.memo(function JobCard({ job, saved, selected, onTog
       )}
     >
       <div className="flex items-start gap-3">
-        <CompanyMonogram company={job.company} />
+        <CompanyLogo company={job.company} url={job.applyUrl} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-caption text-fg-muted">{job.company}</p>
           <button type="button" onClick={onOpen} className="block w-full rounded text-left outline-none focus-visible:ring-2 focus-visible:ring-accent">

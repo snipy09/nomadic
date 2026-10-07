@@ -58,7 +58,7 @@ export const PAGES: Record<PageId, PageMeta> = {
     description:
       'How Nomadic handles your data: what is stored on your computer, what syncs to your account in India, who processes it, and your rights.',
     index: true,
-    updated: '2026-10-03',
+    updated: '2026-10-07',
     priority: '0.4',
     og: { heading: 'Privacy Policy', sub: 'What stays on your computer, what syncs, and who sees it.' },
   },

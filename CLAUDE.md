@@ -198,7 +198,7 @@ F13: Outreach was rebuilt in v1.1.0 (see section 9) and shows in the sidebar as 
 the working module needs `VITE_FEATURES="outreach=on"`. Opportunity Board, Resource Vault and the Assistant stay
 hidden; the Assistant still needs rework or removal.
 
-Tests: 1,823 vitest tests pass (142 files, 7 Oct 2026; 1,771 on 6 Oct; run with `--maxWorkers=2 --testTimeout=30000` on this laptop, the default
+Tests: 1,835 vitest tests pass (143 files, 7 Oct 2026; 1,771 on 6 Oct; run with `--maxWorkers=2 --testTimeout=30000` on this laptop, the default
 parallelism times out component tests, and the three Chrome DOM suites can time out closing Chrome in `afterAll`);
 typecheck, lint (0 errors, ~190 warnings) and desktop/web builds pass.
 The built Electron app has been smoke-tested over CDP (window, live feed via IPC, Learn, Settings, Help, Activity, Admin
@@ -403,6 +403,13 @@ checklist in `docs/plans/OUTREACH_PLAN.md` section 11; the Assistant); OS notifi
   `dashboard`); the desktop is unchanged (Home = dashboard) by the owner's choice. The phone has its own onboarding
   (`MobileOnboarding.tsx`: welcome → about → goal → roadmap), a Tracker button on Jobs, bottom-sheet drawers and
   touch-size controls (mobile Tailwind `ctl-*` = 40/44/48 px). Desktop changes stay out unless the owner asks.
+- **Company logos** (7 Oct 2026, desktop + Android, shared renderer): `features/feed/CompanyLogo.tsx` (white plate over the
+  monogram; monogram stays when there is no logo, a <32 px placeholder or an error; failed domains are not retried in the
+  session) and `features/feed/companyLogo.ts` (domain = curated name → domain list covering every feed company, parity-tested
+  against `packages/scrapers/src/feed/companies.ts`, else the base domain of the posting URL unless it is a job board/ATS/form;
+  never guessed). Images come from Google's favicon service (`www.google.com/s2/favicons`, no referrer), disclosed in the
+  Privacy Policy (LEGAL_VERSION 2026-10-07). Used on job cards and drawer, Home, News, tracker (board, list, drawer,
+  follow-ups) and the apply review. Add new hirers to `KNOWN_DOMAINS` there.
 - Next most useful work: owner action 0 (Learn v2 go-live), then owner actions in section 7 (consent screen, Resend domain, key rotation),
   then a live end-to-end pass (Google sign-in, reviewed submit, AI feedback), then the code follow-ups in section 7.
 

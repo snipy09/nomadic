@@ -2,6 +2,7 @@ import React from 'react';
 import { AlertTriangle, CheckCircle2, ChevronRight, RotateCcw } from 'lucide-react';
 import { Badge, Button, Checkbox, Spinner, cn } from '@nomadic/ui';
 import { FieldRow } from './FieldRow';
+import { CompanyLogo } from '../feed/CompanyLogo';
 import {
   STATUS_META,
   SOURCE_LABEL,
@@ -84,6 +85,7 @@ export function ApplicationPanel({ app, stage, onEdit, onApprove, onSkip, onRetr
   return (
     <article aria-labelledby={`app-${app.snapshot?.id ?? 'pending'}-title`} className="flex flex-col gap-4">
       <header className="flex flex-wrap items-start gap-3">
+        {company && <CompanyLogo company={company} url={app.url} />}
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <h3 id={`app-${app.snapshot?.id ?? 'pending'}-title`} className="text-body-lg font-strong text-fg">{title}</h3>
           <p className="truncate text-caption text-fg-muted">{[company, hostOf(app.url)].filter(Boolean).join(' · ')}</p>

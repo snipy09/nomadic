@@ -8,8 +8,8 @@
  */
 import { CURRENCY, PLANS } from './plans';
 
-export const LEGAL_VERSION = '2026-10-03';
-export const LEGAL_UPDATED = '4 October 2026';
+export const LEGAL_VERSION = '2026-10-07';
+export const LEGAL_UPDATED = '7 October 2026';
 /** Operator as it should appear on invoices and in notices. Change once the business is registered. */
 export const LEGAL_ENTITY = 'Nomadic';
 export const SUPPORT_EMAIL = 'support@nomadic.app';
@@ -173,6 +173,7 @@ export const PRIVACY: LegalDoc = {
       paragraphs: [
         'Service providers who process data on our behalf, only to provide the Service: Supabase (database and server functions), Razorpay (payments), Resend (sending account emails), and Google (Gemini AI for answer suggestions and practice feedback, and Google sign-in if you choose it).',
         'When you use an AI feature, we send only what that request needs, for example an application question with the relevant profile details, or a practice question with your answer. Our AI requests go through our own server; your data is not used by us to train AI models.',
+        'Company logos are loaded from Google\'s public favicon service. It receives the company\'s web address and, like any website, your device\'s IP address; never your account or profile details.',
         'Employers and job websites receive the application details only when you review and submit an application yourself.',
         'Authorities, if the law requires it.',
       ],

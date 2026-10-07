@@ -5,6 +5,7 @@ import { getApi, type Application } from '../../types';
 import { NOTES_MAX, addDays, formatDate, formatDateTime, historyNewestFirst, localDay, modeLabel, postingUrl, stageOf, statusLabel } from './applicationsLogic';
 import { FollowUpBadge, MoveSelect, StatusBadge } from './ApplicationCard';
 import { IS_MOBILE } from '../../platform';
+import { CompanyLogo } from '../feed/CompanyLogo';
 
 interface ApplicationDrawerProps {
   app: Application | null;
@@ -58,7 +59,7 @@ export function ApplicationDrawer({ app, onClose, onMove, onSaveNotes, onSetFoll
     <Drawer open={Boolean(app)} onOpenChange={(o) => { if (!o) onClose(); }}>
       {app && (
         <DrawerContent side={IS_MOBILE ? 'bottom' : undefined}
-          title={app.title}
+          title={<span className="flex items-center gap-3"><CompanyLogo company={app.company} url={app.apply_url} size="sm" /><span className="min-w-0">{app.title}</span></span>}
           description={app.company}
           size="lg"
           footer={confirmDelete ? (

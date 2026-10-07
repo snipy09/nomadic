@@ -16,6 +16,7 @@ import { ApplicationDrawer } from './ApplicationDrawer';
 import { AddApplicationDialog } from './AddApplicationDialog';
 import { IS_MOBILE } from '../../platform';
 import { ApplicationCard } from './ApplicationCard';
+import { CompanyLogo } from '../feed/CompanyLogo';
 
 interface ApplicationsViewProps {
   /** Next action from the empty state. */
@@ -164,6 +165,7 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({ onBrowseJobs
           <ul className="flex flex-col gap-1">
             {due.slice(0, 5).map((a) => (
               <li key={a.id} className="flex flex-wrap items-center gap-2 text-body">
+                <CompanyLogo company={a.company} url={a.apply_url} size="xs" />
                 <span className="text-fg">{a.title} at {a.company}</span>
                 <span className="text-caption text-fg-subtle">{followUpLabel(a)}</span>
                 <Button size="sm" variant="ghost" className="ml-auto" onClick={() => setOpenId(a.id ?? null)}>Open</Button>

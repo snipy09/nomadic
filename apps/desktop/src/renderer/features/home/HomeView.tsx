@@ -9,7 +9,7 @@ import { answeredCount } from '../answers/answersLogic';
 import { dueFollowUps, followUpLabel, stageCounts } from '../applications/applicationsLogic';
 import { useApplications } from '../applications/useApplications';
 import { HIGH_MATCH, withoutHidden, type ScoredJob } from '../feed/feedLogic';
-import { CompanyMonogram } from '../feed/JobCard';
+import { CompanyLogo } from '../feed/CompanyLogo';
 import { combinedMastery, inferRole, matchJob, profileMastery } from '../feed/match';
 import { useFeed } from '../feed/useFeed';
 import { useLearnedMastery } from '../feed/useLearnedMastery';
@@ -231,6 +231,7 @@ function ApplicationsCard({ data, onNavigate }: { data: ReturnType<typeof useApp
             <ul className="flex flex-col">
               {due.slice(0, 3).map((a) => (
                 <li key={a.id} className="flex items-center gap-2 py-1 text-body">
+                  <CompanyLogo company={a.company} url={a.apply_url} size="xs" />
                   <span className="min-w-0 flex-1 truncate text-fg">{a.title} <span className="text-fg-subtle">at {a.company}</span></span>
                   <span className="shrink-0 text-caption text-fg-subtle">{followUpLabel(a)}</span>
                 </li>
@@ -287,7 +288,7 @@ function TopMatches({ profile, onNavigate }: { profile: MasterProfile; onNavigat
                   onClick={() => onNavigate('feed')}
                   className="flex w-full items-center gap-3 px-4 py-3 text-left outline-none transition-colors duration-fast hover:bg-surface-hover focus-visible:bg-surface-hover"
                 >
-                  <CompanyMonogram company={j.company} />
+                  <CompanyLogo company={j.company} url={j.applyUrl} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-body font-strong text-fg">{j.title}</span>
                     <span className="block truncate text-caption text-fg-subtle">{[j.company, j.location].filter(Boolean).join(' · ')}</span>

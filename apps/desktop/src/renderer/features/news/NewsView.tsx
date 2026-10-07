@@ -3,7 +3,7 @@ import { Briefcase, ExternalLink, Newspaper, RefreshCw, Trophy } from 'lucide-re
 import { Badge, Button, EmptyState, IconButton, PageHeader, Skeleton, Tabs, TabsList, TabsTrigger } from '@nomadic/ui';
 import { getApi, type NewsItem, type TabType } from '../../types';
 import { postedLabel } from '../feed/feedLogic';
-import { CompanyMonogram } from '../feed/JobCard';
+import { CompanyLogo } from '../feed/CompanyLogo';
 import { dateRange, deadline, emptyReason, filterNews, type NewsFilter } from './newsLogic';
 import { useNews } from './useNews';
 
@@ -40,7 +40,7 @@ function NewsCard({ item, onSeeJobs }: { item: NewsItem; onSeeJobs?: () => void 
             <Trophy />
           </span>
         ) : (
-          <CompanyMonogram company={item.company ?? item.title} />
+          <CompanyLogo company={item.company ?? item.title} url={item.url} />
         )}
         <div className="min-w-0 flex-1">
           <h3 className="text-body-lg font-strong text-fg">{item.title}</h3>

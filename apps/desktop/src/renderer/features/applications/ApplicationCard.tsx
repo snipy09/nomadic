@@ -1,7 +1,8 @@
 import React from 'react';
-import { BellRing, Building2, CalendarDays, StickyNote } from 'lucide-react';
+import { BellRing, CalendarDays, StickyNote } from 'lucide-react';
 import { Badge, Card, Select, cn } from '@nomadic/ui';
 import type { Application } from '../../types';
+import { CompanyLogo } from '../feed/CompanyLogo';
 import { MOVE_OPTIONS, followUpLabel, followUpState, formatDate, isUserStatus, modeLabel, stageOf, statusMeta, STAGES } from './applicationsLogic';
 
 export function StatusBadge({ status }: { status: string }) {
@@ -65,8 +66,8 @@ export const ApplicationCard = React.memo(function ApplicationCard({ app, onOpen
     >
       <button type="button" onClick={onOpen} className="block w-full rounded text-left outline-none focus-visible:ring-2 focus-visible:ring-accent">
         <h4 className="line-clamp-2 text-body font-strong text-fg">{app.title}</h4>
-        <p className="mt-0.5 flex items-center gap-1 truncate text-caption text-fg-muted">
-          <Building2 className="size-3.5 shrink-0" aria-hidden="true" />{app.company}
+        <p className="mt-1 flex min-w-0 items-center gap-1.5 text-caption text-fg-muted">
+          <CompanyLogo company={app.company} url={app.apply_url} size="xs" /><span className="truncate">{app.company}</span>
         </p>
       </button>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-fg-subtle">

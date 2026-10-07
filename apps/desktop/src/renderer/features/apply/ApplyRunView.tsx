@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Check, Send } from 'lucide-react';
 import { Button, Drawer, DrawerContent, ProgressRing, cn, focusRing } from '@nomadic/ui';
 import { ApplicationPanel, StatusBadge } from './ApplicationPanel';
+import { CompanyLogo } from '../feed/CompanyLogo';
 import { canSubmit, countByStatus, finishedCount, focusApp, nextToReview, reviewedIds, runStep, type RunState } from './runModel';
 
 export interface ApplyRunViewProps {
@@ -182,7 +183,10 @@ export function ApplyRunView({ open, state, onEdit, onApprove, onSkip, onRetry, 
                       active ? 'bg-surface-active' : 'hover:bg-surface-hover',
                     )}
                   >
-                    <span className="w-full truncate text-body font-strong text-fg">{a.snapshot?.company || a.target.company || a.target.title || 'Application'}</span>
+                    <span className="flex w-full min-w-0 items-center gap-1.5">
+                      {(a.snapshot?.company || a.target.company) && <CompanyLogo company={(a.snapshot?.company || a.target.company) as string} url={a.url} size="xs" />}
+                      <span className="truncate text-body font-strong text-fg">{a.snapshot?.company || a.target.company || a.target.title || 'Application'}</span>
+                    </span>
                     <span className="w-full truncate text-caption text-fg-muted">{a.snapshot?.jobTitle || a.target.title || a.url}</span>
                     <StatusBadge app={a} />
                     {a.approved && !a.skipped && !a.result && <span className="text-caption text-success-fg">Reviewed</span>}
