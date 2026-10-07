@@ -145,7 +145,9 @@ export type TabType =
   | 'logs'
   | 'settings'
   | 'help'
-  | 'account';
+  | 'account'
+  /** Android app: the "More" page (Answers, Settings, Help, ...). */
+  | 'more';
 
 export type ThemeMode = 'dark' | 'light' | 'system';
 

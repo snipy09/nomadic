@@ -17,6 +17,7 @@ import { partSlice, type PlanTask, type TaskKind } from '@job-automator/learning
 import { moduleById, problemByRef, projectById, topicById } from './catalog';
 import { InlineText } from './InlineText';
 import { KIND_LABEL, formatMinutes, streamLabel, type EntryView } from './learnModel';
+import { IS_MOBILE } from '../../platform';
 
 export const KIND_ICON: Record<TaskKind, React.ReactNode> = {
   learn: <BookOpen />,
@@ -76,8 +77,8 @@ function taskHint(t: PlanTask): string | null {
       return 'Short check on this topic. 80% to pass; misses come back as reviews.';
     case 'mock':
       return t.id.startsWith('mock/oa/')
-        ? 'A full online-assessment style test: open Practice, start mock mode with a 90-minute timer, then tick it here.'
-        : 'Timed check: solve 3 problems from this module in 45 minutes in Practice mock mode, then tick it here.';
+        ? `A full online-assessment style test: open Practice${IS_MOBILE ? ' in the desktop app' : ''}, start mock mode with a 90-minute timer, then tick it here.`
+        : `Timed check: solve 3 problems from this module in 45 minutes in Practice mock mode${IS_MOBILE ? ' (desktop app)' : ''}, then tick it here.`;
     case 'revise':
       return 'Re-solve two problems you found hard this week and re-read the "What to learn" lists of its topics.';
     case 'build':

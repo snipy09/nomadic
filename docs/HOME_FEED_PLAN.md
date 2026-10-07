@@ -145,7 +145,7 @@ Desktop already uses the Apple design language (1.4.0). For the feed, inbox and 
 - Reuse `@nomadic/ui` tokens; add `SegmentedControl`, `SwipeRow`, `Sheet`, `LargeTitleHeader`, `InboxStack` there with
   tests.
 
-### Step 7. Phone app shell (L)
+### Step 7. Phone app shell (L) — built 7 Oct 2026 (apps/mobile, docs/MOBILE_APP.md; push notifications not yet)
 - Owner decision first: change the one-device rule to **one desktop + one phone** (`register_device_session` keyed by
   platform). New migration; security checklist updated.
 - `apps/mobile`: Capacitor 8, reuses the renderer. The renderer calls `window.api` (Electron main) today, so add

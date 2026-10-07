@@ -15,6 +15,10 @@ interface JobCardProps {
   onOpen: () => void;
   onApply: () => void;
   applyDisabled?: boolean;
+  /** "Apply" on the desktop; the phone app says "Auto apply from desktop". */
+  applyLabel?: string;
+  /** Batch selection for apply (desktop only). */
+  selectable?: boolean;
 }
 
 const MONOGRAM_TONES = [
@@ -71,7 +75,7 @@ function MatchRing({ job }: { job: ScoredJob }) {
   );
 }
 
-export const JobCard = React.memo(function JobCard({ job, saved, selected, onToggleSelect, onToggleSave, hidden, onToggleHidden, onOpen, onApply, applyDisabled }: JobCardProps) {
+export const JobCard = React.memo(function JobCard({ job, saved, selected, onToggleSelect, onToggleSave, hidden, onToggleHidden, onOpen, onApply, applyDisabled, applyLabel = 'Apply', selectable = true }: JobCardProps) {
   const posted = postedLabel(job.createdAt);
   const missing = job.match?.missing ?? [];
   const meta = [job.location, job.employmentType === 'internship' ? 'Internship' : '', posted].filter(Boolean);
@@ -104,7 +108,7 @@ export const JobCard = React.memo(function JobCard({ job, saved, selected, onTog
       )}
 
       <div className="mt-auto flex items-center gap-1 border-t border-line pt-3">
-        <Checkbox checked={selected} onCheckedChange={onToggleSelect} aria-label={`Select ${job.title} at ${job.company}`} className="mr-1" />
+        {selectable && <Checkbox checked={selected} onCheckedChange={onToggleSelect} aria-label={`Select ${job.title} at ${job.company}`} className="mr-1" />}
         <IconButton
           label={saved ? 'Remove from saved' : 'Save job'}
           icon={saved ? <BookmarkCheck /> : <Bookmark />}
@@ -124,7 +128,7 @@ export const JobCard = React.memo(function JobCard({ job, saved, selected, onTog
         )}
         <div className="ml-auto flex items-center gap-1.5">
           <Button size="sm" variant="ghost" onClick={onOpen} aria-label={`Details for ${job.title}`}>Details</Button>
-          <Button size="sm" onClick={onApply} disabled={applyDisabled}>Apply</Button>
+          <Button size="sm" onClick={onApply} disabled={applyDisabled} aria-label={applyLabel === 'Apply' ? undefined : `${applyLabel}: ${job.title} at ${job.company}`}>{applyLabel}</Button>
         </div>
       </div>
     </article>

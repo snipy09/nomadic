@@ -4,16 +4,17 @@ import { Card, CardContent, CardHeader, Kbd } from '@nomadic/ui';
 import { getApi } from '../../types';
 import { HELP_LINKS, SHORTCUTS } from './helpContent';
 import { FeedbackForm } from './FeedbackForm';
+import { IS_MOBILE } from '../../platform';
 
 /** In-app Help: keyboard shortcuts, where to read more, and feedback. */
 export const HelpView: React.FC = () => (
   <div className="mx-auto flex max-w-3xl flex-col gap-4">
     <header className="flex flex-col gap-1">
       <h1 className="text-headline font-bold text-fg">Help</h1>
-      <p className="text-body text-fg-muted">Shortcuts, links and a direct line to the team.</p>
+      <p className="text-body text-fg-muted">{IS_MOBILE ? 'Links and a direct line to the team.' : 'Shortcuts, links and a direct line to the team.'}</p>
     </header>
 
-    <Card>
+    {!IS_MOBILE && <Card>
       <CardHeader title="Keyboard shortcuts" />
       <CardContent>
         <table className="w-full text-left text-body">
@@ -36,7 +37,7 @@ export const HelpView: React.FC = () => (
           </tbody>
         </table>
       </CardContent>
-    </Card>
+    </Card>}
 
     <Card>
       <CardHeader title="Learn more" />

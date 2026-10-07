@@ -13,9 +13,10 @@ interface JobDrawerProps {
   onApply: () => void;
   onCopied: () => void;
   onFindContacts?: () => void;
+  applyLabel?: string;
 }
 
-export function JobDrawer({ job, saved, onClose, onToggleSave, onApply, onCopied, onFindContacts }: JobDrawerProps) {
+export function JobDrawer({ job, saved, onClose, onToggleSave, onApply, onCopied, onFindContacts, applyLabel = 'Apply with review' }: JobDrawerProps) {
   const open = (url: string) => {
     const api = getApi();
     if (api.openExternalUrl) void api.openExternalUrl(url);
@@ -33,7 +34,7 @@ export function JobDrawer({ job, saved, onClose, onToggleSave, onApply, onCopied
               <Button variant="ghost" onClick={onToggleSave}>{saved ? 'Saved' : 'Save'}</Button>
               {onFindContacts && <Button variant="ghost" onClick={onFindContacts}>Find contacts</Button>}
               <Button variant="secondary" rightIcon={<ExternalLink />} onClick={() => open(job.applyUrl)}>Open posting</Button>
-              <Button onClick={onApply}>Apply with review</Button>
+              <Button onClick={onApply}>{applyLabel}</Button>
             </>
           }
         >

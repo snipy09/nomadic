@@ -14,6 +14,8 @@ import { ApplicationsBoard } from './ApplicationsBoard';
 import { ApplicationsList } from './ApplicationsList';
 import { ApplicationDrawer } from './ApplicationDrawer';
 import { AddApplicationDialog } from './AddApplicationDialog';
+import { IS_MOBILE } from '../../platform';
+import { ApplicationCard } from './ApplicationCard';
 
 interface ApplicationsViewProps {
   /** Next action from the empty state. */
@@ -25,7 +27,8 @@ type ViewMode = 'board' | 'list';
 export const ApplicationsView: React.FC<ApplicationsViewProps> = ({ onBrowseJobs }) => {
   const { toast } = useToast();
   const data = useApplications();
-  const [view, setView] = useState<ViewMode>(() => prefs.getApplicationsView());
+  // The phone defaults to the list: board columns are wider than a phone screen.
+  const [view, setView] = useState<ViewMode>(() => (IS_MOBILE && !prefs.hasApplicationsView() ? 'list' : prefs.getApplicationsView()));
   const [filters, setFilters] = useState<ApplicationFilters>(DEFAULT_FILTERS);
   const [sort, setSort] = useState<SortKey>('recent');
   const [openId, setOpenId] = useState<number | null>(null);
@@ -124,6 +127,17 @@ export const ApplicationsView: React.FC<ApplicationsViewProps> = ({ onBrowseJobs
     );
   } else if (view === 'board') {
     body = <ApplicationsBoard groups={groups} stages={shownStages} onOpen={(a) => setOpenId(a.id ?? null)} onMove={(a, s) => void move(a, s)} />;
+  } else if (IS_MOBILE) {
+    // Phone: one card per application instead of the wide table.
+    body = (
+      <ul className="flex flex-col gap-2" aria-label="Applications">
+        {visible.map((a) => (
+          <li key={a.id ?? a.apply_url}>
+            <ApplicationCard app={a} onOpen={() => setOpenId(a.id ?? null)} onMove={(s) => void move(a, s)} />
+          </li>
+        ))}
+      </ul>
+    );
   } else {
     body = <ApplicationsList apps={visible} onOpen={(a) => setOpenId(a.id ?? null)} onMove={(a, s) => void move(a, s)} />;
   }

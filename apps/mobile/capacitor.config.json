@@ -1,0 +1,13 @@
+{
+  "appId": "com.nomadic.career",
+  "appName": "Nomadic",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

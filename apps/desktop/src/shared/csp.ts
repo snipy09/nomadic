@@ -15,12 +15,14 @@ export function devOrigin(devServerUrl?: string): string | null {
  * GitHub releases). Model providers are never called from the renderer: AI goes
  * main -> Nomadic AI proxy (Supabase Edge Function). Images may come from any https host (logos, thumbnails),
  * frames only from YouTube embeds. Dev additionally allows the Vite server,
- * its HMR websocket and the inline React-refresh preamble.
+ * its HMR websocket and the inline React-refresh preamble. `wasm` (Android app) allows WebAssembly.
  */
-export function buildContentSecurityPolicy(devServerUrl?: string): string {
+export function buildContentSecurityPolicy(devServerUrl?: string, options: { wasm?: boolean } = {}): string {
   const dev = devOrigin(devServerUrl);
   const devWs = dev ? dev.replace(/^http/, 'ws') : '';
-  const scriptSrc = dev ? `'self' 'unsafe-inline' 'unsafe-eval' ${dev}` : `'self'`;
+  // The Android app runs SQLite (sql.js) in the WebView: WebAssembly needs 'wasm-unsafe-eval' (not JS eval).
+  const wasm = options.wasm ? ` 'wasm-unsafe-eval'` : '';
+  const scriptSrc = dev ? `'self' 'unsafe-inline' 'unsafe-eval' ${dev}` : `'self'${wasm}`;
   const connectSrc = [
     `'self'`,
     'https://*.supabase.co',

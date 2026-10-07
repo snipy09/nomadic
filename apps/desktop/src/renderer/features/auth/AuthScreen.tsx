@@ -9,6 +9,7 @@ import { friendlyAuthError, validateAuth, type AuthFieldErrors, type AuthFormVal
 import { TermsDialog } from './TermsDialog';
 import { ForgotPasswordFlow } from './ForgotPasswordFlow';
 import { VerifyEmailPanel } from './VerifyEmailPanel';
+import { IS_MOBILE } from '../../platform';
 
 interface AuthScreenProps {
   onLoginSuccess: (user: AppUser) => void;
@@ -391,7 +392,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog, n
         </Card>
 
         <p className="text-center text-caption text-fg-subtle">
-          One account can be signed in on one computer at a time.
+          {IS_MOBILE ? 'One account can be signed in on one computer and one phone at a time.' : 'One account can be signed in on one computer at a time.'}
         </p>
       </div>
 

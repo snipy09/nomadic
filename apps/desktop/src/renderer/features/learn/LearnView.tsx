@@ -19,6 +19,7 @@ import {
 } from '@job-automator/learning';
 import type { AppUser } from '../../types';
 import { ProjectBuild } from '../projects/ProjectBuild';
+import { IS_MOBILE } from '../../platform';
 import { ActivityHeatmap } from './ActivityHeatmap';
 import { learnIndex, projectById } from './catalog';
 import { isRoleId, roleById } from './content';
@@ -299,7 +300,14 @@ export function LearnView({ currentUser, suggestedRole, onOpenUpgrade, onLog, in
   } else if (s.name === 'project') {
     const project = projectById(s.projectId);
     const doneModules = new Set(roadmapModulesDone(progress!, roadmap));
-    body = project ? (
+    body = project && IS_MOBILE ? (
+      <EmptyState
+        bordered
+        title={project.title}
+        description="Projects are built in the Nomadic desktop app: starter code, stage checks and your GitHub repo check run there. Your progress syncs to this phone."
+        actions={<Button onClick={() => setScreen(s.from)}>Go back</Button>}
+      />
+    ) : project ? (
       <ProjectBuild
         key={project.id}
         project={project}

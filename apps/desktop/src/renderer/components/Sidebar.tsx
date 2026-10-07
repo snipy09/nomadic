@@ -6,6 +6,7 @@ import {
 import { NavItem, NavSection, IconButton, Badge, Kbd, NomadicLogo, NomadicMark, Tooltip, cn, focusRing, useAppShell, type ThemePreference } from '@nomadic/ui';
 import { TabType, AppUser, WorkspaceMode } from '../types';
 import { isTabEnabled } from '../features';
+import { IS_MOBILE } from '../platform';
 import { UserMenu } from './shell/UserMenu';
 import { goShortcut } from './shell/shortcuts';
 import { TopBarUpdateButton } from '../features/updates/TopBarUpdateButton';
@@ -77,7 +78,7 @@ export function getNavSections(mode: WorkspaceMode = 'unified'): SectionDef[] {
     .map((s) => ({
       ...s,
       items: s.items
-        .filter((i) => i.soon || isTabEnabled(i.id))
+        .filter((i) => (i.soon && !IS_MOBILE) || isTabEnabled(i.id))
         .map((i): NavDef => ({ ...i, soon: Boolean(i.soon) && !isTabEnabled(i.id) })),
     }))
     .filter((s) => s.items.length > 0);

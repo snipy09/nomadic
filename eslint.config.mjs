@@ -22,6 +22,8 @@ export default defineConfig(
       '**/coverage/**',
       '**/.vite/**',
       '**/*.min.js',
+      // Android app: web assets copied by `cap sync` and the native project.
+      'apps/mobile/android/**',
       // Deno edge functions: different runtime and import style.
       'packages/supabase/functions/**',
     ],

@@ -7,8 +7,9 @@ import { roles, role_skills, skills } from '@job-automator/learning/seed/bundle.
 import type { MasterProfile, ResumeRecord } from '../../types';
 import { inferRole } from '../feed/match';
 import { toMasterProfile, validate, type FieldErrors, type ProfileForm } from '../profile/profileForm';
+import { IS_MOBILE } from '../../platform';
 
-export const STEPS = [
+const ALL_STEPS = [
   { id: 'about', label: 'About you' },
   { id: 'links', label: 'Links' },
   { id: 'resume', label: 'Resume' },
@@ -18,7 +19,10 @@ export const STEPS = [
   { id: 'roadmap', label: 'Your roadmap' },
 ] as const;
 
-export type StepId = (typeof STEPS)[number]['id'];
+export type StepId = (typeof ALL_STEPS)[number]['id'];
+
+/** The phone app cannot read resume files, so its onboarding has no resume step (resumes are added on the desktop). */
+export const STEPS: ReadonlyArray<(typeof ALL_STEPS)[number]> = IS_MOBILE ? ALL_STEPS.filter((s) => s.id !== 'resume') : ALL_STEPS;
 
 /** Steps the user may skip: nothing on them is required to get value from the app. Skipping the last step finishes setup. */
 export const SKIPPABLE: ReadonlySet<StepId> = new Set<StepId>(['links', 'target', 'resume', 'answers', 'roadmap']);

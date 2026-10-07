@@ -73,6 +73,10 @@ apps/desktop   Electron
                    file allowed to touch localStorage, UI prefs only), features/<name>/ (one folder per feature:
                    pure logic module + hooks + components), components/ (remaining legacy screens), browserApiShim.ts
                    (browser preview mock; no real data)
+apps/mobile    Android app (Capacitor 8, `com.nomadic.career`, docs/MOBILE_APP.md): the desktop renderer plus the desktop
+               main-process services run in the WebView (src/host: Electron/Node stand-ins, sql.js in IndexedDB, phone
+               device id `mobile-…`); no apply engine, Outreach, Practice or Projects (`renderer/platform.ts` IS_MOBILE);
+               job actions say "Auto apply from desktop" (saves to the account). APK built by `.github/workflows/android-app.yml`
 apps/web       Marketing site: Vite + React, prerendered pages, sitemap, per-page OG images, JSON-LD,
                /terms /privacy /refunds rendered from @nomadic/config
 packages/ui          @nomadic/ui design system: tokens, Tailwind preset, AppShell, NavItem, Button, Dialog, Drawer,
@@ -139,7 +143,7 @@ Key flows:
   dropped by an owner paste (`DROP TABLE IF EXISTS public.hr_contacts;`; the connector times out on DROP).
   028 = Learn v2 state documents + v2 event types; 029 = AI roadmap quotas (`ai_limits` with roadmap columns,
   outreach metrics of 027 kept); 030 = AI project help quota (metric `ai_project_help`, `ai_project_help_limits`
-  5/40/150, applied through the Supabase connector on 5 Oct 2026 and verified). 031 (feed sources: `companies`, `company_openings`, `company_hiring_snapshots`, `hackathons`, read-only for clients) is in the repo (`baseline/apply_031.sql`). Next free number is 032. Security advisor: no errors; remaining notices are by design (deny-all tables;
+  5/40/150, applied through the Supabase connector on 5 Oct 2026 and verified). 031 (feed sources: `companies`, `company_openings`, `company_hiring_snapshots`, `hackathons`, read-only for clients) and 032 (one computer + one phone per account: device classes by fingerprint prefix `mobile-`) are in the repo, not applied yet (`baseline/apply_031.sql`, `apply_032.sql`; the connector has no permission, owner pastes). Next free number is 033. Security advisor: no errors; remaining notices are by design (deny-all tables;
   session-checked SECURITY DEFINER RPCs callable by anon).
 - **Learn content seeded** from the bundle (checksums verified; quiz items re-checked 5 Oct 2026).
 - **Accounts**: the owner account (`sajalmishra0908@gmail.com`) has role `admin` (granted 5 Oct 2026 by SQL, with an
@@ -186,7 +190,7 @@ F13: Outreach was rebuilt in v1.1.0 (see section 9) and shows in the sidebar as 
 the working module needs `VITE_FEATURES="outreach=on"`. Opportunity Board, Resource Vault and the Assistant stay
 hidden; the Assistant still needs rework or removal.
 
-Tests: 1,792 vitest tests pass (136 files, 7 Oct 2026; 1,771 on 6 Oct; run with `--maxWorkers=2 --testTimeout=30000` on this laptop, the default
+Tests: 1,807 vitest tests pass (139 files, 7 Oct 2026; 1,771 on 6 Oct; run with `--maxWorkers=2 --testTimeout=30000` on this laptop, the default
 parallelism times out component tests, and the three Chrome DOM suites can time out closing Chrome in `afterAll`);
 typecheck, lint (0 errors, ~190 warnings) and desktop/web builds pass.
 The built Electron app has been smoke-tested over CDP (window, live feed via IPC, Learn, Settings, Help, Activity, Admin
@@ -381,6 +385,9 @@ checklist in `docs/OUTREACH_PLAN.md` section 11; the Assistant); OS notification
   34/35 fills all 22 fixtures through ApplyBrowserController: 196/196 on Android 14 and 15, 6 Oct 2026). Android code cannot be compiled in assistant containers
   (dl.google.com is blocked): rely on that workflow. Open product decisions for Android: one-device rule
   (`register_device_session` deactivates other devices), Play Billing vs user choice billing for Pro/Max.
+- **Android app** (7 Oct 2026, on `main`, `apps/mobile`, v0.1.0): see docs/MOBILE_APP.md. Saved jobs sync both ways
+  (pull on Job board open/focus/Saved tab, throttled 2 min; local migration 11 `saved_jobs.synced_at`). Owner: paste
+  032 before anyone signs in on a phone (else the desktop is signed out), then install the CI debug APK.
 - Next most useful work: owner action 0 (Learn v2 go-live), then owner actions in section 7 (consent screen, Resend domain, key rotation),
   then a live end-to-end pass (Google sign-in, reviewed submit, AI feedback), then the code follow-ups in section 7.
 

@@ -18,6 +18,7 @@ import { completeness, toForm } from '../profile/profileForm';
 import { useResumes } from '../profile/useResumes';
 import { greeting, longDate, setupChecklist, type ChecklistItem } from './homeLogic';
 import { useLearnSummary, type LearnSummary } from './useLearnSummary';
+import { IS_MOBILE } from '../../platform';
 
 interface HomeViewProps {
   profile: MasterProfile;
@@ -47,6 +48,7 @@ export function HomeView({ profile, currentUser, workspaceMode, onNavigate }: Ho
     hasRoadmap: learn.hasRoadmap,
     answers: answeredCount(readAppAnswers(profile.customAnswers)),
     applications: apps.apps.length,
+    mobile: IS_MOBILE,
   });
   const doneCount = checklist.filter((c) => c.done).length;
   // Wait for the data the checklist reads, so a finished step never flashes as undone.

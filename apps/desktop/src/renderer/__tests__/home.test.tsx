@@ -28,6 +28,12 @@ describe('setupChecklist', () => {
     expect(setupChecklist({ ...base, resumes: null }).find((i) => i.id === 'resume')?.done).toBe(false);
   });
 
+  it('has no resume step in the phone app, and says applying happens on the computer', () => {
+    const items = setupChecklist({ ...base, mode: 'seeker_only', mobile: true });
+    expect(items.map((i) => i.id)).toEqual(['profile', 'answers', 'apply']);
+    expect(items.find((i) => i.id === 'apply')?.description).toMatch(/on your computer/);
+  });
+
   it('counts common answers as done from half', () => {
     expect(answersDone({ done: 9, total: 20 })).toBe(false);
     expect(answersDone({ done: 10, total: 20 })).toBe(true);

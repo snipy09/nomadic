@@ -24,6 +24,8 @@ export interface ChecklistInput {
   hasRoadmap: boolean;
   answers: { done: number; total: number };
   applications: number;
+  /** Phone app: resumes are added on the desktop, and applying happens there too. */
+  mobile?: boolean;
 }
 
 /** Common answers count as done once at least half are filled: most forms ask only a few. */
@@ -50,7 +52,7 @@ export function setupChecklist(i: ChecklistInput): ChecklistItem[] {
       tab: 'learner-roadmaps',
       action: 'Plan roadmap',
     },
-    seek && {
+    seek && !i.mobile && {
       id: 'resume',
       title: 'Add a resume',
       description: 'Attached to applications. Only what you upload is ever sent.',
@@ -70,7 +72,9 @@ export function setupChecklist(i: ChecklistInput): ChecklistItem[] {
     seek && {
       id: 'apply',
       title: 'Send your first application',
-      description: 'Nomadic fills the form; you review every field before it is sent.',
+      description: i.mobile
+        ? 'Save jobs here; on your computer Nomadic fills each form and you review every field before it is sent.'
+        : 'Nomadic fills the form; you review every field before it is sent.',
       done: i.applications > 0,
       tab: 'feed',
       action: 'Browse jobs',

@@ -36,6 +36,8 @@ import { isTabEnabled, FEATURES } from './features';
 import { prefs } from './store/preferences';
 import { normalizeTier } from './utils/tier-utils';
 import { useAppStore } from './store/appStore';
+import { IS_MOBILE } from './platform';
+import { MobileShell, MoreView } from './components/shell/MobileShell';
 export default function App() {
   // Current user state (session pointer persisted via the preferences module)
   const { theme, setTheme } = useTheme({ defaultTheme: 'system' });
@@ -367,38 +369,8 @@ export default function App() {
     );
   }
 
-  return (
-    <AppShell
-      className="h-screen"
-      sidebarCollapsed={sidebarCollapsed}
-      sidebar={
-        <Sidebar
-          workspaceMode={workspaceMode}
-          activeTab={activeTab}
-          onSelectTab={handleNavigate}
-          currentUser={currentUser}
-          onToggleCollapsed={toggleSidebar}
-          onOpenUpgrade={() => handleOpenUpgrade()}
-          onOpenSearch={() => setShowCommandPalette(true)}
-          onLogout={handleLogout}
-          theme={theme}
-          onThemeChange={setTheme}
-        />
-      }
-      mainClassName={
-        activeTab === 'profile' || activeTab === 'settings' || Boolean(activeTab && activeTab.startsWith('admin'))
-          ? 'overflow-hidden flex flex-col'
-          : 'overflow-y-auto p-5 md:p-8'
-      }
-    >
-      <>
-        <WhatsNewDialog />
-        {/* Dynamic Sub-view Container */}
-        <div key={activeTab} className={`w-full ${
-            activeTab === 'profile' || activeTab === 'settings' || Boolean(activeTab && activeTab.startsWith('admin'))
-              ? 'h-full flex-1 flex flex-col overflow-hidden'
-              : 'max-w-6xl mx-auto animate-in fade-in duration-150 ease-out'
-          }`}>
+  const pages = (
+    <>
             {activeTab === 'home' && (
               <HomeView profile={profile} currentUser={currentUser} workspaceMode={workspaceMode} onNavigate={handleNavigate} />
             )}
@@ -511,9 +483,68 @@ export default function App() {
             )}
 
             {/* Safe fallback: an unknown tab (e.g. a stale preference) shows Home */}
-            {!['home', 'learner-roadmaps', 'learner-resources', 'learner-interview-prep', 'learner-projects', 'opportunities', 'feed', 'outreach', 'applications', 'logs', 'help', 'answers', 'profile', 'settings'].includes(activeTab) && !activeTab.startsWith('admin') && (
+            {!['home', 'learner-roadmaps', 'learner-resources', 'learner-interview-prep', 'learner-projects', 'opportunities', 'feed', 'outreach', 'applications', 'logs', 'help', 'answers', 'profile', 'settings', 'more'].includes(activeTab) && !activeTab.startsWith('admin') && (
               <HomeView profile={profile} currentUser={currentUser} workspaceMode={workspaceMode} onNavigate={handleNavigate} />
             )}
+
+            {activeTab === 'more' && (
+              <MoreView
+                user={currentUser}
+                onNavigate={handleNavigate}
+                onOpenUpgrade={normalizeTier(currentUser?.tier || currentUser?.subscription_tier) === 'max' ? undefined : () => handleOpenUpgrade()}
+                onLogout={handleLogout}
+              />
+            )}
+    </>
+  );
+
+  if (IS_MOBILE) {
+    return (
+      <MobileShell activeTab={activeTab} onSelectTab={handleNavigate}>
+        <div key={activeTab} className="w-full animate-in fade-in duration-150 ease-out">{pages}</div>
+        <UpgradeDialog
+          open={showUpgradeModal}
+          onOpenChange={setShowUpgradeModal}
+          feature={upgradeFeature || undefined}
+          email={currentUser?.email}
+        />
+      </MobileShell>
+    );
+  }
+
+  return (
+    <AppShell
+      className="h-screen"
+      sidebarCollapsed={sidebarCollapsed}
+      sidebar={
+        <Sidebar
+          workspaceMode={workspaceMode}
+          activeTab={activeTab}
+          onSelectTab={handleNavigate}
+          currentUser={currentUser}
+          onToggleCollapsed={toggleSidebar}
+          onOpenUpgrade={() => handleOpenUpgrade()}
+          onOpenSearch={() => setShowCommandPalette(true)}
+          onLogout={handleLogout}
+          theme={theme}
+          onThemeChange={setTheme}
+        />
+      }
+      mainClassName={
+        activeTab === 'profile' || activeTab === 'settings' || Boolean(activeTab && activeTab.startsWith('admin'))
+          ? 'overflow-hidden flex flex-col'
+          : 'overflow-y-auto p-5 md:p-8'
+      }
+    >
+      <>
+        <WhatsNewDialog />
+        {/* Dynamic Sub-view Container */}
+        <div key={activeTab} className={`w-full ${
+            activeTab === 'profile' || activeTab === 'settings' || Boolean(activeTab && activeTab.startsWith('admin'))
+              ? 'h-full flex-1 flex flex-col overflow-hidden'
+              : 'max-w-6xl mx-auto animate-in fade-in duration-150 ease-out'
+          }`}>
+            {pages}
           </div>
 
         <UpgradeDialog

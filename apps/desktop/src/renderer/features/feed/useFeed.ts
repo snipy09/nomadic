@@ -27,6 +27,29 @@ export interface FeedData {
 
 const SERVER_TABS = new Set<FeedTab>(['all', 'jobs', 'internships', 'internshala', 'remote']);
 
+/** Saved and hidden jobs come from the account too (the phone and the desktop share them); pull at most this often. */
+export const ACCOUNT_PULL_MIN_MS = 2 * 60_000;
+let lastAccountPull = 0;
+
+/** Pulls the account's saved/hidden jobs into this device, throttled. Resolves true when it pulled. */
+export async function pullAccountJobs(now = Date.now()): Promise<boolean> {
+  if (now - lastAccountPull < ACCOUNT_PULL_MIN_MS) return false;
+  lastAccountPull = now;
+  const api = getApi();
+  if (!api.syncCloudData) return false;
+  try {
+    const res = await api.syncCloudData();
+    return Boolean(res?.success);
+  } catch {
+    return false;
+  }
+}
+
+/** For tests. */
+export function resetAccountPullThrottle(): void {
+  lastAccountPull = 0;
+}
+
 /** Current feed page + saved jobs from the desktop API. Stale responses are dropped; failures surface as `error`. */
 export function useFeed(q: FeedQuery): FeedData {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -78,6 +101,33 @@ export function useFeed(q: FeedQuery): FeedData {
       }
     })();
   }, [q.page, q.pageSize, q.search, q.tab, q.source, nonce]);
+
+  // Jobs saved on the other device show up here: pull on open, when the Saved tab opens and when the window
+  // comes back to the front (throttled), then reload the lists.
+  useEffect(() => {
+    const pull = () => {
+      void pullAccountJobs().then((pulled) => {
+        if (pulled) setNonce((n) => n + 1);
+      });
+    };
+    pull();
+    const onFocus = () => pull();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') pull();
+    };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
+  useEffect(() => {
+    if (q.tab !== 'saved') return;
+    void pullAccountJobs().then((pulled) => {
+      if (pulled) setNonce((n) => n + 1);
+    });
+  }, [q.tab]);
 
   const isSaved = useCallback((job: Job) => saved.some((s) => s.applyUrl === job.applyUrl), [saved]);
 

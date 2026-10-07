@@ -12,7 +12,7 @@
     "build": "npm run build:desktop",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit -p tsconfig.json && npm run typecheck --workspace @nomadic/desktop && npm run typecheck --workspace @nomadic/web",
+    "typecheck": "tsc --noEmit -p tsconfig.json && npm run typecheck --workspace @nomadic/desktop && npm run typecheck --workspace @nomadic/web && npm run typecheck --workspace @nomadic/mobile",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

@@ -5,6 +5,7 @@ import {
 } from '@nomadic/ui';
 import type { AppUser, Job, MasterProfile } from '../../types';
 import { isTabEnabled } from '../../features';
+import { DESKTOP_APPLY_LABEL, IS_MOBILE } from '../../platform';
 import { prefs } from '../../store/preferences';
 import { useApplyRunner } from '../apply/useApplyRunner';
 import { feedLimit } from '../billing/billingLogic';
@@ -107,7 +108,26 @@ export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, on
   }, [tab, feed, onLog, toast]);
 
   const toggleSelect = (url: string) => setSelected((s) => { const n = new Set(s); if (n.has(url)) n.delete(url); else n.add(url); return n; });
-  const applyTo = (jobs: Job[]) => apply.start(jobs.map((j) => ({ url: j.applyUrl, company: j.company, title: j.title })));
+  /** Phone: no apply engine here. The job is saved to the account and applied to from the desktop's Saved tab. */
+  const queueForDesktop = useCallback(async (job: Job) => {
+    if (!feed.isSaved(job) && !(await feed.toggleSave(job))) {
+      toast({ title: 'Could not save this job', description: 'Check your connection and try again.', tone: 'danger' });
+      return;
+    }
+    onLog(`[Saved] ${job.title} at ${job.company}, to apply from the desktop`);
+    toast({
+      title: 'Saved for your desktop',
+      description: 'On your computer, open Nomadic → Job board → Saved, then Apply with review.',
+      tone: 'success',
+    });
+  }, [feed, onLog, toast]);
+  const applyTo = (jobs: Job[]) => {
+    if (IS_MOBILE) {
+      for (const j of jobs) void queueForDesktop(j);
+      return;
+    }
+    void apply.start(jobs.map((j) => ({ url: j.applyUrl, company: j.company, title: j.title })));
+  };
   const selectedJobs = shown.filter((j) => selected.has(j.applyUrl));
 
   return (
@@ -187,8 +207,10 @@ export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, on
                 hidden={tab === 'hidden'}
                 onToggleHidden={() => void toggleHidden(job)}
                 onOpen={() => setViewing(job)}
-                onApply={() => void applyTo([job])}
-                applyDisabled={apply.busy}
+                onApply={() => applyTo([job])}
+                applyDisabled={!IS_MOBILE && apply.busy}
+                applyLabel={IS_MOBILE ? DESKTOP_APPLY_LABEL : undefined}
+                selectable={!IS_MOBILE}
               />
             </li>
           ))}
@@ -231,7 +253,7 @@ export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, on
         <div role="region" aria-label="Selection" className="fixed bottom-6 left-1/2 z-sticky flex -translate-x-1/2 items-center gap-3 rounded-lg border border-line bg-surface-raised px-4 py-2 shadow-e3">
           <Badge tone="accent">{selected.size} selected</Badge>
           <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
-          <Button size="sm" disabled={apply.busy || selectedJobs.length === 0} onClick={() => void applyTo(selectedJobs)}>Apply to selected with review</Button>
+          <Button size="sm" disabled={apply.busy || selectedJobs.length === 0} onClick={() => applyTo(selectedJobs)}>Apply to selected with review</Button>
         </div>
       )}
 
@@ -240,11 +262,12 @@ export const FeedView: React.FC<FeedViewProps> = ({ profile, onUpdateProfile, on
         saved={viewing ? feed.isSaved(viewing) : false}
         onClose={() => setViewing(null)}
         onToggleSave={() => viewing && void toggleSave(viewing)}
-        onApply={() => { if (viewing) { const j = viewing; setViewing(null); void applyTo([j]); } }}
+        onApply={() => { if (viewing) { const j = viewing; setViewing(null); applyTo([j]); } }}
+        applyLabel={IS_MOBILE ? DESKTOP_APPLY_LABEL : undefined}
         onCopied={() => toast({ title: 'Link copied', tone: 'success' })}
         onFindContacts={isTabEnabled('outreach') && onNavigateToOutreach && viewing ? () => onNavigateToOutreach(viewing.company, viewing.title) : undefined}
       />
-      {apply.element}
+      {!IS_MOBILE && apply.element}
     </div>
   );
 };

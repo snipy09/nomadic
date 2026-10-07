@@ -68,6 +68,7 @@ export const prefs = {
   getSidebarCollapsed: () => read(K.sidebarCollapsed) === 'true',
   setSidebarCollapsed: (v: boolean) => write(K.sidebarCollapsed, v ? 'true' : 'false'),
   getApplicationsView: (): 'board' | 'list' => (read(K.applicationsView) === 'list' ? 'list' : 'board'),
+  hasApplicationsView: () => read(K.applicationsView) !== null,
   setApplicationsView: (v: 'board' | 'list') => write(K.applicationsView, v),
   getHomeChecklistHidden: () => read(K.homeChecklistHidden) === 'true',
   setHomeChecklistHidden: (v: boolean) => write(K.homeChecklistHidden, v ? 'true' : null),

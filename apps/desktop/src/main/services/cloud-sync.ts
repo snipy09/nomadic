@@ -17,6 +17,7 @@ import { upsertMasterProfile } from './profile.js';
 import { readSecret } from './secrets.js';
 import { followUpsToPush, mergeCloudApplications } from './applications-store.js';
 import { syncLearning } from './learning.js';
+import { reconcileSavedJobs } from './saved-jobs-sync.js';
 
 // ── Cloud Sync & Single-Laptop Lock Helpers ─────────────────────────────────
 
@@ -74,16 +75,23 @@ export async function syncPullUserDataToLocalDb(
       followUpBackfill = followUpsToPush(db, applications);
     }
 
-    // 3. Sync Saved Jobs
+    let savedBackfill: string[] = [];
+    // 3. Sync Saved Jobs (both ways: the phone app saves to the same account)
     if (Array.isArray(savedJobs)) {
+      const cloudUrls = new Set(savedJobs.map((j) => String(j.apply_url ?? '')).filter(Boolean));
+      const localRes = db.exec('SELECT apply_url, synced_at FROM saved_jobs');
+      const localRows = (localRes[0]?.values ?? []).map((v) => ({ apply_url: String(v[0]), synced_at: v[1] }));
+      const { remove, upload } = reconcileSavedJobs(localRows, cloudUrls);
+      for (const url of remove) db.run('DELETE FROM saved_jobs WHERE apply_url = ?', [url]);
+      savedBackfill = upload;
       for (const job of savedJobs) {
         if (!job.apply_url || !job.company || !job.title) continue;
         db.run(
-          `INSERT INTO saved_jobs (title, company, apply_url, location, salary, source, score, description, saved_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `INSERT INTO saved_jobs (title, company, apply_url, location, salary, source, score, description, saved_at, synced_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
            ON CONFLICT(apply_url) DO UPDATE SET
              title=excluded.title, company=excluded.company, location=excluded.location, salary=excluded.salary,
-             source=excluded.source, score=excluded.score, description=excluded.description`,
+             source=excluded.source, score=excluded.score, description=excluded.description, synced_at=excluded.synced_at`,
           [
             String(job.title),
             String(job.company),
@@ -129,6 +137,17 @@ export async function syncPullUserDataToLocalDb(
         .then((res) => { if (!res.ok) log(`[Cloud Sync] Hidden job not synced: ${res.error ?? 'unknown error'}`); })
         .catch(() => {});
     }
+    for (const url of savedBackfill) {
+      const r = db.exec('SELECT title, company, apply_url, location, salary, source, score, description FROM saved_jobs WHERE apply_url = ?', [url]);
+      const v = r[0]?.values[0];
+      if (!v) continue;
+      const job = {
+        title: String(v[0] ?? ''), company: String(v[1] ?? ''), apply_url: String(v[2]),
+        location: v[3] ? String(v[3]) : undefined, salary: v[4] ? String(v[4]) : undefined,
+        source: v[5] ? String(v[5]) : undefined, score: v[6] ? Number(v[6]) : undefined, description: v[7] ? String(v[7]) : undefined,
+      };
+      pushSavedJob(userId, sessionToken, deviceFingerprint, job);
+    }
     for (const f of followUpBackfill) {
       syncSetApplicationFollowUp(supabase, userId, sessionToken, deviceFingerprint, f.applyUrl, f.followUpAt)
         .then((res) => { if (!res.ok) log(`[Cloud Sync] Follow-up not synced: ${res.error ?? 'unknown error'}`); })
@@ -164,7 +183,7 @@ export function saveAndSyncJob(job: {
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(apply_url) DO UPDATE SET
        title=excluded.title, company=excluded.company, location=excluded.location, salary=excluded.salary,
-       source=excluded.source, score=excluded.score, description=excluded.description`,
+       source=excluded.source, score=excluded.score, description=excluded.description, synced_at=NULL`,
     [
       job.title,
       job.company,
@@ -179,18 +198,32 @@ export function saveAndSyncJob(job: {
   persistDb();
 
   const active = getActiveSyncSession();
-  if (active) {
-    const supabase = getAnonSupabase();
-    if (supabase) {
-      syncPushSavedJob(
-        supabase,
-        active.userId,
-        active.sessionToken,
-        active.deviceFingerprint,
-        job
-      ).catch(() => {});
-    }
-  }
+  if (active) pushSavedJob(active.userId, active.sessionToken, active.deviceFingerprint, job);
+}
+
+/** Uploads a saved job and records that it reached the account (see saved-jobs-sync.ts). */
+function pushSavedJob(
+  userId: string,
+  sessionToken: string,
+  deviceFingerprint: string,
+  job: { title: string; company: string; apply_url: string; location?: string; salary?: string; source?: string; score?: number; description?: string }
+): void {
+  const supabase = getAnonSupabase();
+  if (!supabase) return;
+  syncPushSavedJob(supabase, userId, sessionToken, deviceFingerprint, job)
+    .then((res) => {
+      if (!res.ok) {
+        log(`[Cloud Sync] Saved job not synced: ${res.error ?? 'unknown error'}`);
+        return;
+      }
+      try {
+        getDb().run("UPDATE saved_jobs SET synced_at = datetime('now') WHERE apply_url = ?", [job.apply_url]);
+        persistDb();
+      } catch {
+        /* the row was removed meanwhile */
+      }
+    })
+    .catch(() => {});
 }
 
 export function removeAndSyncJob(applyUrl: string): void {

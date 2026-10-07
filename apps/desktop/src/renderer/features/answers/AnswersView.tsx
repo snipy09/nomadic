@@ -11,6 +11,7 @@ import {
 import { mergeMissing } from './resumeFacts';
 import { useAnswerDrafts } from './useAnswerDrafts';
 import { useRememberedAnswers } from './useRememberedAnswers';
+import { IS_MOBILE } from '../../platform';
 
 interface AnswersViewProps {
   profile: MasterProfile;
@@ -151,7 +152,7 @@ export function AnswersView({ profile, onSaveProfile, saving, onLog }: AnswersVi
         />
         <CardContent className="flex flex-col gap-4">
           {!resumeText && emptyDraftable.length > 0 && (
-            <p className="text-caption text-fg-muted">Add a resume in Settings and run setup again, or type the answers yourself. Nomadic AI drafts from your resume only.</p>
+            <p className="text-caption text-fg-muted">{IS_MOBILE ? 'Type the answers here. AI drafts from your resume are made in the desktop app.' : 'Add a resume in Settings and run setup again, or type the answers yourself. Nomadic AI drafts from your resume only.'}</p>
           )}
           {ai.error && (
             <div role="alert" className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning-subtle px-3 py-2 text-body text-warning-fg">
@@ -219,7 +220,7 @@ export function AnswersView({ profile, onSaveProfile, saving, onLog }: AnswersVi
 
       <RememberedSection state={remembered} shown={rememberedShown} query={query} />
 
-      <div className="sticky bottom-0 z-10 -mx-5 flex flex-wrap items-center justify-end gap-3 border-t border-line bg-canvas/95 px-5 py-3 md:-mx-8 md:px-8">
+      <div className={IS_MOBILE ? 'sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center justify-end gap-3 border-t border-line bg-canvas/95 px-4 py-3' : 'sticky bottom-0 z-10 -mx-5 flex flex-wrap items-center justify-end gap-3 border-t border-line bg-canvas/95 px-5 py-3 md:-mx-8 md:px-8'}>
         {saveError && <p role="alert" className="mr-auto text-body text-danger-fg">{saveError}</p>}
         {!saveError && dirty && <p className="mr-auto text-caption text-fg-muted">You have unsaved changes.</p>}
         <Button variant="ghost" disabled={!dirty || saving} onClick={() => { setDraft(initial); setDrafted(new Set()); setSaveError(null); }}>
