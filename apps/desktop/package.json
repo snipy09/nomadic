@@ -1,19 +1,16 @@
 {
   "name": "@nomadic/desktop",
   "version": "1.4.0",
-  "description": "Nomadic — Desktop Job Search & Application Automation Platform",
+  "description": "Nomadic for Windows: the shared app (packages/app-core + packages/app-ui) with Windows startup and packaging.",
   "author": "Nomadic",
   "main": "out/main/index.cjs",
   "type": "module",
   "scripts": {
     "dev": "concurrently \"vite\" \"node build-main.mjs --watch\" \"wait-on http://localhost:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron --disable-gpu .\"",
     "vite:dev": "vite",
-    "electron:dev": "wait-on http://localhost:5173 && node build-main.mjs && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron --disable-gpu .",
     "start": "electron --disable-gpu .",
-    "compile": "node build-main.mjs && vite build",
     "build": "node build-main.mjs && vite build",
     "package:win": "node build-main.mjs && vite build && electron-builder --win nsis portable",
-    "package:mac": "node build-main.mjs && vite build && electron-builder --mac dmg -c.npmRebuild=false",
     "typecheck": "tsc --noEmit"
   },
   "build": {
@@ -32,7 +29,6 @@
       }
     ],
     "generateUpdatesFilesForAllChannels": true,
-    "afterPack": "./build-resources/mac-adhoc-sign.cjs",
     "files": [
       "out/**/*",
       "assets/**/*",
@@ -71,23 +67,6 @@
     "portable": {
       "artifactName": "Nomadic.${version}.exe",
       "requestExecutionLevel": "user"
-    },
-    "mac": {
-      "target": "dmg",
-      "icon": "build-resources/icon.icns",
-      "category": "public.app-category.productivity",
-      "minimumSystemVersion": "11.0",
-      "hardenedRuntime": true,
-      "gatekeeperAssess": false,
-      "entitlements": "build-resources/entitlements.mac.plist",
-      "entitlementsInherit": "build-resources/entitlements.mac.plist"
-    },
-    "dmg": {
-      "artifactName": "Nomadic-${version}-${arch}.${ext}",
-      "title": "Nomadic ${version}"
-    },
-    "linux": {
-      "target": "AppImage"
     }
   },
   "dependencies": {
@@ -114,6 +93,8 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@nomadic/app-core": "*",
+    "@nomadic/app-ui": "*",
     "@types/node": "^20.11.0",
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.19",

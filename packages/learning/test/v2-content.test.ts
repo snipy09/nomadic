@@ -19,7 +19,7 @@ import { IntakeSchema } from '../src/v2/types';
 const bundle = buildSeedBundle();
 const index = indexCatalog(bundle);
 const dataset = JSON.parse(
-  readFileSync(new URL('../../../apps/desktop/data/practice/leetcode-companies.json', import.meta.url), 'utf8')
+  readFileSync(new URL('../../../packages/app-core/data/practice/leetcode-companies.json', import.meta.url), 'utf8')
 ) as CompanyDataset;
 const NOW = new Date('2026-10-05T06:00:00Z');
 const intake = (patch: Partial<IntakeInput>) =>

@@ -8,5 +8,5 @@ coverage
 package-lock.json
 **/package-lock.json
 *.excalidraw
-apps/desktop/src/renderer/data/*.json
+packages/app-core/src/shared/data/*.json
 packages/supabase/migrations

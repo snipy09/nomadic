@@ -1,0 +1,89 @@
+{
+  "name": "@nomadic/mac",
+  "version": "1.4.0",
+  "description": "Nomadic for macOS: the shared app (packages/app-core + packages/app-ui) with macOS startup, menu and packaging.",
+  "author": "Nomadic",
+  "main": "out/main/index.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"vite\" \"node build-main.mjs --watch\" \"wait-on http://localhost:5176 && cross-env VITE_DEV_SERVER_URL=http://localhost:5176 electron .\"",
+    "vite:dev": "vite",
+    "start": "electron .",
+    "build": "node build-main.mjs && vite build",
+    "package:mac": "node build-main.mjs && vite build && electron-builder --mac dmg -c.npmRebuild=false",
+    "typecheck": "tsc --noEmit"
+  },
+  "build": {
+    "appId": "com.nomadic.career.os",
+    "productName": "Nomadic",
+    "copyright": "Copyright © 2026 Nomadic Technologies Inc.",
+    "electronVersion": "31.7.7",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "out/**/*",
+      "assets/**/*",
+      "node_modules/**/*"
+    ],
+    "afterPack": "./build-resources/mac-adhoc-sign.cjs",
+    "mac": {
+      "target": "dmg",
+      "icon": "build-resources/icon.icns",
+      "category": "public.app-category.productivity",
+      "minimumSystemVersion": "11.0",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build-resources/entitlements.mac.plist",
+      "entitlementsInherit": "build-resources/entitlements.mac.plist"
+    },
+    "dmg": {
+      "artifactName": "Nomadic-${version}-${arch}.${ext}",
+      "title": "Nomadic ${version}"
+    }
+  },
+  "dependencies": {
+    "@job-automator/automation": "file:../../packages/automation",
+    "@job-automator/email-verifier": "file:../../packages/email-verifier",
+    "@job-automator/learning": "*",
+    "@job-automator/scrapers": "file:../../packages/scrapers",
+    "@job-automator/supabase": "file:../../packages/supabase",
+    "@nomadic/config": "*",
+    "@nomadic/ui": "*",
+    "@sentry/electron": "^8.0.0",
+    "@tanstack/react-query": "^5.104.1",
+    "animejs": "^4.5.0",
+    "electron-updater": "^6.8.9",
+    "lucide-react": "^0.330.0",
+    "playwright": "^1.62.1",
+    "playwright-core": "^1.62.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "sql.js": "^1.10.3",
+    "unpdf": "^1.8.1",
+    "ws": "^8.22.0",
+    "zod": "^3.25.76",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@nomadic/app-core": "*",
+    "@nomadic/app-ui": "*",
+    "@types/node": "^20.11.0",
+    "@types/react": "^18.2.55",
+    "@types/react-dom": "^18.2.19",
+    "@types/sql.js": "^1.4.9",
+    "@types/ws": "^8.18.2",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.17",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^31.7.7",
+    "electron-builder": "^24.9.1",
+    "jsdom": "^26.1.0",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.1.0",
+    "wait-on": "^7.2.0"
+  }
+}

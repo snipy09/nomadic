@@ -1,11 +1,13 @@
 import { defineConfig } from 'vitest/config';
 
-// One vitest run, four projects:
-//  - packages:          shared Node packages (automation, scrapers, supabase, email-verifier)
-//  - desktop-main:      Electron main-process code (Node environment)
-//  - desktop-renderer:  React renderer code, resolved from apps/desktop with a DOM (jsdom)
-//  - mobile:            Android app host layer (Electron/Node stand-ins, phone device id)
-//  - web:               landing page data (pricing from config, SEO, share cards, privacy content)
+// One vitest run, one project per package/app:
+//  - packages:   shared Node packages (automation, scrapers, supabase, email-verifier, form-engine, ...)
+//  - app-core:   the shared Electron main process (Node environment)
+//  - app-ui:     the shared React UI, with a DOM (jsdom)
+//  - desktop:    Windows-only startup code (apps/desktop)
+//  - mac:        macOS-only startup code (apps/mac)
+//  - android:    the Android host layer (Electron/Node stand-ins, phone device id)
+//  - web:        landing page data (pricing from config, SEO, share cards, privacy content)
 const sharedExclude = ['**/node_modules/**', '**/dist/**', '**/out/**', '**/dist-electron/**'];
 
 export default defineConfig({
@@ -19,13 +21,13 @@ export default defineConfig({
           environment: 'node',
           include: ['packages/*/src/**/*.test.ts'],
           // packages with their own vitest config (jsdom, setup files) run as separate projects
-          exclude: [...sharedExclude, 'packages/ui/**', 'packages/learning/**'],
+          exclude: [...sharedExclude, 'packages/ui/**', 'packages/learning/**', 'packages/app-core/**', 'packages/app-ui/**'],
         },
       },
       {
         test: {
-          name: 'mobile',
-          root: './apps/mobile',
+          name: 'android',
+          root: './apps/android',
           environment: 'node',
           include: ['src/**/*.test.ts'],
           exclude: sharedExclude,
@@ -42,19 +44,37 @@ export default defineConfig({
       },
       {
         test: {
-          name: 'desktop-main',
-          root: './apps/desktop',
+          name: 'app-core',
+          root: './packages/app-core',
           environment: 'node',
-          include: ['src/main/**/*.test.ts'],
+          include: ['src/**/*.test.ts'],
           exclude: sharedExclude,
         },
       },
       {
         test: {
-          name: 'desktop-renderer',
-          root: './apps/desktop',
+          name: 'app-ui',
+          root: './packages/app-ui',
           environment: 'jsdom',
-          include: ['src/renderer/**/*.test.{ts,tsx}'],
+          include: ['src/**/*.test.{ts,tsx}'],
+          exclude: sharedExclude,
+        },
+      },
+      {
+        test: {
+          name: 'desktop',
+          root: './apps/desktop',
+          environment: 'node',
+          include: ['src/**/*.test.ts'],
+          exclude: sharedExclude,
+        },
+      },
+      {
+        test: {
+          name: 'mac',
+          root: './apps/mac',
+          environment: 'node',
+          include: ['src/**/*.test.ts'],
           exclude: sharedExclude,
         },
       },

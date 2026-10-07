@@ -44,3 +44,32 @@ jobs:
       - name: Test
         if: ${{ !cancelled() }}
         run: npm test
+
+  build:
+    # The three apps share packages/app-core and packages/app-ui: build each one on every push, so a shared change
+    # that breaks one app fails here (packaging itself runs in build-windows.yml, build-mac.yml, android-app.yml).
+    name: Build ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [desktop, mac, android]
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Build
+        run: npm run build --workspace @nomadic/${{ matrix.app }}

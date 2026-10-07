@@ -1,6 +1,6 @@
 /**
  * Writes scripts/seed-source/v2/problems.json: one ProblemInfo per curated
- * problem slug, built from apps/desktop/data/practice/leetcode-companies.json
+ * problem slug, built from packages/app-core/data/practice/leetcode-companies.json
  * (company counts, tags, difficulty) plus the paid-only flags. Fails when a
  * curated slug is not in the dataset. Run before build-seed after changing
  * problem lists: `npm run build-problems -w @job-automator/learning`.
@@ -10,7 +10,7 @@ import { buildProblemIndex, type CompanyDataset } from '../src/v2/problems';
 import { curatedSlugs } from './seed-source/v2';
 import { KNOWN_PAID_ONLY } from './seed-source/v2/paid-only';
 
-const datasetUrl = new URL('../../../apps/desktop/data/practice/leetcode-companies.json', import.meta.url);
+const datasetUrl = new URL('../../../packages/app-core/data/practice/leetcode-companies.json', import.meta.url);
 const paidUrl = new URL('./seed-source/v2/paid-only.json', import.meta.url);
 const outUrl = new URL('./seed-source/v2/problems.json', import.meta.url);
 

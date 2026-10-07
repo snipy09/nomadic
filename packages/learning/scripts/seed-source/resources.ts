@@ -19,7 +19,7 @@ type ResourceDef = Pick<
 > & { duration_minutes?: number | null };
 
 export const RESOURCE_DEFS: ResourceDef[] = [
-  // From apps/desktop/src/renderer/data/roadmaps.ts
+  // From the old renderer data/roadmaps.ts
   { id: 'mdn-learn-html', title: 'MDN Web Docs: Learn HTML', url: 'https://developer.mozilla.org/en-US/docs/Learn/HTML', provider: 'Mozilla (MDN)', type: 'doc', skill_ids: ['html', 'accessibility'], level: 1, quality: 5, is_free: true, source: 'roadmaps.ts frontend/html-css-dom' },
   { id: 'fcc-css-grid-flexbox', title: 'CSS Grid & Flexbox Complete Masterclass', url: 'https://www.youtube.com/watch?v=rg7Fvvl3taU', provider: 'YouTube / freeCodeCamp', type: 'video', duration_minutes: 150, skill_ids: ['css-layout', 'css'], level: 2, quality: 3, is_free: true, source: 'roadmaps.ts frontend/html-css-dom (verify title)' },
   { id: 'javascript-info', title: 'The Modern JavaScript Tutorial (javascript.info)', url: 'https://javascript.info', provider: 'javascript.info', type: 'doc', skill_ids: ['javascript', 'async-javascript', 'dom-apis'], level: 1, quality: 5, is_free: true, source: 'roadmaps.ts frontend/javascript-es6' },
@@ -29,7 +29,7 @@ export const RESOURCE_DEFS: ResourceDef[] = [
   { id: 'posthog-docs', title: 'PostHog Docs: Product Analytics, Funnels & Experiments', url: 'https://posthog.com/docs', provider: 'PostHog', type: 'doc', skill_ids: ['product-analytics', 'ab-testing'], level: 2, quality: 3, is_free: true, source: 'roadmaps.ts product-management/pm-metrics' },
   { id: 'material-design-3', title: 'Material Design 3 Guidelines', url: 'https://m3.material.io', provider: 'Google', type: 'doc', skill_ids: ['design-principles', 'design-systems', 'color-theory', 'typography'], level: 1, quality: 5, is_free: true, source: 'roadmaps.ts ui-ux-design/ui-foundations' },
 
-  // From apps/desktop/src/renderer/data/resourceVault.ts (textbooks + cheatsheets)
+  // From packages/app-core/src/shared/data/resourceVault.ts (textbooks + cheatsheets)
   { id: 'ddia-book', title: 'Designing Data-Intensive Applications (Martin Kleppmann)', url: 'https://dataintensive.net', provider: "O'Reilly / Martin Kleppmann", type: 'book', skill_ids: ['system-design', 'postgresql', 'message-queues'], level: 4, quality: 5, is_free: false, source: 'resourceVault.ts book-ddia readUrl' },
   { id: 'ddia-references', title: 'DDIA chapter references (GitHub)', url: 'https://github.com/ept/ddia-references', provider: 'GitHub', type: 'doc', skill_ids: ['system-design'], level: 4, quality: 3, is_free: true, source: 'resourceVault.ts book-ddia notesDocUrl' },
   { id: 'clean-code-book', title: 'Clean Code (Robert C. Martin)', url: 'https://www.oreilly.com/library/view/clean-code-a/9780136083238/', provider: "O'Reilly", type: 'book', skill_ids: ['programming-fundamentals', 'testing-fundamentals'], level: 2, quality: 4, is_free: false, source: 'resourceVault.ts book-clean-code readUrl' },
@@ -40,7 +40,7 @@ export const RESOURCE_DEFS: ResourceDef[] = [
   { id: 'postgresql-org', title: 'PostgreSQL Official Site & Documentation', url: 'https://postgresql.org', provider: 'PostgreSQL Global Development Group', type: 'doc', skill_ids: ['postgresql', 'sql'], level: 3, quality: 4, is_free: true, source: 'resourceVault.ts cs-sql-indexes viewUrl' },
   { id: 'kubernetes-io', title: 'Kubernetes Documentation', url: 'https://kubernetes.io', provider: 'CNCF', type: 'doc', skill_ids: ['kubernetes'], level: 3, quality: 5, is_free: true, source: 'resourceVault.ts cs-docker-k8s viewUrl' },
 
-  // From apps/desktop/src/main/db.ts curated_learning_resources seed
+  // From packages/app-core/src/main/db.ts curated_learning_resources seed
   { id: 'yt-nextjs-server-components', title: 'Next.js Full Stack Architecture & Server Components', url: 'https://www.youtube.com/watch?v=wm5gMKuwSYk', provider: 'YouTube', type: 'video', duration_minutes: 35, skill_ids: ['nextjs', 'fullstack-architecture'], level: 3, quality: 3, is_free: true, source: 'db.ts curated_learning_resources (verify title)' },
   { id: 'yt-distributed-cache-redis', title: 'System Design: Distributed Cache & Redis', url: 'https://www.youtube.com/watch?v=iuqZvajTOyA', provider: 'YouTube', type: 'video', duration_minutes: 45, skill_ids: ['caching', 'system-design'], level: 3, quality: 3, is_free: true, source: 'db.ts curated_learning_resources (verify title)' },
   { id: 'yt-docker-kubernetes-pipelines', title: 'Docker & Kubernetes Deployment', url: 'https://www.youtube.com/watch?v=X48VuDVv0do', provider: 'YouTube', type: 'video', duration_minutes: 40, skill_ids: ['docker', 'kubernetes'], level: 2, quality: 3, is_free: true, source: 'db.ts curated_learning_resources (verify title)' },

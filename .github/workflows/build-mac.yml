@@ -1,6 +1,6 @@
 name: Build macOS (unsigned)
 
-# Builds the desktop app as a .dmg for Apple Silicon (arm64) and Intel (x64) Macs, launches each
+# Builds the Mac app (apps/mac) as a .dmg for Apple Silicon (arm64) and Intel (x64) Macs, launches each
 # packaged app once (smoke test over CDP, read only) and uploads the DMGs as an artifact for 14 days.
 # No Apple Developer ID yet: the app is ad-hoc signed (build-resources/mac-adhoc-sign.cjs), so on
 # first launch macOS asks the user to allow it (docs/guides/MAC_APP.md). Automatic updates are off
@@ -11,8 +11,7 @@ on:
   push:
     paths:
       - '.github/workflows/build-mac.yml'
-      - 'apps/desktop/build-resources/**'
-      - 'apps/desktop/scripts/smoke-cdp.mjs'
+      - 'apps/mac/**'
 
 permissions:
   contents: read
@@ -55,13 +54,13 @@ jobs:
         run: npm ci --include=dev --no-audit --no-fund
 
       - name: Build the DMG (ad-hoc signed)
-        working-directory: apps/desktop
+        working-directory: apps/mac
         run: npm run package:mac -- --${{ matrix.arch }} --publish never
 
       - name: Smoke test (install from the DMG, launch, read the first screen)
         run: |
           set -euo pipefail
-          dmg=$(ls apps/desktop/dist-electron/*.dmg)
+          dmg=$(ls apps/mac/dist-electron/*.dmg)
           mnt="$RUNNER_TEMP/nomadic-dmg"
           hdiutil attach "$dmg" -nobrowse -readonly -mountpoint "$mnt"
           ls "$mnt"
@@ -73,7 +72,7 @@ jobs:
           lipo -archs "$app/Contents/MacOS/Nomadic" | tee /dev/stderr | grep -qw "${{ matrix.lipo }}"
           "$app/Contents/MacOS/Nomadic" --remote-debugging-port=9333 > "$RUNNER_TEMP/app.log" 2>&1 &
           pid=$!
-          if ! node apps/desktop/scripts/smoke-cdp.mjs 9333; then
+          if ! node apps/mac/scripts/smoke-cdp.mjs 9333; then
             echo "::group::App log"; cat "$RUNNER_TEMP/app.log"; echo "::endgroup::"
             kill "$pid" 2>/dev/null || true
             exit 1
@@ -84,7 +83,7 @@ jobs:
 
       - name: Version and checksums
         id: meta
-        working-directory: apps/desktop/dist-electron
+        working-directory: apps/mac/dist-electron
         run: |
           echo "version=$(node -p "require('../package.json').version")" >> "$GITHUB_OUTPUT"
           shasum -a 256 *.dmg | tee SHA256SUMS-${{ matrix.arch }}.txt
@@ -93,7 +92,7 @@ jobs:
         with:
           name: Nomadic-${{ steps.meta.outputs.version }}-mac-${{ matrix.arch }}
           path: |
-            apps/desktop/dist-electron/*.dmg
-            apps/desktop/dist-electron/SHA256SUMS-*.txt
+            apps/mac/dist-electron/*.dmg
+            apps/mac/dist-electron/SHA256SUMS-*.txt
           if-no-files-found: error
           retention-days: 14

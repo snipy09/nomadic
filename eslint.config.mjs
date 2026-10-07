@@ -23,7 +23,7 @@ export default defineConfig(
       '**/.vite/**',
       '**/*.min.js',
       // Android app: web assets copied by `cap sync` and the native project.
-      'apps/mobile/android/**',
+      'apps/android/android/**',
       // Deno edge functions: different runtime and import style.
       'packages/supabase/functions/**',
     ],
@@ -77,7 +77,7 @@ export default defineConfig(
     },
   },
   {
-    files: ['apps/**/*.{js,jsx,ts,tsx}', 'packages/**/*.{jsx,tsx}'],
+    files: ['apps/**/*.{js,jsx,ts,tsx}', 'packages/**/*.{jsx,tsx}', 'packages/app-ui/src/**/*.ts'],
     plugins: { 'react-hooks': reactHooks },
     rules: {
       'react-hooks/rules-of-hooks': 'warn',

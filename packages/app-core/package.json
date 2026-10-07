@@ -1,0 +1,34 @@
+{
+  "name": "@nomadic/app-core",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Nomadic app core: the Electron main process (services, IPC handlers, local database, security) and the IPC contract, shared by apps/desktop (Windows) and apps/mac; apps/android reuses the services in its WebView host.",
+  "exports": {
+    "./main/*": "./src/main/*.ts",
+    "./shared/*": "./src/shared/*.ts",
+    "./build/*": "./build/*",
+    "./data/*": "./data/*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@job-automator/automation": "*",
+    "@job-automator/email-verifier": "*",
+    "@job-automator/form-engine": "*",
+    "@job-automator/learning": "*",
+    "@job-automator/scrapers": "*",
+    "@job-automator/supabase": "*",
+    "@nomadic/config": "*",
+    "@sentry/electron": "^8.0.0",
+    "electron-updater": "^6.8.9",
+    "sql.js": "^1.10.3",
+    "unpdf": "^1.8.1",
+    "ws": "^8.22.0",
+    "zod": "^3.25.76"
+  },
+  "peerDependencies": {
+    "electron": ">=31"
+  }
+}

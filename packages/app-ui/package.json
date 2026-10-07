@@ -1,0 +1,28 @@
+{
+  "name": "@nomadic/app-ui",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Nomadic app UI: the React screens shared by apps/desktop (Windows), apps/mac and apps/android. Each app mounts it with mountApp() and sets VITE_PLATFORM.",
+  "exports": {
+    "./mount": "./src/mount.tsx",
+    "./platform": "./src/platform.ts",
+    "./types": "./src/types.ts",
+    "./build/*": "./build/*",
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@job-automator/learning": "*",
+    "@nomadic/app-core": "*",
+    "@nomadic/config": "*",
+    "@nomadic/ui": "*",
+    "@tanstack/react-query": "^5.104.1",
+    "lucide-react": "^0.330.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "zustand": "^5.0.15"
+  }
+}

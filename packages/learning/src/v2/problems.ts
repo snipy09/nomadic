@@ -1,6 +1,6 @@
 /**
  * Problems from the LeetCode company dataset
- * (apps/desktop/data/practice/leetcode-companies.json): the problem index,
+ * (packages/app-core/data/practice/leetcode-companies.json): the problem index,
  * company keys and the per-topic company boost.
  */
 import { slugOfRef, type CatalogIndex } from './catalog';

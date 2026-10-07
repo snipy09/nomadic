@@ -1,6 +1,6 @@
 name: Android app
 
-# Builds the Nomadic Android app (apps/mobile: Capacitor + the desktop renderer and services) into a
+# Builds the Nomadic Android app (apps/android: Capacitor + the shared UI and services) into a
 # debug APK, then installs it on an emulator and checks it starts: the in-WebView host must log
 # "[Nomadic] host ready" and the sign-in screen must be on screen. The APK is uploaded as an artifact.
 
@@ -8,8 +8,9 @@ on:
   push:
     branches: [main, 'claude/**']
     paths:
-      - 'apps/mobile/**'
-      - 'apps/desktop/src/**'
+      - 'apps/android/**'
+      - 'packages/app-core/**'
+      - 'packages/app-ui/**'
       - 'packages/ui/**'
       - 'packages/config/**'
       - 'packages/learning/**'
@@ -46,7 +47,7 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Build the web app and copy it into the Android project
-        working-directory: apps/mobile
+        working-directory: apps/android
         run: |
           npx vite build
           npx cap sync android
@@ -57,13 +58,13 @@ jobs:
           java-version: 21
 
       - name: Build debug APK
-        working-directory: apps/mobile/android
+        working-directory: apps/android/android
         run: ./gradlew assembleDebug --stacktrace
 
       - uses: actions/upload-artifact@v4
         with:
           name: nomadic-android-debug-${{ github.run_number }}
-          path: apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          path: apps/android/android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
 
       - name: Free disk space for the emulator
@@ -88,7 +89,7 @@ jobs:
           ram-size: 4096M
           disk-size: 4096M
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
-          script: bash apps/mobile/scripts/emulator-smoke.sh apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          script: bash apps/android/scripts/emulator-smoke.sh apps/android/android/app/build/outputs/apk/debug/app-debug.apk
 
       - uses: actions/upload-artifact@v4
         if: always()

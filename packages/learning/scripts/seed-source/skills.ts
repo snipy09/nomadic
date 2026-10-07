@@ -3,7 +3,7 @@
  *
  * `npm run build-seed -w @job-automator/learning` turns this into the committed
  * JSON files under packages/learning/seed/. Skill names and groupings were
- * derived from apps/desktop/src/renderer/data/{roadmaps.ts,jobRolesDataset.ts,
+ * derived from packages/app-core/src/shared/data/{roadmaps.ts,jobRolesDataset.ts,
  * resourceVault.ts} and cleaned/deduplicated (e.g. "Redux / Zustand" and
  * "State Management" became one skill; "Python 3.12" and "Python" merged).
  *

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-const TYPES_PATH = 'apps/desktop/src/renderer/types.ts';
+const TYPES_PATH = 'packages/app-ui/src/types.ts';
 const typesCode = fs.readFileSync(TYPES_PATH, 'utf-8');
 const patchedTypes = typesCode.replace(
   "export type TabType =",
@@ -9,7 +9,7 @@ const patchedTypes = typesCode.replace(
 );
 fs.writeFileSync(TYPES_PATH, patchedTypes);
 
-const APP_PATH = 'apps/desktop/src/renderer/App.tsx';
+const APP_PATH = 'packages/app-ui/src/App.tsx';
 let appCode = fs.readFileSync(APP_PATH, 'utf-8');
 
 if (!appCode.includes("import { LearnerView }")) {

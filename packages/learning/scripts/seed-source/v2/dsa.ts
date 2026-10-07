@@ -1,6 +1,6 @@
 /**
  * Learn v2 DSA stream: 18 modules plus one language module per DSA language.
- * Problem slugs come from apps/desktop/data/practice/leetcode-companies.json
+ * Problem slugs come from packages/app-core/data/practice/leetcode-companies.json
  * (the build fails on a slug that is not in the dataset). Problems marked
  * LeetCode Premium in paid-only.ts appear only in `stretch`.
  */
