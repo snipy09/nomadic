@@ -146,6 +146,8 @@ export type TabType =
   | 'settings'
   | 'help'
   | 'account'
+  /** Desktop: hiring updates and hackathons (on the phone this is Home). */
+  | 'news'
   /** Android app: the "More" page (Dashboard, Answers, Settings, Help, ...). */
   | 'more'
   /** The setup checklist, today's learning, applications and best matches (Home shows News). */

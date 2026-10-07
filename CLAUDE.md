@@ -411,7 +411,8 @@ checklist in `docs/plans/OUTREACH_PLAN.md` section 11; the Assistant); OS notifi
   032 (applied 7 Oct 2026), then install the CI debug APK.
   On the phone the first tab is **News** (`features/news/`, IPC `get-news`, main `services/news.ts`: company hiring
   snapshots + job-board bursts + hackathons, all sourced) and the old Home dashboard is "Dashboard" under More (tab
-  `dashboard`); the desktop is unchanged (Home = dashboard) by the owner's choice. The phone has its own onboarding
+  `dashboard`); on the desktop Home stays the dashboard (owner's choice) and News is a secondary page at the end of the Jobs group
+  (tab `news`, same `NewsView`; hidden on the phone via `MOBILE_HIDDEN_TABS`). The phone has its own onboarding
   (`MobileOnboarding.tsx`: welcome → about → goal → roadmap), a Tracker button on Jobs, bottom-sheet drawers and
   touch-size controls (mobile Tailwind `ctl-*` = 40/44/48 px). Desktop changes stay out unless the owner asks.
 - **Company logos** (7 Oct 2026, desktop + Android, shared renderer): `features/feed/CompanyLogo.tsx` (white plate over the

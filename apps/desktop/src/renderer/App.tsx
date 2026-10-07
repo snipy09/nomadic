@@ -374,8 +374,8 @@ export default function App() {
 
   const pages = (
     <>
-            {/* Phone: Home is the News page and the dashboard sits under More. Desktop keeps its Home dashboard. */}
-            {activeTab === 'home' && IS_MOBILE && <NewsView onNavigate={handleNavigate} />}
+            {/* Phone: Home is the News page and the dashboard sits under More. Desktop keeps its Home dashboard; News is a Jobs page. */}
+            {(activeTab === 'news' || (activeTab === 'home' && IS_MOBILE)) && <NewsView onNavigate={handleNavigate} />}
 
             {(activeTab === 'dashboard' || (activeTab === 'home' && !IS_MOBILE)) && (
               <HomeView profile={profile} currentUser={currentUser} workspaceMode={workspaceMode} onNavigate={handleNavigate} />
@@ -491,7 +491,7 @@ export default function App() {
             )}
 
             {/* Safe fallback: an unknown tab (e.g. a stale preference) shows Home */}
-            {!['home', 'learner-roadmaps', 'learner-resources', 'learner-interview-prep', 'learner-projects', 'opportunities', 'feed', 'outreach', 'applications', 'logs', 'help', 'answers', 'profile', 'settings', 'more', 'dashboard'].includes(activeTab) && !activeTab.startsWith('admin') && (
+            {!['home', 'learner-roadmaps', 'learner-resources', 'learner-interview-prep', 'learner-projects', 'opportunities', 'feed', 'outreach', 'applications', 'logs', 'help', 'answers', 'profile', 'settings', 'more', 'dashboard', 'news'].includes(activeTab) && !activeTab.startsWith('admin') && (
               IS_MOBILE
                 ? <NewsView onNavigate={handleNavigate} />
                 : <HomeView profile={profile} currentUser={currentUser} workspaceMode={workspaceMode} onNavigate={handleNavigate} />

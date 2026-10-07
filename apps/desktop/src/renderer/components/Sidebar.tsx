@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   PanelLeftClose, PanelLeft, BookOpen, MessageSquare, Settings as SettingsIcon, LifeBuoy,
-  Briefcase, Mail, LayoutGrid, Shield, Compass, Target, MessageSquareText, Hammer, Home, Search,
+  Briefcase, Mail, LayoutGrid, Shield, Compass, Target, MessageSquareText, Hammer, Home, Search, Newspaper,
 } from 'lucide-react';
 import { NavItem, NavSection, IconButton, Badge, Kbd, NomadicLogo, NomadicMark, Tooltip, cn, focusRing, useAppShell, type ThemePreference } from '@nomadic/ui';
 import { TabType, AppUser, WorkspaceMode } from '../types';
@@ -53,6 +53,7 @@ export const JOBS_SECTION: SectionDef = {
     { id: 'feed', label: 'Job board', icon: Briefcase },
     { id: 'applications', label: 'Applications', icon: LayoutGrid },
     { id: 'answers', label: 'Answers', icon: MessageSquareText },
+    { id: 'news', label: 'News', icon: Newspaper },
     { id: 'opportunities', label: 'Opportunities', icon: Target },
     { id: 'outreach', label: 'Outreach', icon: Mail, soon: true },
   ],

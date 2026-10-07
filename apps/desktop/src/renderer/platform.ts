@@ -11,6 +11,8 @@ export const DESKTOP_APPLY_LABEL = 'Auto apply from desktop';
 /** Tabs the Android app does not have. */
 export const MOBILE_HIDDEN_TABS: ReadonlySet<string> = new Set([
   'learner-interview-prep',
+  /** Home is the News page on the phone. */
+  'news',
   'learner-projects',
   'learner-resources',
   'outreach',

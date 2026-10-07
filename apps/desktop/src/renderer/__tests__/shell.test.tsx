@@ -14,7 +14,10 @@ describe('nav sections', () => {
   it('shows Learn and Jobs together, hides flagged features, keeps Outreach as Soon and only shows Admin to admins', () => {
     const ids = getNavSections().flatMap((s) => s.items.map((i) => i.id));
     expect(getNavSections().map((s) => s.title)).toEqual(['Learn', 'Jobs']);
-    expect(ids).toEqual(expect.arrayContaining(['learner-roadmaps', 'feed', 'applications']));
+    expect(ids).toEqual(expect.arrayContaining(['learner-roadmaps', 'feed', 'applications', 'news']));
+    // News is a secondary Jobs page on the desktop, after the job tools; Home stays the dashboard.
+    const jobs = getNavSections().find((s) => s.title === 'Jobs')!.items.filter((i) => !i.soon).map((i) => i.id);
+    expect(jobs.at(-1)).toBe('news');
     expect(getNavSections().flatMap((s) => s.items).find((i) => i.id === 'outreach')?.soon).toBe(true);
     expect(ids).not.toContain('opportunities');
     expect(ids).not.toContain('learner-resources');

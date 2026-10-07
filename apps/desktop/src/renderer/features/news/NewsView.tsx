@@ -8,9 +8,9 @@ import { TOPIC_LABEL, dateRange, deadline, emptyReason, filterNews, type NewsFil
 import { useNews } from './useNews';
 
 /**
- * Home: the News page. Hiring updates per company (careers-site snapshots and the job board), company news from
- * Indian publishers (hiring plans, campus drives, layoffs, funding, expansion) and upcoming hackathons and contests,
- * each with its source and a link. The old dashboard lives on as "Dashboard" (More on the phone).
+ * The News page: hiring updates per company (careers-site snapshots and the job board), company news from Indian
+ * publishers (hiring plans, campus drives, layoffs, funding, expansion) and upcoming hackathons and contests, each with
+ * its source and a link. Home on the phone (dashboard under More); a Jobs page on the desktop.
  */
 
 interface NewsViewProps {
