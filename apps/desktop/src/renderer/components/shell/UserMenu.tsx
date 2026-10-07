@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, ChevronsUpDown, History, LogOut, Moon, Settings as SettingsIcon, Sun, Monitor, Zap } from 'lucide-react';
 import { Badge, cn, focusRing, type ThemePreference } from '@nomadic/ui';
 import { AppUser, TabType } from '../../types';
@@ -33,20 +34,40 @@ export const UserMenu: React.FC<UserMenuProps> = ({ user, onNavigate, onLogout, 
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [anchor, setAnchor] = useState<{ left: number; bottom: number } | null>(null);
   const tier = getTierBadgeProps(normalizeTier(user?.tier || user?.subscription_tier));
   const initial = (user?.fullName || user?.email || 'N')[0].toUpperCase();
   const isMax = normalizeTier(user?.tier || user?.subscription_tier) === 'max';
   const inSidebar = variant !== 'topbar';
 
+  // In the sidebar the menu is portalled to <body>: the sidebar clips overflow, so a collapsed (56 px) sidebar
+  // would hide a 240 px menu. Compact opens to the right of the avatar, the full row opens above itself.
+  useLayoutEffect(() => {
+    if (!open || !inSidebar) return;
+    const place = () => {
+      const r = buttonRef.current?.getBoundingClientRect();
+      if (!r) return;
+      setAnchor(variant === 'compact'
+        ? { left: r.right + 8, bottom: Math.max(8, window.innerHeight - r.bottom) }
+        : { left: r.left, bottom: window.innerHeight - r.top + 8 });
+    };
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
+  }, [open, inSidebar, variant]);
+
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (rootRef.current?.contains(t) || menuRef.current?.contains(t)) return;
+      setOpen(false);
     };
     document.addEventListener('mousedown', onDown);
-    rootRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+    menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
     return () => document.removeEventListener('mousedown', onDown);
-  }, [open]);
+  }, [open, anchor]);
 
   const close = (restoreFocus = true) => {
     setOpen(false);
@@ -54,7 +75,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ user, onNavigate, onLogout, 
   };
 
   const onMenuKey = (e: React.KeyboardEvent) => {
-    const items = Array.from(rootRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"],[role="menuitemradio"]') ?? []);
+    const items = Array.from(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"],[role="menuitemradio"]') ?? []);
     const i = items.indexOf(document.activeElement as HTMLElement);
     if (e.key === 'Escape') { e.preventDefault(); close(); }
     else if (e.key === 'ArrowDown') { e.preventDefault(); items[(i + 1) % items.length]?.focus(); }
@@ -63,6 +84,11 @@ export const UserMenu: React.FC<UserMenuProps> = ({ user, onNavigate, onLogout, 
     else if (e.key === 'End') { e.preventDefault(); items[items.length - 1]?.focus(); }
     else if (e.key === 'Tab') setOpen(false);
   };
+
+  const wrapMenu = (menu: React.ReactElement) => (!inSidebar || !anchor ? menu : createPortal(
+    <div className="nm-root fixed z-dropdown" style={{ left: anchor.left, bottom: anchor.bottom, background: 'transparent' }}>{menu}</div>,
+    document.body,
+  ));
 
   return (
     <div className="relative" ref={rootRef}>
@@ -98,8 +124,8 @@ export const UserMenu: React.FC<UserMenuProps> = ({ user, onNavigate, onLogout, 
           </>
         )}
       </button>
-      {open && (
-        <div role="menu" aria-label="Account" onKeyDown={onMenuKey} className={cn('absolute z-dropdown w-60 rounded-lg border border-line bg-surface-raised p-1.5 shadow-e3', inSidebar ? 'bottom-full left-0 mb-2' : 'right-0 top-full mt-2')}>
+      {open && (!inSidebar || anchor) && wrapMenu(
+        <div ref={menuRef} role="menu" aria-label="Account" onKeyDown={onMenuKey} className={cn('z-dropdown w-60 rounded-lg border border-line bg-surface-raised p-1.5 shadow-e3', !inSidebar && 'absolute right-0 top-full mt-2')}>
           <div className="border-b border-line px-2 pb-2 pt-1">
             <div className="truncate text-body font-strong text-fg">{user?.fullName || 'Nomadic user'}</div>
             <div className="truncate text-caption text-fg-subtle">{user?.email}</div>
@@ -142,7 +168,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ user, onNavigate, onLogout, 
               <LogOut /> Sign out
             </button>
           </div>
-        </div>
+        </div>,
       )}
     </div>
   );
