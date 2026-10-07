@@ -2,12 +2,15 @@
   "name": "nomadic-monorepo",
   "version": "1.0.6",
   "private": true,
-  "type": "module",
-  "description": "Nomadic \u2014 Commercial Grade Job Automator: High-Throughput Scrapers, Auto-Apply Engine, 4-Stage Email Verifier, Single-IP Security Desktop App",
+  "description": "Nomadic: career app for engineering students in India (Windows, macOS, Android), its shared packages, scrapers and website.",
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
+  "engines": {
+    "node": ">=22"
+  },
+  "type": "module",
   "scripts": {
     "build": "npm run build:desktop",
     "build:desktop": "npm run build --workspace @nomadic/desktop",
@@ -64,8 +67,5 @@
   },
   "dependencies": {
     "playwright": "^1.62.1"
-  },
-  "engines": {
-    "node": ">=22"
   }
 }
