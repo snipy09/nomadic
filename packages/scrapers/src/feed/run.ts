@@ -331,9 +331,18 @@ export async function runFeedScrape(options: FeedRunOptions): Promise<FeedRunRep
     report.totals.hackathons = unique.length;
     report.totals.hackathonDuplicates = duplicates;
     if (options.publish) {
-      report.totals.written.hackathons = await options.store!.upsertHackathons(unique.map((h) => toHackathonRow(h, startedAt)));
+      // Per source, so one source the database rejects (e.g. before migration 033 allows it) does not stop the rest.
       for (const s of report.hackathonSources) {
-        if (s.ok && !s.truncated) report.totals.expired.hackathons += await options.store!.expireHackathons(s.source, startedAt);
+        if (!s.ok) continue;
+        const rows = unique.filter((h) => h.source === s.source).map((h) => toHackathonRow(h, startedAt));
+        try {
+          report.totals.written.hackathons += await options.store!.upsertHackathons(rows);
+          if (!s.truncated) report.totals.expired.hackathons += await options.store!.expireHackathons(s.source, startedAt);
+        } catch (err) {
+          s.ok = false;
+          s.error = `publishing failed: ${errorText(err)}`;
+          log(`[feed] ${s.source}: ${s.error}`);
+        }
       }
     }
   }

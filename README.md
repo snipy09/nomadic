@@ -47,10 +47,11 @@ docs/
   security/           Security checklist and git history cleanup
   architecture.excalidraw     Architecture diagram
 scripts/
-  desktop-scraper/    Double-click launchers for the laptop scrapers (jobs, contacts, feed)
-  windows/            Windows launchers: Build Nomadic.bat (+ build-nomadic.ps1), Run-Job-Scraper.bat, OCR helper
+  scraper-folder/     The Desktop scraper folder (launchers, settings.ini, auto schedule); built with every scraper
+                      bundled by `npm run build:scraper-folder`, installed by windows/Install scraper folder.cmd
+  windows/            Windows launchers: Build Nomadic.bat (+ build-nomadic.ps1), Install scraper folder.cmd, OCR helper
   dev/                One-off developer scripts
-  scrape-desktop.ps1, scrape-laptop.*, sign-windows.js
+  scrape-laptop.*, sign-windows.js
 brand/                Profile icon and GitHub profile assets (videos and carousels are kept outside the repo)
 ```
 
@@ -79,16 +80,24 @@ npm run bench:forms                        # form-filling benchmark
 
 CI: `ci.yml` (typecheck, lint, tests on every push), `android-app.yml` (builds the debug APK and smoke-tests it on
 an emulator; the APK is a run artifact), `android-apply.yml` (Android form agent on emulators), `build-windows.yml`
-(unsigned Windows build on demand), `release.yml` (signed release), `nightly-bench.yml`, `scrape.yml`.
+(unsigned Windows build on demand), `release.yml` (signed release), `nightly-bench.yml`, `scrape.yml`,
+`scraper-folder.yml` (builds the Desktop scraper folder as a downloadable artifact).
 
 ## Data pipelines
 
-- **Jobs** (`jobs` table): `npm run scrape:publish`, the laptop launchers in `scripts/desktop-scraper`
-  ([`docs/guides/SCRAPER_LAPTOP.md`](docs/guides/SCRAPER_LAPTOP.md)) or `scrape.yml` once the repository secrets
-  `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set.
+- **All scrapers on a schedule**: the Desktop scraper folder (`Desktop\Nomadic Content\Scraper`, source in
+  `scripts/scraper-folder`, [`docs/guides/SCRAPER_LAPTOP.md`](docs/guides/SCRAPER_LAPTOP.md)) runs every scraper
+  below on its own interval (settings.ini) through a Windows scheduled task and publishes to Supabase.
+- **Jobs** (`jobs` table): `npm run scrape:publish` or `scrape.yml` once the repository secrets `SUPABASE_URL` and
+  `SUPABASE_SERVICE_ROLE_KEY` are set. Sources: Internshala, Unstop, company careers sites, Greenhouse/Lever/Ashby
+  boards (built in plus those `discover` finds for ~370 India-hiring companies), Remotive, Jobicy, Arbeitnow, RSS,
+  Adzuna (with a key). Jobs expire 30 days after posting (migration 033).
 - **Feed sources** (migration 031): `npm run scrape:feed -- --publish` reads India-open openings (full time and
-  internships) from 66 famous companies' own careers sites and ATS boards, with daily hiring snapshots, plus
-  hackathons from Devfolio, Unstop, Devpost and HackerEarth. robots.txt is obeyed.
+  internships) from 66 famous companies' own careers sites and ATS boards (plus discovered boards), with daily hiring
+  snapshots, plus hackathons from Devfolio, Unstop, Devpost, HackerEarth, Hack2skill and MLH, and Codeforces contests
+  (migration 033). robots.txt is obeyed.
+- **Hiring news** (migration 033 `news_items`): `npm run scrape:news -- --publish` reads Indian publishers' RSS feeds
+  and keeps hiring plans, campus drives, layoffs, funding and expansion, with facts read from the text.
 - **Contacts** (Outreach): `npm run scrape:contacts -- --publish`, public pages only.
 
 ## Backend (Supabase)

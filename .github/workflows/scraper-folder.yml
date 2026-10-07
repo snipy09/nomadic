@@ -1,0 +1,55 @@
+name: Scraper folder
+
+# Builds the Desktop scraper folder (scripts/scraper-folder + every scraper bundled into bin/nomadic-scrapers.mjs)
+# and uploads it as an artifact. Download it, extract the Scraper folder to Desktop\Nomadic Content\Scraper (keep
+# your .env and settings.ini), or build it locally with scripts\windows\Install scraper folder.cmd.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/scrapers/**'
+      - 'scripts/scraper-folder/**'
+      - '.github/workflows/scraper-folder.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Scraper tests
+        run: npx vitest run packages/scrapers
+
+      - name: Build the folder
+        run: npm run build:scraper-folder
+
+      - name: Smoke test the bundle
+        run: |
+          node dist/scraper-folder/Scraper/bin/nomadic-scrapers.mjs sources
+          node dist/scraper-folder/Scraper/bin/nomadic-scrapers.mjs status --home dist/scraper-folder/Scraper
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nomadic-Scraper-folder
+          path: dist/scraper-folder
+          retention-days: 30

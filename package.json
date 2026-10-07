@@ -26,6 +26,8 @@
     "bench:forms": "tsx packages/form-bench/src/run.ts",
     "scrape:contacts": "tsx packages/scrapers/src/cli.ts contacts",
     "scrape:feed": "tsx packages/scrapers/src/cli.ts feed",
+    "scrape:news": "tsx packages/scrapers/src/cli.ts news",
+    "build:scraper-folder": "node packages/scrapers/scripts/build-folder.mjs",
     "email:verify": "tsx packages/email-verifier/src/cli.ts",
     "build:desktop": "npm run build --prefix apps/desktop",
     "package:desktop": "npm run package:win --prefix apps/desktop",

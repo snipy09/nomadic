@@ -29,10 +29,15 @@
  *                sources/india-companies.ts (and famous ones without a readable listing). The job board and the
  *                company snapshots read the file named by SCRAPER_BOARDS_FILE.
  *
+ *   scrape auto  [--home DIR] [--force jobs,news|all] [--dry-run]
+ *                Desktop scraper folder: runs every scraper whose interval in DIR/settings.ini has passed (Windows
+ *                Task Scheduler starts it every 30 minutes), reads DIR/.env, writes DIR/reports and DIR/logs.
+ *   scrape status [--home DIR]   last run, result and next run of each scraper in the folder.
+ *
  * Publishing needs SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in the environment.
  */
 import { appendFileSync, existsSync, mkdirSync, renameSync, writeFileSync } from 'fs';
-import { dirname, resolve } from 'path';
+import { basename, dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { parseArgs } from 'util';
 import { createClient } from '@supabase/supabase-js';
@@ -57,6 +62,8 @@ import { SOURCES, selectSources, type Tier } from './sources/registry.js';
 import { discoverBoards, formatDiscoverySummary, loadDiscoveredBoards } from './sources/boards.js';
 import { PoliteFetcher } from './feed/http.js';
 import { formatNewsSummary, runNewsScrape } from './news/run.js';
+import { formatStatus, runAuto } from './auto/runner.js';
+import { TASK_IDS, type TaskId } from './auto/settings.js';
 import { SupabaseNewsStore } from './news/store.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -117,6 +124,9 @@ async function main(argv: string[]): Promise<number> {
       'max-pages': { type: 'string' },
       companies: { type: 'string' },
       'hackathon-sources': { type: 'string' },
+      home: { type: 'string' },
+      force: { type: 'string' },
+      'dry-run': { type: 'boolean', default: false },
     },
   });
 
@@ -143,6 +153,15 @@ async function main(argv: string[]): Promise<number> {
       summaryDir: values['summary-dir'],
       json: values.json,
     });
+  }
+
+  if (command === 'auto' || command === 'status') {
+    const home = folderHome(values.home);
+    if (command === 'status') {
+      console.log(formatStatus(home, new Date()));
+      return 0;
+    }
+    return runAutoCommand(home, values.force, values['dry-run']);
   }
 
   if (command === 'news') {
@@ -430,6 +449,57 @@ async function runFeed(args: FeedArgs): Promise<number> {
   return all.length > 0 && all.every((ok) => !ok) ? 1 : 0;
 }
 
+/** The scraper folder: --home, NOMADIC_SCRAPER_HOME, the folder above bin\ when run from the bundle, else the cwd. */
+function folderHome(flag: string | undefined): string {
+  if (flag) return resolve(flag);
+  if (process.env.NOMADIC_SCRAPER_HOME) return resolve(process.env.NOMADIC_SCRAPER_HOME);
+  return basename(HERE) === 'bin' ? resolve(HERE, '..') : process.cwd();
+}
+
+/** Mirrors console output into logs/auto-<yyyy-mm>.log (scheduled runs have no window to show it). */
+function teeConsole(file: string): () => void {
+  mkdirSync(dirname(file), { recursive: true });
+  const original = { log: console.log, warn: console.warn, error: console.error };
+  const write = (args: unknown[]) => {
+    try {
+      appendFileSync(file, `${new Date().toISOString()} ${args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ')}\n`);
+    } catch {
+      /* logging must never stop a scrape */
+    }
+  };
+  for (const level of ['log', 'warn', 'error'] as const) {
+    console[level] = (...args: unknown[]) => {
+      original[level](...args);
+      write(args);
+    };
+  }
+  return () => Object.assign(console, original);
+}
+
+async function runAutoCommand(home: string, force: string | undefined, dryRun: boolean): Promise<number> {
+  const envFile = join(home, '.env');
+  if (existsSync(envFile)) process.loadEnvFile(envFile);
+  const forced = force === 'all' ? 'all' : (list(force) as TaskId[] | undefined);
+  const unknown = Array.isArray(forced) ? forced.filter((t) => !(TASK_IDS as readonly string[]).includes(t)) : [];
+  if (unknown.length) {
+    console.error(`Unknown scraper(s): ${unknown.join(', ')}. Use ${TASK_IDS.join(', ')} or all.`);
+    return 2;
+  }
+  if (!dryRun && !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error(`No SUPABASE_SERVICE_ROLE_KEY in ${envFile}. Run Setup.cmd first (or add --dry-run).`);
+    return 2;
+  }
+  process.env.SUPABASE_URL ||= 'https://grqkiddfwoyicktpgdea.supabase.co';
+  const stop = teeConsole(join(home, 'logs', `auto-${new Date().toISOString().slice(0, 7)}.log`));
+  try {
+    const result = await runAuto({ home, force: forced, dryRun, exec: (args) => main(args) });
+    if (result.locked) return 0;
+    return result.ran.some((r) => !r.ok) ? 1 : 0;
+  } finally {
+    stop();
+  }
+}
+
 async function runNews(args: { publish: boolean; maxAgeDays?: string; summaryDir?: string; json?: string }): Promise<number> {
   const maxAgeDays = positiveInt(args.maxAgeDays, 'max-age-days');
   if (maxAgeDays === null) return 2;
@@ -487,9 +557,11 @@ async function runDiscover(args: { out?: string; summaryDir?: string }): Promise
   return report.found === 0 && report.errors.length > 0 ? 1 : 0;
 }
 
-const isDirectRun = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+const samePath = (a: string, b: string) => (process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b);
+const isDirectRun = process.argv[1] && samePath(resolve(process.argv[1]), fileURLToPath(import.meta.url));
 if (isDirectRun) {
-  loadRootEnv();
+  // The bundled folder (bin/) reads its own .env in `auto`; only a repo checkout uses the repo-root .env.
+  if (basename(HERE) !== 'bin') loadRootEnv();
   main(process.argv.slice(2)).then(
     (code) => process.exit(code),
     (err) => {

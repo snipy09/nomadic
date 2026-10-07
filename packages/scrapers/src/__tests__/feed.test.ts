@@ -304,6 +304,27 @@ describe('runFeedScrape', () => {
     expect(summary).toContain('No readable listing (curated in Admin): tcs.');
   });
 
+  it('publishes hackathons per source, so one rejected source does not stop the others', async () => {
+    class RejectingStore extends MemoryFeedStore {
+      async upsertHackathons(rows: Parameters<MemoryFeedStore['upsertHackathons']>[0]) {
+        if (rows.some((r) => r.source === 'codeforces')) throw new Error('violates check constraint "hackathons_source_check"');
+        return super.upsertHackathons(rows);
+      }
+    }
+    const store = new RejectingStore();
+    const start = Math.floor(NOW.getTime() / 1000) + 86_400;
+    const { fetchImpl } = stubFetch({
+      'https://codeforces.com/api/contest.list': () => ({ status: 'OK', result: [{ id: 7, name: 'Round 7', phase: 'BEFORE', startTimeSeconds: start, durationSeconds: 7200 }] }),
+      'https://unstop.com/api/public/opportunity/search-result': () => ({
+        data: { data: [{ id: 5, title: 'Online Hack', public_url: 'hackathons/online-hack-5', region: 'online', start_date: '2026-10-20T00:00:00Z', end_date: '2026-10-21T00:00:00Z' }], last_page: 1 },
+      }),
+    });
+    const report = await runFeedScrape({ sources: ['hackathons'], hackathonSources: ['unstop', 'codeforces'], region: 'india', publish: true, store, fetchImpl, sleep: noSleep, clock: () => NOW });
+    expect([...store.hackathons.values()].map((h) => h.source)).toEqual(['unstop']);
+    expect(report.hackathonSources.find((s) => s.source === 'codeforces')).toMatchObject({ ok: false, error: expect.stringMatching(/publishing failed/) });
+    expect(report.hackathonSources.find((s) => s.source === 'unstop')?.ok).toBe(true);
+  });
+
   it('reports a failing company without closing its stored openings', async () => {
     const store = new MemoryFeedStore();
     await store.upsertOpenings([

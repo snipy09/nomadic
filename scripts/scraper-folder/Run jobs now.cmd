@@ -1,0 +1,3 @@
+@echo off
+rem Jobs and internships: Internshala, Unstop, company careers sites, Greenhouse/Lever/Ashby boards, Adzuna, ...
+call "%~dp0bin\run.cmd" jobs
