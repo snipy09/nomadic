@@ -1,8 +1,9 @@
 # Nomadic: complete project context
 
 Read this first. It is the single source of context for anyone (person or AI assistant) working on this repo.
-Last full update: 7 October 2026 (Android app `apps/mobile` v0.1.0; feed scraper + migration 031; one computer + one
-phone per account, migration 032; repo folders tidied: docs/guides|plans|security, scripts/windows|dev, brand/).
+Last full update: 7 October 2026 (Desktop scraper folder with every scraper on a schedule + hiring news + migration 033;
+Android app `apps/mobile` v0.1.0; feed scraper + migration 031; one computer + one phone per account, migration 032;
+repo folders tidied: docs/guides|plans|security, scripts/windows|dev, brand/).
 Earlier: v1.4.0 Apple design, v1.3.0 Home, v1.2.0 Learn path + Projects. Keep it current when something important changes.
 New session or new assistant account? Read sections 9–11 at the end first (handoff state, how to build and test,
 how the owner wants work done).
@@ -107,17 +108,24 @@ packages/form-engine FormReader, classifier, answerer (one batched LLM call via 
 packages/capacitor-apply-browser  Capacitor 8 plugin ApplyBrowser (Java ApplyBrowserController: WebView, agent at document
                      start in every frame, WebMessageListener bridge) + TS wrapper openApplyBrowser; docs/guides/ANDROID_APPLY.md
 packages/automation  AutoApplyEngine: fill with autoSubmit off, onReadyForReview, submitReviewed; ATS adapters
-packages/scrapers    Pipeline: fetch, normalise (zod Job schema), dedupe, validate links, classify, publish;
-                     feed/ = Home feed scraper (`npm run scrape:feed`): 66 famous companies' India openings (full time
-                     + internships, own careers APIs/ATS) with daily hiring snapshots, and hackathons (Devfolio, Unstop,
-                     Devpost, HackerEarth); robots.txt obeyed; writes migration 031 tables
+packages/scrapers    Pipeline: fetch, normalise (zod Job schema), dedupe, validate links, classify, publish (jobs older
+                     than 30 days dropped); sources/ = registry (Greenhouse/Lever/Ashby incl. discovered boards, careers
+                     sites, Internshala, Unstop, Adzuna with a key, Remotive, Jobicy, Arbeitnow, RSS; tier 3 opt-in),
+                     boards.ts + india-companies.ts (`discover`: ~370 India-hiring companies probed on 4 ATS APIs →
+                     state/boards.json); feed/ = Home feed scraper (`npm run scrape:feed`): 66 famous companies + discovered
+                     boards, India openings with daily hiring snapshots, hackathons (Devfolio, Unstop, Devpost, HackerEarth,
+                     Hack2skill, MLH) and Codeforces contests; news/ = hiring news from Indian publishers' RSS
+                     (`npm run scrape:news`, facts read from headline + summary only) → `news_items` (033); auto/ = the
+                     Desktop folder's scheduler (`auto`, `status`); robots.txt obeyed
 packages/supabase    client wrappers (index.ts), migrations/, functions/, baseline/ (one-paste setup files), scripts/
 packages/form-bench  22 ATS fixtures and scorer (`npm run bench:forms`)
 docs/                DECISIONS.md, FEATURES.md, README.md (index); guides/ (DATABASE_SETUP, RELEASE, SCRAPER_LAPTOP, MOBILE_APP,
                      ANDROID_APPLY, SUPABASE_SQL_PASTE), plans/ (SAAS, LEARN_V2 plan + handoff, OUTREACH, HOME_FEED, REVAMP),
                      security/ (SECURITY_CHECKLIST, SECURITY_CLEANUP), architecture.excalidraw
-scripts/             desktop-scraper/ (laptop launchers), windows/ (Build Nomadic.bat + build-nomadic.ps1, Run-*.bat, ocr.ps1;
-                     they cd to the repo root), dev/ (one-off scripts), scrape-desktop.ps1, scrape-laptop.*, sign-windows.js
+scripts/             scraper-folder/ (the Desktop scraper folder: launchers, settings.ini, bin/*.ps1|vbs|cmd; built with
+                     every scraper bundled by `npm run build:scraper-folder`), windows/ (Build Nomadic.bat + build-nomadic.ps1,
+                     Install scraper folder.cmd, Run-*.bat, ocr.ps1; they cd to the repo root), dev/ (one-off scripts),
+                     scrape-laptop.*, sign-windows.js
 brand/               profile-icon/, github-profile/ (videos/carousels stay outside the repo)
 ```
 
@@ -151,7 +159,7 @@ Key flows:
   dropped by an owner paste (`DROP TABLE IF EXISTS public.hr_contacts;`; the connector times out on DROP).
   028 = Learn v2 state documents + v2 event types; 029 = AI roadmap quotas (`ai_limits` with roadmap columns,
   outreach metrics of 027 kept); 030 = AI project help quota (metric `ai_project_help`, `ai_project_help_limits`
-  5/40/150, applied through the Supabase connector on 5 Oct 2026 and verified). 031 (feed sources: `companies`, `company_openings`, `company_hiring_snapshots`, `hackathons`, read-only for clients) and 032 (one computer + one phone per account: device classes by fingerprint prefix `mobile-`) were applied through the Supabase connector on 7 Oct 2026 and verified (device_class, per-class register/heartbeat, 4 read-only feed tables with RLS; 031 applied without its no-op `DROP POLICY IF EXISTS` lines because the tables were new). The connector must be signed in to the Supabase account that owns the "Nomadic" org (another account sees only old projects). Next free number is 033. Security advisor: no errors; remaining notices are by design (deny-all tables;
+  5/40/150, applied through the Supabase connector on 5 Oct 2026 and verified). 031 (feed sources: `companies`, `company_openings`, `company_hiring_snapshots`, `hackathons`, read-only for clients) and 032 (one computer + one phone per account: device classes by fingerprint prefix `mobile-`) were applied through the Supabase connector on 7 Oct 2026 and verified (device_class, per-class register/heartbeat, 4 read-only feed tables with RLS; 031 applied without its no-op `DROP POLICY IF EXISTS` lines because the tables were new). The connector must be signed in to the Supabase account that owns the "Nomadic" org (another account sees only old projects). 033 (Desktop scraper folder: `news_items` read-only for clients, hackathons `kind` + sources hack2skill/mlh/codeforces, 30-day job age) is PARTLY live: on 7 Oct 2026 the connector applied `news_items` (+ RLS/policy), trigger `trg_jobs_max_age` and the hackathons `kind` column (verified); it timed out on the rest (new `maintain_jobs_lifecycle` with the 30-day sweep, and the `hackathons_source_check` swap, which needs DROP CONSTRAINT): the owner pastes `baseline/apply_033.sql` (idempotent, the whole file). Until then Hack2skill/MLH/Codeforces rows are rejected (published per source, so the others still land). Next free number is 034. Security advisor: no errors; remaining notices are by design (deny-all tables;
   session-checked SECURITY DEFINER RPCs callable by anon).
 - **Learn content seeded** from the bundle (checksums verified; quiz items re-checked 5 Oct 2026).
 - **Accounts**: the owner account (`sajalmishra0908@gmail.com`) has role `admin` (granted 5 Oct 2026 by SQL, with an
@@ -198,7 +206,7 @@ F13: Outreach was rebuilt in v1.1.0 (see section 9) and shows in the sidebar as 
 the working module needs `VITE_FEATURES="outreach=on"`. Opportunity Board, Resource Vault and the Assistant stay
 hidden; the Assistant still needs rework or removal.
 
-Tests: 1,835 vitest tests pass (143 files, 7 Oct 2026; 1,771 on 6 Oct; run with `--maxWorkers=2 --testTimeout=30000` on this laptop, the default
+Tests: 1,878 vitest tests pass (146 files, 7 Oct 2026 after the scraper folder; 1,835 earlier that day; 1,771 on 6 Oct; run with `--maxWorkers=2 --testTimeout=30000` on this laptop, the default
 parallelism times out component tests, and the three Chrome DOM suites can time out closing Chrome in `afterAll`);
 typecheck, lint (0 errors, ~190 warnings) and desktop/web builds pass.
 The built Electron app has been smoke-tested over CDP (window, live feed via IPC, Learn, Settings, Help, Activity, Admin
@@ -208,21 +216,24 @@ screens). The owner has signed in on the packaged v1.0.6 app and run apply up to
 ## 7. What is left
 
 Owner actions:
-00. (Done 7 Oct 2026) 031 and 032 are live. Left: first feed run on the laptop, `"Run feed scraper.cmd" -DryRun`, fix/null
-   the companies it lists as FAILED (`packages/scrapers/src/feed/companies.ts`), then run it without `-DryRun` to fill News.
+000. **Scraper folder go-live** (7 Oct 2026): paste `packages/supabase/baseline/apply_033.sql` in the SQL editor; on the laptop
+   `git pull`, double-click `scripts\windows\Install scraper folder.cmd` (builds and installs `Desktop\Nomadic Content\Scraper`,
+   removes the old launchers and the old "Nomadic scraper" task), then `Setup.cmd` there (reuses the key in `Desktop\Nomadic\.env`,
+   optional Adzuna key, turns on the 30-minute schedule). First run `Test all sources (dry run).cmd` and fix what its
+   summaries list as FAILED (news feed URLs `news/feeds.ts`, MLH/Hack2skill parsers `feed/hackathons.ts`, careers boards
+   `feed/companies.ts`): none of these sites were reachable from the build container. The first scheduled jobs run expires
+   the 146 of 328 live jobs that are older than 30 days (the age rule asked for). Adzuna: their terms want "Jobs by Adzuna"
+   credit and a licence for ongoing commercial use.
+00. (Done 7 Oct 2026) 031 and 032 are live. The feed's first dry run is now part of action 000.
 0. **Learn v2 go-live** (merged into `main` with 1.1.0): 028, 029, the content seed and the ai-proxy redeploy are
    done (5 Oct 2026). v1.2.0's 624 quiz items are live (5 Oct 2026: 864 practice items, content hash checked against the
    seed). Left: on the laptop run `npm run check-paid-only -w
    @job-automator/learning`, `npm run build-problems`, `npm run check-links -w @job-automator/learning --
    --write-seed` and `npm run build-seed` (the build container could not reach leetcode.com or the resource sites,
    so paid-only flags are a hand list and the 26 new resources stay hidden until link-checked), then regenerate and re-paste `baseline/content_seed.sql` and package the next version.
-1. Keep the live `jobs` table fresh (seeded once on 4 Oct 2026 with 328 active India-open jobs, 137 internships): run
-   `Desktop\Nomadic Content\Scraper\Run job scraper.cmd` (contacts: `Run contact scraper.cmd` → `outreach_contacts`; sources
-   in `scripts/desktop-scraper/`) (`scripts/scrape-desktop.ps1 -Mode jobs|contacts`: `--max-new 100` new jobs per run,
-   duplicates of published jobs skipped, a summary in `reports\` per run; first run asks for the service role key,
-   which no `.env` on this laptop had on 4 Oct 2026) or `scripts\scrape-laptop.cmd` (`docs/guides/SCRAPER_LAPTOP.md`) and/or set the GitHub Actions secrets
-   (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`). The pipeline keeps only jobs open to candidates in India by default
-   (`--region all` to keep everything).
+1. Keep the live data fresh (jobs seeded once on 4 Oct 2026 with 328 active India-open jobs): the Desktop scraper folder
+   (action 000) does it on its own; `scrape.yml` can run jobs in the cloud once the GitHub secrets `SUPABASE_URL` and
+   `SUPABASE_SERVICE_ROLE_KEY` are set. Only jobs open to candidates in India are kept by default (`region = all` in settings.ini).
 2. ~~Create the admin account~~: done 5 Oct 2026 (owner account has role `admin`, audit-logged).
 3. Run the app (`npm run dev:desktop`) and test: sign-up, onboarding → roadmap, lesson, feed, apply with review,
    tracker, password reset, AI feedback.
@@ -410,11 +421,26 @@ checklist in `docs/plans/OUTREACH_PLAN.md` section 11; the Assistant); OS notifi
   never guessed). Images come from Google's favicon service (`www.google.com/s2/favicons`, no referrer), disclosed in the
   Privacy Policy (LEGAL_VERSION 2026-10-07). Used on job cards and drawer, Home, News, tracker (board, list, drawer,
   follow-ups) and the apply review. Add new hirers to `KNOWN_DOMAINS` there.
+- **Desktop scraper folder** (7 Oct 2026, branch `claude/trusting-albattani-majs83`): one folder
+  `Desktop\Nomadic Content\Scraper` with every scraper bundled (Node 22 only), `Setup.cmd`, `Start/Stop auto scraping.cmd`
+  (scheduled task "Nomadic scrapers": every 30 min + at sign-in, current user, hidden via `bin\run-scheduled.vbs`), `Run ... now.cmd`,
+  `Test all sources (dry run).cmd`, `Check status.cmd`; per-scraper intervals in `settings.ini` (news 3 h, jobs 6 h, hackathons
+  and companies 12 h, contacts 24 h, discover weekly), state/lock/backoff in `packages/scrapers/src/auto/`, reports per scraper,
+  monthly logs. New sources: careers sites + Unstop + Adzuna + discovered ATS boards on the job board, wider Internshala crawl
+  (45 listings × 5 pages), 1,000 new jobs per run, 30-day job age; hiring news (`news_items`, News tab "Company news" +
+  hiring plans under Hiring, `services/news.ts` `updatesFromArticles`); Hack2skill, MLH and Codeforces contests (badge
+  "Contest"). Owner's ask behind it: "top 1000 companies' latest updates (e.g. Google hiring Sept–Dec for these roles)":
+  covered by news articles (any company; ~430 named companies get a company tag) plus snapshots for every company with a
+  readable or discovered board; there is no single source for hiring windows of 1,000 companies. Live checks: owner action 000.
 - Next most useful work: owner action 0 (Learn v2 go-live), then owner actions in section 7 (consent screen, Resend domain, key rotation),
   then a live end-to-end pass (Google sign-in, reviewed submit, AI feedback), then the code follow-ups in section 7.
 
 ## 10. Build, package, test and deploy
 
+- Scraper folder: `npm run build:scraper-folder` → `dist/scraper-folder/Scraper` (esbuild bundle `bin/nomadic-scrapers.mjs`, 1.8 MB,
+  needs only Node 22; Windows files rewritten with CRLF); `scripts\windows\Install scraper folder.cmd` installs it on the
+  laptop; `scraper-folder.yml` uploads it as artifact `Nomadic-Scraper-folder`. Keep `scripts/scraper-folder` files ASCII
+  (PowerShell 5.1 reads UTF-8 without BOM as ANSI). Try the runner without Windows: `node <bundle> auto --home <dir> --force news --dry-run`.
 - Android: `npm run build -w @nomadic/mobile` (web bundle); `npm run dev -w @nomadic/mobile` to try it in a browser at
   phone size. The APK is built only in CI (`android-app.yml`: assembleDebug + emulator smoke test, artifact
   `nomadic-android-debug-<run>`); details in `docs/guides/MOBILE_APP.md`.
