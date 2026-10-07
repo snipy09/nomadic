@@ -60,7 +60,7 @@ Last updated: 7 October 2026.
   in `index.html` (once per session). Logo: `components/Logo.tsx`, SVG sources in `public/logo*.svg`.
 - Web deploy (Vercel project `nomadic-app`, live at https://nomadicai.vercel.app): the Vercel Git integration deploys
   every push to `main` that touches the site (`apps/web`, `packages/config`, root `package.json`/lockfile or
-  `vercel.json`; other pushes are skipped by `ignoreCommand`). It builds from the repo root using the root
+  `vercel.json` since the last successful deploy, `VERCEL_GIT_PREVIOUS_SHA`; other pushes are skipped by `ignoreCommand`). It builds from the repo root using the root
   `vercel.json` (install without scripts, `npm run build --workspace @nomadic/web`, output `apps/web/dist`, same headers
   as `apps/web/vercel.json`); before 6 Oct 2026 there was no root config and every Git deploy failed. Check a push with
   `gh api repos/snipy09/nomadic/commits/<sha>/status` (context `Vercel`). Manual fallback: the Vercel MCP
