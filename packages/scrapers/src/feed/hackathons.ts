@@ -1,12 +1,14 @@
-import { cleanText, decodeEntities } from '../pipeline/normalize.js';
+import { cleanText, decodeEntities, htmlToText } from '../pipeline/normalize.js';
 import { mentionsIndia } from '../pipeline/region.js';
 import type { PoliteFetcher } from './http.js';
 import type { HackathonCandidate, HackathonMode, HackathonSource } from './schema.js';
 
 /**
  * Hackathon listings: Devfolio, Unstop, Devpost and HackerEarth, read from the JSON their own listing pages
- * load. Only open or upcoming events are asked for. Fields the listing does not give stay null.
- * MLH is not read directly: its events are listed on Devpost/Devfolio, and its season page has no stable feed.
+ * load; MLH's season page and Hack2skill's listing, read from the schema.org Event markup they publish; and upcoming
+ * Codeforces contests from its official API (kind 'contest'). Only open or upcoming events are asked for. Fields the
+ * listing does not give stay null. MLH and Hack2skill pages were not reachable when this was written: if their
+ * markup has no Event data the source fails with "no events found", and the parser needs their real layout.
  */
 
 export interface HackathonContext {
@@ -262,11 +264,188 @@ async function hackerEarth(ctx: HackathonContext): Promise<HackathonResult> {
   return { hackathons: out, truncated: false };
 }
 
+// ── Codeforces (official API: https://codeforces.com/apiHelp) ─────────────────
+
+/** Upcoming contests in the next 30 days; they run online. */
+export function normalizeCodeforces(c: any, now: Date): HackathonCandidate | null {
+  if (c?.phase !== 'BEFORE' || c?.id === undefined || !c?.name) return null;
+  const start = Number(c.startTimeSeconds);
+  if (!Number.isFinite(start) || start * 1000 > now.getTime() + 30 * 86_400_000) return null;
+  const duration = Number(c.durationSeconds);
+  return {
+    source: 'codeforces',
+    kind: 'contest',
+    sourceId: String(c.id),
+    title: cleanText(c.name),
+    organiser: 'Codeforces',
+    url: `https://codeforces.com/contests/${encodeURIComponent(String(c.id))}`,
+    mode: 'online',
+    city: null,
+    country: null,
+    inIndia: false,
+    startsAt: isoOrNull(start),
+    endsAt: Number.isFinite(duration) ? isoOrNull(start + duration) : null,
+    registrationEndsAt: null,
+    themes: [],
+    prizeText: null,
+  };
+}
+
+async function codeforces(ctx: HackathonContext): Promise<HackathonResult> {
+  const data = await ctx.http.json('https://codeforces.com/api/contest.list?gym=false');
+  if (data?.status !== 'OK') throw new Error(`Codeforces API: ${data?.comment ?? 'status is not OK'}`);
+  const items: any[] = Array.isArray(data?.result) ? data.result : [];
+  return { hackathons: items.map((c) => normalizeCodeforces(c, ctx.now)).filter((h): h is HackathonCandidate => h !== null), truncated: false };
+}
+
+// ── Event pages with schema.org markup (MLH, Hack2skill) ──────────────────────
+
+interface PageEvent {
+  name: string;
+  url: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  place: string;
+  organiser: string | null;
+  attendance: string;
+}
+
+function* jsonLdNodes(value: any): Generator<any> {
+  if (Array.isArray(value)) for (const v of value) yield* jsonLdNodes(v);
+  else if (value && typeof value === 'object') {
+    yield value;
+    if (value['@graph']) yield* jsonLdNodes(value['@graph']);
+    if (value.itemListElement) yield* jsonLdNodes(value.itemListElement);
+    if (value.item) yield* jsonLdNodes(value.item);
+  }
+}
+
+const isEvent = (node: any) => [].concat(node?.['@type'] ?? []).some((t: unknown) => typeof t === 'string' && /Event$/.test(t));
+
+function placeText(location: any): string {
+  const places = [].concat(location ?? []);
+  return places
+    .map((p: any) => {
+      if (typeof p === 'string') return p;
+      const a = p?.address;
+      if (typeof a === 'string') return a;
+      return [a?.addressLocality, a?.addressRegion, typeof a?.addressCountry === 'string' ? a.addressCountry : a?.addressCountry?.name]
+        .filter(Boolean)
+        .join(', ') || (p?.['@type'] === 'VirtualLocation' ? 'Online' : p?.name ?? '');
+    })
+    .filter(Boolean)
+    .join('; ');
+}
+
+const attr = (html: string, re: RegExp) => decodeEntities(html.match(re)?.[1] ?? '').trim();
+
+/** Events a page states in JSON-LD, else in schema.org microdata (itemtype=".../Event"). */
+export function eventsFromHtml(html: string, pageUrl: string): PageEvent[] {
+  const out: PageEvent[] = [];
+  for (const m of html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
+    let data: unknown;
+    try {
+      data = JSON.parse(m[1]);
+    } catch {
+      continue;
+    }
+    for (const node of jsonLdNodes(data)) {
+      if (!isEvent(node) || !node.name) continue;
+      out.push({
+        name: cleanText(node.name),
+        url: typeof node.url === 'string' ? node.url : null,
+        startDate: node.startDate ? String(node.startDate) : null,
+        endDate: node.endDate ? String(node.endDate) : null,
+        place: cleanText(placeText(node.location)),
+        organiser: cleanText([].concat(node.organizer ?? []).map((o: any) => (typeof o === 'string' ? o : o?.name)).filter(Boolean)[0]) || null,
+        attendance: String(node.eventAttendanceMode ?? ''),
+      });
+    }
+  }
+  if (out.length) return out;
+  const marks = [...html.matchAll(/itemtype=["']https?:\/\/schema\.org\/Event["']/gi)].map((m) => m.index ?? 0);
+  marks.forEach((at, i) => {
+    const chunk = html.slice(at, marks[i + 1] ?? at + 6000);
+    const before = html.slice(Math.max(0, at - 800), at);
+    const prop = (name: string) =>
+      attr(chunk, new RegExp(`itemprop=["']${name}["'][^>]*content=["']([^"']+)["']`, 'i')) ||
+      attr(chunk, new RegExp(`content=["']([^"']+)["'][^>]*itemprop=["']${name}["']`, 'i')) ||
+      cleanText(htmlToText(chunk.match(new RegExp(`itemprop=["']${name}["'][^>]*>([\\s\\S]*?)<\\/`, 'i'))?.[1] ?? ''));
+    const name = prop('name');
+    if (!name) return;
+    const links = [...before.matchAll(/<a\b[^>]*href=["']([^"']+)["']/gi)];
+    const href = attr(chunk, /itemprop=["']url["'][^>]*(?:href|content)=["']([^"']+)["']/i) || links[links.length - 1]?.[1] || '';
+    out.push({
+      name,
+      url: href ? new URL(decodeEntities(href), pageUrl).toString() : null,
+      startDate: prop('startDate') || null,
+      endDate: prop('endDate') || null,
+      place: [prop('addressLocality') || prop('city'), prop('addressRegion') || prop('state'), prop('addressCountry')].filter(Boolean).join(', '),
+      organiser: null,
+      attendance: /digital only|online|virtual/i.test(htmlToText(chunk)) ? 'Online' : /hybrid/i.test(htmlToText(chunk)) ? 'Mixed' : '',
+    });
+  });
+  return out;
+}
+
+export function pageEventToHackathon(e: PageEvent, source: 'mlh' | 'hack2skill', pageUrl: string): HackathonCandidate | null {
+  if (!e.name) return null;
+  const url = e.url ? new URL(e.url, pageUrl).toString() : null;
+  if (!url) return null;
+  const online = /online|virtual/i.test(e.attendance) || /^online$|digital only/i.test(e.place);
+  const hybrid = /mixed|hybrid/i.test(e.attendance);
+  const p = place(online ? '' : e.place);
+  return {
+    source,
+    kind: 'hackathon',
+    sourceId: url.replace(/^https?:\/\//, '').replace(/\/+$/, '').slice(0, 300),
+    title: e.name,
+    organiser: e.organiser ?? (source === 'mlh' ? 'MLH' : null),
+    url,
+    mode: online ? 'online' : hybrid ? 'hybrid' : e.place ? 'in_person' : 'unknown',
+    city: online ? null : p.city ?? (e.place && !e.place.includes(',') ? e.place : null),
+    country: online ? null : p.country,
+    inIndia: !online && (p.inIndia || mentionsIndia(e.place)),
+    startsAt: isoOrNull(e.startDate),
+    endsAt: isoOrNull(e.endDate),
+    registrationEndsAt: null,
+    themes: [],
+    prizeText: null,
+  };
+}
+
+/** MLH seasons are named by the year they end; the season runs from about August. */
+export const mlhSeason = (now: Date) => (now.getUTCMonth() >= 7 ? now.getUTCFullYear() + 1 : now.getUTCFullYear());
+
+async function pageEvents(ctx: HackathonContext, source: 'mlh' | 'hack2skill', urls: string[]): Promise<HackathonResult> {
+  const out: HackathonCandidate[] = [];
+  const fetchPage = ctx.http.asFetch();
+  let read = 0;
+  for (const url of urls) {
+    const res = await fetchPage(url, { headers: { Accept: 'text/html' } });
+    if (!res.ok) continue;
+    read++;
+    for (const e of eventsFromHtml(await res.text(), url)) {
+      const h = pageEventToHackathon(e, source, url);
+      if (h) out.push(h);
+    }
+  }
+  if (!read) throw new Error(`no listing page could be read (${urls.join(', ')})`);
+  if (!out.length) throw new Error('no events found on the listing page (its layout may have changed)');
+  return { hackathons: out, truncated: false };
+}
+
+const mlh = (ctx: HackathonContext) => pageEvents(ctx, 'mlh', [`https://mlh.io/seasons/${mlhSeason(ctx.now)}/events`]);
+const hack2skill = (ctx: HackathonContext) => pageEvents(ctx, 'hack2skill', ['https://hack2skill.com/', 'https://hack2skill.com/hackathons-listing']);
+
 export const HACKATHON_FETCHERS: Record<HackathonSource, (ctx: HackathonContext) => Promise<HackathonResult>> = {
   devfolio,
   unstop,
   devpost,
   hackerearth: hackerEarth,
+  hack2skill,
+  mlh,
+  codeforces,
 };
 
 /** Same event listed on two sites: same title (letters and digits) starting the same day. */

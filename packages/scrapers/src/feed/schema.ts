@@ -17,8 +17,12 @@ export type Level = (typeof LEVELS)[number];
 export const ROLE_FAMILIES = ['software', 'data', 'ml', 'devops', 'security', 'qa', 'design', 'product', 'hardware', 'other'] as const;
 export type RoleFamily = (typeof ROLE_FAMILIES)[number];
 
-export const HACKATHON_SOURCES = ['devfolio', 'unstop', 'devpost', 'hackerearth'] as const;
+export const HACKATHON_SOURCES = ['devfolio', 'unstop', 'devpost', 'hackerearth', 'hack2skill', 'mlh', 'codeforces'] as const;
 export type HackathonSource = (typeof HACKATHON_SOURCES)[number];
+
+/** Hackathons, and coding contests (Codeforces) shown alongside them. */
+export const EVENT_KINDS = ['hackathon', 'contest'] as const;
+export type EventKind = (typeof EVENT_KINDS)[number];
 
 export const HACKATHON_MODES = ['online', 'in_person', 'hybrid', 'unknown'] as const;
 export type HackathonMode = (typeof HACKATHON_MODES)[number];
@@ -63,6 +67,7 @@ export type Opening = z.output<typeof OpeningSchema>;
 
 export const HackathonSchema = z.object({
   source: z.enum(HACKATHON_SOURCES),
+  kind: z.enum(EVENT_KINDS).default('hackathon'),
   sourceId: z.string().trim().min(1).max(300),
   title: z.string().trim().min(1).max(300),
   organiser: optionalText(200),

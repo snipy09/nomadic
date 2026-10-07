@@ -20,6 +20,10 @@
  *                Home feed sources: openings at famous companies (full time + internships) with a daily
  *                hiring snapshot per company, and upcoming hackathons (Devfolio, Unstop, Devpost, HackerEarth).
  *
+ *   scrape news  [--publish] [--max-age-days 30] [--summary-dir DIR] [--json report.json]
+ *                Hiring news from Indian business and jobs desks (news/feeds.ts): hiring plans, campus drives,
+ *                layoffs, funding and expansion, with the company, roles, headcount and period read from the text.
+ *                SCRAPER_NEWS_FEEDS_OFF=id,id skips feeds.
  *   scrape discover [--out state/boards.json] [--summary-dir DIR]
  *                Finds Greenhouse/Lever/Ashby/SmartRecruiters boards with India-open jobs for the companies in
  *                sources/india-companies.ts (and famous ones without a readable listing). The job board and the
@@ -52,6 +56,8 @@ import { SupabaseJobStore, getRecentScrapeRuns } from './pipeline/store.js';
 import { SOURCES, selectSources, type Tier } from './sources/registry.js';
 import { discoverBoards, formatDiscoverySummary, loadDiscoveredBoards } from './sources/boards.js';
 import { PoliteFetcher } from './feed/http.js';
+import { formatNewsSummary, runNewsScrape } from './news/run.js';
+import { SupabaseNewsStore } from './news/store.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -137,6 +143,10 @@ async function main(argv: string[]): Promise<number> {
       summaryDir: values['summary-dir'],
       json: values.json,
     });
+  }
+
+  if (command === 'news') {
+    return runNews({ publish: values.publish, maxAgeDays: values['max-age-days'], summaryDir: values['summary-dir'], json: values.json });
   }
 
   if (command === 'discover') {
@@ -418,6 +428,36 @@ async function runFeed(args: FeedArgs): Promise<number> {
   if (process.env.GITHUB_STEP_SUMMARY) writeFileSync(process.env.GITHUB_STEP_SUMMARY, '```\n' + summary + '```\n', { flag: 'a' });
   const all = [...report.companies.map((c) => c.ok), ...report.hackathonSources.map((s) => s.ok)];
   return all.length > 0 && all.every((ok) => !ok) ? 1 : 0;
+}
+
+async function runNews(args: { publish: boolean; maxAgeDays?: string; summaryDir?: string; json?: string }): Promise<number> {
+  const maxAgeDays = positiveInt(args.maxAgeDays, 'max-age-days');
+  if (maxAgeDays === null) return 2;
+  console.log(`[scrape news]${args.publish ? ' publishing' : ' dry run'}`);
+  const report = await runNewsScrape({
+    publish: args.publish,
+    store: args.publish ? new SupabaseNewsStore(serviceClientFromEnv()) : undefined,
+    feedsOff: list(process.env.SCRAPER_NEWS_FEEDS_OFF),
+    maxAgeDays,
+    log: (message) => console.log(message),
+  });
+  const summary = formatNewsSummary(report);
+  console.log('\n' + summary);
+  for (const f of report.feeds) if (!f.ok) annotate('warning', `news feed ${f.id} failed: ${f.error}`);
+  if (args.json) {
+    const path = resolve(args.json);
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, JSON.stringify(report, null, 2));
+  }
+  if (args.summaryDir) {
+    const dir = resolve(args.summaryDir);
+    mkdirSync(dir, { recursive: true });
+    const stamp = report.startedAt.slice(0, 19).replace(/[:T]/g, '-');
+    writeFileSync(resolve(dir, `news-${stamp}.txt`), summary);
+    writeFileSync(resolve(dir, 'latest-news.txt'), summary);
+    console.log(`summary written to ${resolve(dir, `news-${stamp}.txt`)}`);
+  }
+  return report.feeds.length > 0 && report.feeds.every((f) => !f.ok) ? 1 : 0;
 }
 
 async function runDiscover(args: { out?: string; summaryDir?: string }): Promise<number> {

@@ -49,6 +49,7 @@ export interface SnapshotRow {
 
 export interface HackathonRow {
   source: string;
+  kind: string;
   source_id: string;
   title: string;
   organiser: string | null;
@@ -94,6 +95,7 @@ export const toOpeningRow = (o: Opening, seenAt: string): OpeningRow => ({
 
 export const toHackathonRow = (h: Hackathon, seenAt: string): HackathonRow => ({
   source: h.source,
+  kind: h.kind,
   source_id: h.sourceId,
   title: h.title,
   organiser: h.organiser,
