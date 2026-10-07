@@ -4,12 +4,13 @@ import { Badge, Button, EmptyState, IconButton, PageHeader, Skeleton, Tabs, Tabs
 import { getApi, type NewsItem, type TabType } from '../../types';
 import { postedLabel } from '../feed/feedLogic';
 import { CompanyLogo } from '../feed/CompanyLogo';
-import { dateRange, deadline, emptyReason, filterNews, type NewsFilter } from './newsLogic';
+import { TOPIC_LABEL, dateRange, deadline, emptyReason, filterNews, type NewsFilter } from './newsLogic';
 import { useNews } from './useNews';
 
 /**
- * Home: the News page. Hiring updates per company (careers-site snapshots and the job board) and upcoming
- * hackathons, each with its source and a link. The old dashboard lives on as "Dashboard" (More on the phone).
+ * Home: the News page. Hiring updates per company (careers-site snapshots and the job board), company news from
+ * Indian publishers (hiring plans, campus drives, layoffs, funding, expansion) and upcoming hackathons and contests,
+ * each with its source and a link. The old dashboard lives on as "Dashboard" (More on the phone).
  */
 
 interface NewsViewProps {
@@ -19,6 +20,7 @@ interface NewsViewProps {
 const FILTERS: Array<{ id: NewsFilter; label: string }> = [
   { id: 'all', label: 'All' },
   { id: 'hiring', label: 'Hiring' },
+  { id: 'update', label: 'Company news' },
   { id: 'hackathon', label: 'Hackathons' },
 ];
 
@@ -30,6 +32,7 @@ function open(url: string) {
 
 function NewsCard({ item, onSeeJobs }: { item: NewsItem; onSeeJobs?: () => void }) {
   const isHack = item.kind === 'hackathon';
+  const isUpdate = item.kind === 'update';
   const when = isHack ? dateRange(item.startsAt, item.endsAt) : postedLabel(item.at ?? undefined);
   const due = isHack ? deadline(item) : null;
   return (
@@ -39,8 +42,12 @@ function NewsCard({ item, onSeeJobs }: { item: NewsItem; onSeeJobs?: () => void 
           <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-md bg-warning-subtle text-warning-fg [&_svg]:size-5">
             <Trophy />
           </span>
+        ) : isUpdate && !item.company ? (
+          <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-md bg-fg/[0.06] text-fg-muted [&_svg]:size-5">
+            <Newspaper />
+          </span>
         ) : (
-          <CompanyLogo company={item.company ?? item.title} url={item.url} />
+          <CompanyLogo company={item.company ?? item.title} url={isUpdate ? undefined : item.url} />
         )}
         <div className="min-w-0 flex-1">
           <h3 className="text-body-lg font-strong text-fg">{item.title}</h3>
@@ -50,14 +57,16 @@ function NewsCard({ item, onSeeJobs }: { item: NewsItem; onSeeJobs?: () => void 
             {when && <span aria-hidden="true">·</span>}
             {when && <span>{when}</span>}
             {due && <Badge tone={due.soon ? 'warning' : 'neutral'} size="sm">{due.label}</Badge>}
+            {isHack && item.eventKind === 'contest' && <Badge tone="neutral" size="sm">Contest</Badge>}
             {isHack && item.mode === 'online' && <Badge tone="accent" size="sm">Online</Badge>}
+            {isUpdate && item.topic && <Badge tone={item.topic === 'layoffs' ? 'warning' : 'neutral'} size="sm">{TOPIC_LABEL[item.topic]}</Badge>}
           </p>
         </div>
       </div>
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3">
         {onSeeJobs && <Button size="sm" variant="secondary" leftIcon={<Briefcase />} onClick={onSeeJobs}>See jobs</Button>}
         <Button size="sm" variant={onSeeJobs ? 'ghost' : 'secondary'} rightIcon={<ExternalLink />} onClick={() => open(item.url)}>
-          {isHack ? 'Open event' : 'Open source'}
+          {isHack ? 'Open event' : isUpdate ? 'Read article' : 'Open source'}
         </Button>
       </div>
     </article>
@@ -69,14 +78,20 @@ export function NewsView({ onNavigate }: NewsViewProps) {
   const [filter, setFilter] = useState<NewsFilter>('all');
   const items = useMemo(() => filterNews(news.data?.items ?? [], filter), [news.data, filter]);
   const hiring = items.filter((i) => i.kind === 'hiring');
+  const updates = items.filter((i) => i.kind === 'update');
   const hackathons = items.filter((i) => i.kind === 'hackathon');
-  const counts = { hiring: (news.data?.items ?? []).filter((i) => i.kind === 'hiring').length, hackathon: (news.data?.items ?? []).filter((i) => i.kind === 'hackathon').length };
+  const all = news.data?.items ?? [];
+  const counts = {
+    hiring: filterNews(all, 'hiring').length,
+    update: filterNews(all, 'update').length,
+    hackathon: filterNews(all, 'hackathon').length,
+  };
 
   const seeJobs = (item: NewsItem) => (item.company ? () => onNavigate('feed', `search:${item.company}`) : undefined);
   const section = (title: string, list: NewsItem[]) =>
     list.length > 0 && (
       <section aria-label={title} className="flex flex-col gap-3">
-        {filter === 'all' && <h2 className="text-heading font-strong text-fg">{title}</h2>}
+        {(filter === 'all' || (filter === 'hiring' && list[0]?.kind === 'update')) && <h2 className="text-heading font-strong text-fg">{title}</h2>}
         <ul className="grid gap-3 md:grid-cols-2">
           {list.map((item) => (
             <li key={item.id} className="flex [&>article]:w-full">
@@ -102,10 +117,18 @@ export function NewsView({ onNavigate }: NewsViewProps) {
       <EmptyState
         bordered
         icon={<Newspaper />}
-        title={reason === 'not_ready' && filter !== 'hiring' ? 'News is getting ready' : filter === 'hackathon' ? 'No upcoming hackathons right now' : 'No hiring news this week'}
+        title={
+          reason === 'not_ready' && filter !== 'hiring'
+            ? 'News is getting ready'
+            : filter === 'hackathon'
+              ? 'No upcoming hackathons right now'
+              : filter === 'update'
+                ? 'No company news this month'
+                : 'No hiring news this week'
+        }
         description={
           reason === 'not_ready' && filter !== 'hiring'
-            ? 'Hiring updates from company careers sites and upcoming hackathons appear here once they are published. Meanwhile, the job board has every opening.'
+            ? 'Hiring updates from company careers sites, company news and upcoming hackathons appear here once they are published. Meanwhile, the job board has every opening.'
             : 'Check back soon, or browse every opening on the job board.'
         }
         actions={<Button variant="secondary" leftIcon={<Briefcase />} onClick={() => onNavigate('feed')}>Browse jobs</Button>}
@@ -115,7 +138,8 @@ export function NewsView({ onNavigate }: NewsViewProps) {
     body = (
       <div className="flex flex-col gap-6">
         {section('Hiring now', hiring)}
-        {section('Hackathons', hackathons)}
+        {section(filter === 'hiring' ? 'Hiring plans in the news' : 'Company news', updates)}
+        {section('Hackathons and contests', hackathons)}
       </div>
     );
   }
@@ -124,7 +148,7 @@ export function NewsView({ onNavigate }: NewsViewProps) {
     <div className="mx-auto flex max-w-6xl flex-col gap-4 pb-24">
       <PageHeader
         title="News"
-        description="Who is hiring and which hackathons are coming up, for students in India."
+        description="Who is hiring, company news, and which hackathons are coming up, for students in India."
         actions={<IconButton label="Refresh news" icon={<RefreshCw />} variant="secondary" loading={news.loading && Boolean(news.data)} onClick={news.refresh} />}
       />
       <Tabs variant="segmented" value={filter} onValueChange={(v) => setFilter(v as NewsFilter)}>

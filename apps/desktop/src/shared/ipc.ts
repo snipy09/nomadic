@@ -144,26 +144,34 @@ export interface RememberedAnswerUpdate {
   answer: string | null;
 }
 
-/** News page (Home): hiring updates per company and upcoming hackathons, each from a real source with a link. */
-export type NewsKind = 'hiring' | 'hackathon';
+/**
+ * News page (Home): hiring updates per company, company news from Indian publishers (hiring plans, campus drives,
+ * layoffs, funding, expansion) and upcoming hackathons and contests, each from a real source with a link.
+ */
+export type NewsKind = 'hiring' | 'update' | 'hackathon';
 export type NewsSourceState = 'ok' | 'not_ready' | 'error';
+export type NewsTopic = 'hiring' | 'campus' | 'layoffs' | 'funding' | 'expansion';
 
 export interface NewsItem {
   id: string;
   kind: NewsKind;
+  /** The headline for company news; a line built from the counts for hiring items. */
   title: string;
-  /** One line of facts from the source ("3 internships · 5 entry level"); null when there are none. */
+  /** One line of facts from the source ("3 internships · 5 entry level", "Sept–Dec · 1,200 freshers"); null when none. */
   detail: string | null;
-  /** Company name for hiring items (opens the job board filtered to it). */
+  /** Company name for hiring items and company news (opens the job board filtered to it). */
   company: string | null;
   /** Where the facts come from. */
   url: string;
   sourceLabel: string;
-  /** When: the snapshot day, the newest posting, or the hackathon start. */
+  /** When: the snapshot day, the newest posting, the article date, or the event start. */
   at: string | null;
   /** Hiring: roles new since the last check (null = not known). */
   newRoles?: number | null;
-  /** Hackathons. */
+  /** Company news: what the article is about. */
+  topic?: NewsTopic;
+  /** Hackathons and contests. */
+  eventKind?: 'hackathon' | 'contest';
   startsAt?: string | null;
   endsAt?: string | null;
   registrationEndsAt?: string | null;
@@ -174,8 +182,8 @@ export interface NewsItem {
 export interface NewsResult {
   success: boolean;
   items: NewsItem[];
-  /** Per source: 'not_ready' when its table is not published yet (migration 031 not applied or never scraped). */
-  sources: { snapshots: NewsSourceState; jobs: NewsSourceState; hackathons: NewsSourceState };
+  /** Per source: 'not_ready' when its table is not published yet (migration 031/033 not applied or never scraped). */
+  sources: { snapshots: NewsSourceState; jobs: NewsSourceState; hackathons: NewsSourceState; articles?: NewsSourceState };
   fetchedAt: string;
   error?: string;
 }

@@ -182,7 +182,7 @@ export interface AppUser {
 
 
 export type {
-  HiddenJob, HideJobInput, NewsItem, NewsKind, NewsResult, NewsSourceState,
+  HiddenJob, HideJobInput, NewsItem, NewsKind, NewsResult, NewsSourceState, NewsTopic,
   FeedbackInput, FeedbackKind, FeedbackResult, TelemetryState, UpdateChannel, UpdatePolicyResult, UpdaterInfo, UpdaterStatus, WhatsNewInfo,
 } from '../shared/ipc';
 import type {

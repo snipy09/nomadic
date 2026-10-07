@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hackathonItems, hiringFromJobs, hiringFromSnapshots, sourceState, type HackathonRow, type NewsJobRow, type SnapshotRow } from '../services/news';
+import { hackathonItems, hiringFromJobs, hiringFromSnapshots, sourceState, updatesFromArticles, type ArticleRow, type HackathonRow, type NewsJobRow, type SnapshotRow } from '../services/news';
 
 const NOW = new Date('2026-10-07T06:00:00Z');
 const snap = (o: Partial<SnapshotRow>): SnapshotRow => ({
@@ -105,5 +105,49 @@ describe('source state', () => {
     expect(sourceState({ code: 'PGRST205', message: "Could not find the table 'public.hackathons'" })).toBe('not_ready');
     expect(sourceState({ code: '42P01', message: 'relation does not exist' })).toBe('not_ready');
     expect(sourceState({ code: '500', message: 'timeout' })).toBe('error');
+  });
+});
+
+describe('company news from publishers', () => {
+  const art = (o: Partial<ArticleRow>): ArticleRow => ({
+    id: 1,
+    url: 'https://et.test/google',
+    source_name: 'Economic Times',
+    title: 'Google to hire 1,200 freshers from September to December',
+    published_at: '2026-10-05T03:30:00.000Z',
+    kind: 'hiring',
+    company_name: 'Google',
+    roles: ['Freshers', 'Software engineers'],
+    headcount_text: '1,200 freshers',
+    period_text: 'from September to December',
+    locations: ['Bengaluru'],
+    ...o,
+  });
+
+  it('shows the headline with the facts read from it, newest first, linked to the article', () => {
+    const items = updatesFromArticles([art({}), art({ id: 2, url: 'https://x.test/2', title: 'Acme lays off 70', kind: 'layoffs', company_name: null, roles: [], headcount_text: null, period_text: null, locations: [], published_at: '2026-10-06T00:00:00.000Z' })], NOW);
+    expect(items.map((i) => i.id)).toEqual(['news:2', 'news:1']);
+    expect(items[1]).toMatchObject({
+      kind: 'update',
+      topic: 'hiring',
+      title: 'Google to hire 1,200 freshers from September to December',
+      detail: 'from September to December · 1,200 freshers · Freshers, Software engineers · Bengaluru',
+      company: 'Google',
+      url: 'https://et.test/google',
+      sourceLabel: 'Economic Times',
+    });
+    expect(items[0].detail).toBeNull();
+  });
+
+  it('drops old articles and unknown topics', () => {
+    expect(updatesFromArticles([art({ published_at: '2026-08-01T00:00:00.000Z' }), art({ id: 3, kind: 'gossip' })], NOW)).toEqual([]);
+  });
+
+  it('marks coding contests among events', () => {
+    const [c] = hackathonItems(
+      [{ source: 'codeforces', kind: 'contest', source_id: '2150', title: 'Round', organiser: 'Codeforces', url: 'https://codeforces.com/contests/2150', mode: 'online', city: null, in_india: false, starts_at: '2026-10-10T14:35:00.000Z', ends_at: '2026-10-10T16:35:00.000Z', registration_ends_at: null, themes: [], prize_text: null }],
+      NOW
+    );
+    expect(c).toMatchObject({ eventKind: 'contest', sourceLabel: 'Codeforces' });
   });
 });

@@ -1,11 +1,22 @@
 /** Pure helpers for the News page. Dates are shown in India time; nothing is inferred beyond the item's fields. */
-import type { NewsItem, NewsResult } from '../../types';
+import type { NewsItem, NewsResult, NewsTopic } from '../../types';
 
-export type NewsFilter = 'all' | 'hiring' | 'hackathon';
+export type NewsFilter = 'all' | 'hiring' | 'update' | 'hackathon';
 
+/** Hiring shows hiring counts plus company news about hiring plans and campus drives. */
 export function filterNews(items: NewsItem[], filter: NewsFilter): NewsItem[] {
-  return filter === 'all' ? items : items.filter((i) => i.kind === filter);
+  if (filter === 'all') return items;
+  if (filter === 'hiring') return items.filter((i) => i.kind === 'hiring' || (i.kind === 'update' && (i.topic === 'hiring' || i.topic === 'campus')));
+  return items.filter((i) => i.kind === filter);
 }
+
+export const TOPIC_LABEL: Record<NewsTopic, string> = {
+  hiring: 'Hiring plan',
+  campus: 'Campus drive',
+  layoffs: 'Layoffs',
+  funding: 'Funding',
+  expansion: 'Expansion',
+};
 
 const fmt = (iso: string, opts: Intl.DateTimeFormatOptions) => new Date(iso).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', ...opts });
 
@@ -33,5 +44,5 @@ export function deadline(item: NewsItem, now = Date.now()): { label: string; soo
 export function emptyReason(res: NewsResult | null): 'not_ready' | 'quiet' {
   if (!res) return 'quiet';
   const s = res.sources;
-  return s.snapshots !== 'ok' && s.hackathons !== 'ok' ? 'not_ready' : 'quiet';
+  return s.snapshots !== 'ok' && s.hackathons !== 'ok' && s.articles !== 'ok' ? 'not_ready' : 'quiet';
 }

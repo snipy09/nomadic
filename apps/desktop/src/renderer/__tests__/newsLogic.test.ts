@@ -11,6 +11,17 @@ describe('news helpers', () => {
     expect(filterNews(items, 'hackathon').map((i) => i.id)).toEqual(['b']);
   });
 
+  it('shows hiring plans and campus drives from company news under Hiring too', () => {
+    const items = [
+      item({ id: 'a' }),
+      item({ id: 'plan', kind: 'update', topic: 'hiring' }),
+      item({ id: 'drive', kind: 'update', topic: 'campus' }),
+      item({ id: 'cut', kind: 'update', topic: 'layoffs' }),
+    ];
+    expect(filterNews(items, 'hiring').map((i) => i.id)).toEqual(['a', 'plan', 'drive']);
+    expect(filterNews(items, 'update').map((i) => i.id)).toEqual(['plan', 'drive', 'cut']);
+  });
+
   it('formats event dates in India time', () => {
     expect(dateRange('2026-11-14T03:30:00Z', '2026-11-15T12:00:00Z')).toBe('14–15 Nov');
     expect(dateRange('2026-12-28T05:00:00Z', '2027-01-05T05:00:00Z')).toBe('28 Dec – 5 Jan');
@@ -29,5 +40,6 @@ describe('news helpers', () => {
     const res = (s: NewsResult['sources']): NewsResult => ({ success: true, items: [], sources: s, fetchedAt: '' });
     expect(emptyReason(res({ snapshots: 'not_ready', jobs: 'ok', hackathons: 'not_ready' }))).toBe('not_ready');
     expect(emptyReason(res({ snapshots: 'ok', jobs: 'ok', hackathons: 'ok' }))).toBe('quiet');
+    expect(emptyReason(res({ snapshots: 'not_ready', jobs: 'ok', hackathons: 'not_ready', articles: 'ok' }))).toBe('quiet');
   });
 });

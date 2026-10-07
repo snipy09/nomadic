@@ -1,11 +1,12 @@
-import type { NewsItem, NewsResult, NewsSourceState } from '../../shared/ipc.js';
+import type { NewsItem, NewsResult, NewsSourceState, NewsTopic } from '../../shared/ipc.js';
 import { log } from './app-context.js';
 import { getAnonSupabase } from './supabase.js';
 
 /**
- * The News page (Home): hiring updates per company and upcoming hackathons. Every item is built from published
- * rows (migration 031 tables written by the feed scraper, and the live `jobs` table) and links to its source.
- * Nothing is estimated: counts are what the rows say, and missing facts are left out of the line.
+ * The News page (Home): hiring updates per company, company news from publishers and upcoming hackathons and
+ * contests. Every item is built from published rows (migration 031/033 tables written by the feed and news scrapers,
+ * and the live `jobs` table) and links to its source. Nothing is estimated: counts are what the rows say, article
+ * facts are what the headline and summary say, and missing facts are left out of the line.
  */
 
 export const NEWS_JOBS_WINDOW_DAYS = 7;
@@ -13,6 +14,8 @@ export const NEWS_JOBS_WINDOW_DAYS = 7;
 export const NEWS_JOBS_MIN_POSTINGS = 2;
 /** Snapshots older than this are not news. */
 export const NEWS_SNAPSHOT_MAX_AGE_DAYS = 3;
+/** Company news older than this is not shown. */
+export const NEWS_ARTICLE_MAX_AGE_DAYS = 30;
 
 export interface SnapshotRow {
   company_slug: string;
@@ -40,8 +43,24 @@ export interface NewsJobRow {
   created_at: string | null;
 }
 
+export interface ArticleRow {
+  id: number | string;
+  url: string;
+  source_name: string;
+  title: string;
+  published_at: string;
+  kind: string;
+  company_name: string | null;
+  roles: string[] | null;
+  headcount_text: string | null;
+  period_text: string | null;
+  locations: string[] | null;
+}
+
 export interface HackathonRow {
   source: string;
+  /** 'contest' for coding contests (migration 033); absent before it. */
+  kind?: string | null;
   source_id: string;
   title: string;
   organiser: string | null;
@@ -131,7 +150,39 @@ export function hiringFromJobs(rows: NewsJobRow[], now: Date, coveredCompanies: 
   return items.sort((a, b) => (b.newRoles ?? 0) - (a.newRoles ?? 0) || (b.at ?? '').localeCompare(a.at ?? ''));
 }
 
-const SOURCE_LABEL: Record<string, string> = { devfolio: 'Devfolio', unstop: 'Unstop', devpost: 'Devpost', hackerearth: 'HackerEarth' };
+const TOPICS: readonly NewsTopic[] = ['hiring', 'campus', 'layoffs', 'funding', 'expansion'];
+
+/** Company news, newest first: the headline as published, with the facts read from it on the detail line. */
+export function updatesFromArticles(rows: ArticleRow[], now: Date): NewsItem[] {
+  const since = now.getTime() - NEWS_ARTICLE_MAX_AGE_DAYS * 86_400_000;
+  return rows
+    .filter((r) => r.url && r.title && Date.parse(r.published_at) >= since && TOPICS.includes(r.kind as NewsTopic))
+    .sort((a, b) => b.published_at.localeCompare(a.published_at))
+    .map((r): NewsItem => {
+      const facts = [r.period_text, r.headcount_text, (r.roles ?? []).join(', '), (r.locations ?? []).join(', ')].filter((x): x is string => Boolean(x));
+      return {
+        id: `news:${r.id}`,
+        kind: 'update',
+        topic: r.kind as NewsTopic,
+        title: r.title,
+        detail: facts.length ? facts.join(' · ') : null,
+        company: r.company_name,
+        url: r.url,
+        sourceLabel: r.source_name,
+        at: r.published_at,
+      };
+    });
+}
+
+const SOURCE_LABEL: Record<string, string> = {
+  devfolio: 'Devfolio',
+  unstop: 'Unstop',
+  devpost: 'Devpost',
+  hackerearth: 'HackerEarth',
+  hack2skill: 'Hack2skill',
+  mlh: 'MLH',
+  codeforces: 'Codeforces',
+};
 
 /** Upcoming hackathons, soonest deadline (registration, else start) first; ended ones are dropped. */
 export function hackathonItems(rows: HackathonRow[], now: Date): NewsItem[] {
@@ -144,6 +195,7 @@ export function hackathonItems(rows: HackathonRow[], now: Date): NewsItem[] {
       return {
         id: `hackathon:${h.source}:${h.source_id}`,
         kind: 'hackathon',
+        eventKind: h.kind === 'contest' ? 'contest' : 'hackathon',
         title: h.title,
         detail: [h.organiser, where, h.prize_text, themes].filter((x): x is string => Boolean(x)).join(' · ') || null,
         company: null,
@@ -160,7 +212,7 @@ export function hackathonItems(rows: HackathonRow[], now: Date): NewsItem[] {
     .sort((a, b) => ((a.registrationEndsAt ?? a.startsAt ?? '9999') < (b.registrationEndsAt ?? b.startsAt ?? '9999') ? -1 : 1));
 }
 
-/** A table that is not published yet (migration 031 not applied) is "not ready", not a failure. */
+/** A table that is not published yet (migration 031/033 not applied) is "not ready", not a failure. */
 export function sourceState(error: { code?: string; message?: string } | null): NewsSourceState {
   if (!error) return 'ok';
   if (error.code === 'PGRST205' || error.code === '42P01' || /does not exist|could not find the table/i.test(error.message ?? '')) return 'not_ready';
@@ -171,14 +223,15 @@ export async function getNews(now: Date = new Date()): Promise<NewsResult> {
   const fetchedAt = now.toISOString();
   const supabase = getAnonSupabase();
   if (!supabase) {
-    return { success: false, items: [], sources: { snapshots: 'error', jobs: 'error', hackathons: 'error' }, fetchedAt, error: 'Nomadic is not connected to its server.' };
+    return { success: false, items: [], sources: { snapshots: 'error', jobs: 'error', hackathons: 'error', articles: 'error' }, fetchedAt, error: 'Nomadic is not connected to its server.' };
   }
   const since = new Date(now.getTime() - NEWS_JOBS_WINDOW_DAYS * 86_400_000).toISOString();
   const snapSince = new Date(now.getTime() - NEWS_SNAPSHOT_MAX_AGE_DAYS * 86_400_000).toISOString().slice(0, 10);
+  const articleSince = new Date(now.getTime() - NEWS_ARTICLE_MAX_AGE_DAYS * 86_400_000).toISOString();
   try {
-    const [snaps, companies, jobs, hacks] = await Promise.all([
+    const [snaps, companies, jobs, hacks, articles] = await Promise.all([
       supabase.from('company_hiring_snapshots').select('company_slug, taken_on, open_total, internships, entry_level, new_openings, baseline, sample_titles').gte('taken_on', snapSince).limit(500),
-      supabase.from('companies').select('slug, name, careers_url').limit(500),
+      supabase.from('companies').select('slug, name, careers_url').limit(2000),
       supabase
         .from('jobs')
         .select('company, title, apply_url, employment_type, posted_at, created_at')
@@ -187,30 +240,39 @@ export async function getNews(now: Date = new Date()): Promise<NewsResult> {
         .limit(2000),
       supabase
         .from('hackathons')
-        .select('source, source_id, title, organiser, url, mode, city, in_india, starts_at, ends_at, registration_ends_at, themes, prize_text')
+        // '*' so the list still loads before migration 033 adds `kind`.
+        .select('*')
         .order('starts_at', { ascending: true, nullsFirst: false })
-        .limit(80),
+        .limit(120),
+      supabase
+        .from('news_items')
+        .select('id, url, source_name, title, published_at, kind, company_name, roles, headcount_text, period_text, locations')
+        .gte('published_at', articleSince)
+        .order('published_at', { ascending: false })
+        .limit(150),
     ]);
     const sources = {
       snapshots: sourceState(snaps.error ?? companies.error),
       jobs: sourceState(jobs.error),
       hackathons: sourceState(hacks.error),
+      articles: sourceState(articles.error),
     };
     const fromSnaps = sources.snapshots === 'ok' ? hiringFromSnapshots((snaps.data ?? []) as SnapshotRow[], (companies.data ?? []) as CompanyRow[], now) : [];
     const covered = new Set(fromSnaps.map((i) => companyKey(i.company ?? '')));
     const fromJobs = sources.jobs === 'ok' ? hiringFromJobs((jobs.data ?? []) as NewsJobRow[], now, covered) : [];
     const hackathons = sources.hackathons === 'ok' ? hackathonItems((hacks.data ?? []) as HackathonRow[], now) : [];
+    const updates = sources.articles === 'ok' ? updatesFromArticles((articles.data ?? []) as ArticleRow[], now) : [];
     for (const [name, st] of Object.entries(sources)) if (st === 'error') log(`[News] ${name} could not be read`);
     const allFailed = Object.values(sources).every((s) => s === 'error');
     return {
       success: !allFailed,
-      items: [...fromSnaps, ...fromJobs, ...hackathons],
+      items: [...fromSnaps, ...fromJobs, ...updates, ...hackathons],
       sources,
       fetchedAt,
       error: allFailed ? 'Could not load the news. Check your connection and try again.' : undefined,
     };
   } catch (err: unknown) {
     log(`[News] ${err instanceof Error ? err.message : String(err)}`);
-    return { success: false, items: [], sources: { snapshots: 'error', jobs: 'error', hackathons: 'error' }, fetchedAt, error: 'Could not load the news. Check your connection and try again.' };
+    return { success: false, items: [], sources: { snapshots: 'error', jobs: 'error', hackathons: 'error', articles: 'error' }, fetchedAt, error: 'Could not load the news. Check your connection and try again.' };
   }
 }
