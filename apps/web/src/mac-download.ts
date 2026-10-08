@@ -1,15 +1,15 @@
 import type { MacArch } from '@nomadic/config';
 
 /**
- * Which Mac download to suggest. The universal DMG works on every supported Mac, so it is always the main button;
- * when the browser can tell the chip, the smaller single-architecture DMG for it is marked "for this Mac".
+ * Which Mac download to suggest: the Apple Silicon (arm64) or the Intel (x64) DMG. When the browser cannot tell, the
+ * page shows both equally (an Apple Silicon Mac can also run the Intel build through Rosetta 2, just slower).
  *
  * Browsers do not expose the CPU reliably: Safari and Firefox report "Intel Mac OS X" on Apple Silicon too. Two hints:
  * - Chromium (Chrome, Edge, Brave, Arc): navigator.userAgentData.getHighEntropyValues(['architecture']) → arm / x86.
  * - WebGL renderer: "Apple M1…" means Apple Silicon; "Intel", "AMD" or "Radeon" means an Intel Mac. Safari only says
  *   "Apple GPU", which is not enough, so the answer stays unknown and both files are offered equally.
  */
-export type MacDetection = { isMac: boolean; arch: Exclude<MacArch, 'universal'> | null };
+export type MacDetection = { isMac: boolean; arch: MacArch | null };
 
 export interface NavigatorLike {
   userAgent: string;

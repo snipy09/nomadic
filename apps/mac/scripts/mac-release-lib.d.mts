@@ -1,5 +1,6 @@
 export type MacArch = 'universal' | 'arm64' | 'x64';
 export const MAC_ARCHES: MacArch[];
+export const BUILDABLE_ARCHES: MacArch[];
 export function dmgFileName(version: string, arch: MacArch): string;
 export function archFromDmgName(fileName: string): MacArch | null;
 export function requiredLipoArchs(arch: MacArch): string[];

@@ -30,7 +30,7 @@ describe('Mac download detection', () => {
 
 describe('Mac download links', () => {
   it('builds versioned /downloads paths', () => {
-    expect(macDownloadPath('1.4.0', 'universal')).toBe('/downloads/Nomadic-1.4.0-mac-universal.dmg');
+    expect(macDownloadPath('1.4.0', 'arm64')).toBe('/downloads/Nomadic-1.4.0-mac-arm64.dmg');
     expect(macChecksumsPath('1.4.0')).toBe('/downloads/Nomadic-1.4.0-mac-SHA256SUMS.txt');
   });
 

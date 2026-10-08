@@ -18,9 +18,9 @@ Only what is specific to macOS. Changes here cannot affect the Windows or Androi
 | `renderer/` | `index.html`, `main.tsx` (`mountApp()` from `packages/app-ui`), `public/assets`. Mac-only screens go here. |
 | `vite.config.ts` | Shared renderer config with `VITE_PLATFORM=mac` (`IS_MAC` in the UI), dev port 5176. |
 | `build-main.mjs` | Bundles `src/main.ts` + the shared preload. |
-| `package.json` → `build` | electron-builder DMG (`Nomadic-<ver>-mac-<arch>.dmg`, universal / arm64 / x64, ULFO, default layout: app + Applications link), hardened runtime + entitlements only used with a real identity, `afterPack` ad-hoc signing. No update feed (see below). |
+| `package.json` → `build` | electron-builder DMG (`Nomadic-<ver>-mac-<arch>.dmg`, arm64 + x64, ULFO, default layout: app + Applications link; universal builds but hangs at start-up, not shipped), hardened runtime + entitlements only used with a real identity, `afterPack` ad-hoc signing. No update feed (see below). |
 | `build-resources/` | `icon.icns`, `entitlements.mac.plist`, `mac-adhoc-sign.cjs` (ad-hoc signs so Apple Silicon runs it; skips the per-arch temp apps of a universal build; skipped when `CSC_LINK`/`CSC_NAME` is set). |
-| `scripts/release-mac.mjs` | `npm run release:mac`: clean → production build → DMGs → validate → SHA256SUMS → print paths. macOS only. |
+| `scripts/release-mac.mjs` | `npm run release:mac`: clean → production build → arm64 + x64 DMGs → validate → SHA256SUMS → print paths. macOS only. |
 | `scripts/validate-mac.mjs` | DMG checks with macOS tools (hdiutil, codesign, lipo, otool, PlistBuddy, spctl, xattr); helpers in `mac-release-lib.mjs` (tested in `src/__tests__/release-lib.test.ts`). |
 | `scripts/smoke-cdp.mjs` | Read-only CDP smoke test used by `build-mac.yml` and `release-mac.yml`. |
 
@@ -32,13 +32,13 @@ Android reuses the UI and most services).
 ```
 npm run build:mac              # out/main + out/renderer (works on any OS)
 npm run dev:mac                # on a Mac: Vite (5176) + Electron
-npm run release:mac            # on a Mac: universal + arm64 + x64 DMGs, validated (--arch universal for one)
+npm run release:mac            # on a Mac: arm64 + x64 DMGs, validated (--arch arm64 for one)
 cd apps/mac; npm run package:mac -- --arm64   # on a Mac, quick single-arch build; output in dist-electron/
 ```
 
 CI: `ci.yml` builds it on every push; Actions → "Build macOS (unsigned)" (`build-mac.yml`, also on pushes touching
 `apps/mac/`) builds both DMGs on `macos-15` / `macos-15-intel`, installs, launches and reads the first screen. Actions → "Release macOS" (`release-mac.yml`) runs `npm run release:mac`,
-smoke-tests universal + single-arch on Apple Silicon and Intel, and with "publish" ticked creates release
+smoke-tests arm64 on Apple Silicon and x64 on Intel, and with "publish" ticked creates release
 `mac-v<version>` in the public repo `snipy09/nomadic-releases` (token `MAC_RELEASES_TOKEN`). The site's
 `/downloads/Nomadic-<ver>-mac-<arch>.dmg` redirects there (`apps/web/vercel.json`).
 

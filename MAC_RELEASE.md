@@ -6,12 +6,17 @@ notarized**, so macOS asks each user to allow it once (`MAC_INSTALL.md`). Nothin
 
 ## What gets built
 
-| File | Runs on | Notes |
+| File | Runs on | Size (1.4.0) |
 |---|---|---|
-| `Nomadic-<version>-mac-universal.dmg` | Apple Silicon + Intel | Main download. One file, no wrong choice. |
-| `Nomadic-<version>-mac-arm64.dmg` | Apple Silicon | Smaller. |
-| `Nomadic-<version>-mac-x64.dmg` | Intel | Smaller. |
-| `Nomadic-<version>-mac-SHA256SUMS.txt` | | Checksums of the three DMGs. |
+| `Nomadic-<version>-mac-arm64.dmg` | Apple Silicon (M1 and later) | ~146 MB |
+| `Nomadic-<version>-mac-x64.dmg` | Intel | ~153 MB |
+| `Nomadic-<version>-mac-SHA256SUMS.txt` | | Checksums of both DMGs |
+
+**Why two files, not one universal file:** a universal DMG (~225 MB) builds and passes every validation check, but in
+testing (8 Oct 2026, `release-mac.yml` on GitHub's Apple Silicon and Intel runners) the universal app hung during
+start-up on both chips, while the arm64 and x64 apps from the same build opened to the sign-in screen. Until that is
+fixed, the release ships one DMG per chip and the website chooses between them. `--arch universal` still builds it for
+investigation; do not upload it.
 
 macOS 11 Big Sur or later (Electron 31). Bundle id `com.nomadic.career.os`, name Nomadic, version from
 `apps/mac/package.json`, icon `apps/mac/build-resources/icon.icns`. Each DMG has the app and an Applications
@@ -23,8 +28,8 @@ shortcut (drag to install), compressed with LZFSE (ULFO).
 
 ```
 npm ci
-npm run release:mac                          # all three DMGs
-npm run release:mac -- --arch universal      # only the universal DMG
+npm run release:mac                          # arm64 + x64 DMGs
+npm run release:mac -- --arch arm64          # one of them
 npm run release:mac -- --launch              # also start each installed copy for 15 s
 ```
 
@@ -37,8 +42,8 @@ Validate a DMG on its own: `node apps/mac/scripts/validate-mac.mjs apps/mac/dist
 ### Without a Mac (free GitHub Actions)
 
 GitHub → Actions → **Release macOS** → Run workflow (`.github/workflows/release-mac.yml`). It runs the same
-`npm run release:mac` on a macOS runner, then installs the universal and single-arch DMGs on an Apple Silicon and an
-Intel runner and launches them. Download the DMGs from the run's artifact `Nomadic-<version>-mac`.
+`npm run release:mac` on a macOS runner, then installs the arm64 DMG on an Apple Silicon runner and the x64 DMG on
+an Intel runner, launches each and reads the sign-in screen. Download the DMGs from the run's artifact `Nomadic-<version>-mac`.
 
 Cost: this repo is private. GitHub Free includes 2,000 Actions minutes a month and macOS minutes count 10×, so a
 release run (about 25–35 macOS minutes) uses roughly 250–350 of them. It stays free while under the quota; Actions
@@ -48,8 +53,8 @@ stops (it does not bill) when the quota is used up unless a spending limit is se
 
 All with tools that come with macOS: `hdiutil verify` (image checksum), DMG layout (app + `/Applications` link),
 Info.plist (`PlistBuddy`, `plutil -lint`: bundle id, name, version, executable, minimum macOS, icon),
-`codesign --verify --deep --strict` (every nested binary sealed), `lipo -archs` on every Mach-O (universal = arm64 +
-x86_64), `otool -L` (no library from Homebrew, `/usr/local` or a build machine), file permissions, no
+`codesign --verify --deep --strict` (every nested binary sealed), `lipo -archs` on every Mach-O (arm64 or x86_64 as
+expected), `otool -L` (no library from Homebrew, `/usr/local` or a build machine), file permissions, no
 `com.apple.quarantine` in the build, app.asar contents (no `.env`, keys, app source maps, `/Users/…` paths or the
 dev server URL), and `spctl --assess` for information only: it says **rejected**, which is expected without
 notarization.
@@ -59,7 +64,6 @@ notarization.
 The website serves stable, versioned URLs and redirects them to the files:
 
 ```
-https://<site>/downloads/Nomadic-<version>-mac-universal.dmg
 https://<site>/downloads/Nomadic-<version>-mac-arm64.dmg
 https://<site>/downloads/Nomadic-<version>-mac-x64.dmg
 https://<site>/downloads/Nomadic-<version>-mac-SHA256SUMS.txt
@@ -84,17 +88,17 @@ Each release:
 
 1. Bump `version` in `apps/mac/package.json` (for example 1.4.0 → 1.4.1). Each version is a new release.
 2. Build (Actions → Release macOS, or `npm run release:mac` on a Mac).
-3. Upload: either run **Release macOS** with **publish** ticked (creates release `mac-v<version>` with the four files
-   and `MAC_INSTALL.md` as notes), or by hand: in `nomadic-releases` → Releases → Draft a new release → tag
-   `mac-v<version>` → attach the three DMGs and the SHA256SUMS file → Publish.
+3. Upload: either run **Release macOS** with **publish** ticked (creates release `mac-v<version>` with the three
+   files and `MAC_INSTALL.md` as notes), or by hand: in `nomadic-releases` → Releases → Draft a new release → tag
+   `mac-v<version>` → attach the two DMGs and the SHA256SUMS file → Publish.
 4. Turn on the website download: set `MAC_DOWNLOAD.version` in `packages/config/src/downloads.ts` to the same
    version, push, and let Vercel deploy. While it is `null` the Download page keeps saying "coming soon".
-5. Check: open `https://<site>/downloads/Nomadic-<version>-mac-universal.dmg`; it should start the download.
+5. Check: open `https://<site>/downloads/Nomadic-<version>-mac-arm64.dmg`; it should start the download.
 
-The Download page (`apps/web/src/pages/Download.tsx`, `components/MacDownload.tsx`, `mac-download.ts`) shows the
-universal DMG as the main button and the two smaller files below it. When the browser reveals the chip (Chrome, Edge,
-Brave via client hints, or the WebGL GPU name) the matching file is marked "this Mac"; Safari and Firefox do not
-reveal it, so both are shown equally. No library was added for this.
+The Download page (`apps/web/src/pages/Download.tsx`, `components/MacDownload.tsx`, `mac-download.ts`): when the
+browser reveals the chip (Chrome, Edge, Brave via client hints, or a WebGL GPU name such as "Apple M2" / "Intel Iris")
+that DMG is the main button with a "Not right?" link to the other; otherwise (Safari usually, Firefox) both are shown
+as equal buttons with the About This Mac hint. No library was added for this.
 
 ## Install steps for users
 
@@ -108,7 +112,7 @@ Use a Mac that has never run Nomadic, and download through a browser (that adds 
 copying with AirDrop or USB may not):
 
 1. Download the DMG from the website URL, not from the build folder.
-2. Verify: `shasum -a 256 ~/Downloads/Nomadic-<version>-mac-universal.dmg` matches the SHA256SUMS file.
+2. Verify: `shasum -a 256 ~/Downloads/Nomadic-<version>-mac-arm64.dmg` (or x64) matches the SHA256SUMS file.
 3. Open the DMG, check the window shows Nomadic and Applications, drag to install.
 4. Open from Applications. Expect "Nomadic Not Opened" (macOS 15) or "cannot be opened because Apple cannot check
    it" (macOS 13–14). Follow `MAC_INSTALL.md` → Open Anyway.
@@ -123,12 +127,12 @@ copying with AirDrop or USB may not):
 | `npm run release:mac` says it needs macOS | DMGs can only be made on macOS. Use the Release macOS workflow. |
 | "Nomadic is damaged and can't be opened" | The signature is broken or the file is incomplete. Re-download and check the SHA-256. If a fresh download still says it, the build is wrong: rebuild and make sure validation passed. Do not ask users to run Terminal commands. |
 | No Open Anyway button | It shows for about an hour after a blocked launch. Open the app again, then look again. |
-| Universal build fails with "Expected all non-binary files to have identical SHAs" | Something differs between the x64 and arm64 builds (a file written at build time, or an arch-specific signature). The ad-hoc hook already skips the temporary per-arch apps; check for generated files that embed the arch or a timestamp. |
+| Universal app hangs at start-up | Known (see above); ship arm64 + x64. To investigate: `--arch universal`, launch with `--remote-debugging-port`, `sample <pid>`. |
 | Validation: "links /opt/homebrew/…" | A native module was compiled against Homebrew. Rebuild it without, or bundle the library. (Today the app has no native Node modules: SQLite is sql.js/WebAssembly.) |
 | Validation: missing x86_64/arm64 in a binary | A dependency shipped a single-arch binary. Use a universal or per-arch build of it. |
 | Download page still says coming soon | `MAC_DOWNLOAD.version` is `null`, or Vercel has not deployed yet. |
 | `/downloads/...` returns 404 on GitHub | The release tag or file name does not match `mac-v<version>` / `Nomadic-<version>-mac-<arch>.dmg`, or the releases repo is private. |
-| Apple Silicon Mac downloaded the Intel file | It runs under Rosetta 2 (macOS offers to install it). Prefer the universal or arm64 file. |
+| Apple Silicon Mac downloaded the Intel file | It runs under Rosetta 2 (macOS offers to install it), slower. Send them the arm64 file. |
 
 ## What not having the Apple Developer Program means
 

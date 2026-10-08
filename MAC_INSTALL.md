@@ -6,11 +6,12 @@ Nomadic for Mac runs on **macOS 11 Big Sur or later**, on Apple Silicon (M1 and 
 
 | File | For |
 |---|---|
-| `Nomadic-<version>-mac-universal.dmg` | Any Mac. Pick this if you are unsure. |
-| `Nomadic-<version>-mac-arm64.dmg` | Apple Silicon Macs (M1, M2, M3, M4…). Smaller download. |
-| `Nomadic-<version>-mac-x64.dmg` | Intel Macs. Smaller download. |
+| `Nomadic-<version>-mac-arm64.dmg` | Apple Silicon Macs (M1, M2, M3, M4…) |
+| `Nomadic-<version>-mac-x64.dmg` | Intel Macs |
 
 To check your Mac: Apple menu → **About This Mac**. "Chip: Apple M…" is Apple Silicon; "Processor: Intel…" is Intel.
+The website picks the right file when your browser tells it the chip. (The Intel file also runs on Apple Silicon
+through Rosetta 2, but slower; use the Apple Silicon file there.)
 
 ## Install
 

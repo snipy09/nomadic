@@ -13,7 +13,7 @@ are for testing, not for public download. The product decision stays: Windows fi
   launches it and reads the first screen over CDP (`apps/mac/scripts/smoke-cdp.mjs`, read only).
 - Artifacts (14 days): `Nomadic-<version>-mac-arm64` and `Nomadic-<version>-mac-x64`, each with the
   DMG and its SHA-256.
-- On a Mac: `npm run release:mac` (universal + arm64 + x64, validated), or `cd apps/mac && npm run package:mac -- --arm64`
+- On a Mac: `npm run release:mac` (arm64 + x64, validated), or `cd apps/mac && npm run package:mac -- --arm64`
   for a quick single-arch build; output in `dist-electron/` as `Nomadic-<version>-mac-<arch>.dmg`.
 
 ## Which file

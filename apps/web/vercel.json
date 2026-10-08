@@ -6,7 +6,7 @@
   "trailingSlash": false,
   "redirects": [
     {
-      "source": "/downloads/Nomadic-:version(\\d+\\.\\d+\\.\\d+)-mac-:file(universal\\.dmg|arm64\\.dmg|x64\\.dmg|SHA256SUMS\\.txt)",
+      "source": "/downloads/Nomadic-:version(\\d+\\.\\d+\\.\\d+)-mac-:file(arm64\\.dmg|x64\\.dmg|SHA256SUMS\\.txt)",
       "destination": "https://github.com/snipy09/nomadic-releases/releases/download/mac-v:version/Nomadic-:version-mac-:file",
       "permanent": false
     }

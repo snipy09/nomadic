@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { macDmgFileName } from '@nomadic/config';
 import {
   archFromDmgName,
+  MAC_ARCHES,
   DEV_PATH_PATTERNS,
   dmgFileName,
   forbiddenAsarEntries,
@@ -17,9 +18,13 @@ const pkg = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'u
 
 describe('macOS release naming', () => {
   it('electron-builder, the release script and the website agree on DMG names', () => {
-    const fromBuilder = pkg.build.dmg.artifactName.replace('${version}', '1.4.0').replace('${arch}', 'universal').replace('${ext}', 'dmg');
-    expect(fromBuilder).toBe(dmgFileName('1.4.0', 'universal'));
+    const fromBuilder = pkg.build.dmg.artifactName.replace('${version}', '1.4.0').replace('${arch}', 'x64').replace('${ext}', 'dmg');
+    expect(fromBuilder).toBe(dmgFileName('1.4.0', 'x64'));
     expect(macDmgFileName('1.4.0', 'arm64')).toBe(dmgFileName('1.4.0', 'arm64'));
+  });
+
+  it('ships one DMG per chip; the experimental universal build is not shipped', () => {
+    expect(MAC_ARCHES).toEqual(['arm64', 'x64']);
   });
 
   it('reads the architecture back from a DMG name', () => {

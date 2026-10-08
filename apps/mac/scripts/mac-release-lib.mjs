@@ -1,8 +1,15 @@
 // Pure helpers for the macOS release (release-mac.mjs, validate-mac.mjs). No side effects, so they are unit tested
 // on any OS (src/__tests__/release-lib.test.ts).
 
-/** Architectures a release ships. `universal` runs natively on Apple Silicon and Intel. */
-export const MAC_ARCHES = ['universal', 'arm64', 'x64'];
+/** Architectures a release ships: one DMG for Apple Silicon, one for Intel. */
+export const MAC_ARCHES = ['arm64', 'x64'];
+
+/**
+ * Architectures the scripts can build. `universal` (both chips in one app) is experimental and NOT shipped: on
+ * 8 Oct 2026 the universal app built and validated but hung at start-up on Apple Silicon and Intel runners, while the
+ * arm64 and x64 apps from the same build opened normally (release-mac.yml smoke test).
+ */
+export const BUILDABLE_ARCHES = ['arm64', 'x64', 'universal'];
 
 /** File name of a release DMG. Must match `build.dmg.artifactName` in apps/mac/package.json. */
 export function dmgFileName(version, arch) {

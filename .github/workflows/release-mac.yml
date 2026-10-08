@@ -1,9 +1,9 @@
 name: Release macOS
 
 # Zero-cost macOS release: no Apple Developer Program, no paid signing, no notarization.
-# Builds Nomadic-<version>-mac-{universal,arm64,x64}.dmg with `npm run release:mac` (apps/mac/scripts/release-mac.mjs:
-# clean → production build → ad-hoc signed DMGs → validation with the macOS tools), then installs the universal and
-# the matching single-arch DMG on an Apple Silicon and an Intel runner and launches them (read-only smoke test).
+# Builds Nomadic-<version>-mac-{arm64,x64}.dmg with `npm run release:mac` (apps/mac/scripts/release-mac.mjs:
+# clean → production build → ad-hoc signed DMGs → validation with the macOS tools), then installs each DMG on its own
+# chip (arm64 on Apple Silicon, x64 on Intel), launches it and reads the first screen (read-only smoke test).
 # The DMGs are uploaded as a workflow artifact. Publishing to the public download repository happens only when run by
 # hand with "publish" ticked (MAC_RELEASE.md). The app is NOT notarized: users allow it once (MAC_INSTALL.md).
 #
@@ -101,12 +101,12 @@ jobs:
           name: Nomadic-${{ needs.build.outputs.version }}-mac
           path: dmgs
 
-      - name: Install from the DMG and launch (universal, then ${{ matrix.arch }})
+      - name: Install the ${{ matrix.arch }} DMG and launch it
         run: |
           set -euo pipefail
           v='${{ needs.build.outputs.version }}'
           (cd dmgs && shasum -a 256 -c "Nomadic-$v-mac-SHA256SUMS.txt")
-          for flavour in ${{ matrix.arch }} universal; do
+          for flavour in ${{ matrix.arch }}; do
             echo "::group::$flavour on $(uname -m)"
             dmg="dmgs/Nomadic-$v-mac-$flavour.dmg"
             mnt="$RUNNER_TEMP/mnt-$flavour"
@@ -177,4 +177,4 @@ jobs:
             exit 1
           fi
           gh release create "$tag" dmgs/* --repo "$REPO" --title "Nomadic $VERSION for Mac" --notes-file MAC_INSTALL.md
-          echo "Published. Website links: /downloads/Nomadic-$VERSION-mac-universal.dmg (and -arm64, -x64, -SHA256SUMS.txt)"
+          echo "Published. Website links: /downloads/Nomadic-$VERSION-mac-arm64.dmg, -x64.dmg, -SHA256SUMS.txt"

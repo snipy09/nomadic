@@ -1,6 +1,7 @@
 // One command for a macOS release, run on a Mac (or the free "Release macOS" GitHub Actions workflow):
-//   npm run release:mac                     # universal + arm64 + x64 DMGs
-//   npm run release:mac -- --arch universal # only the universal DMG (fastest)
+//   npm run release:mac                     # arm64 (Apple Silicon) + x64 (Intel) DMGs
+//   npm run release:mac -- --arch arm64     # one of them
+//   npm run release:mac -- --arch universal # experimental, not shipped (see BUILDABLE_ARCHES)
 // Steps: clean old output → production build (main + renderer) → electron-builder DMGs (ad-hoc signed, no Apple
 // Developer ID, not notarized) → validate each DMG (validate-mac.mjs) → SHA256SUMS.txt → print the file paths.
 // Free tooling only: Node, electron-builder and the tools that come with macOS. Nothing is uploaded.
@@ -9,7 +10,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { dmgFileName, MAC_ARCHES } from './mac-release-lib.mjs';
+import { BUILDABLE_ARCHES, dmgFileName, MAC_ARCHES } from './mac-release-lib.mjs';
 import { validateDmg } from './validate-mac.mjs';
 
 const appDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -27,10 +28,13 @@ function argValue(name) {
 const archArg = argValue('--arch') ?? 'all';
 const arches = archArg === 'all' ? MAC_ARCHES : archArg.split(',');
 for (const a of arches) {
-  if (!MAC_ARCHES.includes(a)) {
-    console.error(`Unknown --arch ${a}. Use universal, arm64, x64 or all.`);
+  if (!BUILDABLE_ARCHES.includes(a)) {
+    console.error(`Unknown --arch ${a}. Use arm64, x64 or all (universal is experimental).`);
     process.exit(1);
   }
+}
+if (arches.includes('universal')) {
+  console.warn('! universal is experimental: its app hung at start-up in testing. Do not upload it.');
 }
 
 if (process.platform !== 'darwin') {

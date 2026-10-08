@@ -22,7 +22,7 @@ Last updated: 7 October 2026.
 - `build-windows.yml` (manual): unsigned NSIS installer + portable exe artifact. `release.yml` (tags `v*.*.*`): signed
   release with `update-policy.json` (needs the code-signing certificate).
 - `build-mac.yml` (manual, or pushes touching `apps/mac/`): arm64 + x64 DMGs, launched once and smoke-tested over CDP.
-- `release-mac.yml` (manual, or pushes touching the release scripts): `npm run release:mac` (universal + arm64 + x64, validated), smoke test on Apple Silicon and Intel; with "publish" ticked, a release in the public `snipy09/nomadic-releases` repo.
+- `release-mac.yml` (manual, or pushes touching the release scripts): `npm run release:mac` (arm64 + x64, validated), arm64 launched on Apple Silicon and x64 on Intel; with "publish" ticked, a release in the public `snipy09/nomadic-releases` repo.
 - `android-app.yml` (pushes touching `apps/android`, `packages/app-core`, `packages/app-ui`, shared packages): debug
   APK + emulator smoke test. `android-apply.yml`: the Android apply agent on emulators.
 - `scrape.yml` (cloud job scraper, needs repo secrets), `scraper-folder.yml` (builds the Desktop scraper folder),
