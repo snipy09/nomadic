@@ -8,10 +8,14 @@
  */
 import { CURRENCY, PLANS } from './plans';
 
-export const LEGAL_VERSION = '2026-10-07';
-export const LEGAL_UPDATED = '7 October 2026';
-/** Operator as it should appear on invoices and in notices. Change once the business is registered. */
-export const LEGAL_ENTITY = 'Nomadic';
+export const LEGAL_VERSION = '2026-10-08';
+export const LEGAL_UPDATED = '8 October 2026';
+/** Legal owner/operator (sole proprietor) as it appears on invoices, notices and the payment gateway. */
+export const LEGAL_NAME = 'Sajal Kumar Mishra';
+export const LEGAL_ENTITY = `${LEGAL_NAME} (operating as Nomadic)`;
+export const CONTACT_EMAIL = 'sajalmishra0908@gmail.com';
+export const CONTACT_PHONE = '+91 93468 78325';
+export const CONTACT_PHONE_HREF = 'tel:+919346878325';
 export const SUPPORT_EMAIL = 'support@nomadic.app';
 export const GRIEVANCE_EMAIL = 'grievance@nomadic.app';
 export const GOVERNING_LAW = 'the laws of India';
@@ -126,6 +130,7 @@ export const TERMS: LegalDoc = {
       paragraphs: [
         `These terms are governed by ${GOVERNING_LAW}. Disputes are subject to ${JURISDICTION}. We encourage you to contact us first so we can try to resolve any problem.`,
         `Questions: ${SUPPORT_EMAIL}. Grievances (including under the Consumer Protection (E-Commerce) Rules, 2020 and the Information Technology Act, 2000): ${GRIEVANCE_EMAIL}. We acknowledge grievances within 48 hours and aim to resolve them within 30 days.`,
+        `Operator: ${LEGAL_NAME}. Email: ${CONTACT_EMAIL}. Phone: ${CONTACT_PHONE}.`,
       ],
     },
   ],
@@ -234,7 +239,9 @@ export const REFUNDS: LegalDoc = {
     },
     {
       title: 'Contact',
-      paragraphs: [`For any payment question write to ${SUPPORT_EMAIL} with your account email and the payment reference.`],
+      paragraphs: [`For any payment question write to ${SUPPORT_EMAIL} with your account email and the payment reference.`,
+        `Merchant: ${LEGAL_NAME}. Email: ${CONTACT_EMAIL}. Phone: ${CONTACT_PHONE}.`,
+      ],
     },
   ],
 };

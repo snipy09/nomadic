@@ -149,3 +149,5 @@ Last updated: 7 October 2026. What was built when, with the files involved. Newe
   which the root `.gitignore` ignores; CI was red on `main` for one push until they were renamed).
   Dead code removed: `ai-pilot-engine`, `semantic-dom-extractor`, `form-command-interpreter`, `question-classifier`,
   `standalone-tester`, `ai-url-auditor`, `test-conn`, `DependenciesView`, the web's unused `src/supabase.ts`; `animejs` dropped.
+
+- 2026-10-08: Website legal owner set to Sajal Kumar Mishra (operating as Nomadic) with contact email/phone in `packages/config/src/legal.ts` (footer, legal pages, terms/refunds) for payment-gateway approval; LEGAL_VERSION bumped to 2026-10-08. Business address still missing.
