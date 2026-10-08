@@ -669,6 +669,66 @@ export async function learningSaveState(
   }
 }
 
+/** In-app review (034): due once the account is 7 days old and has no review yet. */
+export async function appReviewStatus(
+  supabase: any,
+  userId: string,
+  sessionToken: string,
+  deviceFingerprint: string
+): Promise<{ ok: boolean; due: boolean; error?: string }> {
+  try {
+    const { data, error } = await supabase.rpc('app_review_status', {
+      p_user_id: userId,
+      p_session_token: sessionToken,
+      p_device_fingerprint: deviceFingerprint,
+    });
+    if (error) return { ok: false, due: false, error: error.message };
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row) return { ok: false, due: false, error: 'No response' };
+    return row.ok ? { ok: true, due: row.due === true } : { ok: false, due: false, error: row.error ?? 'Not available' };
+  } catch (err: any) {
+    return { ok: false, due: false, error: String(err?.message ?? err) };
+  }
+}
+
+export interface AppReviewPayload {
+  platform: 'windows' | 'mac' | 'android';
+  appVersion: string | null;
+  sus: number[];
+  recommend: number;
+  best: string | null;
+  frustrating: string | null;
+}
+
+/** Saves the user's one review. A second review comes back as `already_reviewed`. */
+export async function appReviewSubmit(
+  supabase: any,
+  userId: string,
+  sessionToken: string,
+  deviceFingerprint: string,
+  review: AppReviewPayload
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const { data, error } = await supabase.rpc('app_review_submit', {
+      p_user_id: userId,
+      p_session_token: sessionToken,
+      p_device_fingerprint: deviceFingerprint,
+      p_platform: review.platform,
+      p_app_version: review.appVersion,
+      p_sus: review.sus,
+      p_recommend: review.recommend,
+      p_best: review.best,
+      p_frustrating: review.frustrating,
+    });
+    if (error) return { ok: false, error: error.message };
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row) return { ok: false, error: 'No response' };
+    return row.ok ? { ok: true } : { ok: false, error: row.error ?? 'Not saved' };
+  } catch (err: any) {
+    return { ok: false, error: String(err?.message ?? err) };
+  }
+}
+
 /** Every state document of the user. */
 export async function learningPullState(
   supabase: any,

@@ -9,6 +9,7 @@ import { registerLearnerIpc } from './learner.js';
 import { registerOutreachIpc } from './outreach.js';
 import { registerPracticeIpc } from './practice.js';
 import { registerProfileIpc } from './profile.js';
+import { registerReviewIpc } from './review.js';
 import { registerSettingsIpc } from './settings.js';
 import { registerSystemIpc } from './system.js';
 
@@ -29,4 +30,5 @@ export function registerAllIpc(): void {
   registerPracticeIpc();
   registerAdminIpc();
   registerDataSafetyIpc();
+  registerReviewIpc();
 }

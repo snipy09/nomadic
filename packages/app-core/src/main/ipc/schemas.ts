@@ -60,6 +60,15 @@ export const openExternalUrlArgs: ArgSchemas<'open-external-url'> = [url];
 export const openInApplyBrowserArgs: ArgSchemas<'open-in-apply-browser'> = [url.regex(/^https?:\/\//i)];
 export const updateChannelArgs: ArgSchemas<'updater-set-channel'> = [z.enum(['stable', 'beta'])];
 export const telemetrySetArgs: ArgSchemas<'telemetry-set'> = [z.boolean()];
+export const appReviewSubmitArgs: ArgSchemas<'app-review-submit'> = [
+  z.object({
+    platform: z.enum(['windows', 'mac', 'android']),
+    sus: z.array(z.number().int().min(1).max(5)).length(10),
+    recommend: z.number().int().min(0).max(10),
+    best: opt(z.string().max(2_000)),
+    frustrating: opt(z.string().max(2_000)),
+  }),
+];
 export const feedbackArgs: ArgSchemas<'send-feedback'> = [
   z.object({
     kind: z.enum(['bug', 'idea', 'question']),
