@@ -16,8 +16,9 @@ export const LEGAL_ENTITY = `${LEGAL_NAME} (operating as Nomadic)`;
 export const CONTACT_EMAIL = 'sajalmishra0908@gmail.com';
 export const CONTACT_PHONE = '+91 93468 78325';
 export const CONTACT_PHONE_HREF = 'tel:+919346878325';
-export const SUPPORT_EMAIL = 'support@nomadic.app';
-export const GRIEVANCE_EMAIL = 'grievance@nomadic.app';
+/** No nomadic.app mailbox exists yet: support and grievances go to the owner's email until one does. */
+export const SUPPORT_EMAIL = CONTACT_EMAIL;
+export const GRIEVANCE_EMAIL = CONTACT_EMAIL;
 export const GOVERNING_LAW = 'the laws of India';
 export const JURISDICTION = 'the courts of India';
 

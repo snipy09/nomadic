@@ -34,7 +34,7 @@ function mockApi(over: Record<string, unknown> = {}) {
     dismissWhatsNew: vi.fn().mockResolvedValue({ success: true }),
     getTelemetry: vi.fn().mockResolvedValue({ crashReports: false, available: true, active: false }),
     setTelemetry: vi.fn().mockImplementation(async (v: boolean) => ({ crashReports: v, available: true, active: v })),
-    sendFeedback: vi.fn().mockResolvedValue({ success: true, via: 'email', note: 'Your email app opened a message to support@nomadic.app. Press send there.' }),
+    sendFeedback: vi.fn().mockResolvedValue({ success: true, via: 'email', note: 'Your email app opened a message to sajalmishra0908@gmail.com. Press send there.' }),
     openExternalUrl: vi.fn().mockResolvedValue({ success: true }),
     ...over,
   };

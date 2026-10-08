@@ -1,3 +1,4 @@
+import { CONTACT_EMAIL, LEGAL_NAME } from '@nomadic/config';
 import { FAQS, PLANS } from './content';
 import { OG_IMAGE, PAGES, PageId, SITE } from './seo';
 
@@ -7,10 +8,11 @@ const SITE_ID = `${SITE}/#website`;
 const organization = {
   '@type': 'Organization',
   '@id': ORG_ID,
-  name: 'Nomadic Technologies',
+  name: 'Nomadic',
+  legalName: LEGAL_NAME,
   url: `${SITE}/`,
   logo: `${SITE}/logo-icon.png`,
-  email: 'support@nomadic.app',
+  email: CONTACT_EMAIL,
 };
 
 const website = {

@@ -231,7 +231,7 @@ describe('feedback', () => {
 
   it('builds a mailto that stays short and says where the full diagnostics are', () => {
     const url = buildMailto(input, 'D'.repeat(5000), '1.0.6');
-    expect(url.startsWith('mailto:support@nomadic.app?subject=')).toBe(true);
+    expect(url.startsWith('mailto:sajalmishra0908@gmail.com?subject=')).toBe(true);
     const body = decodeURIComponent(url.split('&body=')[1]);
     expect(body.startsWith('The feed does not load')).toBe(true);
     expect(body.length).toBeLessThan(2000);

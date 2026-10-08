@@ -40,16 +40,14 @@ export default function Footer() {
           <a href="/refunds" className={LINK}>
             Refunds
           </a>
-          <a href="mailto:support@nomadic.app" className={`${LINK} break-all`}>
-            support@nomadic.app
+          <a href={`mailto:${CONTACT_EMAIL}`} className={`${LINK} break-all`}>
+            {CONTACT_EMAIL}
           </a>
         </nav>
       </div>
       <div className="border-t border-white/15">
         <p className="mx-auto max-w-6xl px-4 py-5 text-sm text-ink-pale sm:px-6">
-          © 2026 {LEGAL_NAME} (Nomadic). Contact: <a href={`mailto:${CONTACT_EMAIL}`} className="underline">{CONTACT_EMAIL}</a>
-          {' · '}
-          <a href={CONTACT_PHONE_HREF} className="underline">{CONTACT_PHONE}</a>. All sample companies, people and listings on this site are fictional.
+          © 2026 {LEGAL_NAME} (Nomadic). Phone: <a href={CONTACT_PHONE_HREF} className="underline">{CONTACT_PHONE}</a>. All sample companies, people and listings on this site are fictional.
         </p>
       </div>
     </footer>

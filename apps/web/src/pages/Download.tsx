@@ -1,4 +1,5 @@
 import { CSSProperties } from 'react';
+import { CONTACT_EMAIL } from '@nomadic/config';
 import Nav from '../components/Nav';
 import Footer from '../components/Footer';
 import ComingSoon from '../components/ComingSoon';
@@ -61,10 +62,10 @@ export default function Download() {
             <p className="mt-10 max-w-xl text-ink-soft">
               Nomadic launches on Windows, with macOS after the beta. Questions before then? Write to{' '}
               <a
-                href="mailto:support@nomadic.app"
+                href={`mailto:${CONTACT_EMAIL}`}
                 className="font-bold text-ink underline decoration-2 underline-offset-4 hover:text-ultra"
               >
-                support@nomadic.app
+                {CONTACT_EMAIL}
               </a>
               .
             </p>
