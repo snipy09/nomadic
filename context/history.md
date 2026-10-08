@@ -1,6 +1,6 @@
 # History and handoff notes
 
-Last updated: 7 October 2026. What was built when, with the files involved. Newest work is at the end. Paths are current (after the
+Last updated: 8 October 2026. What was built when, with the files involved. Newest work is at the end. Paths are current (after the
 7 Oct 2026 split: shared UI in `packages/app-ui/src`, shared main process in `packages/app-core/src`).
 
 - Branch `main` (remote github.com/snipy09/nomadic) holds everything. On 7 Oct 2026 every branch with unmerged work was merged (macOS DMG builds, News on the desktop, first-run tour, account-menu fix, scraper folder) and the repo was split into shared packages + three apps (see architecture.md).
@@ -153,3 +153,4 @@ Last updated: 7 October 2026. What was built when, with the files involved. Newe
 - 2026-10-08: Website legal owner set to Sajal Kumar Mishra (operating as Nomadic) with contact email/phone in `packages/config/src/legal.ts` (footer, legal pages, terms/refunds) for payment-gateway approval; LEGAL_VERSION bumped to 2026-10-08. Business address still missing.
 - 2026-10-08: Removed unowned support@/grievance@nomadic.app everywhere (website, legal text, in-app support, JSON-LD); all point to the owner email until a domain mailbox exists. JSON-LD org name no longer "Nomadic Technologies".
 - 2026-10-08: Added website /contact page (operator, email, phone from config), footer link, prerender + sitemap entry.
+- 2026-10-08: Zero-cost Mac distribution (no Apple Developer Program): `npm run release:mac` (`apps/mac/scripts/release-mac.mjs` + `validate-mac.mjs` + `mac-release-lib.mjs`) builds ad-hoc signed universal/arm64/x64 DMGs (`Nomadic-<ver>-mac-<arch>.dmg`, ULFO, Applications link) and validates them with macOS tools; the afterPack ad-hoc hook skips the per-arch temp apps of a universal build. `release-mac.yml` builds, smoke-tests on Apple Silicon + Intel and optionally publishes to the public `snipy09/nomadic-releases`. Website: `MAC_DOWNLOAD` in `packages/config/src/downloads.ts` (null = coming soon), Download page Mac section (`components/MacDownload.tsx`, chip detection `mac-download.ts`), `/downloads/*` redirect in `apps/web/vercel.json`. Docs: `MAC_RELEASE.md`, `MAC_INSTALL.md`.

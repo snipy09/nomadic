@@ -26,6 +26,7 @@
     "start:desktop": "npm run start --workspace @nomadic/desktop",
     "package:desktop": "npm run package:win --workspace @nomadic/desktop",
     "package:mac": "npm run package:mac --workspace @nomadic/mac",
+    "release:mac": "npm run release --workspace @nomadic/mac --",
     "preview:web": "npm run preview --workspace @nomadic/web",
     "test": "vitest run",
     "test:watch": "vitest",

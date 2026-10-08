@@ -9,11 +9,12 @@ are for testing, not for public download. The product decision stays: Windows fi
 - GitHub → Actions → **Build macOS (unsigned)** → Run workflow (`.github/workflows/build-mac.yml`). It
   also runs on any push that changes the workflow or `apps/mac/`.
 - Two jobs: `arm64` on `macos-15` and `x64` on `macos-15-intel`. Each builds
-  `Nomadic-<version>-<arch>.dmg`, installs the app from it, checks the signature and architecture,
+  `Nomadic-<version>-mac-<arch>.dmg`, installs the app from it, checks the signature and architecture,
   launches it and reads the first screen over CDP (`apps/mac/scripts/smoke-cdp.mjs`, read only).
 - Artifacts (14 days): `Nomadic-<version>-mac-arm64` and `Nomadic-<version>-mac-x64`, each with the
   DMG and its SHA-256.
-- On a Mac: `cd apps/mac && npm run package:mac -- --arm64` (or `--x64`); output in `dist-electron/`.
+- On a Mac: `npm run release:mac` (universal + arm64 + x64, validated), or `cd apps/mac && npm run package:mac -- --arm64`
+  for a quick single-arch build; output in `dist-electron/` as `Nomadic-<version>-mac-<arch>.dmg`.
 
 ## Which file
 
@@ -26,8 +27,11 @@ are for testing, not for public download. The product decision stays: Windows fi
 2. Open Nomadic from Applications. macOS says it cannot verify the app. Click **Done** (not Move to Bin).
 3. System Settings → Privacy & Security → scroll to Security → "Nomadic was blocked…" → **Open Anyway**,
    confirm with your password. Later launches open normally.
-4. If macOS says the app "is damaged", the download kept its quarantine flag; in Terminal run
-   `xattr -dr com.apple.quarantine /Applications/Nomadic.app` and open it again.
+4. If macOS says the app "is damaged", the file is incomplete or the build is broken: download again and check
+   the SHA-256; if it persists, rebuild. Users are never asked to run Terminal commands.
+
+Public (free) distribution from the website: `MAC_RELEASE.md` (build, validate, publish) and `MAC_INSTALL.md`
+(user steps) at the repo root. One command on a Mac: `npm run release:mac`; without a Mac: Actions → **Release macOS**.
 
 ## How it differs from Windows
 

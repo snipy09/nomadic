@@ -1,8 +1,9 @@
 import { CSSProperties } from 'react';
-import { CONTACT_EMAIL } from '@nomadic/config';
+import { CONTACT_EMAIL, MAC_DOWNLOAD } from '@nomadic/config';
 import Nav from '../components/Nav';
 import Footer from '../components/Footer';
 import ComingSoon from '../components/ComingSoon';
+import MacDownload, { MacInstallSteps } from '../components/MacDownload';
 
 const delay = (ms: number) => ({ '--d': `${ms}ms` } as CSSProperties);
 
@@ -14,6 +15,7 @@ const INCLUDED = [
 ];
 
 export default function Download() {
+  const macVersion = MAC_DOWNLOAD.version;
   return (
     <div className="min-h-screen">
       <Nav variant="page" />
@@ -21,26 +23,48 @@ export default function Download() {
       <main>
         <section className="on-dark bg-ultra text-white">
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-28">
-            <h1 className="wide text-[clamp(2.25rem,6.5vw,5rem)]">
-              <span className="line-mask block">
-                <span className="anim-rise block" style={delay(0)}>
-                  Nomadic for desktop
-                </span>
-              </span>
-              <span className="line-mask block">
-                <span className="anim-rise block" style={delay(130)}>
-                  is coming soon.
-                </span>
-              </span>
-            </h1>
-            <p className="anim-fade mt-8 max-w-xl text-xl text-white/90" style={delay(450)}>
-              There is no public download yet. When it is ready, the installer will be on this page.
-            </p>
-            <div className="anim-fade mt-8" style={delay(600)}>
-              <ComingSoon tone="dark" size="lg" />
-            </div>
+            {macVersion ? (
+              <>
+                <h1 className="wide text-[clamp(2.25rem,6.5vw,5rem)]">
+                  <span className="line-mask block">
+                    <span className="anim-rise block" style={delay(0)}>
+                      Nomadic for Mac
+                    </span>
+                  </span>
+                </h1>
+                <p className="anim-fade mt-8 max-w-xl text-xl text-white/90" style={delay(300)}>
+                  Download the DMG, drag Nomadic into Applications and open it. Windows is coming soon.
+                </p>
+                <div className="anim-fade mt-8" style={delay(450)}>
+                  <MacDownload version={macVersion} />
+                </div>
+              </>
+            ) : (
+              <>
+                <h1 className="wide text-[clamp(2.25rem,6.5vw,5rem)]">
+                  <span className="line-mask block">
+                    <span className="anim-rise block" style={delay(0)}>
+                      Nomadic for desktop
+                    </span>
+                  </span>
+                  <span className="line-mask block">
+                    <span className="anim-rise block" style={delay(130)}>
+                      is coming soon.
+                    </span>
+                  </span>
+                </h1>
+                <p className="anim-fade mt-8 max-w-xl text-xl text-white/90" style={delay(450)}>
+                  There is no public download yet. When it is ready, the installer will be on this page.
+                </p>
+                <div className="anim-fade mt-8" style={delay(600)}>
+                  <ComingSoon tone="dark" size="lg" />
+                </div>
+              </>
+            )}
           </div>
         </section>
+
+        {macVersion && <MacInstallSteps />}
 
         <section aria-labelledby="included-title" className="bg-fog">
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-24">

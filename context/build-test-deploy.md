@@ -11,7 +11,7 @@ Last updated: 7 October 2026.
 | Tests | `npm test` (laptop: `npx vitest run --maxWorkers=2 --testTimeout=30000`) |
 | Lint | `npm run lint` (must exit 0) |
 | Windows app | `npm run dev:desktop` · `npm run build:desktop` · `npm run package:desktop` (on Windows) |
-| Mac app | `npm run dev:mac` · `npm run build:mac` · `npm run package:mac` (on a Mac) |
+| Mac app | `npm run dev:mac` · `npm run build:mac` · `npm run package:mac` · `npm run release:mac` (on a Mac; MAC_RELEASE.md) |
 | Android app | `npm run dev:android` · `npm run build:android` (APK only in CI) |
 | Website | `npm run dev:web` · `npm run build:web` |
 | Scraper folder | `npm run build:scraper-folder` · `scripts\windows\Install scraper folder.cmd` |
@@ -22,6 +22,7 @@ Last updated: 7 October 2026.
 - `build-windows.yml` (manual): unsigned NSIS installer + portable exe artifact. `release.yml` (tags `v*.*.*`): signed
   release with `update-policy.json` (needs the code-signing certificate).
 - `build-mac.yml` (manual, or pushes touching `apps/mac/`): arm64 + x64 DMGs, launched once and smoke-tested over CDP.
+- `release-mac.yml` (manual, or pushes touching the release scripts): `npm run release:mac` (universal + arm64 + x64, validated), smoke test on Apple Silicon and Intel; with "publish" ticked, a release in the public `snipy09/nomadic-releases` repo.
 - `android-app.yml` (pushes touching `apps/android`, `packages/app-core`, `packages/app-ui`, shared packages): debug
   APK + emulator smoke test. `android-apply.yml`: the Android apply agent on emulators.
 - `scrape.yml` (cloud job scraper, needs repo secrets), `scraper-folder.yml` (builds the Desktop scraper folder),
@@ -68,8 +69,8 @@ Last updated: 7 October 2026.
   `dist`, `forceNew: "1"`, no `teamId`). Assistant cloud containers cannot reach `*.vercel.app` (proxy 403). Smoke test:
   `/`, `/download`, `/terms`, `/privacy` → 200, unknown path → 404, `/sitemap.xml` and `/robots.txt` served.
 - Mac build (7 Oct 2026, test builds only): Actions → "Build macOS (unsigned)" (`.github/workflows/build-mac.yml`,
-  workflow_dispatch, also on pushes touching it or `apps/mac/`) builds `Nomadic-<ver>-arm64.dmg`
-  (`macos-15`) and `-x64.dmg` (`macos-15-intel`), installs, launches and reads the first screen over CDP
+  workflow_dispatch, also on pushes touching it or `apps/mac/`) builds `Nomadic-<ver>-mac-arm64.dmg`
+  (`macos-15`) and `-mac-x64.dmg` (`macos-15-intel`), installs, launches and reads the first screen over CDP
   (`apps/mac/scripts/smoke-cdp.mjs`), artifacts kept 14 days. No Developer ID: `apps/mac/build-resources/mac-adhoc-sign.cjs`
   (afterPack) ad-hoc signs; users click Open Anyway once. Updates report "unsupported" on darwin
   (`packages/app-core/src/main/services/updates-runtime.ts`). Locally on a Mac: `cd apps/mac; npm run package:mac -- --arm64`. Guide: `docs/guides/MAC_APP.md`.
