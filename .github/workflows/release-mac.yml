@@ -126,6 +126,9 @@ jobs:
               curl -sS -m 5 http://127.0.0.1:9333/json/version || true
               ps -axo pid,stat,%cpu,command | grep -i "[N]omadic" | cut -c1-200 || true
               screencapture -x "$RUNNER_TEMP/screen-$flavour.png" || true
+              echo "--- main thread of the app"
+              sample "$pid" 2 -file "$RUNNER_TEMP/sample.txt" >/dev/null 2>&1 || true
+              grep -A45 "com.apple.main-thread" "$RUNNER_TEMP/sample.txt" | cut -c1-160 || true
               kill "$pid" 2>/dev/null || true
               exit 1
             fi
