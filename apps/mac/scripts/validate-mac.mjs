@@ -3,7 +3,7 @@
 //   node apps/mac/scripts/validate-mac.mjs dist-electron/Nomadic-1.4.0-mac-universal.dmg [--launch]
 // Exit code 1 when a check fails. The spctl (Gatekeeper) result is reported, not enforced: without an Apple
 // Developer ID it is always "rejected", which is expected and the reason users click Open Anyway once.
-import { execFileSync, spawn } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -16,6 +16,7 @@ import {
   forbiddenAsarEntries,
   isBundledOrSystemLib,
   missingArchs,
+  parseOtoolIds,
   parseOtoolLibs,
 } from './mac-release-lib.mjs';
 
@@ -31,11 +32,9 @@ function run(cmd, args, opts = {}) {
 
 /** Runs a command and returns { ok, out } instead of throwing; stderr is included (codesign/spctl print there). */
 function tryRun(cmd, args) {
-  try {
-    return { ok: true, out: execFileSync(cmd, args, { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] }) };
-  } catch (err) {
-    return { ok: false, out: `${err.stdout ?? ''}${err.stderr ?? ''}`.trim() || String(err) };
-  }
+  const r = spawnSync(cmd, args, { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] });
+  const out = `${r.stdout ?? ''}${r.stderr ?? ''}`;
+  return { ok: r.status === 0, out: r.status === 0 ? out : out.trim() || String(r.error ?? `exit ${r.status}`) };
 }
 
 function walk(dir, files = []) {
@@ -154,7 +153,8 @@ export async function validateDmg(dmgPath, { launch = false } = {}) {
       archProblems++;
       fail(`${rel}: missing ${missing.join(', ')} (has ${lipo.out.trim()})`);
     }
-    const libs = parseOtoolLibs(tryRun('otool', ['-L', bin]).out);
+    const ownIds = new Set(parseOtoolIds(tryRun('otool', ['-D', bin]).out));
+    const libs = [...new Set(parseOtoolLibs(tryRun('otool', ['-L', bin]).out))].filter((l) => !ownIds.has(l));
     for (const lib of libs.filter((l) => !isBundledOrSystemLib(l))) {
       libProblems++;
       fail(`${rel} links ${lib}, which a clean Mac does not have`);

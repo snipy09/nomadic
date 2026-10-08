@@ -44,25 +44,7 @@
       "artifactName": "Nomadic-${version}-mac-${arch}.${ext}",
       "title": "Nomadic ${version}",
       "format": "ULFO",
-      "writeUpdateInfo": false,
-      "window": {
-        "width": 540,
-        "height": 380
-      },
-      "iconSize": 96,
-      "contents": [
-        {
-          "x": 140,
-          "y": 180,
-          "type": "file"
-        },
-        {
-          "x": 400,
-          "y": 180,
-          "type": "link",
-          "path": "/Applications"
-        }
-      ]
+      "writeUpdateInfo": false
     }
   },
   "dependencies": {

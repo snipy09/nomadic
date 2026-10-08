@@ -47,6 +47,17 @@ export function parseOtoolLibs(output) {
 }
 
 /**
+ * A dylib's own install name(s) from `otool -D` output. `otool -L` lists it among the libraries (Electron's libEGL says
+ * "./libEGL.dylib"); it is the library's name for itself, not a dependency.
+ */
+export function parseOtoolIds(output) {
+  return output
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line && !line.endsWith(':'));
+}
+
+/**
  * A linked library that the user's Mac will have: part of macOS, or inside the app bundle. Anything else (Homebrew,
  * /usr/local, a build machine's home folder) is a missing dependency on a clean Mac.
  */

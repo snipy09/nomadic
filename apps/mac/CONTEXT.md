@@ -18,7 +18,7 @@ Only what is specific to macOS. Changes here cannot affect the Windows or Androi
 | `renderer/` | `index.html`, `main.tsx` (`mountApp()` from `packages/app-ui`), `public/assets`. Mac-only screens go here. |
 | `vite.config.ts` | Shared renderer config with `VITE_PLATFORM=mac` (`IS_MAC` in the UI), dev port 5176. |
 | `build-main.mjs` | Bundles `src/main.ts` + the shared preload. |
-| `package.json` → `build` | electron-builder DMG (`Nomadic-<ver>-mac-<arch>.dmg`, universal / arm64 / x64, ULFO, app + Applications link), hardened runtime + entitlements only used with a real identity, `afterPack` ad-hoc signing. No update feed (see below). |
+| `package.json` → `build` | electron-builder DMG (`Nomadic-<ver>-mac-<arch>.dmg`, universal / arm64 / x64, ULFO, default layout: app + Applications link), hardened runtime + entitlements only used with a real identity, `afterPack` ad-hoc signing. No update feed (see below). |
 | `build-resources/` | `icon.icns`, `entitlements.mac.plist`, `mac-adhoc-sign.cjs` (ad-hoc signs so Apple Silicon runs it; skips the per-arch temp apps of a universal build; skipped when `CSC_LINK`/`CSC_NAME` is set). |
 | `scripts/release-mac.mjs` | `npm run release:mac`: clean → production build → DMGs → validate → SHA256SUMS → print paths. macOS only. |
 | `scripts/validate-mac.mjs` | DMG checks with macOS tools (hdiutil, codesign, lipo, otool, PlistBuddy, spctl, xattr); helpers in `mac-release-lib.mjs` (tested in `src/__tests__/release-lib.test.ts`). |

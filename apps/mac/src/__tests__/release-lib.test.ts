@@ -9,6 +9,7 @@ import {
   forbiddenAsarEntries,
   isBundledOrSystemLib,
   missingArchs,
+  parseOtoolIds,
   parseOtoolLibs,
 } from '../../scripts/mac-release-lib.mjs';
 
@@ -31,7 +32,6 @@ describe('macOS release naming', () => {
     expect(pkg.build.afterPack).toBe('./build-resources/mac-adhoc-sign.cjs');
     expect(pkg.build.publish).toBeUndefined();
     expect(pkg.build.dmg.writeUpdateInfo).toBe(false);
-    expect(pkg.build.dmg.contents.some((c: { type: string; path?: string }) => c.type === 'link' && c.path === '/Applications')).toBe(true);
   });
 });
 
@@ -55,6 +55,13 @@ describe('macOS DMG validation helpers', () => {
     const libs = parseOtoolLibs(out);
     expect(libs).toEqual(['@rpath/Electron Framework.framework/Electron Framework', '/usr/lib/libSystem.B.dylib', '/opt/homebrew/lib/libfoo.dylib']);
     expect(libs.filter((l) => !isBundledOrSystemLib(l))).toEqual(['/opt/homebrew/lib/libfoo.dylib']);
+  });
+
+  it("ignores a dylib's own install name (Electron's libEGL is ./libEGL.dylib)", () => {
+    const ids = parseOtoolIds('/A/libEGL.dylib (architecture x86_64):\n./libEGL.dylib\n/A/libEGL.dylib (architecture arm64):\n./libEGL.dylib\n');
+    expect(ids).toEqual(['./libEGL.dylib', './libEGL.dylib']);
+    const libs = parseOtoolLibs('/A/libEGL.dylib:\n\t./libEGL.dylib (compatibility version 0.0.0, current version 0.0.0)\n\t/usr/lib/libc++.1.dylib (compatibility version 1.0.0, current version 1.0.0)\n');
+    expect(libs.filter((l) => !ids.includes(l) && !isBundledOrSystemLib(l))).toEqual([]);
   });
 
   it('finds Mac build machine paths but not Windows example paths shown in the UI', () => {
