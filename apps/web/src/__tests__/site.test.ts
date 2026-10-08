@@ -43,7 +43,7 @@ describe('pricing is defined once (packages/config)', () => {
 
 describe('share cards and head tags', () => {
   it('points every indexable page at its own generated image', () => {
-    for (const id of ['home', 'download', 'terms', 'privacy'] as const) {
+    for (const id of ['home', 'download', 'terms', 'privacy', 'refunds', 'contact'] as const) {
       expect(headTags(id)).toContain(`content="${ogImageFor(id)}"`);
     }
     expect(ogImageFor('notfound')).toBe(ogImageFor('home'));
@@ -85,5 +85,16 @@ describe('product claims match the app', () => {
       expect(text).not.toMatch(/recruiter contacts/);
     }
     expect(site).toContain('nothing is ever submitted without your review');
+  });
+});
+
+describe('contact page', () => {
+  it('routes /contact and shows the operator, email and phone from config', async () => {
+    const { CONTACT_EMAIL, CONTACT_PHONE, LEGAL_NAME } = await import('@nomadic/config');
+    const { pageForPath } = await import('../seo');
+    const { render } = await import('../entry-server');
+    expect(pageForPath('/contact')).toBe('contact');
+    const html = render('/contact');
+    for (const text of [LEGAL_NAME, CONTACT_EMAIL, CONTACT_PHONE]) expect(html).toContain(text);
   });
 });

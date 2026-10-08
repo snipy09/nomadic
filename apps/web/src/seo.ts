@@ -6,7 +6,7 @@ export const SITE = 'https://nomadicai.vercel.app';
 export const ogImageFor = (id: PageId) => `${SITE}/og/${id === 'notfound' ? 'home' : id}.png`;
 export const OG_IMAGE = ogImageFor('home');
 
-export type PageId = 'home' | 'download' | 'terms' | 'privacy' | 'refunds' | 'notfound';
+export type PageId = 'home' | 'download' | 'terms' | 'privacy' | 'refunds' | 'contact' | 'notfound';
 
 export interface PageMeta {
   path: string;
@@ -70,6 +70,15 @@ export const PAGES: Record<PageId, PageMeta> = {
     updated: '2026-10-03',
     priority: '0.3',
     og: { heading: 'Refund and Cancellation', sub: 'Monthly plans, no auto-renewal, all payments final.' },
+  },
+  contact: {
+    path: '/contact',
+    title: 'Contact Us | Nomadic',
+    description: 'Contact Nomadic: operator, email and phone for support, payments and grievances.',
+    index: true,
+    updated: '2026-10-08',
+    priority: '0.4',
+    og: { heading: 'Contact us', sub: 'Support, payments and grievances.' },
   },
   notfound: {
     path: '/404',

@@ -152,3 +152,4 @@ Last updated: 7 October 2026. What was built when, with the files involved. Newe
 
 - 2026-10-08: Website legal owner set to Sajal Kumar Mishra (operating as Nomadic) with contact email/phone in `packages/config/src/legal.ts` (footer, legal pages, terms/refunds) for payment-gateway approval; LEGAL_VERSION bumped to 2026-10-08. Business address still missing.
 - 2026-10-08: Removed unowned support@/grievance@nomadic.app everywhere (website, legal text, in-app support, JSON-LD); all point to the owner email until a domain mailbox exists. JSON-LD org name no longer "Nomadic Technologies".
+- 2026-10-08: Added website /contact page (operator, email, phone from config), footer link, prerender + sitemap entry.

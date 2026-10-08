@@ -40,6 +40,9 @@ export default function Footer() {
           <a href="/refunds" className={LINK}>
             Refunds
           </a>
+          <a href="/contact" className={LINK}>
+            Contact
+          </a>
           <a href={`mailto:${CONTACT_EMAIL}`} className={`${LINK} break-all`}>
             {CONTACT_EMAIL}
           </a>

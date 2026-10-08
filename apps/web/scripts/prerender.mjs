@@ -25,6 +25,7 @@ const FILES = {
   terms: 'terms.html',
   privacy: 'privacy.html',
   refunds: 'refunds.html',
+  contact: 'contact.html',
   notfound: '404.html',
 };
 
