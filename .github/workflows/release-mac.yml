@@ -113,12 +113,11 @@ jobs:
             hdiutil attach "$dmg" -nobrowse -readonly -noautoopen -mountpoint "$mnt"
             test -L "$mnt/Applications"
             rm -rf "$RUNNER_TEMP/Nomadic.app"
-            ditto "$mnt/Nomadic.app" "$RUNNER_TEMP/Nomadic.app"
+            cp -R "$mnt/Nomadic.app" "$RUNNER_TEMP/"
             hdiutil detach "$mnt"
             app="$RUNNER_TEMP/Nomadic.app"
             codesign --verify --deep --strict --verbose=2 "$app"
             lipo -archs "$app/Contents/MacOS/Nomadic" | tee /dev/stderr | grep -qw "${{ matrix.lipo }}"
-            spctl --assess --type execute --verbose=4 "$app" 2>&1 || echo "Gatekeeper: rejected (expected without notarization)"
             "$app/Contents/MacOS/Nomadic" --remote-debugging-port=9333 > "$RUNNER_TEMP/app-$flavour.log" 2>&1 &
             pid=$!
             if ! node apps/mac/scripts/smoke-cdp.mjs 9333; then
@@ -132,6 +131,7 @@ jobs:
             fi
             kill "$pid" 2>/dev/null || true
             wait "$pid" 2>/dev/null || true
+            spctl --assess --type execute --verbose=4 "$app" 2>&1 || echo "Gatekeeper: rejected (expected without notarization)"
             echo "::endgroup::"
           done
 
