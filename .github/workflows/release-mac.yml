@@ -106,7 +106,7 @@ jobs:
           set -euo pipefail
           v='${{ needs.build.outputs.version }}'
           (cd dmgs && shasum -a 256 -c "Nomadic-$v-mac-SHA256SUMS.txt")
-          for flavour in universal ${{ matrix.arch }}; do
+          for flavour in ${{ matrix.arch }} universal; do
             echo "::group::$flavour on $(uname -m)"
             dmg="dmgs/Nomadic-$v-mac-$flavour.dmg"
             mnt="$RUNNER_TEMP/mnt-$flavour"
@@ -123,6 +123,10 @@ jobs:
             pid=$!
             if ! node apps/mac/scripts/smoke-cdp.mjs 9333; then
               cat "$RUNNER_TEMP/app-$flavour.log"
+              echo "--- diagnostics"
+              curl -sS -m 5 http://127.0.0.1:9333/json/version || true
+              ps -axo pid,stat,%cpu,command | grep -i "[N]omadic" | cut -c1-200 || true
+              screencapture -x "$RUNNER_TEMP/screen-$flavour.png" || true
               kill "$pid" 2>/dev/null || true
               exit 1
             fi
@@ -130,6 +134,15 @@ jobs:
             wait "$pid" 2>/dev/null || true
             echo "::endgroup::"
           done
+
+      - name: Screenshot of a failed launch
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-screens-${{ matrix.arch }}
+          path: ${{ runner.temp }}/screen-*.png
+          if-no-files-found: ignore
+          retention-days: 3
 
   publish:
     needs: [build, smoke]
