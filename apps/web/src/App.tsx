@@ -5,6 +5,7 @@ import Download from './pages/Download';
 import Legal from './pages/Legal';
 import Contact from './pages/Contact';
 import NotFound from './pages/NotFound';
+import Services from './pages/Services';
 import { applyHead, PageId, pageForPath } from './seo';
 import { jsonLd } from './jsonld';
 import { prefersReducedMotion } from './hooks';
@@ -121,6 +122,7 @@ function App({ initialPath }: AppProps) {
       {page === 'privacy' && <Legal type="privacy" />}
       {page === 'refunds' && <Legal type="refunds" />}
       {page === 'contact' && <Contact />}
+      {page === 'services' && <Services />}
       {page === 'notfound' && <NotFound />}
     </>
   );
