@@ -1,0 +1,10 @@
+node_modules
+apps/desktop/dist
+apps/desktop/out
+*.exe
+node_modules
+apps/desktop/dist-electron
+apps/desktop/dist
+apps/desktop/out
+.cache
+*.exe
