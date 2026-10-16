@@ -1,0 +1,27 @@
+Nomadic test builds (version 1.4.0, built 16 Oct 2026)
+======================================================
+These are test builds. They are not signed, so your computer will warn you once.
+Please do not share them outside the test group.
+Sign in with email and password. Google sign-in is not in these builds.
+
+WINDOWS (Windows 10/11, 64-bit)  - folder Windows
+  Nomadic.Setup.1.4.0.exe   installs the app (recommended)
+  Nomadic.1.4.0.exe         portable, runs without installing
+  If Windows says "Windows protected your PC": click More info, then Run anyway.
+
+MAC (macOS 11 or newer)  - folder Mac
+  (Sharer: run "Join Mac zips.cmd" first; send testers the .zip, not the .part files.)
+  Apple Silicon (M1/M2/M3/M4): Nomadic-1.4.0-mac-arm64.zip
+  Intel Mac:                   Nomadic-1.4.0-mac-x64.zip
+  (Apple menu > About This Mac shows "Chip: Apple ..." or "Processor: Intel ...")
+  1. Double-click the zip. Drag Nomadic.app into Applications.
+  2. Open it. macOS blocks it the first time.
+  3. Open System Settings > Privacy & Security, scroll down, click Open Anyway, then Open.
+  If macOS says the app "is damaged", open Terminal and run:
+     xattr -cr /Applications/Nomadic.app
+  then open it again.
+
+ANDROID  - not included yet.
+
+SHA256SUMS.txt lists checksums if you want to verify a download.
+Report bugs with: device, OS version, what you did, what happened, and a screenshot.

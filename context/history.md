@@ -3,7 +3,7 @@
 Last updated: 7 October 2026. What was built when, with the files involved. Newest work is at the end. Paths are current (after the
 7 Oct 2026 split: shared UI in `packages/app-ui/src`, shared main process in `packages/app-core/src`).
 
-- 16 Oct 2026: `scripts\windows\Get tester builds.cmd` collects the CI builds for testers. Every Actions job since 12 Oct fails in seconds with no runner assigned (account-level: minutes/spending limit), so no fresh artifacts exist until that is fixed.
+- 16 Oct 2026: `scripts\windows\Get tester builds.cmd` collects the CI builds for testers. Every Actions job since 12 Oct fails in seconds with no runner assigned (account-level: minutes/spending limit), so no fresh artifacts exist until that is fixed. Same day: 1.4.0 Windows and Mac test builds committed to `tester-builds/` (about 480 MB in git history; Mac zips split in two parts) (Windows build launched under wine to the sign-in screen; Mac builds not run on a Mac).
 - Branch `main` (remote github.com/snipy09/nomadic) holds everything. On 7 Oct 2026 every branch with unmerged work was merged (macOS DMG builds, News on the desktop, first-run tour, account-menu fix, scraper folder) and the repo was split into shared packages + three apps (see architecture.md).
   v1.2.0 (Learn path, Projects page with ~4,100 projects, AI project help) was fast-forwarded into `main` on 5 Oct 2026.
 - **v1.1.0 Outreach** (`docs/plans/OUTREACH_PLAN.md`): targets everyone who can refer (recruiter/HR, hiring manager,

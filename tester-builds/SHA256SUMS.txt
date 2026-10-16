@@ -1,0 +1,4 @@
+01dd7585055f7f97f2629efb3a54cf93f73800357c8af8d9514d9c0fb659e56a  Windows/Nomadic.1.4.0.exe
+870d6b758af891f872a07cbade92d940ef2530f997ac91bf63bda6fa7c033ffd  Windows/Nomadic.Setup.1.4.0.exe
+bb10ae233bf2cd04a5b2cbca485b76bbc011a279ad07f807b33cf900b931b2ad  Mac/Nomadic-1.4.0-mac-arm64.zip
+d9a5a9933af08cc72d53d4511d5d95458d80e4af533b0a63674432e8b2ff52ef  Mac/Nomadic-1.4.0-mac-x64.zip
