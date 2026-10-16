@@ -15,6 +15,7 @@ Last updated: 7 October 2026.
 | Android app | `npm run dev:android` · `npm run build:android` (APK only in CI) |
 | Website | `npm run dev:web` · `npm run build:web` |
 | Scraper folder | `npm run build:scraper-folder` · `scripts\windows\Install scraper folder.cmd` |
+| Tester builds | `scripts\windows\Get tester builds.cmd` (needs `gh auth login`): newest successful Windows/Mac/Android artifacts on `main` → `Desktop\Nomadic Content\Tester builds` + `Nomadic tester builds.zip`, with `READ ME FIRST.txt` install steps |
 
 ## CI workflows (`.github/workflows`)
 
