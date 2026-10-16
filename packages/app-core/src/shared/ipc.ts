@@ -1075,6 +1075,21 @@ export interface FeedbackResult extends SuccessResult {
   note?: string;
 }
 
+/** In-app review (migration 034): due once the account is 7 days old and has no review yet. */
+export interface AppReviewStatus {
+  due: boolean;
+}
+
+export interface AppReviewInput {
+  platform: 'windows' | 'mac' | 'android';
+  /** The 10 System Usability Scale answers in order, each 1 (strongly disagree) to 5 (strongly agree). */
+  sus: number[];
+  /** How likely they are to recommend Nomadic, 0 to 10. */
+  recommend: number;
+  best?: string;
+  frustrating?: string;
+}
+
 export interface HeartbeatOptions {
   userId: string;
   sessionToken: string;
@@ -1265,6 +1280,8 @@ export interface IpcChannels {
   'telemetry-get': Channel<[], TelemetryState>;
   'telemetry-set': Channel<[enabled: boolean], TelemetryState>;
   'send-feedback': Channel<[input: FeedbackInput], FeedbackResult>;
+  'app-review-status': Channel<[], AppReviewStatus>;
+  'app-review-submit': Channel<[input: AppReviewInput], SuccessResult>;
   'get-data-health': Channel<[], DataHealthResult>;
   'copy-diagnostics': Channel<[], SuccessResult & { text?: string }>;
   'export-account-data': Channel<[], AccountExportResult>;
@@ -1291,6 +1308,7 @@ export const IPC_CHANNELS = [
   'check-dependencies', 'install-dependencies', 'open-external-url', 'open-in-apply-browser',
   'updater-get-status', 'updater-check', 'updater-download', 'updater-install', 'updater-set-channel',
   'get-update-policy', 'whats-new-get', 'whats-new-dismiss', 'telemetry-get', 'telemetry-set', 'send-feedback',
+  'app-review-status', 'app-review-submit',
   'get-master-profile', 'save-master-profile', 'get-resumes', 'save-resume', 'delete-resume',
   'set-default-resume', 'pick-resume-file', 'read-document-text', 'draft-profile-answers',
   'remembered-answers-list', 'remembered-answers-update', 'remembered-answers-clear',
@@ -1406,6 +1424,8 @@ export interface NomadicApi {
   getTelemetry: Invoke<'telemetry-get'>;
   setTelemetry: Invoke<'telemetry-set'>;
   sendFeedback: Invoke<'send-feedback'>;
+  appReviewStatus: Invoke<'app-review-status'>;
+  appReviewSubmit: Invoke<'app-review-submit'>;
   getDataHealth: Invoke<'get-data-health'>;
   copyDiagnostics: Invoke<'copy-diagnostics'>;
   exportAccountData: Invoke<'export-account-data'>;

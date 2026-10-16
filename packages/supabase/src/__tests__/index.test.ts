@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
+  appReviewStatus,
+  appReviewSubmit,
   learningSaveState,
   learningPullState,
   sendSessionHeartbeat,
@@ -401,6 +403,27 @@ describe('Supabase Package Unit Tests', () => {
         p_user_id: 'user-1', p_session_token: 'tok', p_device_fingerprint: 'fp', p_kind: 'roadmap', p_value: { id: 'r' }, p_updated_at: '2026-10-05T00:00:00Z',
       });
       expect(await learningSaveState({ rpc }, ...sess, doc)).toMatchObject({ ok: false, stale: true });
+    });
+
+    it('checks whether the in-app review is due', async () => {
+      const rpc = vi.fn().mockResolvedValue({ data: [{ ok: true, error: null, due: true }], error: null });
+      expect(await appReviewStatus({ rpc }, ...sess)).toEqual({ ok: true, due: true });
+      expect(rpc).toHaveBeenCalledWith('app_review_status', { p_user_id: 'user-1', p_session_token: 'tok', p_device_fingerprint: 'fp' });
+      const denied = vi.fn().mockResolvedValue({ data: [{ ok: false, error: 'unauthorized', due: false }], error: null });
+      expect(await appReviewStatus({ rpc: denied }, ...sess)).toEqual({ ok: false, due: false, error: 'unauthorized' });
+    });
+
+    it('sends the in-app review', async () => {
+      const rpc = vi.fn()
+        .mockResolvedValueOnce({ data: [{ ok: true, error: null }], error: null })
+        .mockResolvedValueOnce({ data: [{ ok: false, error: 'already_reviewed' }], error: null });
+      const review = { platform: 'android' as const, appVersion: '1.4.0', sus: [4, 2, 4, 2, 4, 2, 4, 2, 4, 2], recommend: 8, best: 'Roadmap', frustrating: null };
+      expect(await appReviewSubmit({ rpc }, ...sess, review)).toEqual({ ok: true });
+      expect(rpc).toHaveBeenCalledWith('app_review_submit', {
+        p_user_id: 'user-1', p_session_token: 'tok', p_device_fingerprint: 'fp', p_platform: 'android', p_app_version: '1.4.0',
+        p_sus: [4, 2, 4, 2, 4, 2, 4, 2, 4, 2], p_recommend: 8, p_best: 'Roadmap', p_frustrating: null,
+      });
+      expect(await appReviewSubmit({ rpc }, ...sess, review)).toEqual({ ok: false, error: 'already_reviewed' });
     });
 
     it('pulls Learn v2 state documents', async () => {

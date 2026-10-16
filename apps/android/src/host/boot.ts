@@ -18,6 +18,7 @@ import { registerDataSafetyIpc } from '@nomadic/app-core/main/ipc/data-safety';
 import { registerFeedIpc } from '@nomadic/app-core/main/ipc/feed';
 import { registerLearnerIpc } from '@nomadic/app-core/main/ipc/learner';
 import { registerProfileIpc } from '@nomadic/app-core/main/ipc/profile';
+import { registerReviewIpc } from '@nomadic/app-core/main/ipc/review';
 import { setMainWindow } from '@nomadic/app-core/main/services/app-context';
 import {
   deleteApplication,
@@ -60,6 +61,7 @@ export async function bootHost(options: BootOptions): Promise<void> {
   registerLearnerIpc();
   registerAdminIpc();
   registerDataSafetyIpc();
+  registerReviewIpc();
 
   // Tracker (the desktop registers these with apply).
   handle('get-applications', () => getApplications());

@@ -25,6 +25,7 @@ const K = {
   applicationsView: 'nomadic_applications_view',
   homeChecklistHidden: 'nomadic_home_checklist_hidden',
   tourSeen: (email: string) => `nomadic_tour_seen_${email.trim().toLowerCase()}`,
+  reviewSnoozed: (email: string) => `nomadic_review_snoozed_until_${email.trim().toLowerCase()}`,
 } as const;
 
 export const prefs = {
@@ -76,6 +77,9 @@ export const prefs = {
   /** The first-run walkthrough, once per account on this computer. */
   getTourSeen: (email: string) => read(K.tourSeen(email)) === 'true',
   setTourSeen: (email: string) => write(K.tourSeen(email), 'true'),
+  /** "Not now" on the in-app review: an ISO time before which it is not asked again on this device. */
+  getReviewSnoozedUntil: (email: string) => read(K.reviewSnoozed(email)),
+  setReviewSnoozedUntil: (email: string, iso: string) => write(K.reviewSnoozed(email), iso),
   getOppWaitlist: () => read(K.oppWaitlist) === 'true',
   setOppWaitlist: () => write(K.oppWaitlist, 'true'),
 };

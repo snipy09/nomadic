@@ -155,3 +155,11 @@ Last updated: 8 October 2026. What was built when, with the files involved. Newe
 - 2026-10-08: Removed unowned support@/grievance@nomadic.app everywhere (website, legal text, in-app support, JSON-LD); all point to the owner email until a domain mailbox exists. JSON-LD org name no longer "Nomadic Technologies".
 - 2026-10-08: Added website /contact page (operator, email, phone from config), footer link, prerender + sitemap entry.
 - 2026-10-08: Zero-cost Mac distribution (no Apple Developer Program): `npm run release:mac` (`apps/mac/scripts/release-mac.mjs` + `validate-mac.mjs` + `mac-release-lib.mjs`) builds ad-hoc signed arm64 + x64 DMGs (a universal build validated but its app hung at start-up on both chips, so it is not shipped) (`Nomadic-<ver>-mac-<arch>.dmg`, ULFO, Applications link) and validates them with macOS tools; the afterPack ad-hoc hook skips the per-arch temp apps of a universal build. `release-mac.yml` builds, smoke-tests arm64 on Apple Silicon and x64 on Intel (both reach the sign-in screen) and optionally publishes to the public `snipy09/nomadic-releases`. Website: `MAC_DOWNLOAD` in `packages/config/src/downloads.ts` (null = coming soon), Download page Mac section (`components/MacDownload.tsx`, chip detection `mac-download.ts`), `/downloads/*` redirect in `apps/web/vercel.json`. Docs: `MAC_RELEASE.md`, `MAC_INSTALL.md`.
+- **In-app review** (8 Oct 2026, migration 034, not applied yet): about 20 seconds after the app opens, an account that is at
+  least 7 days old and has not reviewed yet is asked for a two-step review (0-10 recommend, best / most frustrating
+  thing, then the 10 System Usability Scale statements). "Not now" or closing asks again after 3 days on that device
+  (`prefs.getReviewSnoozedUntil`). Server: `app_reviews` (one row per user, cascade on delete) via `app_review_status`
+  and `app_review_submit`; IPC `app-review-status` / `app-review-submit` (`main/ipc/review.ts`,
+  `main/services/app-review.ts`, registered on desktop, Mac and Android); UI `features/review/` (ReviewDialog,
+  reviewLogic, useReviewPrompt), mounted in `App.tsx`. Results: SQL on `app_reviews` (SUS score = sum of odd (a-1)
+  and even (5-a) answers, times 2.5).

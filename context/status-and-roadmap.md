@@ -1,6 +1,6 @@
 # Status and what is left
 
-Last updated: 7 October 2026. Feature status, test status, the owner's to-do list and code follow-ups.
+Last updated: 8 October 2026. Feature status, test status, the owner's to-do list and code follow-ups.
 Feature detail: [`docs/FEATURES.md`](../docs/FEATURES.md).
 
 ## Status by feature
@@ -23,6 +23,9 @@ screens). The owner has signed in on the packaged v1.0.6 app and run apply up to
 ## What is left
 
 Owner actions:
+0000. **In-app review go-live** (8 Oct 2026): paste `packages/supabase/baseline/apply_034.sql` in the Supabase SQL
+   editor (or apply it through the connector). Until then the apps simply never show the review (the status call fails
+   quietly). Read results with SQL on `app_reviews`.
 000. **Scraper folder go-live** (7 Oct 2026): migration 033 is live. On the laptop `git pull` on `main`, double-click `scripts\windows\Install scraper folder.cmd` (builds and installs `Desktop\Nomadic Content\Scraper`,
    removes the old launchers and the old "Nomadic scraper" task), then `Setup.cmd` there (reuses the key in `Desktop\Nomadic\.env`,
    optional Adzuna key, turns on the 30-minute schedule). First run `Test all sources (dry run).cmd` and fix what its

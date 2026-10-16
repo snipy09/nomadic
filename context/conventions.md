@@ -1,6 +1,6 @@
 # Conventions
 
-Last updated: 7 October 2026.
+Last updated: 8 October 2026.
 
 ## Where code goes
 
@@ -28,7 +28,7 @@ Last updated: 7 October 2026.
   `packages/app-core/src/main/__tests__/ipc-handle.test.ts`, and — if the phone has it — `apps/android/src/host/boot.ts`
   (otherwise the phone answers "desktop only").
 - Local SQLite schema changes are new entries in `LOCAL_MIGRATIONS` (`packages/app-core/src/main/local-db/schema.ts`);
-  never edit a shipped one. Supabase changes are new numbered files in `packages/supabase/migrations` (next: 034) plus
+  never edit a shipped one. Supabase changes are new numbered files in `packages/supabase/migrations` (next: 035) plus
   a paste-safe copy in `packages/supabase/baseline/apply_0NN.sql` (no blank lines).
 - No invented data anywhere: unknown stays unknown (profiles, salaries, match scores, AI answers, scraped facts).
 

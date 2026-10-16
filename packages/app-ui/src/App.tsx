@@ -28,6 +28,7 @@ import { ProductTour } from './features/tour/ProductTour';
 import { NewsView } from './features/news/NewsView';
 import { UpdateRequiredScreen } from './features/updates/UpdateRequiredScreen';
 import { WhatsNewDialog } from './features/updates/WhatsNewDialog';
+import { ReviewDialog } from './features/review/ReviewDialog';
 import { useUpdatePolicy } from './features/updates/useUpdater';
 import { ResourceVaultView } from './components/ResourceVaultView';
 import { PracticeView } from './features/practice/PracticeView';
@@ -562,6 +563,7 @@ export default function App() {
     >
       <>
         {tourOpen ? <ProductTour workspaceMode={workspaceMode} onClose={closeTour} /> : <WhatsNewDialog />}
+        <ReviewDialog email={currentUser?.email ?? null} enabled={!tourOpen} />
         {/* Dynamic Sub-view Container */}
         <div key={activeTab} className={`w-full ${
             activeTab === 'profile' || activeTab === 'settings' || Boolean(activeTab && activeTab.startsWith('admin'))

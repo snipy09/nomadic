@@ -185,11 +185,11 @@ export interface AppUser {
 
 export type {
   HiddenJob, HideJobInput, NewsItem, NewsKind, NewsResult, NewsSourceState, NewsTopic,
-  FeedbackInput, FeedbackKind, FeedbackResult, TelemetryState, UpdateChannel, UpdatePolicyResult, UpdaterInfo, UpdaterStatus, WhatsNewInfo,
+  AppReviewInput, AppReviewStatus, FeedbackInput, FeedbackKind, FeedbackResult, TelemetryState, UpdateChannel, UpdatePolicyResult, UpdaterInfo, UpdaterStatus, WhatsNewInfo,
 } from '@nomadic/app-core/shared/ipc';
 import type {
   HiddenJob, HideJobInput,
-  FeedbackInput, FeedbackResult, TelemetryState, UpdateChannel, UpdatePolicyResult, UpdaterInfo, UpdaterStatus, WhatsNewInfo,
+  AppReviewInput, AppReviewStatus, FeedbackInput, FeedbackResult, TelemetryState, UpdateChannel, UpdatePolicyResult, UpdaterInfo, UpdaterStatus, WhatsNewInfo,
 } from '@nomadic/app-core/shared/ipc';
 
 export interface ElectronAPI {
@@ -380,6 +380,9 @@ export interface ElectronAPI {
   getTelemetry?: () => Promise<TelemetryState>;
   setTelemetry?: (enabled: boolean) => Promise<TelemetryState>;
   sendFeedback?: (input: FeedbackInput) => Promise<FeedbackResult>;
+  // In-app review after the trial week. Absent in browser preview.
+  appReviewStatus?: () => Promise<AppReviewStatus>;
+  appReviewSubmit?: (input: AppReviewInput) => Promise<{ success: boolean; error?: string }>;
 }
 
 declare global {
