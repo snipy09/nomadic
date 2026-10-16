@@ -11,7 +11,9 @@
     "start": "electron .",
     "build": "node build-main.mjs && vite build",
     "package:mac": "node build-main.mjs && vite build && electron-builder --mac dmg -c.npmRebuild=false",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "release": "node scripts/release-mac.mjs",
+    "validate:dmg": "node scripts/validate-mac.mjs"
   },
   "build": {
     "appId": "com.nomadic.career.os",
@@ -23,6 +25,7 @@
     },
     "files": [
       "out/**/*",
+      "!out/**/*.map",
       "assets/**/*",
       "node_modules/**/*"
     ],
@@ -38,8 +41,10 @@
       "entitlementsInherit": "build-resources/entitlements.mac.plist"
     },
     "dmg": {
-      "artifactName": "Nomadic-${version}-${arch}.${ext}",
-      "title": "Nomadic ${version}"
+      "artifactName": "Nomadic-${version}-mac-${arch}.${ext}",
+      "title": "Nomadic ${version}",
+      "format": "ULFO",
+      "writeUpdateInfo": false
     }
   },
   "dependencies": {

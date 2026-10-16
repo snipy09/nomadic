@@ -30,6 +30,11 @@ Owner actions:
    `feed/companies.ts`): none of these sites were reachable from the build container. The first scheduled jobs run expires
    the 146 of 328 live jobs that are older than 30 days (the age rule asked for). Adzuna: their terms want "Jobs by Adzuna"
    credit and a licence for ongoing commercial use.
+0000. **Mac download (free, 8 Oct 2026)**: create the public repo `snipy09/nomadic-releases` with a README; optionally
+   add the Actions secret `MAC_RELEASES_TOKEN` (fine-grained token, Contents read/write on that repo only); run Actions
+   → Release macOS (publish ticked) or upload the artifact by hand; test the DMG on a Mac (MAC_RELEASE.md → "Test");
+   then set `MAC_DOWNLOAD.version` in `packages/config/src/downloads.ts`. Also update the site FAQ "Can I download it
+   yet?" / "Which operating systems" (`apps/web/src/content.ts`) when it goes live.
 00. (Done 7 Oct 2026) 031 and 032 are live. The feed's first dry run is now part of action 000.
 0. **Learn v2 go-live** (merged into `main` with 1.1.0): 028, 029, the content seed and the ai-proxy redeploy are
    done (5 Oct 2026). v1.2.0's 624 quiz items are live (5 Oct 2026: 864 practice items, content hash checked against the
@@ -92,5 +97,5 @@ checklist in `docs/plans/OUTREACH_PLAN.md` section 11; the Assistant); OS notifi
 
 Platform split follow-ups (7 Oct 2026): phone-only screens (`MobileOnboarding.tsx`, the phone shell inside `App.tsx`,
 `IS_MOBILE` branches in ~18 files) still live in `packages/app-ui` behind `IS_MOBILE`; move each into `apps/android` (a
-slot passed to `mountApp`) the next time it changes. Mac: auto-updates, signing and notarisation (needs an Apple
-Developer ID); the apply browser's Chrome/Edge/Brave lookup on macOS should be checked on a real Mac.
+slot passed to `mountApp`) the next time it changes. Mac: free website distribution is in place (MAC_RELEASE.md); auto-updates,
+Developer ID signing and notarisation stay off by choice (no paid Apple membership); the apply browser's Chrome/Edge/Brave lookup on macOS should be checked on a real Mac.

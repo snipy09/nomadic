@@ -1,0 +1,14 @@
+export type MacArch = 'universal' | 'arm64' | 'x64';
+export const MAC_ARCHES: MacArch[];
+export const BUILDABLE_ARCHES: MacArch[];
+export function dmgFileName(version: string, arch: MacArch): string;
+export function archFromDmgName(fileName: string): MacArch | null;
+export function requiredLipoArchs(arch: MacArch): string[];
+export function parseLipoArchs(output: string): string[];
+export function missingArchs(arch: MacArch, lipoOutput: string): string[];
+export function parseOtoolLibs(output: string): string[];
+export function parseOtoolIds(output: string): string[];
+export function isBundledOrSystemLib(lib: string): boolean;
+export const DEV_PATH_PATTERNS: RegExp[];
+export function forbiddenAsarEntries(entries: string[]): string[];
+export const DMG_EXTRA_ALLOWED: Set<string>;

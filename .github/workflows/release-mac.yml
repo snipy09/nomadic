@@ -1,0 +1,180 @@
+name: Release macOS
+
+# Zero-cost macOS release: no Apple Developer Program, no paid signing, no notarization.
+# Builds Nomadic-<version>-mac-{arm64,x64}.dmg with `npm run release:mac` (apps/mac/scripts/release-mac.mjs:
+# clean → production build → ad-hoc signed DMGs → validation with the macOS tools), then installs each DMG on its own
+# chip (arm64 on Apple Silicon, x64 on Intel), launches it and reads the first screen (read-only smoke test).
+# The DMGs are uploaded as a workflow artifact. Publishing to the public download repository happens only when run by
+# hand with "publish" ticked (MAC_RELEASE.md). The app is NOT notarized: users allow it once (MAC_INSTALL.md).
+#
+# Optional settings (repository → Settings → Secrets and variables → Actions):
+#   secret   MAC_RELEASES_TOKEN  fine-grained token with Contents: read and write on the public download repo only
+#   variable MAC_RELEASES_REPO   that repo, default snipy09/nomadic-releases
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish the DMGs as a GitHub release in the public download repo'
+        type: boolean
+        default: false
+  push:
+    paths:
+      - '.github/workflows/release-mac.yml'
+      - 'apps/mac/scripts/release-mac.mjs'
+      - 'apps/mac/scripts/validate-mac.mjs'
+      - 'apps/mac/scripts/mac-release-lib.mjs'
+      - 'apps/mac/build-resources/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-mac-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 60
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+      VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --include=dev --no-audit --no-fund
+
+      - name: Build, package and validate (one command)
+        run: npm run release:mac
+
+      - id: meta
+        run: echo "version=$(node -p "require('./apps/mac/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nomadic-${{ steps.meta.outputs.version }}-mac
+          path: |
+            apps/mac/dist-electron/*.dmg
+            apps/mac/dist-electron/*-SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  smoke:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+            lipo: arm64
+          - runner: macos-15-intel
+            arch: x64
+            lipo: x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --include=dev --ignore-scripts --no-audit --no-fund
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: Nomadic-${{ needs.build.outputs.version }}-mac
+          path: dmgs
+
+      - name: Install the ${{ matrix.arch }} DMG and launch it
+        run: |
+          set -euo pipefail
+          v='${{ needs.build.outputs.version }}'
+          (cd dmgs && shasum -a 256 -c "Nomadic-$v-mac-SHA256SUMS.txt")
+          for flavour in ${{ matrix.arch }}; do
+            echo "::group::$flavour on $(uname -m)"
+            dmg="dmgs/Nomadic-$v-mac-$flavour.dmg"
+            mnt="$RUNNER_TEMP/mnt-$flavour"
+            hdiutil attach "$dmg" -nobrowse -readonly -noautoopen -mountpoint "$mnt"
+            test -L "$mnt/Applications"
+            rm -rf "$RUNNER_TEMP/Nomadic.app"
+            cp -R "$mnt/Nomadic.app" "$RUNNER_TEMP/"
+            hdiutil detach "$mnt"
+            app="$RUNNER_TEMP/Nomadic.app"
+            codesign --verify --deep --strict --verbose=2 "$app"
+            lipo -archs "$app/Contents/MacOS/Nomadic" | tee /dev/stderr | grep -qw "${{ matrix.lipo }}"
+            "$app/Contents/MacOS/Nomadic" --remote-debugging-port=9333 > "$RUNNER_TEMP/app-$flavour.log" 2>&1 &
+            pid=$!
+            if ! node apps/mac/scripts/smoke-cdp.mjs 9333; then
+              cat "$RUNNER_TEMP/app-$flavour.log"
+              echo "--- diagnostics"
+              curl -sS -m 5 http://127.0.0.1:9333/json/version || true
+              ps -axo pid,stat,%cpu,command | grep -i "[N]omadic" | cut -c1-200 || true
+              screencapture -x "$RUNNER_TEMP/screen-$flavour.png" || true
+              echo "--- main thread of the app"
+              sample "$pid" 2 -file "$RUNNER_TEMP/sample.txt" >/dev/null 2>&1 || true
+              grep -A45 "com.apple.main-thread" "$RUNNER_TEMP/sample.txt" | cut -c1-160 || true
+              kill "$pid" 2>/dev/null || true
+              exit 1
+            fi
+            kill "$pid" 2>/dev/null || true
+            wait "$pid" 2>/dev/null || true
+            spctl --assess --type execute --verbose=4 "$app" 2>&1 || echo "Gatekeeper: rejected (expected without notarization)"
+            echo "::endgroup::"
+          done
+
+      - name: Screenshot of a failed launch
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-screens-${{ matrix.arch }}
+          path: ${{ runner.temp }}/screen-*.png
+          if-no-files-found: ignore
+          retention-days: 3
+
+  publish:
+    needs: [build, smoke]
+    if: github.event_name == 'workflow_dispatch' && inputs.publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.MAC_RELEASES_TOKEN }}
+      REPO: ${{ vars.MAC_RELEASES_REPO || 'snipy09/nomadic-releases' }}
+      VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require the release token
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Set the MAC_RELEASES_TOKEN secret (MAC_RELEASE.md → Publish) or upload the artifact by hand."
+            exit 1
+          fi
+      - uses: actions/download-artifact@v4
+        with:
+          name: Nomadic-${{ needs.build.outputs.version }}-mac
+          path: dmgs
+      - name: Create the release mac-v${{ needs.build.outputs.version }}
+        run: |
+          set -euo pipefail
+          tag="mac-v$VERSION"
+          if gh release view "$tag" --repo "$REPO" >/dev/null 2>&1; then
+            echo "::error::$tag already exists in $REPO. Bump apps/mac/package.json version for a new release."
+            exit 1
+          fi
+          gh release create "$tag" dmgs/* --repo "$REPO" --title "Nomadic $VERSION for Mac" --notes-file MAC_INSTALL.md
+          echo "Published. Website links: /downloads/Nomadic-$VERSION-mac-arm64.dmg, -x64.dmg, -SHA256SUMS.txt"

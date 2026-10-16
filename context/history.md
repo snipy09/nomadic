@@ -1,6 +1,6 @@
 # History and handoff notes
 
-Last updated: 7 October 2026. What was built when, with the files involved. Newest work is at the end. Paths are current (after the
+Last updated: 8 October 2026. What was built when, with the files involved. Newest work is at the end. Paths are current (after the
 7 Oct 2026 split: shared UI in `packages/app-ui/src`, shared main process in `packages/app-core/src`).
 
 - 16 Oct 2026: `scripts\windows\Get tester builds.cmd` collects the CI builds for testers. Every Actions job since 12 Oct fails in seconds with no runner assigned (account-level: minutes/spending limit), so no fresh artifacts exist until that is fixed. Same day: 1.4.0 Windows and Mac test builds committed to `tester-builds/` (about 480 MB in git history; Mac zips split in two parts) (Windows build launched under wine to the sign-in screen; Mac builds not run on a Mac).
@@ -154,3 +154,4 @@ Last updated: 7 October 2026. What was built when, with the files involved. Newe
 - 2026-10-08: Website legal owner set to Sajal Kumar Mishra (operating as Nomadic) with contact email/phone in `packages/config/src/legal.ts` (footer, legal pages, terms/refunds) for payment-gateway approval; LEGAL_VERSION bumped to 2026-10-08. Business address still missing.
 - 2026-10-08: Removed unowned support@/grievance@nomadic.app everywhere (website, legal text, in-app support, JSON-LD); all point to the owner email until a domain mailbox exists. JSON-LD org name no longer "Nomadic Technologies".
 - 2026-10-08: Added website /contact page (operator, email, phone from config), footer link, prerender + sitemap entry.
+- 2026-10-08: Zero-cost Mac distribution (no Apple Developer Program): `npm run release:mac` (`apps/mac/scripts/release-mac.mjs` + `validate-mac.mjs` + `mac-release-lib.mjs`) builds ad-hoc signed arm64 + x64 DMGs (a universal build validated but its app hung at start-up on both chips, so it is not shipped) (`Nomadic-<ver>-mac-<arch>.dmg`, ULFO, Applications link) and validates them with macOS tools; the afterPack ad-hoc hook skips the per-arch temp apps of a universal build. `release-mac.yml` builds, smoke-tests arm64 on Apple Silicon and x64 on Intel (both reach the sign-in screen) and optionally publishes to the public `snipy09/nomadic-releases`. Website: `MAC_DOWNLOAD` in `packages/config/src/downloads.ts` (null = coming soon), Download page Mac section (`components/MacDownload.tsx`, chip detection `mac-download.ts`), `/downloads/*` redirect in `apps/web/vercel.json`. Docs: `MAC_RELEASE.md`, `MAC_INSTALL.md`.
