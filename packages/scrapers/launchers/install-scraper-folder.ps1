@@ -2,7 +2,7 @@
 # Desktop\Nomadic Content\Scraper. Keeps the folder's .env, settings.ini, reports, logs and state; removes the
 # launchers of the old folder (Run job scraper.cmd, Schedule every 6 hours.cmd, ...) and their 6-hour task.
 $ErrorActionPreference = 'Stop'
-$repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$repo = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
 Set-Location $repo
 
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {

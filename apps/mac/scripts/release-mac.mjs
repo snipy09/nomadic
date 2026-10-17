@@ -96,6 +96,6 @@ if (failures) {
   process.exit(1);
 }
 
-console.log('\n✓ Release ready. Upload these files (MAC_RELEASE.md → "Publish"):');
+console.log('\n✓ Release ready. Upload these files (deploy/mac/MAC_RELEASE.md → "Publish"):');
 for (const d of [...dmgs, sumsFile]) console.log(`  ${d}  (${(fs.statSync(d).size / 1e6).toFixed(1)} MB)`);
-console.log('\nNot notarized, not Developer ID signed: users allow the first launch once (MAC_INSTALL.md).');
+console.log('\nNot notarized, not Developer ID signed: users allow the first launch once (deploy/mac/MAC_INSTALL.md).');

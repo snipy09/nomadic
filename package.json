@@ -46,7 +46,7 @@
     "scrape:feed": "tsx packages/scrapers/src/cli.ts feed",
     "scrape:news": "tsx packages/scrapers/src/cli.ts news",
     "email:verify": "tsx packages/email-verifier/src/cli.ts",
-    "sign:win": "node scripts/sign-windows.js"
+    "sign:win": "node deploy/windows/sign-windows.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

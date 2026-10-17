@@ -1,8 +1,8 @@
 name: Scraper folder
 
-# Builds the Desktop scraper folder (scripts/scraper-folder + every scraper bundled into bin/nomadic-scrapers.mjs)
+# Builds the Desktop scraper folder (packages/scrapers/scraper-folder + every scraper bundled into bin/nomadic-scrapers.mjs)
 # and uploads it as an artifact. Download it, extract the Scraper folder to Desktop\Nomadic Content\Scraper (keep
-# your .env and settings.ini), or build it locally with scripts\windows\Install scraper folder.cmd.
+# your .env and settings.ini), or build it locally with packages\scrapers\launchers\Install scraper folder.cmd.
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ on:
     branches: [main]
     paths:
       - 'packages/scrapers/**'
-      - 'scripts/scraper-folder/**'
+      - 'packages/scrapers/scraper-folder/**'
       - '.github/workflows/scraper-folder.yml'
 
 permissions:

@@ -1,6 +1,6 @@
 # Scrapers and the Desktop scraper folder
 
-Last updated: 7 October 2026. Operator guide with every option: [`docs/guides/SCRAPER_LAPTOP.md`](../docs/guides/SCRAPER_LAPTOP.md).
+Last updated: 7 October 2026. Operator guide with every option: [`packages/scrapers/SCRAPER_LAPTOP.md`](../packages/scrapers/SCRAPER_LAPTOP.md).
 
 ## What fills the database
 
@@ -19,8 +19,8 @@ apps only read what they publish. robots.txt is obeyed; requests to one site are
 ## The Desktop scraper folder
 
 `Desktop\Nomadic Content\Scraper`: every scraper bundled into `bin\nomadic-scrapers.mjs` (Node 22 only), built from
-`scripts/scraper-folder` by `npm run build:scraper-folder` and installed/updated by
-`scripts\windows\Install scraper folder.cmd` (keeps `.env`, `settings.ini`, `reports`, `logs`, `state`).
+`packages/scrapers/scraper-folder` by `npm run build:scraper-folder` and installed/updated by
+`packages\scrapers\launchers\Install scraper folder.cmd` (keeps `.env`, `settings.ini`, `reports`, `logs`, `state`).
 
 - `Setup.cmd`: Node check, service key (reuses `Desktop\Nomadic\.env`), optional Adzuna key, turns on auto scraping.
 - Auto scraping: scheduled task "Nomadic scrapers" (current user, no admin, hidden via `bin\run-scheduled.vbs`) runs

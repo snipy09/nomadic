@@ -41,7 +41,7 @@ inside a built installer.
      Trusted Publishers), then generate a new one that never goes in the repo.
    - Change the `.pfx` password anywhere it was reused.
    - Keep the new cert outside the repo and pass it at build time with
-     `WIN_CSC_LINK` / `WIN_CSC_KEY_PASSWORD` (see `scripts/sign-windows.js`). In
+     `WIN_CSC_LINK` / `WIN_CSC_KEY_PASSWORD` (see `deploy/windows/sign-windows.js`). In
      CI, store it as a base64 GitHub Actions secret.
 2. **Google OAuth client secret**: Google Cloud Console -> APIs & Services ->
    Credentials -> the OAuth 2.0 client `762160653751-...` -> **Reset secret**.
@@ -126,7 +126,7 @@ After the push:
 - `.gitignore` ignores `*.pfx`, `*.p12`, `*.key`, `*.pem`, `*.cer`, `*.crt`,
   `.env` and `.env.*` (except `.env.example`), and release binaries (`*.exe`,
   `*.msi`, `*.dmg`, `*.AppImage`).
-- `scripts/sign-windows.js` and `build-nomadic.ps1` read the certificate and its
+- `deploy/windows/sign-windows.js` and `build-nomadic.ps1` read the certificate and its
   password only from `WIN_CSC_LINK` / `WIN_CSC_KEY_PASSWORD` (or
   `WIN_CERT_THUMBPRINT`) and build unsigned when they are absent.
   `WIN_SIGN_REQUIRED=1` makes a missing certificate fail the build (use it in

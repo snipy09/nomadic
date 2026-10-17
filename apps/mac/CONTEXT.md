@@ -1,11 +1,11 @@
 # Nomadic for macOS (`apps/mac`)
 
 Last updated: 7 October 2026 (separated from the Windows app). Project-wide context:
-[`context/README.md`](../../context/README.md). Install guide for testers: [`docs/guides/MAC_APP.md`](../../docs/guides/MAC_APP.md).
+[`context/README.md`](../../context/README.md). Install guide for testers: [`deploy/mac/MAC_APP.md`](../../deploy/mac/MAC_APP.md).
 
 Status: ready for **free public distribution from the website** (no Apple Developer Program): ad-hoc signed, not
-Developer ID signed, not notarised, so users allow it once with Open Anyway. Release process: `MAC_RELEASE.md`; user
-steps: `MAC_INSTALL.md`. The site keeps "coming soon" until `MAC_DOWNLOAD.version` is set in `packages/config`.
+Developer ID signed, not notarised, so users allow it once with Open Anyway. Release process: `deploy/mac/MAC_RELEASE.md`; user
+steps: `deploy/mac/MAC_INSTALL.md`. The site keeps "coming soon" until `MAC_DOWNLOAD.version` is set in `packages/config`.
 
 ## What this folder owns
 
@@ -54,5 +54,5 @@ smoke-tests arm64 on Apple Silicon and x64 on Intel, and with "publish" ticked c
 ## Next steps
 
 Free path (chosen): create the public `nomadic-releases` repo, run Release macOS, set `MAC_DOWNLOAD.version`
-(MAC_RELEASE.md). Test apply end to end on a Mac. Paid path, only if ever wanted: Apple Developer Program → signing
+(deploy/mac/MAC_RELEASE.md). Test apply end to end on a Mac. Paid path, only if ever wanted: Apple Developer Program → signing
 identity (`CSC_LINK`/`CSC_NAME`) → notarisation → a `publish` feed → enable updates on darwin.

@@ -3,7 +3,7 @@
  *
  * Usage:
  *   1. electron-builder custom sign hook (`win.sign` in apps/desktop/package.json)
- *   2. Standalone: node scripts/sign-windows.js <path-to-exe>
+ *   2. Standalone: node deploy/windows/sign-windows.js <path-to-exe>
  *
  * The certificate is NEVER stored in the repo. It is read from the environment:
  *   - WIN_CSC_LINK (or CSC_LINK): path to a .pfx file, or the .pfx as a base64 string
@@ -156,7 +156,7 @@ export default async function customSign(configuration) {
   }
 }
 
-// CLI: node scripts/sign-windows.js <file>
+// CLI: node deploy/windows/sign-windows.js <file>
 if (process.argv[1] && path.basename(process.argv[1]) === 'sign-windows.js') {
   const targetFile = process.argv[2];
   if (targetFile) {
@@ -165,6 +165,6 @@ if (process.argv[1] && path.basename(process.argv[1]) === 'sign-windows.js') {
       process.exit(1);
     });
   } else {
-    console.log('Usage: node scripts/sign-windows.js <path-to-exe>');
+    console.log('Usage: node deploy/windows/sign-windows.js <path-to-exe>');
   }
 }

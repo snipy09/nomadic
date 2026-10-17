@@ -18,9 +18,9 @@ no longer lists are expired, and a row per source goes to `scrape_runs` (Admin �
 ## The Desktop scraper folder (all scrapers, auto schedule)
 
 `Desktop\Nomadic Content\Scraper` is one self-contained folder with every scraper: they are bundled into
-`bin\nomadic-scrapers.mjs`, so it needs only Node.js 22 (no repo checkout, no `npm ci`). Source: `scripts/scraper-folder`
+`bin\nomadic-scrapers.mjs`, so it needs only Node.js 22 (no repo checkout, no `npm ci`). Source: `packages/scrapers/scraper-folder`
 (launchers, `settings.ini`, `bin\*.ps1/.vbs/.cmd`) + `npm run build:scraper-folder` (`packages/scrapers/scripts/build-folder.mjs`
-→ `dist\scraper-folder\Scraper`). Install or update it with `scripts\windows\Install scraper folder.cmd` (builds, copies to
+→ `dist\scraper-folder\Scraper`). Install or update it with `packages\scrapers\launchers\Install scraper folder.cmd` (builds, copies to
 the Desktop folder, keeps `.env`, `settings.ini`, `reports`, `logs`, `state`, removes the old launchers and their
 "Nomadic scraper" task), or download the `Nomadic-Scraper-folder` artifact of the `scraper-folder.yml` workflow.
 
@@ -98,7 +98,7 @@ company + title + location, or same apply URL) is skipped as a duplicate.
 
 ## Run it
 
-- Double-click `scripts\scrape-laptop.cmd`, or run it from a terminal. It installs dependencies the first time,
+- Double-click `packages\scrapers\launchers\scrape-laptop.cmd`, or run it from a terminal. It installs dependencies the first time,
   publishes, and prints the last lines of `scrape-output\scrape.log`. The full report is `scrape-output\report.json`.
 - Options go after the script name:
   - `--sources internshala,lever` only these sources (`npx tsx packages/scrapers/src/cli.ts sources` lists them)
@@ -106,7 +106,7 @@ company + title + location, or same apply URL) is skipped as a duplicate.
     restrict scraping; use with care)
   - `--region all` keep jobs outside India too
   - `--no-link-check` faster, skips the HTTP check of apply links
-- macOS/Linux: `bash scripts/scrape-laptop.sh` with the same options.
+- macOS/Linux: `bash packages/scrapers/launchers/scrape-laptop.sh` with the same options.
 
 ## Run it automatically
 

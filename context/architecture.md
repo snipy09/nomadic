@@ -66,15 +66,17 @@ packages/
   automation/  AutoApplyEngine (fill with autoSubmit off, review, submitReviewed), ATS adapters, the user's own
                Chrome/Edge/Brave via Playwright (user-browser.ts)
   capacitor-apply-browser/  Capacitor plugin ApplyBrowser (Android WebView apply), docs/guides/ANDROID_APPLY.md
-  scrapers/    job pipeline, sources, feed (companies + hackathons), news, contacts, discover, auto (the Desktop
-               scraper folder's scheduler) — see scrapers.md
+  scrapers/    every scraper in one place: src/ (job pipeline, sources, feed, news, contacts, discover, auto = the
+               Desktop scraper folder's scheduler), scraper-folder/ (the folder's launchers + settings.ini),
+               launchers/ (Install scraper folder.cmd, scrape-laptop.*), scripts/build-folder.mjs — see scrapers.md
   supabase/    client wrappers, migrations/ (next free: 034), functions/ (Edge Functions), baseline/ (paste files)
   email-verifier/  MX checks and the SMTP sender used by Outreach
   form-bench/  22 ATS fixtures and the scorer (npm run bench:forms)
 context/       this folder: project context (start at README.md)
-docs/          decisions, feature list, guides (database, release, scraper laptop, Android, Mac), plans, security
-scripts/       scraper-folder/ (the Desktop scraper folder), windows/ (Build Nomadic.bat, Install scraper folder.cmd,
-               …), dev/ (one-off scripts), scrape-laptop.*, sign-windows.js
+deploy/        every deployment in one place: README.md (all targets), windows/ (Build Nomadic.bat, signing,
+               RELEASE.md, Get tester builds.cmd), mac/ (MAC_RELEASE.md, MAC_INSTALL.md, MAC_APP.md), tester-builds/
+docs/          decisions, feature list, guides (database, Android, Android apply, SQL paste), plans, security
+scripts/       windows/ (Run-Nomadic-UI.bat, Run-Admin-Dashboard.bat, ocr.ps1), dev/ (one-off scripts)
 brand/         profile icon and GitHub profile assets (videos and carousels stay outside the repo)
 ```
 

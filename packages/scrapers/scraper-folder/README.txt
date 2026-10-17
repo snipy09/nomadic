@@ -61,5 +61,5 @@ FILES
   bin\              the scrapers (one bundled file) and helper scripts
 
 UPDATING
-  In the repo (Desktop\Nomadic): git pull, then double-click scripts\windows\Install scraper folder.cmd.
+  In the repo (Desktop\Nomadic): git pull, then double-click packages\scrapers\launchers\Install scraper folder.cmd.
   It rebuilds bin\ and keeps .env, settings.ini, reports, logs and state.

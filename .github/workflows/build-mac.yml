@@ -3,7 +3,7 @@ name: Build macOS (unsigned)
 # Builds the Mac app (apps/mac) as a .dmg for Apple Silicon (arm64) and Intel (x64) Macs, launches each
 # packaged app once (smoke test over CDP, read only) and uploads the DMGs as an artifact for 14 days.
 # No Apple Developer ID yet: the app is ad-hoc signed (build-resources/mac-adhoc-sign.cjs), so on
-# first launch macOS asks the user to allow it (docs/guides/MAC_APP.md). Automatic updates are off
+# first launch macOS asks the user to allow it (deploy/mac/MAC_APP.md). Automatic updates are off
 # on Mac until builds are signed and notarized.
 
 on:

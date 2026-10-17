@@ -17,7 +17,7 @@ afterEach(() => {
 
 describe('settings.ini', () => {
   it('the shipped settings.ini parses to the defaults with no warnings', () => {
-    const text = readFileSync(resolve(__dirname, '../../../../scripts/scraper-folder/settings.ini'), 'utf8');
+    const text = readFileSync(resolve(__dirname, '../../scraper-folder/settings.ini'), 'utf8');
     expect(readSettings(text)).toEqual({ settings: DEFAULT_SETTINGS, warnings: [] });
   });
 

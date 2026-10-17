@@ -2,10 +2,10 @@
  * Public downloads on the website (apps/web Download page, /downloads/* redirects in apps/web/vercel.json).
  *
  * macOS: free distribution, no Apple Developer Program. Builds are ad-hoc signed, not Developer ID signed and not
- * notarized, so macOS asks once to allow the app (MAC_INSTALL.md). Set `version` only after the DMGs for that version
- * are uploaded (MAC_RELEASE.md); while it is null the site keeps showing "coming soon".
+ * notarized, so macOS asks once to allow the app (deploy/mac/MAC_INSTALL.md). Set `version` only after the DMGs for that version
+ * are uploaded (deploy/mac/MAC_RELEASE.md); while it is null the site keeps showing "coming soon".
  */
-/** Apple Silicon (arm64) and Intel (x64). A universal build is not shipped (MAC_RELEASE.md). */
+/** Apple Silicon (arm64) and Intel (x64). A universal build is not shipped (deploy/mac/MAC_RELEASE.md). */
 export type MacArch = 'arm64' | 'x64';
 
 export const MAC_DOWNLOAD: { version: string | null; minimumMacOS: string } = {

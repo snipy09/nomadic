@@ -75,4 +75,4 @@ marketing/
 *.wav
 
 # Tester builds are committed on purpose (Mac zips split under GitHub's 100 MB limit).
-!tester-builds/**
+!deploy/tester-builds/**

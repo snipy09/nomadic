@@ -1,10 +1,10 @@
 @echo off
 rem Scrapes jobs and publishes them to Supabase from this computer (Windows).
 rem Needs Node.js 22+ and a .env file in the repo root with SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.
-rem Extra arguments are passed to the scraper, e.g.:  scripts\scrape-laptop.cmd --include-tier3
+rem Extra arguments are passed to the scraper, e.g.:  packages\scrapers\launchers\scrape-laptop.cmd --include-tier3
 rem Logs go to scrape-output\scrape.log and the last report to scrape-output\report.json.
 setlocal
-cd /d "%~dp0.."
+cd /d "%~dp0..\..\.."
 
 if not exist ".env" (
   echo [scrape] Missing .env in %CD%. Copy .env.example to .env and fill SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.

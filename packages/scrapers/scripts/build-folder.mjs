@@ -1,5 +1,5 @@
 // Builds the Desktop scraper folder: every scraper bundled into one file (bin/nomadic-scrapers.mjs, needs only
-// Node.js 22) next to the launchers in scripts/scraper-folder. Output: dist/scraper-folder/Scraper.
+// Node.js 22) next to the launchers in packages/scrapers/scraper-folder. Output: dist/scraper-folder/Scraper.
 // Windows files are written with CRLF line ends whatever the checkout uses.
 import { execSync } from 'child_process';
 import { cpSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'fs';
@@ -26,7 +26,7 @@ await build({
   banner: { js: "import { createRequire as __nomadicRequire } from 'module'; const require = __nomadicRequire(import.meta.url);" },
 });
 
-cpSync(join(root, 'scripts', 'scraper-folder'), out, { recursive: true });
+cpSync(join(root, 'packages', 'scrapers', 'scraper-folder'), out, { recursive: true });
 const CRLF = new Set(['.cmd', '.ps1', '.vbs', '.ini', '.txt']);
 const walk = (dir) =>
   readdirSync(dir).flatMap((name) => {

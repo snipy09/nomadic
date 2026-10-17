@@ -11,12 +11,12 @@ Last updated: 7 October 2026.
 | Tests | `npm test` (laptop: `npx vitest run --maxWorkers=2 --testTimeout=30000`) |
 | Lint | `npm run lint` (must exit 0) |
 | Windows app | `npm run dev:desktop` · `npm run build:desktop` · `npm run package:desktop` (on Windows) |
-| Mac app | `npm run dev:mac` · `npm run build:mac` · `npm run package:mac` · `npm run release:mac` (on a Mac; MAC_RELEASE.md) |
+| Mac app | `npm run dev:mac` · `npm run build:mac` · `npm run package:mac` · `npm run release:mac` (on a Mac; deploy/mac/MAC_RELEASE.md) |
 | Android app | `npm run dev:android` · `npm run build:android` (APK only in CI) |
 | Website | `npm run dev:web` · `npm run build:web` |
-| Scraper folder | `npm run build:scraper-folder` · `scripts\windows\Install scraper folder.cmd` |
-| Tester builds | `scripts\windows\Get tester builds.cmd` (needs `gh auth login`): newest successful Windows/Mac/Android artifacts on `main` → `Desktop\Nomadic Content\Tester builds` + `Nomadic tester builds.zip`, with `READ ME FIRST.txt` install steps |
-| Tester builds in the repo | `tester-builds/` (plain git; the cloud proxy blocks `lfs.github.com`, so Mac zips are split into <100 MB `.partNNN` files joined by `Join Mac zips.cmd`): 1.4.0 Windows installer + portable (cross-built on Linux with wine), Mac arm64/x64 `.app` zips (`electron-builder --mac dir`, ad-hoc signed with `rcodesign`, no DMG off macOS); built without the Google OAuth secrets, so email sign-in only. No Android APK: the cloud container cannot reach `dl.google.com` |
+| Scraper folder | `npm run build:scraper-folder` · `packages\scrapers\launchers\Install scraper folder.cmd` |
+| Tester builds | `deploy\windows\Get tester builds.cmd` (needs `gh auth login`): newest successful Windows/Mac/Android artifacts on `main` → `Desktop\Nomadic Content\Tester builds` + `Nomadic tester builds.zip`, with `READ ME FIRST.txt` install steps |
+| Tester builds in the repo | `deploy/tester-builds/` (plain git; the cloud proxy blocks `lfs.github.com`, so Mac zips are split into <100 MB `.partNNN` files joined by `Join Mac zips.cmd`): 1.4.0 Windows installer + portable (cross-built on Linux with wine), Mac arm64/x64 `.app` zips (`electron-builder --mac dir`, ad-hoc signed with `rcodesign`, no DMG off macOS); built without the Google OAuth secrets, so email sign-in only. No Android APK: the cloud container cannot reach `dl.google.com` |
 
 ## CI workflows (`.github/workflows`)
 
@@ -33,8 +33,8 @@ Last updated: 7 October 2026.
 ## Details
 
 - Scraper folder: `npm run build:scraper-folder` → `dist/scraper-folder/Scraper` (esbuild bundle `bin/nomadic-scrapers.mjs`, 1.8 MB,
-  needs only Node 22; Windows files rewritten with CRLF); `scripts\windows\Install scraper folder.cmd` installs it on the
-  laptop; `scraper-folder.yml` uploads it as artifact `Nomadic-Scraper-folder`. Keep `scripts/scraper-folder` files ASCII
+  needs only Node 22; Windows files rewritten with CRLF); `packages\scrapers\launchers\Install scraper folder.cmd` installs it on the
+  laptop; `scraper-folder.yml` uploads it as artifact `Nomadic-Scraper-folder`. Keep `packages/scrapers/scraper-folder` files ASCII
   (PowerShell 5.1 reads UTF-8 without BOM as ANSI). Try the runner without Windows: `node <bundle> auto --home <dir> --force news --dry-run`.
 - Android: `npm run build:android` (web bundle); `npm run dev:android` to try it in a browser at phone size. The APK is built only in CI (`android-app.yml`: assembleDebug + emulator smoke test, artifact
   `nomadic-android-debug-<run>`); details in `docs/guides/MOBILE_APP.md`.
@@ -75,7 +75,7 @@ Last updated: 7 October 2026.
   (`macos-15`) and `-mac-x64.dmg` (`macos-15-intel`), installs, launches and reads the first screen over CDP
   (`apps/mac/scripts/smoke-cdp.mjs`), artifacts kept 14 days. No Developer ID: `apps/mac/build-resources/mac-adhoc-sign.cjs`
   (afterPack) ad-hoc signs; users click Open Anyway once. Updates report "unsupported" on darwin
-  (`packages/app-core/src/main/services/updates-runtime.ts`). Locally on a Mac: `cd apps/mac; npm run package:mac -- --arm64`. Guide: `docs/guides/MAC_APP.md`.
+  (`packages/app-core/src/main/services/updates-runtime.ts`). Locally on a Mac: `cd apps/mac; npm run package:mac -- --arm64`. Guide: `deploy/mac/MAC_APP.md`.
 - Windows build without the laptop: Actions → "Build Windows (unsigned)" (`.github/workflows/build-windows.yml`,
   workflow_dispatch) builds the installer and portable exe on `windows-latest` with the Google OAuth secrets and uploads
   them as an artifact for 14 days (unsigned: SmartScreen warns). Signed releases: `release.yml` (needs the certificate).

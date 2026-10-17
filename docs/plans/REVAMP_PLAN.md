@@ -183,7 +183,7 @@ Shared rules to paste at the top of each session:
 > Done when: `npm test` is fully green locally and CI passes on the branch.
 
 ## Step 0.2: Security and hygiene cleanup
-> Remove `apps/desktop/nomadic-dev.pfx` from the repo (add `*.pfx`, `.env*` except `.env.example` to `.gitignore`), update `scripts/sign-windows.js` to read the cert path/password from environment variables, and tell me the exact commands to purge it from git history and which credentials to rotate. Fix the mojibake (re-save README.md and `.env.example` as UTF-8). Rewrite README so every command is real: map `Scrape_All_Jobs.bat`, `dev:web`, `scrape:all` to actual scripts, adding the scripts to root `package.json` where missing. Do not rewrite marketing copy yet.
+> Remove `apps/desktop/nomadic-dev.pfx` from the repo (add `*.pfx`, `.env*` except `.env.example` to `.gitignore`), update `deploy/windows/sign-windows.js` to read the cert path/password from environment variables, and tell me the exact commands to purge it from git history and which credentials to rotate. Fix the mojibake (re-save README.md and `.env.example` as UTF-8). Rewrite README so every command is real: map `Scrape_All_Jobs.bat`, `dev:web`, `scrape:all` to actual scripts, adding the scripts to root `package.json` where missing. Do not rewrite marketing copy yet.
 > Done when: every command in the README runs; no secrets in the working tree.
 
 ## Step 0.3: Form-filling benchmark

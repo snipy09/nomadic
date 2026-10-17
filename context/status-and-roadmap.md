@@ -26,7 +26,7 @@ Owner actions:
 0000. **In-app review go-live** (8 Oct 2026): paste `packages/supabase/baseline/apply_034.sql` in the Supabase SQL
    editor (or apply it through the connector). Until then the apps simply never show the review (the status call fails
    quietly). Read results with SQL on `app_reviews`.
-000. **Scraper folder go-live** (7 Oct 2026): migration 033 is live. On the laptop `git pull` on `main`, double-click `scripts\windows\Install scraper folder.cmd` (builds and installs `Desktop\Nomadic Content\Scraper`,
+000. **Scraper folder go-live** (7 Oct 2026): migration 033 is live. On the laptop `git pull` on `main`, double-click `packages\scrapers\launchers\Install scraper folder.cmd` (builds and installs `Desktop\Nomadic Content\Scraper`,
    removes the old launchers and the old "Nomadic scraper" task), then `Setup.cmd` there (reuses the key in `Desktop\Nomadic\.env`,
    optional Adzuna key, turns on the 30-minute schedule). First run `Test all sources (dry run).cmd` and fix what its
    summaries list as FAILED (news feed URLs `news/feeds.ts`, MLH/Hack2skill parsers `feed/hackathons.ts`, careers boards
@@ -35,7 +35,7 @@ Owner actions:
    credit and a licence for ongoing commercial use.
 0000. **Mac download (free, 8 Oct 2026)**: create the public repo `snipy09/nomadic-releases` with a README; optionally
    add the Actions secret `MAC_RELEASES_TOKEN` (fine-grained token, Contents read/write on that repo only); run Actions
-   → Release macOS (publish ticked) or upload the artifact by hand; test the DMG on a Mac (MAC_RELEASE.md → "Test");
+   → Release macOS (publish ticked) or upload the artifact by hand; test the DMG on a Mac (deploy/mac/MAC_RELEASE.md → "Test");
    then set `MAC_DOWNLOAD.version` in `packages/config/src/downloads.ts`. Also update the site FAQ "Can I download it
    yet?" / "Which operating systems" (`apps/web/src/content.ts`) when it goes live.
 00. (Done 7 Oct 2026) 031 and 032 are live. The feed's first dry run is now part of action 000.
@@ -100,5 +100,5 @@ checklist in `docs/plans/OUTREACH_PLAN.md` section 11; the Assistant); OS notifi
 
 Platform split follow-ups (7 Oct 2026): phone-only screens (`MobileOnboarding.tsx`, the phone shell inside `App.tsx`,
 `IS_MOBILE` branches in ~18 files) still live in `packages/app-ui` behind `IS_MOBILE`; move each into `apps/android` (a
-slot passed to `mountApp`) the next time it changes. Mac: free website distribution is in place (MAC_RELEASE.md); auto-updates,
+slot passed to `mountApp`) the next time it changes. Mac: free website distribution is in place (deploy/mac/MAC_RELEASE.md); auto-updates,
 Developer ID signing and notarisation stay off by choice (no paid Apple membership); the apply browser's Chrome/Edge/Brave lookup on macOS should be checked on a real Mac.

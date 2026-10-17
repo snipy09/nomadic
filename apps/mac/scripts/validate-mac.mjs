@@ -192,7 +192,7 @@ export async function validateDmg(dmgPath, { launch = false } = {}) {
   // 8. Gatekeeper's verdict, for information. Expected: rejected (no Developer ID / notarization).
   const gk = tryRun('spctl', ['--assess', '--type', 'execute', '--verbose=4', app]);
   console.log(`  i spctl (Gatekeeper): ${gk.out.split('\n').slice(0, 2).join(' | ') || (gk.ok ? 'accepted' : 'rejected')}`);
-  console.log('    Expected for a free build: rejected. Users allow it once with Open Anyway (MAC_INSTALL.md).');
+  console.log('    Expected for a free build: rejected. Users allow it once with Open Anyway (deploy/mac/MAC_INSTALL.md).');
 
   // 9. Optional: start the installed copy and check it stays up (opens a window).
   if (launch) {

@@ -56,7 +56,7 @@ L ≈ 1–2 weeks (solo).
 
 ### Step 1. Data supply (M) — scraper built 7 Oct 2026
 Built: `packages/scrapers/src/feed` + migration 031 (`companies`, `company_openings`, `company_hiring_snapshots`,
-`hackathons`); see `docs/guides/SCRAPER_LAPTOP.md` "Feed". Left: first live run on the laptop, fix failing boards, admin
+`hackathons`); see `packages/scrapers/SCRAPER_LAPTOP.md` "Feed". Left: first live run on the laptop, fix failing boards, admin
 form for hiring windows. The original notes for this step follow.
 - Owner: set `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` repo secrets so `scrape.yml` runs daily. Without it the
   feed is thin; this is the main blocker.
