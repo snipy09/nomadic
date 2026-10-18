@@ -8,8 +8,8 @@
  */
 import { CURRENCY, PLANS } from './plans';
 
-export const LEGAL_VERSION = '2026-10-08';
-export const LEGAL_UPDATED = '8 October 2026';
+export const LEGAL_VERSION = '2026-10-18';
+export const LEGAL_UPDATED = '18 October 2026';
 /** Legal owner/operator (sole proprietor) as it appears on invoices, notices and the payment gateway. */
 export const LEGAL_NAME = 'Sajal Kumar Mishra';
 export const LEGAL_ENTITY = `${LEGAL_NAME} (operating as Nomadic)`;
@@ -85,7 +85,7 @@ export const TERMS: LegalDoc = {
       title: 'Plans and payments',
       paragraphs: [
         `The Service has a Free plan and paid plans: ${paidPlans}. Prices are in ${CURRENCY} and include applicable taxes unless stated otherwise. The features and daily limits of each plan are shown in the app and on the website.`,
-        'Paid plans are billed through our payment partner, Razorpay, for one month at a time. A plan stays active until the end of the period you paid for; when it ends, your account moves to the Free plan and your data stays in place.',
+        'Paid plans are paid by UPI directly to us (you enter the UPI transaction reference and we confirm the payment, usually within one working day) or through a payment partner where one is offered, for one month at a time. A plan stays active until the end of the period you paid for; when it ends, your account moves to the Free plan and your data stays in place.',
         'Refunds are covered by our Refund and Cancellation Policy.',
       ],
     },
@@ -155,7 +155,7 @@ export const PRIVACY: LegalDoc = {
         'Profile and application data you add: contact details, education, skills, target role, links (LinkedIn, GitHub, portfolio), answers to common application questions, resumes, saved jobs, and your application history and notes.',
         'Learning data: your learning goal, lesson and practice progress, quiz answers and review schedule.',
         'Device and security data: a device identifier, device name, IP address at sign-in, and sign-in attempts, used to keep one active session per account and to protect against abuse.',
-        'Payment data: payments are processed by Razorpay. We receive the payment status, amount, plan and a payment reference. We never see or store your card, UPI or bank details.',
+        'Payment data: for a UPI payment made directly to us we store the order reference, plan, amount, the UPI transaction reference (UTR) you enter and whether we approved it, to confirm the payment and keep payment records. Where a payment partner such as Razorpay processes a payment, we receive the payment status, amount, plan and a payment reference. We never see or store your UPI PIN, card or bank login details.',
         'We do not collect your passwords for job portals. You sign in to those websites yourself in your browser.',
       ],
     },
@@ -177,7 +177,7 @@ export const PRIVACY: LegalDoc = {
     {
       title: 'Who we share it with',
       paragraphs: [
-        'Service providers who process data on our behalf, only to provide the Service: Supabase (database and server functions), Razorpay (payments), Resend (sending account emails), and Google (Gemini AI for answer suggestions and practice feedback, and Google sign-in if you choose it).',
+        'Service providers who process data on our behalf, only to provide the Service: Supabase (database and server functions), Razorpay (payments, where offered), Resend (sending account emails), and Google (Gemini AI for answer suggestions and practice feedback, and Google sign-in if you choose it).',
         'When you use an AI feature, we send only what that request needs, for example an application question with the relevant profile details, or a practice question with your answer. Our AI requests go through our own server; your data is not used by us to train AI models.',
         'Company logos are loaded from Google\'s public favicon service. It receives the company\'s web address and, like any website, your device\'s IP address; never your account or profile details.',
         'Employers and job websites receive the application details only when you review and submit an application yourself.',
@@ -235,7 +235,7 @@ export const REFUNDS: LegalDoc = {
       title: 'No refunds',
       paragraphs: [
         'All payments are final. We do not offer refunds for a plan once it is paid for, including for unused days or if you stop using the Service during the month. You can try the Free plan before you pay.',
-        'The only exception is a payment error: if you were charged twice or charged the wrong amount, write to ' + SUPPORT_EMAIL + ' and we will return the extra amount to the original payment method through Razorpay, usually within 5 to 7 working days.',
+        'The only exception is a payment error: if you were charged twice or charged the wrong amount, write to ' + SUPPORT_EMAIL + ' and we will return the extra amount to the original payment method (or by UPI to the account that paid), usually within 5 to 7 working days.',
       ],
     },
     {

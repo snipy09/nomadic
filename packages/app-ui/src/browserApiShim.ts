@@ -572,6 +572,8 @@ export function createBrowserApiShim(): ElectronAPI {
     adminUpdateLesson: adminUnavailable,
     adminSetResourceStatus: adminUnavailable,
     adminContentHistory: adminUnavailable,
+    adminListUpiOrders: adminUnavailable,
+    adminReviewUpiOrder: adminUnavailable,
 
     // Practice (F8): the question sets and the attempt log live in the desktop main process.
     practiceGetCatalog: async () => ({ success: false as const, error: 'Practice question sets load in the desktop app.' }),

@@ -234,6 +234,10 @@ export interface ElectronAPI {
   /** Opens Razorpay checkout for a paid plan in the browser. */
   startCheckout?: (plan: 'pro' | 'max') => Promise<CheckoutResult>;
   getPaymentHistory?: NomadicApi['getPaymentHistory'];
+  /** UPI direct payments (migration 035): pay the operator's UPI ID, report the UTR, an admin approves. */
+  upiCreateOrder?: NomadicApi['upiCreateOrder'];
+  upiSubmitUtr?: NomadicApi['upiSubmitUtr'];
+  upiListOrders?: NomadicApi['upiListOrders'];
   // Outreach (behind the `outreach` flag)
   outreachListContacts?: NomadicApi['outreachListContacts'];
   outreachReportContact?: NomadicApi['outreachReportContact'];
@@ -359,6 +363,8 @@ export interface ElectronAPI {
   adminUpdateLesson: NomadicApi['adminUpdateLesson'];
   adminSetResourceStatus: NomadicApi['adminSetResourceStatus'];
   adminContentHistory: NomadicApi['adminContentHistory'];
+  adminListUpiOrders: NomadicApi['adminListUpiOrders'];
+  adminReviewUpiOrder: NomadicApi['adminReviewUpiOrder'];
   // Practice (F8)
   practiceGetCatalog: NomadicApi['practiceGetCatalog'];
   practiceGetState: NomadicApi['practiceGetState'];

@@ -68,7 +68,7 @@ packages/
   capacitor-apply-browser/  Capacitor plugin ApplyBrowser (Android WebView apply), docs/guides/ANDROID_APPLY.md
   scrapers/    job pipeline, sources, feed (companies + hackathons), news, contacts, discover, auto (the Desktop
                scraper folder's scheduler) — see scrapers.md
-  supabase/    client wrappers, migrations/ (next free: 034), functions/ (Edge Functions), baseline/ (paste files)
+  supabase/    client wrappers, migrations/ (next free: 036), functions/ (Edge Functions), baseline/ (paste files)
   email-verifier/  MX checks and the SMTP sender used by Outreach
   form-bench/  22 ATS fixtures and the scorer (npm run bench:forms)
 context/       this folder: project context (start at README.md)

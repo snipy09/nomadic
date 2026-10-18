@@ -44,6 +44,9 @@ const apiObj: NomadicApi = {
   getEntitlements: (options) => invoke('get-entitlements', options),
   startCheckout: (plan) => invoke('start-checkout', plan),
   getPaymentHistory: () => invoke('get-payment-history'),
+  upiCreateOrder: (plan) => invoke('upi-create-order', plan),
+  upiSubmitUtr: (orderId, utr) => invoke('upi-submit-utr', orderId, utr),
+  upiListOrders: () => invoke('upi-list-orders'),
   outreachListContacts: (query) => invoke('outreach-list-contacts', query),
   outreachReportContact: (input) => invoke('outreach-report-contact', input),
   outreachGetState: () => invoke('outreach-get-state'),
@@ -147,6 +150,8 @@ const apiObj: NomadicApi = {
   adminUpdateLesson: (input) => invoke('admin-update-lesson', input),
   adminSetResourceStatus: (input) => invoke('admin-set-resource-status', input),
   adminContentHistory: (query) => invoke('admin-content-history', query),
+  adminListUpiOrders: (query) => invoke('admin-list-upi-orders', query),
+  adminReviewUpiOrder: (input) => invoke('admin-review-upi-order', input),
 
   // In-App Updates
 };

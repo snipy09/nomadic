@@ -19,6 +19,9 @@ const users = () => [
 
 const lesson = { id: 'arrays-intro', skillId: 'arrays', title: 'Intro to arrays', status: 'draft', version: 2, aiDrafted: false, isCore: true, estimatedMinutes: 10, summaryMd: 'Arrays hold items.', keyPoints: ['Index from 0'], resourceIds: [], updatedAt: null };
 
+const UPI_ORDER = '00000000-0000-0000-0000-0000000000f1';
+const upiOrder = () => ({ orderId: UPI_ORDER, userId: TARGET, email: 'target@x.co', fullName: 'Target User', plan: 'pro', amountInr: 249, reference: 'NMD-7K3Q9X', utr: '412345678901', status: 'submitted', createdAt: '2026-10-17T10:00:00Z', submittedAt: '2026-10-17T10:05:00Z', reviewedAt: null, reviewNote: null });
+
 function mockApi(over: Record<string, unknown> = {}) {
   const api = {
     adminListUsers: vi.fn().mockResolvedValue({ ok: true, data: { users: users(), total: 2 } }),
@@ -30,6 +33,8 @@ function mockApi(over: Record<string, unknown> = {}) {
     adminUpdateLesson: vi.fn().mockResolvedValue({ ok: true, data: { auditId: 3, version: 3 } }),
     adminSetResourceStatus: vi.fn(),
     adminContentHistory: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+    adminListUpiOrders: vi.fn().mockResolvedValue({ ok: true, data: [upiOrder()] }),
+    adminReviewUpiOrder: vi.fn().mockResolvedValue({ ok: true, data: { auditId: 4, status: 'approved', tier: 'pro', expiresAt: '2026-11-17T00:00:00Z' } }),
     ...over,
   };
   (window as any).api = api;
@@ -114,6 +119,28 @@ describe('AdminView', () => {
     expect(await screen.findByText('Changed plan')).toBeTruthy();
     expect(screen.getByText('Free trial to Pro')).toBeTruthy();
     expect(screen.getByText('Paid by transfer')).toBeTruthy();
+  });
+
+  it('approves a UPI payment only after confirmation with a reason, and refreshes the queue', async () => {
+    const api = mockApi();
+    renderAdmin();
+    await userEvent.click(screen.getByRole('tab', { name: /payments/i }));
+    expect(await screen.findByText('412345678901')).toBeTruthy();
+    expect(api.adminListUpiOrders).toHaveBeenLastCalledWith({ status: 'submitted' });
+    await userEvent.click(screen.getByRole('button', { name: 'Approve' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Approve payment' });
+    expect(within(dialog).getByText('NMD-7K3Q9X')).toBeTruthy();
+    await userEvent.type(within(dialog).getByRole('textbox', { name: /reason/i }), 'UTR on HDFC statement');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Approve and activate plan' }));
+    await waitFor(() => expect(api.adminReviewUpiOrder).toHaveBeenCalledWith({ orderId: UPI_ORDER, decision: 'approve', reason: 'UTR on HDFC statement' }));
+    await waitFor(() => expect(api.adminListUpiOrders).toHaveBeenCalledTimes(2));
+  });
+
+  it('shows an empty payments queue', async () => {
+    mockApi({ adminListUpiOrders: vi.fn().mockResolvedValue({ ok: true, data: [] }) });
+    renderAdmin();
+    await userEvent.click(screen.getByRole('tab', { name: /payments/i }));
+    expect(await screen.findByText('No payments waiting for review')).toBeTruthy();
   });
 
   it('shows scraper health with failing sources first and an empty state', async () => {

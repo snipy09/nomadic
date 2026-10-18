@@ -5,6 +5,8 @@ import { PLANS, formatPrice, getPlan, type PlanId } from '@nomadic/config';
 import { getApi } from '../../types';
 import { planRank } from './billingLogic';
 import { useEntitlements } from './useEntitlements';
+import { UpiPayPanel } from './UpiPayPanel';
+import type { UpiPayment } from '@nomadic/app-core/shared/ipc';
 
 // Manual upgrade route, used only when this build has no Razorpay checkout page configured.
 const SUPPORT_WHATSAPP = '919493833632';
@@ -22,17 +24,21 @@ type Checkout =
   | { state: 'idle' }
   | { state: 'opening'; plan: PlanId }
   | { state: 'waiting'; plan: PlanId; fromPlan: PlanId | null; fromExpiry: string | null }
+  | { state: 'upi'; plan: PlanId; payment: UpiPayment; fromPlan: PlanId | null; fromExpiry: string | null; submitted: boolean }
   | { state: 'manual'; plan: PlanId }
   | { state: 'done'; plan: PlanId };
 
 const POLL_MS = 4_000;
+// A UPI payment waits for a person to check it, so the plan is polled less often.
+const UPI_POLL_MS = 20_000;
 
-/** Plans from packages/config with Razorpay checkout; the plan switches as soon as the server confirms payment. */
+/** Plans from packages/config with Razorpay checkout, else UPI direct (035); the plan switches once the server confirms payment. */
 export function UpgradeDialog({ open, onOpenChange, feature, email }: UpgradeDialogProps) {
   const { toast } = useToast();
   const [checkout, setCheckout] = useState<Checkout>({ state: 'idle' });
   const waiting = checkout.state === 'waiting';
-  const ent = useEntitlements({ pollMs: open && waiting ? POLL_MS : false });
+  const upiReview = checkout.state === 'upi' && checkout.submitted;
+  const ent = useEntitlements({ pollMs: open && waiting ? POLL_MS : open && upiReview ? UPI_POLL_MS : false });
   const current: PlanId | null = ent.status === 'ready' && ent.entitlements ? ent.entitlements.plan : null;
   const expiry = ent.entitlements?.expiresAt ?? null;
 
@@ -40,7 +46,7 @@ export function UpgradeDialog({ open, onOpenChange, feature, email }: UpgradeDia
 
   // Payment landed (webhook -> server plan or expiry change): confirm and stop polling.
   useEffect(() => {
-    if (checkout.state !== 'waiting' || !current) return;
+    if ((checkout.state !== 'waiting' && checkout.state !== 'upi') || !current) return;
     const changed = current !== checkout.fromPlan || expiry !== checkout.fromExpiry;
     if (changed && planRank(current) >= planRank(checkout.plan)) {
       setCheckout({ state: 'done', plan: checkout.plan });
@@ -54,7 +60,7 @@ export function UpgradeDialog({ open, onOpenChange, feature, email }: UpgradeDia
     try {
       const res = api.startCheckout ? await api.startCheckout(plan) : { success: false, notConfigured: true };
       if (res.success) setCheckout({ state: 'waiting', plan, fromPlan: current, fromExpiry: expiry });
-      else if ('notConfigured' in res && res.notConfigured) setCheckout({ state: 'manual', plan });
+      else if ('notConfigured' in res && res.notConfigured) await startUpi(plan);
       else {
         setCheckout({ state: 'idle' });
         toast({ title: 'Could not open checkout', description: ('error' in res && res.error) || undefined, tone: 'danger' });
@@ -62,6 +68,18 @@ export function UpgradeDialog({ open, onOpenChange, feature, email }: UpgradeDia
     } catch (e) {
       setCheckout({ state: 'idle' });
       toast({ title: 'Could not open checkout', description: e instanceof Error ? e.message : undefined, tone: 'danger' });
+    }
+  };
+
+  // No Razorpay checkout in this build: pay the operator's UPI ID directly; an admin approves the UTR.
+  const startUpi = async (plan: Exclude<PlanId, 'free'>) => {
+    const api = getApi();
+    const res = api.upiCreateOrder ? await api.upiCreateOrder(plan) : null;
+    if (res?.success) setCheckout({ state: 'upi', plan, payment: res.payment, fromPlan: current, fromExpiry: expiry, submitted: res.payment.order.status !== 'awaiting_payment' });
+    else if (!res || res.code === 'not_configured' || res.code === 'server_outdated') setCheckout({ state: 'manual', plan });
+    else {
+      setCheckout({ state: 'idle' });
+      toast({ title: 'Could not start the payment', description: res.error, tone: 'danger' });
     }
   };
 
@@ -90,6 +108,14 @@ export function UpgradeDialog({ open, onOpenChange, feature, email }: UpgradeDia
             <Card variant="sunken" padding="sm" role="status" className="text-body text-success-fg">
               Payment confirmed. You are on {getPlan(checkout.plan).name}.
             </Card>
+          )}
+          {checkout.state === 'upi' && (
+            <UpiPayPanel
+              key={checkout.payment.order.orderId}
+              payment={checkout.payment}
+              onSubmitted={() => setCheckout({ ...checkout, submitted: true })}
+              onCancel={() => setCheckout({ state: 'idle' })}
+            />
           )}
           {checkout.state === 'manual' && (
             <Card variant="sunken" padding="sm" role="status" className="flex flex-wrap items-center gap-3 text-body text-fg">
@@ -132,7 +158,7 @@ export function UpgradeDialog({ open, onOpenChange, feature, email }: UpgradeDia
                         variant={plan.featured && !isCurrent ? 'primary' : 'secondary'}
                         rightIcon={<ExternalLink />}
                         loading={busy}
-                        disabled={checkout.state === 'opening' || waiting}
+                        disabled={checkout.state === 'opening' || waiting || checkout.state === 'upi'}
                         onClick={() => void startCheckout(plan.id as Exclude<PlanId, 'free'>)}
                       >
                         {isCurrent ? 'Renew for another month' : `Upgrade to ${plan.name}`}
@@ -144,7 +170,7 @@ export function UpgradeDialog({ open, onOpenChange, feature, email }: UpgradeDia
             })}
           </ul>
           <p className="text-caption text-fg-subtle">
-            Payments are handled by Razorpay. Paying again before your paid period ends adds another month.
+            Payments go through Razorpay or straight to our UPI ID. Paying again before your paid period ends adds another month.
           </p>
         </div>
       </DialogContent>

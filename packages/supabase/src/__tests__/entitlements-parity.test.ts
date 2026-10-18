@@ -93,3 +93,44 @@ describe('025 billing_list_payments', () => {
     expect(sql).toMatch(/GRANT EXECUTE ON FUNCTION public\.billing_list_payments\(UUID, TEXT, TEXT\) TO anon, authenticated, service_role;/);
   });
 });
+
+describe('035 UPI direct payments', () => {
+  const sql = read('035_upi_payments.sql');
+  const price = (id: 'pro' | 'max') => PLANS.find((p) => p.id === id)!.priceInr;
+  const fn = (name: string) => {
+    const start = sql.indexOf(`CREATE OR REPLACE FUNCTION public.${name}(`);
+    expect(start).toBeGreaterThanOrEqual(0);
+    const end = sql.indexOf('$$;', start);
+    return sql.slice(start, end);
+  };
+
+  it('charges the config prices for Pro and Max', () => {
+    expect(sql).toContain(`c_upi_price_pro CONSTANT NUMERIC := ${price('pro')};`);
+    expect(sql).toContain(`c_upi_price_max CONSTANT NUMERIC := ${price('max')};`);
+  });
+
+  it('client RPCs check the device session, admin RPCs check the admin caller', () => {
+    for (const name of ['billing_upi_create_order', 'billing_upi_submit_utr', 'billing_upi_list_orders']) {
+      expect(fn(name)).toMatch(/IF NOT public\.billing_session_ok\(p_user_id, p_session_token, p_device_fingerprint\) THEN/);
+    }
+    for (const name of ['admin_list_upi_orders', 'admin_review_upi_order']) {
+      expect(fn(name)).toContain('public.admin_check_caller(p_user_id, p_session_token, p_device_fingerprint)');
+    }
+    for (const name of ['billing_upi_create_order', 'billing_upi_submit_utr', 'billing_upi_list_orders', 'admin_list_upi_orders', 'admin_review_upi_order']) {
+      expect(fn(name)).toMatch(/SECURITY DEFINER SET search_path = public, extensions/);
+      expect(sql).toMatch(new RegExp(`GRANT EXECUTE ON FUNCTION public\\.${name}\\([A-Z, ]+\\) TO anon, authenticated, service_role;`));
+    }
+  });
+
+  it('activates the plan through the 024 payment logic and writes an audit row', () => {
+    const review = fn('admin_review_upi_order');
+    expect(review).toContain('handle_razorpay_payment_success');
+    expect(review).toMatch(/admin_audit/);
+  });
+
+  it('has a paste file without blank lines', () => {
+    const paste = readFileSync(path.join(dir, '../baseline/apply_035.sql'), 'utf8');
+    expect(paste).not.toMatch(/\r?\n[ \t]*\r?\n/);
+    expect(paste).toContain('admin_review_upi_order');
+  });
+});

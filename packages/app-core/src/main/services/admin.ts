@@ -18,6 +18,11 @@ import type {
   AdminSetStatusInput,
   AdminSkillItem,
   AdminStatusChangeResult,
+  AdminUpiOrder,
+  AdminUpiQuery,
+  AdminUpiReviewInput,
+  AdminUpiReviewResult,
+  AdminUpiStatus,
   AdminUserQuery,
   AdminUserRow,
   AdminUsersPage,
@@ -61,6 +66,9 @@ export const ADMIN_ERROR_MESSAGES: Record<string, string> = {
   invalid_content: 'Check the title (up to 200 characters), text (up to 20,000) and key points (up to 20, 300 characters each).',
   link_check_required: 'Only resources that passed their last link check can be made active.',
   invalid_kind: 'Unknown content type.',
+  invalid_decision: 'Choose approve or reject.',
+  not_submitted: 'This order is not waiting for review any more. Refresh the list.',
+  payment_failed: 'The plan could not be activated for this payment. Check the user account and try again.',
 };
 
 export function adminErrorMessage(code: string): string {
@@ -361,6 +369,54 @@ export async function setResourceStatus(input: AdminResourceStatusUpdate): Promi
     p_reason: input.reason.trim(),
   });
   return mapOk(res, (b) => ({ auditId: num(b['audit_id']), version: num(b['version']) }));
+}
+
+const UPI_STATUSES: readonly AdminUpiStatus[] = ['awaiting_payment', 'submitted', 'approved', 'rejected'];
+
+export function toUpiOrder(r: Row): AdminUpiOrder {
+  const status = str(r['status']) as AdminUpiStatus;
+  return {
+    orderId: str(r['order_id']),
+    userId: str(r['user_id']),
+    email: str(r['email']),
+    fullName: str(r['full_name']),
+    plan: r['plan'] === 'max' ? 'max' : 'pro',
+    amountInr: num(r['amount_inr']),
+    reference: str(r['reference']),
+    utr: strOrNull(r['utr']),
+    status: UPI_STATUSES.includes(status) ? status : 'submitted',
+    createdAt: strOrNull(r['created_at']),
+    submittedAt: strOrNull(r['submitted_at']),
+    reviewedAt: strOrNull(r['reviewed_at']),
+    reviewNote: strOrNull(r['review_note']),
+  };
+}
+
+const UPI_OUTDATED = 'The server does not have UPI payments yet (migration 035). Ask the operator to apply it.';
+
+/** The generic server_outdated text names 014; UPI calls need 035. */
+function upiOutdated<T>(res: AdminResult<T>): AdminResult<T> {
+  return !res.ok && res.code === 'server_outdated' ? { ...res, error: UPI_OUTDATED } : res;
+}
+
+export async function listUpiOrders(q: AdminUpiQuery): Promise<AdminResult<AdminUpiOrder[]>> {
+  const res = upiOutdated(await callAdminRpc('admin_list_upi_orders', { p_status: q.status ?? null }));
+  return mapOk(res, (b) => rows(b['orders']).map(toUpiOrder));
+}
+
+export async function reviewUpiOrder(input: AdminUpiReviewInput): Promise<AdminResult<AdminUpiReviewResult>> {
+  const res = upiOutdated(await callAdminRpc('admin_review_upi_order', {
+    p_order_id: input.orderId,
+    p_decision: input.decision,
+    p_reason: input.reason.trim(),
+  }));
+  if (res.ok) log(`[Admin] UPI order ${input.orderId} ${input.decision}d (audit #${num(res.data['audit_id'])})`);
+  return mapOk(res, (b) => ({
+    auditId: num(b['audit_id']),
+    status: b['status'] === 'rejected' ? 'rejected' : 'approved',
+    tier: strOrNull(b['tier']),
+    expiresAt: strOrNull(b['expires_at']),
+  }));
 }
 
 export async function contentHistory(q: AdminContentHistoryQuery): Promise<AdminResult<AdminContentVersion[]>> {

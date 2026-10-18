@@ -16,10 +16,10 @@ vi.mock('../services/supabase.js', () => ({ getAnonSupabase: () => (supabaseConf
 
 import {
   adminErrorMessage, callAdminRpc, contentHistory, listAudit, listContent, listUsers, scrapeHealth, setResourceStatus,
-  setUserPlan, setUserStatus, toAuditEntry, toScrapeHealth, toUserRow, updateLesson,
+  setUserPlan, setUserStatus, toAuditEntry, toScrapeHealth, toUserRow, updateLesson, listUpiOrders, reviewUpiOrder,
 } from '../services/admin';
 import {
-  adminListUsersArgs, adminSetResourceStatusArgs, adminSetUserPlanArgs, adminSetUserStatusArgs, adminUpdateLessonArgs,
+  adminListUsersArgs, adminReviewUpiOrderArgs, adminSetResourceStatusArgs, adminSetUserPlanArgs, adminSetUserStatusArgs, adminUpdateLessonArgs,
 } from '../ipc/schemas';
 
 const SESSION = { userId: '00000000-0000-0000-0000-00000000000a', sessionToken: 'tok', deviceFingerprint: 'fp' };
@@ -209,5 +209,34 @@ describe('no service-role key in the desktop app', () => {
     const src = read('../services/admin.ts');
     expect(src).not.toMatch(/\.from\(/);
     expect(src).not.toMatch(/SERVICE_ROLE/);
+  });
+});
+
+describe('UPI payment review', () => {
+  const ORDER = '00000000-0000-0000-0000-0000000000f1';
+
+  it('lists the review queue and maps rows', async () => {
+    rpc.mockResolvedValue({ data: { ok: true, orders: [{ order_id: ORDER, user_id: TARGET, email: 't@x.co', full_name: 'T', plan: 'max', amount_inr: '599.00', reference: 'NMD-7K3Q9X', utr: '412345678901', status: 'submitted', created_at: '2026-10-17T10:00:00Z', submitted_at: '2026-10-17T10:05:00Z', reviewed_at: null, review_note: null }] }, error: null });
+    const res = await listUpiOrders({ status: 'submitted' });
+    expect(rpc).toHaveBeenCalledWith('admin_list_upi_orders', { ...SESSION_PARAMS, p_status: 'submitted' });
+    expect(res).toMatchObject({ ok: true, data: [{ orderId: ORDER, plan: 'max', amountInr: 599, utr: '412345678901', status: 'submitted' }] });
+    await listUpiOrders({});
+    expect(rpc).toHaveBeenLastCalledWith('admin_list_upi_orders', { ...SESSION_PARAMS, p_status: null });
+  });
+
+  it('approves with a trimmed reason and names migration 035 when it is missing', async () => {
+    rpc.mockResolvedValue({ data: { ok: true, audit_id: 7, status: 'approved', tier: 'pro', expires_at: '2026-11-17T00:00:00Z' }, error: null });
+    const res = await reviewUpiOrder({ orderId: ORDER, decision: 'approve', reason: '  UTR on statement ' });
+    expect(rpc).toHaveBeenCalledWith('admin_review_upi_order', { ...SESSION_PARAMS, p_order_id: ORDER, p_decision: 'approve', p_reason: 'UTR on statement' });
+    expect(res).toEqual({ ok: true, data: { auditId: 7, status: 'approved', tier: 'pro', expiresAt: '2026-11-17T00:00:00Z' } });
+    rpc.mockResolvedValue({ data: null, error: { code: 'PGRST202', message: 'Could not find the function public.admin_review_upi_order' } });
+    const old = await reviewUpiOrder({ orderId: ORDER, decision: 'reject', reason: 'No credit' });
+    expect(old.ok === false && old.error).toMatch(/035/);
+  });
+
+  it('validates review input', () => {
+    expect(adminReviewUpiOrderArgs[0].safeParse({ orderId: ORDER, decision: 'approve', reason: 'ok fine' }).success).toBe(true);
+    expect(adminReviewUpiOrderArgs[0].safeParse({ orderId: 'x', decision: 'approve', reason: 'ok fine' }).success).toBe(false);
+    expect(adminReviewUpiOrderArgs[0].safeParse({ orderId: ORDER, decision: 'refund', reason: 'ok fine' }).success).toBe(false);
   });
 });

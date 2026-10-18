@@ -78,6 +78,43 @@ export interface AdminStatusChangeResult extends AdminChangeResult {
 
 export type AdminAuditTargetType = 'user' | 'lesson' | 'resource' | 'admin';
 
+// UPI direct payments (migration 035): orders the user paid by UPI and reported with a UTR.
+export const ADMIN_UPI_STATUSES = ['awaiting_payment', 'submitted', 'approved', 'rejected'] as const;
+export type AdminUpiStatus = (typeof ADMIN_UPI_STATUSES)[number];
+
+export interface AdminUpiOrder {
+  orderId: string;
+  userId: string;
+  email: string;
+  fullName: string;
+  plan: 'pro' | 'max';
+  amountInr: number;
+  reference: string;
+  utr: string | null;
+  status: AdminUpiStatus;
+  createdAt: string | null;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  reviewNote: string | null;
+}
+
+export interface AdminUpiQuery {
+  /** Omit for every status. */
+  status?: AdminUpiStatus;
+}
+
+export interface AdminUpiReviewInput {
+  orderId: string;
+  decision: 'approve' | 'reject';
+  reason: string;
+}
+
+export interface AdminUpiReviewResult extends AdminChangeResult {
+  status: 'approved' | 'rejected';
+  tier: string | null;
+  expiresAt: string | null;
+}
+
 export interface AdminAuditEntry {
   id: number;
   actorId: string | null;

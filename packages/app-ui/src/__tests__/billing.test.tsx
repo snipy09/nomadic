@@ -10,6 +10,7 @@ import { UpgradeDialog } from '../features/billing/UpgradeDialog';
 import { PlanStatus } from '../features/billing/PlanStatus';
 import { useEntitlements } from '../features/billing/useEntitlements';
 import { appliesLeftLabel, applyGate, feedLimit, renewalLine } from '../features/billing/billingLogic';
+import { isValidUtr, normaliseUtr, qrPath, upiReviewLine } from '../features/billing/upiLogic';
 import { QueryWrapper, entitlements, freeEntitlements } from './entitlementsFixture';
 
 afterEach(() => { cleanup(); delete (window as any).api; });
@@ -22,10 +23,17 @@ function mockApi(over: Record<string, unknown> = {}) {
     ...over,
   };
   (window as any).api = api;
-  return api;
+  return api as typeof api & Record<string, ReturnType<typeof vi.fn>>;
 }
 
 const wrap = (ui: React.ReactNode) => render(<QueryWrapper><UIProvider>{ui}</UIProvider></QueryWrapper>);
+
+const upiPayment = () => ({
+  order: { orderId: 'o-1', plan: 'pro', amountInr: 249, reference: 'NMD-7K3Q9X', utr: null, status: 'awaiting_payment', createdAt: '2026-10-17T10:00:00Z', submittedAt: null, reviewedAt: null, reviewNote: null },
+  vpa: 'nomadic@okbank',
+  payeeName: 'Nomadic',
+  intentUrl: 'upi://pay?pa=nomadic%40okbank&pn=Nomadic&am=249.00&cu=INR&tn=Nomadic%20NMD-7K3Q9X',
+});
 
 describe('billing logic', () => {
   it('uses the server listing limit and falls back to Free when unknown', () => {
@@ -140,6 +148,67 @@ describe('UpgradeDialog', () => {
     expect(url).toMatch(/^https:\/\/wa\.me\//);
     expect(decodeURIComponent(url)).toContain('Max (₹599/month)');
     expect(decodeURIComponent(url)).toContain('asha@x.in');
+  });
+
+  it('pays by UPI when Razorpay is not set up: QR, reference, then the UTR goes for review', async () => {
+    const api = mockApi({
+      startCheckout: vi.fn().mockResolvedValue({ success: false, notConfigured: true, error: 'x' }),
+      upiCreateOrder: vi.fn().mockResolvedValue({ success: true, payment: upiPayment() }),
+      upiSubmitUtr: vi.fn().mockResolvedValue({ success: true }),
+      upiListOrders: vi.fn().mockResolvedValue({ success: true, orders: [] }),
+    });
+    wrap(<UpgradeDialog open onOpenChange={() => {}} />);
+    await screen.findByText('Current plan');
+    await userEvent.click(screen.getByRole('button', { name: /upgrade to pro/i }));
+    expect(api.upiCreateOrder).toHaveBeenCalledWith('pro');
+    expect(await screen.findByRole('img', { name: /upi qr code/i })).toBeTruthy();
+    expect(screen.getByText('NMD-7K3Q9X')).toBeTruthy();
+    expect(screen.getByText('nomadic@okbank')).toBeTruthy();
+    const utr = screen.getByRole('textbox', { name: /utr/i });
+    await userEvent.type(utr, '1234');
+    await userEvent.click(screen.getByRole('button', { name: 'I have paid' }));
+    expect(await screen.findByText(/12-digit UTR/)).toBeTruthy();
+    expect(api.upiSubmitUtr).not.toHaveBeenCalled();
+    await userEvent.clear(utr);
+    await userEvent.type(utr, '4123 4567 8901');
+    await userEvent.click(screen.getByRole('button', { name: 'I have paid' }));
+    await waitFor(() => expect(api.upiSubmitUtr).toHaveBeenCalledWith('o-1', '412345678901'));
+    expect(await screen.findByText(/payment sent for review/i)).toBeTruthy();
+  });
+
+  it('falls back to the manual route when UPI is not set up on the server', async () => {
+    const api = mockApi({
+      startCheckout: vi.fn().mockResolvedValue({ success: false, notConfigured: true, error: 'x' }),
+      upiCreateOrder: vi.fn().mockResolvedValue({ success: false, code: 'not_configured', error: 'UPI payments are not set up yet.' }),
+    });
+    wrap(<UpgradeDialog open onOpenChange={() => {}} />);
+    await screen.findByText('Current plan');
+    await userEvent.click(screen.getByRole('button', { name: /upgrade to pro/i }));
+    expect(await screen.findByRole('button', { name: /message on whatsapp/i })).toBeTruthy();
+    expect(api.upiCreateOrder).toHaveBeenCalledWith('pro');
+  });
+});
+
+describe('UPI logic', () => {
+  it('accepts a 12-digit UTR with spaces or dashes only', () => {
+    expect(normaliseUtr('4123 4567-8901')).toBe('412345678901');
+    expect(isValidUtr('4123 4567 8901')).toBe(true);
+    expect(isValidUtr('41234567890')).toBe(false);
+    expect(isValidUtr('41234567890a')).toBe(false);
+  });
+
+  it('draws a square QR path', () => {
+    const qr = qrPath('upi://pay?pa=a%40b&am=249.00');
+    expect(qr.size).toBeGreaterThanOrEqual(21);
+    expect(qr.d).toMatch(/^M\d+ \d+h1v1h-1z/);
+  });
+
+  it('describes where a payment stands', () => {
+    const base = upiPayment().order as any;
+    expect(upiReviewLine(base)).toBeNull();
+    expect(upiReviewLine({ ...base, status: 'submitted' })).toMatch(/sent for review/);
+    expect(upiReviewLine({ ...base, status: 'approved' })).toMatch(/plan is active/);
+    expect(upiReviewLine({ ...base, status: 'rejected', reviewNote: 'No credit found.' })).toBe('Payment not approved: No credit found. Contact support if you were charged.');
   });
 });
 

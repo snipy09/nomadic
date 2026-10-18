@@ -3,7 +3,9 @@ import {
   adminContentHistoryArgs,
   adminListAuditArgs,
   adminListContentArgs,
+  adminListUpiOrdersArgs,
   adminListUsersArgs,
+  adminReviewUpiOrderArgs,
   adminScrapeHealthArgs,
   adminSetResourceStatusArgs,
   adminSetUserPlanArgs,
@@ -14,7 +16,9 @@ import {
   contentHistory,
   listAudit,
   listContent,
+  listUpiOrders,
   listUsers,
+  reviewUpiOrder,
   scrapeHealth,
   setResourceStatus,
   setUserPlan,
@@ -36,4 +40,6 @@ export function registerAdminIpc(): void {
   handle('admin-update-lesson', adminUpdateLessonArgs, (input) => updateLesson(input));
   handle('admin-set-resource-status', adminSetResourceStatusArgs, (input) => setResourceStatus(input));
   handle('admin-content-history', adminContentHistoryArgs, (query) => contentHistory(query));
+  handle('admin-list-upi-orders', adminListUpiOrdersArgs, (query) => listUpiOrders(query));
+  handle('admin-review-upi-order', adminReviewUpiOrderArgs, (input) => reviewUpiOrder(input));
 }

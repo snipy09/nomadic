@@ -19,7 +19,8 @@ import type { AnswerSource, FieldKind, FillReport, FormEngineEvent } from '@job-
 import type {
   AdminAuditPage, AdminAuditQuery, AdminChangeResult, AdminContentHistoryQuery, AdminContentList, AdminContentQuery,
   AdminContentVersion, AdminLessonUpdate, AdminResourceStatusUpdate, AdminResult, AdminSetPlanInput, AdminSetStatusInput,
-  AdminStatusChangeResult, AdminUserQuery, AdminUsersPage, AdminVersionResult, ScrapeHealth,
+  AdminStatusChangeResult, AdminUpiOrder, AdminUpiQuery, AdminUpiReviewInput, AdminUpiReviewResult, AdminUserQuery,
+  AdminUsersPage, AdminVersionResult, ScrapeHealth,
 } from './admin.js';
 
 export type { AnswerSource, FieldKind, FillReport, FormEngineEvent };
@@ -182,7 +183,7 @@ export interface NewsItem {
 export interface NewsResult {
   success: boolean;
   items: NewsItem[];
-  /** Per source: 'not_ready' when its table is not published yet (migration 031/033 not applied or never scraped). */
+  /** Per source: 'not_ready' when its table is not published yet (migration 035/033 not applied or never scraped). */
   sources: { snapshots: NewsSourceState; jobs: NewsSourceState; hackathons: NewsSourceState; articles?: NewsSourceState };
   fetchedAt: string;
   error?: string;
@@ -436,6 +437,43 @@ export interface CheckoutResult extends SuccessResult {
   /** No checkout page is configured in this build; the dialog offers the manual route. */
   notConfigured?: boolean;
 }
+
+// ── UPI direct payments (migration 035) ─────────────────────────────────────
+// The user pays the plan price to the operator's UPI ID with the order reference in the note,
+// then enters the 12-digit UTR; an admin checks it and approves, which activates the plan.
+
+export type UpiOrderStatus = 'awaiting_payment' | 'submitted' | 'approved' | 'rejected';
+
+export interface UpiOrder {
+  orderId: string;
+  plan: Exclude<BillingPlanId, 'free'>;
+  amountInr: number;
+  reference: string;
+  utr: string | null;
+  status: UpiOrderStatus;
+  createdAt: string | null;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  /** The reviewer's reason, only for rejected orders. */
+  reviewNote: string | null;
+}
+
+/** A newly opened (or reused) order with where to pay. */
+export interface UpiPayment {
+  order: UpiOrder;
+  vpa: string;
+  payeeName: string;
+  /** upi://pay link with payee, amount and reference; shown as a QR code to scan with a phone. */
+  intentUrl: string;
+}
+
+export type UpiErrorCode =
+  | EntitlementsErrorCode | 'not_configured' | 'invalid_plan' | 'rate_limited' | 'invalid_utr'
+  | 'not_found' | 'already_submitted' | 'utr_used' | 'server_outdated';
+
+export type UpiCreateOrderResult = { success: true; payment: UpiPayment } | { success: false; code: UpiErrorCode; error: string };
+export type UpiSubmitUtrResult = { success: true } | { success: false; code: UpiErrorCode; error: string };
+export type UpiListOrdersResult = { success: true; orders: UpiOrder[] } | { success: false; code: UpiErrorCode; error: string };
 
 /** Reviewed values per snapshot id, keyed by `BatchSnapshotField.fieldKey`. */
 export type BatchOverrides = Record<string, Record<string, string>>;
@@ -1210,6 +1248,11 @@ export interface IpcChannels {
   /** Opens the Razorpay checkout page for a paid plan in the browser. */
   'start-checkout': Channel<[plan: Exclude<BillingPlanId, 'free'>], CheckoutResult>;
   'get-payment-history': Channel<[], PaymentHistoryResult>;
+  /** Opens (or reuses) a UPI order: amount, reference and the operator's UPI ID from the server (035). */
+  'upi-create-order': Channel<[plan: Exclude<BillingPlanId, 'free'>], UpiCreateOrderResult>;
+  /** Reports the UTR of a UPI payment; an admin then approves or rejects it. */
+  'upi-submit-utr': Channel<[orderId: string, utr: string], UpiSubmitUtrResult>;
+  'upi-list-orders': Channel<[], UpiListOrdersResult>;
 
   // outreach
   /** Published directory (server RPC, session-checked, 500 rows per day). */
@@ -1297,6 +1340,9 @@ export interface IpcChannels {
   'admin-update-lesson': Channel<[input: AdminLessonUpdate], AdminResult<AdminVersionResult>>;
   'admin-set-resource-status': Channel<[input: AdminResourceStatusUpdate], AdminResult<AdminVersionResult>>;
   'admin-content-history': Channel<[query: AdminContentHistoryQuery], AdminResult<AdminContentVersion[]>>;
+  'admin-list-upi-orders': Channel<[query: AdminUpiQuery], AdminResult<AdminUpiOrder[]>>;
+  /** Approve activates the plan (024 plan logic) and records the payment; both are audited. */
+  'admin-review-upi-order': Channel<[input: AdminUpiReviewInput], AdminResult<AdminUpiReviewResult>>;
 }
 
 export type ChannelName = keyof IpcChannels;
@@ -1317,7 +1363,7 @@ export const IPC_CHANNELS = [
   'get-applications', 'update-application-status', 'update-application-notes', 'update-application-follow-up', 'delete-application', 'save-application',
   'launch-semi-auto', 'launch-autonomous', 'cancel-autonomous-apply', 'start-batch-copilot',
   'submit-all-batch-copilot',
-  'get-entitlements', 'start-checkout', 'get-payment-history',
+  'get-entitlements', 'start-checkout', 'get-payment-history', 'upi-create-order', 'upi-submit-utr', 'upi-list-orders',
   'outreach-list-contacts', 'outreach-report-contact', 'outreach-get-state', 'outreach-save-person',
   'outreach-delete-person', 'outreach-save-message', 'outreach-delete-message', 'outreach-review-message',
   'outreach-send-message', 'outreach-open-message', 'outreach-mark-message', 'outreach-draft-ai',
@@ -1333,7 +1379,7 @@ export const IPC_CHANNELS = [
   'get-device-info', 'get-data-health', 'copy-diagnostics', 'export-account-data', 'delete-account',
   'admin-list-users', 'admin-set-user-plan', 'admin-set-user-status', 'admin-list-audit',
   'admin-scrape-health', 'admin-list-content', 'admin-update-lesson', 'admin-set-resource-status',
-  'admin-content-history',
+  'admin-content-history', 'admin-list-upi-orders', 'admin-review-upi-order',
 ] as const satisfies readonly ChannelName[];
 
 // Compile-time proof that IPC_CHANNELS lists every channel exactly.
@@ -1383,6 +1429,9 @@ export interface NomadicApi {
   getEntitlements: Invoke<'get-entitlements'>;
   startCheckout: Invoke<'start-checkout'>;
   getPaymentHistory: Invoke<'get-payment-history'>;
+  upiCreateOrder: Invoke<'upi-create-order'>;
+  upiSubmitUtr: Invoke<'upi-submit-utr'>;
+  upiListOrders: Invoke<'upi-list-orders'>;
   outreachListContacts: Invoke<'outreach-list-contacts'>;
   outreachReportContact: Invoke<'outreach-report-contact'>;
   outreachGetState: Invoke<'outreach-get-state'>;
@@ -1478,5 +1527,7 @@ export interface NomadicApi {
   adminUpdateLesson: Invoke<'admin-update-lesson'>;
   adminSetResourceStatus: Invoke<'admin-set-resource-status'>;
   adminContentHistory: Invoke<'admin-content-history'>;
+  adminListUpiOrders: Invoke<'admin-list-upi-orders'>;
+  adminReviewUpiOrder: Invoke<'admin-review-upi-order'>;
 
 }

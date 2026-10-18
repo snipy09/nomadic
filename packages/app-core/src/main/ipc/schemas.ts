@@ -16,6 +16,7 @@ import {
   ADMIN_CONTENT_KINDS,
   ADMIN_REASON_MAX,
   ADMIN_REASON_MIN,
+  ADMIN_UPI_STATUSES,
   ADMIN_USER_STATUSES,
   CONTENT_STATUSES,
   RESOURCE_STATUSES,
@@ -202,6 +203,9 @@ export const getEntitlementsArgs: ArgSchemas<'get-entitlements'> = [
   opt(z.object({ fresh: opt(z.boolean()) }).strict()),
 ];
 export const startCheckoutArgs: ArgSchemas<'start-checkout'> = [z.enum(['pro', 'max'])];
+export const upiCreateOrderArgs: ArgSchemas<'upi-create-order'> = [z.enum(['pro', 'max'])];
+// Spaces are allowed while typing; the service and the server strip them before the 12-digit check.
+export const upiSubmitUtrArgs: ArgSchemas<'upi-submit-utr'> = [z.string().uuid(), z.string().max(40)];
 
 // ── outreach ───────────────────────────────────────────────────────────────
 const outreachKind = z.enum(OUTREACH_CONTACT_KINDS);
@@ -493,4 +497,12 @@ export const adminSetResourceStatusArgs: ArgSchemas<'admin-set-resource-status'>
 
 export const adminContentHistoryArgs: ArgSchemas<'admin-content-history'> = [
   z.object({ type: z.enum(['lesson', 'resource']), id: slug }).strict(),
+];
+
+export const adminListUpiOrdersArgs: ArgSchemas<'admin-list-upi-orders'> = [
+  z.object({ status: z.enum(ADMIN_UPI_STATUSES).optional() }).strict(),
+];
+
+export const adminReviewUpiOrderArgs: ArgSchemas<'admin-review-upi-order'> = [
+  z.object({ orderId: uuid, decision: z.enum(['approve', 'reject']), reason }).strict(),
 ];
