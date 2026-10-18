@@ -46,6 +46,8 @@ export interface NewsFeedStats {
   tooOld: number;
   offTopic: number;
   kept: number;
+  /** Newest item's date when every item was older than the window: the feed is no longer updated. */
+  staleSince: string | null;
 }
 
 export interface NewsRunReport {
@@ -136,7 +138,7 @@ export async function runNewsScrape(options: NewsRunOptions): Promise<NewsRunRep
   // Different hosts in parallel; PoliteFetcher spaces requests to the same host.
   await Promise.all(
     feeds.map(async (feed) => {
-      const s: NewsFeedStats = { id: feed.id, name: feed.name, ok: true, error: null, blockedByRobots: false, fetched: 0, tooOld: 0, offTopic: 0, kept: 0 };
+      const s: NewsFeedStats = { id: feed.id, name: feed.name, ok: true, error: null, blockedByRobots: false, fetched: 0, tooOld: 0, offTopic: 0, kept: 0, staleSince: null };
       try {
         const res = await fetchFeed(feed.url, { headers: { Accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml' } });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -168,6 +170,10 @@ export async function runNewsScrape(options: NewsRunOptions): Promise<NewsRunRep
           seenTitles.add(tKey);
           report.articles.push(parsed.data);
           s.kept++;
+        }
+        if (s.tooOld === s.fetched) {
+          s.staleSince = entries.map((e) => e.publishedAt ?? '').sort().at(-1)?.slice(0, 10) || null;
+          report.warnings.push(`${feed.id}: STALE, newest item ${s.staleSince ?? 'undated'}; fix its URL in news/feeds.ts or add it to feeds_off`);
         }
       } catch (err) {
         s.ok = false;
@@ -203,7 +209,7 @@ export function formatNewsSummary(report: NewsRunReport): string {
     'Feeds (kept / read, older than the window, not about hiring):',
     ...report.feeds.map((f) =>
       f.ok
-        ? `  ${f.id.padEnd(16)} ${String(f.kept).padStart(3)} / ${String(f.fetched).padEnd(4)} old ${String(f.tooOld).padStart(3)}  off-topic ${f.offTopic}`
+        ? `  ${f.id.padEnd(16)} ${String(f.kept).padStart(3)} / ${String(f.fetched).padEnd(4)} old ${String(f.tooOld).padStart(3)}  off-topic ${f.offTopic}${f.staleSince ? `  STALE (newest ${f.staleSince})` : ''}`
         : `  ${f.id.padEnd(16)} FAILED${f.blockedByRobots ? ' (robots.txt)' : ''}: ${f.error}`
     ),
     '',

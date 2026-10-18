@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'fs';
 import { z } from 'zod';
 import { COMPANIES, type CareersAdapter, type CompanyCategory, type CompanyDef } from '../feed/companies.js';
-import type { PoliteFetcher } from '../feed/http.js';
+import { BlockedByRobotsError, type PoliteFetcher } from '../feed/http.js';
 import { cleanText } from '../pipeline/normalize.js';
 import { isIndiaEligible } from '../pipeline/region.js';
 import { fetchAshbyBoardPage, type BoardConfig } from './ats.js';
@@ -201,6 +201,8 @@ export interface DiscoveryReport {
   probed: number;
   found: number;
   errors: string[];
+  /** Platforms whose robots.txt disallows their API: probed once, then skipped for the rest of the run. */
+  blocked: DiscoveryAts[];
 }
 
 export async function discoverBoards(options: DiscoveryOptions): Promise<DiscoveryReport> {
@@ -210,6 +212,7 @@ export async function discoverBoards(options: DiscoveryOptions): Promise<Discove
   const boards: DiscoveredBoard[] = [];
   const errors: string[] = [];
   const failed = new Set<string>();
+  const blocked = new Set<DiscoveryAts>();
   let probed = 0;
   let next = 0;
   const worker = async () => {
@@ -217,6 +220,8 @@ export async function discoverBoards(options: DiscoveryOptions): Promise<Discove
       const c = candidates[next++];
       for (const ats of DISCOVERY_ATS) {
         for (const board of boardSlugsFor(c)) {
+          // robots.txt is the same for every company on a platform: once it says no, asking again is wasted.
+          if (blocked.has(ats)) break;
           probed++;
           try {
             const r = await probeBoard(options.http, ats, board);
@@ -227,6 +232,11 @@ export async function discoverBoards(options: DiscoveryOptions): Promise<Discove
             }
             break;
           } catch (err) {
+            if (err instanceof BlockedByRobotsError && err.reason === null) {
+              if (!blocked.has(ats)) log(`[discover] ${ats}: robots.txt disallows its API; skipped for the rest of this run`);
+              blocked.add(ats);
+              break;
+            }
             failed.add(`${c.slug}|${ats}`);
             if (errors.length < 50) errors.push(`${c.name} ${ats}/${board}: ${err instanceof Error ? err.message : String(err)}`);
             break;
@@ -236,12 +246,13 @@ export async function discoverBoards(options: DiscoveryOptions): Promise<Discove
     }
   };
   await Promise.all(Array.from({ length: Math.max(1, options.concurrency ?? 4) }, worker));
-  // A board we found before but could not reach now stays; one that answered without India jobs is dropped.
+  // A board we found before but could not reach now stays; one that answered without India jobs is dropped, and so
+  // is one on a platform whose robots.txt now disallows it (the job sources could not read it either).
   for (const p of options.previous ?? []) {
-    if (failed.has(`${p.slug}|${p.ats}`) && !boards.some((b) => b.slug === p.slug && b.ats === p.ats)) boards.push(p);
+    if (failed.has(`${p.slug}|${p.ats}`) && !blocked.has(p.ats) && !boards.some((b) => b.slug === p.slug && b.ats === p.ats)) boards.push(p);
   }
   boards.sort((a, b) => a.name.localeCompare(b.name) || a.ats.localeCompare(b.ats));
-  return { file: { version: 1, generatedAt: at, boards }, probed, found: boards.length, errors };
+  return { file: { version: 1, generatedAt: at, boards }, probed, found: boards.length, errors, blocked: [...blocked] };
 }
 
 export function formatDiscoverySummary(report: DiscoveryReport): string {
@@ -252,6 +263,7 @@ export function formatDiscoverySummary(report: DiscoveryReport): string {
     '',
     ...report.file.boards.map((b) => `  ${b.name.padEnd(34)} ${b.ats.padEnd(16)} ${b.board.padEnd(24)} ${b.indiaJobs} India of ${b.totalJobs}`),
   ];
+  if (report.blocked.length) lines.push('', `Skipped (robots.txt disallows the API): ${report.blocked.join(', ')}.`);
   if (report.errors.length) lines.push('', 'Could not check (kept from the last run if found before):', ...report.errors.map((e) => `  ${e}`));
   return lines.join('\n') + '\n';
 }

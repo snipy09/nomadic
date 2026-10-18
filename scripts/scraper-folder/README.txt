@@ -35,10 +35,10 @@ SOURCES
   Jobs        Internshala (45 listing pages x 5), Unstop jobs + internships, company careers sites (Google,
               Microsoft, Amazon, NVIDIA, Walmart, Oracle, JPMorgan, ... via their own APIs), Greenhouse / Lever /
               Ashby boards (built-in plus every board "Find company boards" finds), Remotive, Jobicy, Arbeitnow,
-              RSS, and Adzuna India when its key is in .env. Up to 1,000 new jobs per run. A job is shown for at
+              RSS, and Adzuna India when its key is in .env. Up to 5,000 new jobs per run. A job is shown for at
               most 30 days after it was posted; closed and dead listings are removed.
-  News        Economic Times, ET Tech, Inc42, YourStory, Entrackr, Mint, Moneycontrol, BusinessLine, Business
-              Standard, Financial Express, Indian Express, Times of India, Hindustan Times (RSS). Kept: hiring
+  News        Economic Times, ET Tech, Inc42, YourStory, Entrackr, Mint, BusinessLine, Times of India,
+              Hindustan Times (RSS). Kept: hiring
               plans, campus drives, layoffs, and funding/expansion of known companies. Company, roles, headcount,
               period (e.g. "September to December", "FY27") and cities are read from the headline and summary only.
   Hackathons  Devfolio, Unstop, Devpost, HackerEarth, Hack2skill, MLH, plus Codeforces contests (official API).

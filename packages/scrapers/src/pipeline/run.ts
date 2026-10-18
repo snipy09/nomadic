@@ -175,6 +175,8 @@ export async function runPipeline(options: PipelineOptions = {}): Promise<Pipeli
   const officialSources = new Set(sources.filter((s) => s.officialApi).map((s) => s.id));
   const oldest = options.maxAgeDays ? new Date(now().getTime() - options.maxAgeDays * 86_400_000).toISOString() : null;
   const truncated = new Set<string>();
+  /** Per source: id prefixes (one company each) read in full, for expiry when the source as a whole had warnings. */
+  const completeScopes = new Map<string, string[]>();
 
   // ── 1. Fetch + normalize (all sources in parallel) ─────────────────────────
   const fetched = await Promise.all(
@@ -185,7 +187,12 @@ export async function runPipeline(options: PipelineOptions = {}): Promise<Pipeli
       const valid: PipelineJob[] = [];
       try {
         const candidates = await withTimeout(
-          source.fetchCandidates({ fetch: fetchImpl, now: now(), warn: (msg) => stats.warnings.push(msg) }),
+          source.fetchCandidates({
+            fetch: fetchImpl,
+            now: now(),
+            warn: (msg) => stats.warnings.push(msg),
+            complete: (prefix) => completeScopes.set(source.id, [...(completeScopes.get(source.id) ?? []), prefix]),
+          }),
           source.timeoutMs ?? options.sourceTimeoutMs ?? 90_000,
           source.id
         );
@@ -335,7 +342,12 @@ export async function runPipeline(options: PipelineOptions = {}): Promise<Pipeli
         // healthy fetch: an outage, a >50% drop, one failed board, or a
         // --limit-per-source cut would otherwise expire jobs that are still open.
         const skipReason = expirySkipReason(stats, truncated.has(source.id));
-        if (skipReason) {
+        const scopes = completeScopes.get(source.id) ?? [];
+        if (skipReason && scopes.length && stats.status === 'ok' && !stats.alert && !truncated.has(source.id)) {
+          // Some companies were cut short or failed; the ones read in full still close their vanished jobs.
+          for (const prefix of scopes) stats.expired += await store.expireUnseen(source.id, seenAt, 'not_seen_in_source', prefix);
+          stats.warnings.push(`expired unseen jobs only for the ${scopes.length} companies read in full: ${skipReason}`);
+        } else if (skipReason) {
           stats.warnings.push(`skipped expiry of unseen jobs: ${skipReason}`);
         } else {
           stats.expired += await store.expireUnseen(source.id, seenAt, 'not_seen_in_source');

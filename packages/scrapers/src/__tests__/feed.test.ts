@@ -10,7 +10,7 @@ import {
   parseWorkdayPostedOn,
 } from '../feed/careers.js';
 import { COMPANIES } from '../feed/companies.js';
-import { normalizeDevfolio, normalizeDevpost, normalizeHack2skill, normalizeHackerEarth, normalizeUnstop, parseDevpostDates } from '../feed/hackathons.js';
+import { HACKATHON_FETCHERS, normalizeDevfolio, normalizeDevpost, normalizeHack2skill, normalizeHackerEarth, normalizeUnstop, parseDevpostDates } from '../feed/hackathons.js';
 import { BlockedByRobotsError, PoliteFetcher } from '../feed/http.js';
 import { buildSnapshot, formatFeedSummary, istDate, mergeHackathons, runFeedScrape } from '../feed/run.js';
 import { classifyKind, classifyLevel, classifyRoleFamily, parseHackathon, parseOpening, type Opening } from '../feed/schema.js';
@@ -70,6 +70,10 @@ describe('classification', () => {
     expect(classifyLevel('SDE-1, Payments')).toBe('entry');
     expect(classifyLevel('Graduate Engineer Trainee')).toBe('entry');
     expect(classifyLevel('Software Engineering Intern')).toBe('entry');
+    expect(classifyLevel('Member of Technical Staff, Photoshop')).toBe('unknown');
+    expect(classifyLevel('Associate Member of Technical Staff')).toBe('entry');
+    expect(classifyLevel('Senior Member of Technical Staff')).toBe('experienced');
+    expect(classifyLevel('SMTS - Backend')).toBe('experienced');
     expect(classifyLevel('Senior Software Engineer')).toBe('experienced');
     expect(classifyLevel('Software Engineer II')).toBe('experienced');
     expect(classifyLevel('Senior Associate, Data')).toBe('experienced');
@@ -156,7 +160,10 @@ describe('careers adapters', () => {
     expect(orc.url).toBe('https://eeho.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_45001/job/300123');
 
     const amz = normalizeAmazonJob({ id_icims: '2790123', title: 'SDE I', job_path: '/en/jobs/2790123/sde-i', normalized_location: 'Bengaluru, KA, IND', posted_date: 'October 4, 2026', job_schedule_type: 'full-time' }, NOW)!;
-    expect(amz).toMatchObject({ sourceJobId: '2790123', url: 'https://www.amazon.jobs/en/jobs/2790123/sde-i', typeHint: 'full-time' });
+    expect(amz).toMatchObject({ sourceJobId: '2790123', url: 'https://www.amazon.jobs/en/jobs/2790123/sde-i', typeHint: 'full-time', levelHint: null });
+    const campus = normalizeAmazonJob({ id_icims: '1', title: 'Software Dev Engineer, Amazon.in', job_path: '/en/jobs/1/x', university_job: true }, NOW)!;
+    expect(campus.levelHint).toBe('graduate');
+    expect(classifyLevel(campus.title, campus.levelHint)).toBe('entry');
   });
 
   it('maps an Eightfold pcsx position with a relative link and postedTs', () => {
@@ -200,6 +207,14 @@ describe('hackathon adapters', () => {
     expect(normalizeHackerEarth({ title: 'Hiring challenge', url: 'https://x', challenge_type: 'hiring' })).toBeNull();
 
     for (const h of [df, un, dp, he]) expect(parseHackathon(h).ok).toBe(true);
+  });
+
+  it('reports a HackerEarth answer without its event list as a failure, not 0 events', async () => {
+    const answer = (body: unknown) => async (url: string) =>
+      url.endsWith('/robots.txt') ? new Response('', { status: 404 }) : new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    const ctx = (body: unknown) => ({ http: new PoliteFetcher({ fetchImpl: answer(body), sleep: async () => undefined, minDelayMs: 0 }), maxPages: 1, now: NOW });
+    await expect(HACKATHON_FETCHERS.hackerearth(ctx({ events: [] }))).rejects.toThrow(/no "response" list/);
+    await expect(HACKATHON_FETCHERS.hackerearth(ctx({ response: [] }))).resolves.toEqual({ hackathons: [], truncated: false });
   });
 
   it('maps Hack2skill events and leaves what it does not state unknown', () => {

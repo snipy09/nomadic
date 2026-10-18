@@ -50,6 +50,19 @@ describe('reading facts', () => {
     expect(classifyArticle('Sensex ends higher on IT gains', 'Markets rallied.')).toBeNull();
   });
 
+  it('drops public-sector recruitment, executive moves and deals that only mention staff', () => {
+    expect(classifyArticle('Punjab, Haryana police recruitment 2026: 1,700 constable posts', '')).toBeNull();
+    expect(classifyArticle('FSSAI recruitment 2026: apply for 200 posts', '')).toBeNull();
+    expect(classifyArticle('OpenAI poaches SpaceX sales lead to run enterprise push', 'OpenAI hires a senior executive.')).toBeNull();
+    expect(classifyArticle('OpenAI hires former SpaceX executive as sales chief', '')).toBeNull();
+    expect(
+      classifyArticle('Accenture to sell its China business to local buyer', 'The buyer will hire all 3,000 employees of the unit.')
+    ).toBeNull();
+    expect(classifyArticle('Infosys hires 2,000 engineers for its Pune centre', '')).toBe('hiring');
+    expect(classifyArticle('Acme opens Pune office', 'The company plans to hire 500 engineers there.')).toBe('hiring');
+    expect(classifyArticle('Acme opens Pune office', 'Its staff were hiring cabs all week.')).toBeNull();
+  });
+
   it('finds the company, preferring the longest known name and skipping look-alikes', () => {
     expect(matchCompany('Google to hire 1,200 freshers', '')).toEqual({ slug: 'google', name: 'Google' });
     expect(matchCompany('Ola Electric lays off 500 staff', '')).toEqual({ slug: 'ola-electric', name: 'Ola Electric' });
@@ -60,6 +73,11 @@ describe('reading facts', () => {
     // Not in the directory: the headline's subject, with no slug.
     expect(matchCompany('Acme Robotics to hire 300 engineers', '')).toEqual({ slug: null, name: 'Acme Robotics' });
     expect(matchCompany('IT firms to hire 2 lakh freshers', '')).toBeNull();
+    expect(matchCompany('Festive hiring to rise 20% this year', '')).toBeNull();
+    expect(matchCompany('Gig hiring jumps in metros', '')).toBeNull();
+    expect(matchCompany('IIT bars firm from campus placements for revoking offers', 'Oracle and others recruited there.')).toBeNull();
+    expect(matchCompany('Placement season opens', 'Google, Microsoft and Oracle are among recruiters.')).toBeNull();
+    expect(matchCompany('Tech giant to hire 500 in Hyderabad', 'Oracle will add the roles at its campus.')?.slug).toBe('oracle');
   });
 
   it('reads headcount as written and skips batch years and money', () => {
@@ -129,6 +147,20 @@ describe('news run', () => {
     expect(report.feeds.find((f) => f.id === 'et-jobs')).toMatchObject({ tooOld: 1, kept: 2 });
     expect(store.rows.size).toBe(2);
     expect(formatNewsSummary(report)).toContain('Google to hire 1,200 freshers');
+  });
+
+  it('flags a feed whose items are all older than the window as stale', async () => {
+    const old = `<rss><channel><item><title>Infosys hires 500</title><link>https://old.example/1</link><pubDate>Mon, 01 Jun 2026 10:00:00 +0530</pubDate></item>
+<item><title>TCS hires 900</title><link>https://old.example/2</link><pubDate>Tue, 02 Jun 2026 10:00:00 +0530</pubDate></item></channel></rss>`;
+    const report = await runNewsScrape({
+      publish: false,
+      feeds: [{ id: 'old', name: 'Old', url: 'https://old.example/rss' }],
+      fetchImpl: async (url: string) => (url.endsWith('/robots.txt') ? new Response('', { status: 404 }) : new Response(old, { status: 200 })),
+      sleep: async () => undefined,
+      clock: () => NOW,
+    });
+    expect(report.feeds[0]).toMatchObject({ ok: true, kept: 0, tooOld: 2, staleSince: '2026-06-02' });
+    expect(formatNewsSummary(report)).toContain('STALE (newest 2026-06-02)');
   });
 
   it('has unique feed ids', () => {

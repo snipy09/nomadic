@@ -68,7 +68,7 @@ export interface JobStore {
   /** Insert or update by (source_key, source_id). Never touches first_seen on update. */
   upsertJobs(rows: JobRow[]): Promise<number>;
   /** Expire active jobs of a source that were not seen since `seenSince`. */
-  expireUnseen(sourceKey: string, seenSince: string, reason: string): Promise<number>;
+  expireUnseen(sourceKey: string, seenSince: string, reason: string, idPrefix?: string): Promise<number>;
   /** Expire specific jobs (e.g. failed link check). */
   expireByIds(sourceKey: string, sourceIds: string[], reason: string): Promise<number>;
   /** Expire active rows written by the old publishers (no source_id). */
@@ -191,10 +191,10 @@ export class MemoryJobStore implements JobStore {
     job.expire_reason = reason;
   }
 
-  async expireUnseen(sourceKey: string, seenSince: string, reason: string): Promise<number> {
+  async expireUnseen(sourceKey: string, seenSince: string, reason: string, idPrefix?: string): Promise<number> {
     let n = 0;
     for (const job of this.jobs.values()) {
-      if (job.source_key === sourceKey && job.status === 'active' && job.last_seen < seenSince) {
+      if (job.source_key === sourceKey && job.status === 'active' && job.last_seen < seenSince && (!idPrefix || job.source_id.startsWith(idPrefix))) {
         this.expire(job, reason);
         n++;
       }
@@ -281,14 +281,15 @@ export class SupabaseJobStore implements JobStore {
     return { status: 'expired', is_active: false, expired_at: this.clock().toISOString(), expire_reason: reason };
   }
 
-  async expireUnseen(sourceKey: string, seenSince: string, reason: string): Promise<number> {
-    const { data, error } = await this.client
+  async expireUnseen(sourceKey: string, seenSince: string, reason: string, idPrefix?: string): Promise<number> {
+    let query = this.client
       .from('jobs')
       .update(this.expiredPatch(reason))
       .eq('source_key', sourceKey)
       .eq('status', 'active')
-      .lt('last_seen', seenSince)
-      .select('id');
+      .lt('last_seen', seenSince);
+    if (idPrefix) query = query.like('source_id', `${idPrefix.replace(/[\\%_]/g, '\\$&')}%`);
+    const { data, error } = await query.select('id');
     if (error) throw new Error(`expire unseen failed: ${error.message}`);
     return data?.length ?? 0;
   }

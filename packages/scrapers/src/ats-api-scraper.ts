@@ -46,7 +46,7 @@ export const DEFAULT_TOP_TECH_BOARDS: AtsBoardConfig[] = [
   { name: 'Pinecone', type: 'ashby', boardId: 'pinecone' },
 
   // ── 2. Verified Live Tech Leaders (Lever - 100% Direct /apply Form Endpoints)
-  { name: 'Palantir', type: 'lever', boardId: 'palantir' },
+  // Palantir was removed 18 Oct 2026: 0 India-open jobs of ~310 on every run, and its board is one ~6 MB response.
   { name: 'Spotify', type: 'lever', boardId: 'spotify' },
   { name: 'Meesho', type: 'lever', boardId: 'meesho' },
 ];

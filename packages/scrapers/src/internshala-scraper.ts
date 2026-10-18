@@ -430,9 +430,12 @@ export interface InternshalaListingOptions {
   sleep?: (ms: number) => Promise<void>;
 }
 
+/** A listing stops paging at a page where fewer than this share of its postings are new. */
+const MIN_NEW_SHARE = 0.25;
+
 /**
  * Internshala only: crawls public listing pages one at a time and returns one posting per detail URL.
- * A listing stops paging at the first page that adds nothing new. Never returns category index URLs.
+ * A listing stops paging at the first page that adds little new (under a quarter of its postings). Never returns category index URLs.
  * Postings without a company in the slug are dropped (no placeholder names).
  */
 export async function scrapeInternshalaListings(
@@ -440,7 +443,8 @@ export async function scrapeInternshalaListings(
   options: InternshalaListingOptions = {}
 ): Promise<InternshalaJob[]> {
   const maxPages = Math.max(1, options.maxPages ?? 1);
-  const delayMs = options.delayMs ?? 1500;
+  // One request a second: the repo-wide politeness floor for one site.
+  const delayMs = options.delayMs ?? 1000;
   const extract = options.extract ?? extractDetailUrlsFromListing;
   const sleep = options.sleep ?? ((ms: number) => new Promise((r) => setTimeout(r, ms)));
   const detailUrls = new Set<string>();
@@ -451,7 +455,10 @@ export async function scrapeInternshalaListings(
       const found = await extract(listingPageUrl(listing, page)).catch(() => [] as string[]);
       const before = detailUrls.size;
       found.forEach((u) => detailUrls.add(u));
-      if (detailUrls.size === before) break;
+      // Categories overlap (computer-science, software-development, engineering): a page that is mostly postings
+      // already read from another listing means the rest of this listing is too.
+      const added = detailUrls.size - before;
+      if (added === 0 || added < found.length * MIN_NEW_SHARE) break;
     }
   }
   const createdAt = new Date().toISOString();

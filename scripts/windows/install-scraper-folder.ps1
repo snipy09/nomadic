@@ -30,7 +30,17 @@ cmd /c 'schtasks /Delete /TN "Nomadic scraper" /F >nul 2>nul'
 # Copy everything except the files that belong to this computer.
 & robocopy $source $target /E /NFL /NDL /NJH /NJS /NP /XF settings.ini .env node-path.txt /XD state reports logs | Out-Null
 if ($LASTEXITCODE -ge 8) { Write-Host "Copying to $target failed (robocopy $LASTEXITCODE)." -ForegroundColor Red; exit 1 }
-if (-not (Test-Path (Join-Path $target 'settings.ini'))) { Copy-Item (Join-Path $source 'settings.ini') $target }
+$ini = Join-Path $target 'settings.ini'
+if (-not (Test-Path $ini)) { Copy-Item (Join-Path $source 'settings.ini') $target }
+else {
+  # Old shipped defaults that were too low (a 2,800-job backlog; big careers sites cut off): raise them unless edited.
+  $text = [IO.File]::ReadAllText($ini)
+  $new = $text -replace '(?m)^(\s*max_new_per_run\s*=\s*)1000(\s*)$', '${1}5000$2' -replace '(?m)^(\s*careers_pages\s*=\s*)10(\s*)$', '${1}25$2'
+  if ($new -ne $text) {
+    [IO.File]::WriteAllText($ini, $new)
+    Write-Host 'settings.ini: max_new_per_run 1000 -> 5000 and careers_pages 10 -> 25 (the old defaults).'
+  }
+}
 
 Write-Host ''
 Write-Host "Scraper folder ready: $target" -ForegroundColor Green

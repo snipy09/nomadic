@@ -45,10 +45,10 @@ the Desktop folder, keeps `.env`, `settings.ini`, `reports`, `logs`, `state`, re
 
 - **jobs** (`run`): Greenhouse, Lever and Ashby boards (built-in lists + the 66 feed companies on those ATSs + every
   board in `state\boards.json`), company careers sites (`careers`: Workday, SmartRecruiters, Eightfold, Oracle,
-  amazon.jobs, Google), Internshala (45 listing pages × `internshala_pages`, 1.5 s apart, city from the slug), Unstop
+  amazon.jobs, Google), Internshala (45 listing pages × `internshala_pages`, 1 s apart, a listing stops at a page that is mostly postings already read, city from the slug), Unstop
   jobs and internships (`unstop_pages`, closed ones skipped, no salary), Remotive, Jobicy, Arbeitnow, RSS, and Adzuna
   India when `ADZUNA_APP_ID`/`ADZUNA_APP_KEY` are in `.env` (2.6 s apart, `max_calls_per_run`, estimated salaries
-  dropped; terms: "Jobs by Adzuna" credit, licence for ongoing commercial use). `max_new_per_run` (1000) new jobs per
+  dropped; terms: "Jobs by Adzuna" credit, licence for ongoing commercial use). `max_new_per_run` (5000) new jobs per
   run; jobs the source dates more than `max_age_days` (30) ago are skipped, and migration 033 expires stored ones 30
   days after posting (or first seen).
 - **discover**: probes ~370 India-hiring companies (`packages/scrapers/src/sources/india-companies.ts`, plus famous
@@ -58,8 +58,9 @@ the Desktop folder, keeps `.env`, `settings.ini`, `reports`, `logs`, `state`, re
 - **hackathons** (`feed --sources hackathons`): Devfolio, Unstop, Devpost, HackerEarth, Hack2skill and MLH (schema.org
   Event markup on their listing pages), Codeforces contests (official API, next 30 days, `kind = 'contest'`).
 - **news**: Indian publishers' RSS (`packages/scrapers/src/news/feeds.ts`: ET, ET Tech, Inc42, YourStory, Entrackr,
-  Mint, Moneycontrol, BusinessLine, Business Standard, Financial Express, Indian Express, TOI, HT). Kept: hiring plans,
-  campus drives, layoffs, and funding/expansion of known companies; company, roles, headcount, period ("September to
+  Mint, BusinessLine, TOI, HT). Kept: hiring plans, campus drives, layoffs, and funding/expansion of known companies
+  (government, police and exam recruitment, single executive hires and deal stories are dropped); a feed whose items
+  are all older than the window is reported as STALE; company, roles, headcount, period ("September to
   December" → dates; "FY27" → Apr 2026–Mar 2027) and cities are read from the headline and feed summary only.
   `feeds_off` in settings.ini skips feeds. Google News RSS is not used (its terms allow personal, non-commercial use only).
 - **contacts**: as below.

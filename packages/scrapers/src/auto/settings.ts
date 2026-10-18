@@ -35,7 +35,7 @@ export interface AutoSettings {
 export const DEFAULT_SETTINGS: AutoSettings = {
   every: { discover: 168, jobs: 6, companies: 12, hackathons: 12, news: 3, contacts: 24 },
   region: 'india',
-  jobs: { maxNewPerRun: 1000, maxAgeDays: 30, includeTier3: false, internshalaPages: 5, unstopPages: 34, careersPages: 10 },
+  jobs: { maxNewPerRun: 5000, maxAgeDays: 30, includeTier3: false, internshalaPages: 5, unstopPages: 34, careersPages: 25 },
   news: { maxAgeDays: 30, feedsOff: [] },
   adzuna: { maxCallsPerRun: 40 },
 };

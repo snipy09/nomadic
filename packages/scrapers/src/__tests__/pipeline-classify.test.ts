@@ -43,6 +43,12 @@ describe('classifySeniority', () => {
     ['Junior Developer', 'full_time', 'entry'],
     ['Software Engineer I', 'full_time', 'entry'],
     ['SDE-2', 'full_time', 'mid'],
+    ['Member of Technical Staff', 'full_time', 'unknown'],
+    ['Associate Member of Technical Staff', 'full_time', 'entry'],
+    ['AMTS - Java', 'full_time', 'entry'],
+    ['Senior Member of Technical Staff', 'full_time', 'senior'],
+    ['SMTS, Platform', 'full_time', 'senior'],
+    ['LMTS', 'full_time', 'lead'],
     ['Product Manager', 'full_time', 'unknown'],
   ] as const)('%s (%s) -> %s', (title, type, expected) => {
     expect(classifySeniority(title, type)).toBe(expected);

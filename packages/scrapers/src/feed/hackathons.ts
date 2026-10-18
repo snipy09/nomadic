@@ -253,7 +253,9 @@ export function normalizeHackerEarth(item: any): HackathonCandidate | null {
 
 async function hackerEarth(ctx: HackathonContext): Promise<HackathonResult> {
   const data = await ctx.http.json('https://www.hackerearth.com/chrome-extension/events/');
-  const items: any[] = Array.isArray(data?.response) ? data.response : [];
+  // An answer without the list means the endpoint changed: report it as FAILED instead of a silent 0 of 0.
+  if (!Array.isArray(data?.response)) throw new Error('HackerEarth events: no "response" list in the answer (endpoint changed?)');
+  const items: any[] = data.response;
   const out: HackathonCandidate[] = [];
   for (const item of items) {
     if (!/upcoming|ongoing/i.test(String(item?.status ?? ''))) continue;

@@ -18,16 +18,34 @@ const FUNDING = /\b(raises?|raised|bags|secures?|funding|series [a-f]\b|seed rou
 const EXPANSION =
   /\b(global capability cent(re|er)s?|gccs?|r&d cent(re|er)|innovation cent(re|er)|tech(nology)? cent(re|er)|development cent(re|er)|new (office|campus|cent(re|er)|hub|facility)|opens? (its |a |new )?(office|campus|cent(re|er)|hub|facility)|expands? (its )?(presence|operations|team|footprint))\b/i;
 
+/** Government, police, defence and exam-board recruitment: not jobs our students apply to through companies. */
+const PUBLIC_SECTOR =
+  /\b(police|constables?|home guards?|army|agniveers?|navy|air force|indian railways?|rrb|ssc|upsc|[a-z]*psc|ibps|fssai|sarkari|govt\.? jobs?|government jobs?|teachers? recruitment|anganwadi|high court|supreme court|panchayat|patwari|forest guards?|staff selection|public service commission|recruitment (exam|board)|admit card|answer key|notification out|apply online at)\b/i;
+/** One executive moving ("OpenAI poaches SpaceX's sales chief") is people news, not hiring. */
+const EXECUTIVE =
+  /\b(ceo|cto|cfo|coo|cmo|chro|chief|president|vice[\s-]?president|vp|svp|evp|md|managing director|chairman|chairperson|board|director|head of|executive|exec|top boss|leader|lead|poach(es|ed|ing)?|appoints?|appointed|names|elevates?|steps down|resigns?|quits)\b/i;
+/** Deals and markets: a hiring word in their text is incidental ("the buyer will retain all employees"). */
+const DEAL = /\b(sells?|sale of|selling|divest\w*|acquires?|acquisition|merger|stake|shares?|stock|sensex|nifty|q[1-4] results?|profit|revenue|earnings)\b/i;
+/** A summary only makes a plain headline count when it states a hiring plan, not a passing mention. */
+const SUMMARY_HIRING =
+  /\b((plans?|set|looks?|aims?|expects?|intends?|will|to) (to )?(hire|recruit|onboard|add)\b|hiring (of|for|plans?|drive)|(hire|recruit|onboard)s? (over |more than |nearly |about |around |up to )?[\d,]+)/i;
+
 /** The article's topic, or null when it is not about hiring, campus drives, layoffs, funding or expansion. */
 export function classifyArticle(title: string, summary: string): NewsKind | null {
   const t = `${title} ${summary}`;
+  if (PUBLIC_SECTOR.test(title)) return null;
   if (CAMPUS.test(t)) return 'campus';
   if (LAYOFFS.test(title)) return 'layoffs';
-  if (HIRING.test(title)) return 'hiring';
+  if (HIRING.test(title)) {
+    // An executive hire with no headcount is people news; "hires 500 engineers" still counts.
+    if (EXECUTIVE.test(title) && !headcount(title)) return null;
+    return 'hiring';
+  }
   if (EXPANSION.test(title)) return 'expansion';
   if (FUNDING.test(title)) return 'funding';
-  // A summary that talks about hiring makes a plain headline count ("Acme opens Pune office ... to hire 500").
-  if (HIRING.test(summary) && /\b(hire|hiring|recruit)/i.test(summary)) return 'hiring';
+  if (DEAL.test(title) || PUBLIC_SECTOR.test(summary)) return null;
+  // A summary that states a hiring plan makes a plain headline count ("Acme opens Pune office ... to hire 500").
+  if (SUMMARY_HIRING.test(summary)) return 'hiring';
   if (LAYOFFS.test(summary)) return 'layoffs';
   return null;
 }
@@ -100,14 +118,20 @@ function matchers(): Matcher[] {
 }
 
 const NOT_A_COMPANY = new Set(
-  'india indian indians it govt government centre center centre’s startups startup companies firms tech techies banks gccs gcc top big the this why how what here report survey study experts analysts jobs hiring freshers employees staff workers students engineers graduates mncs firms’ sector industry over nearly about around more fewer several many new us uk global major leading budget union state states ministry labour iit iits nasscom naukri’s'
+  ('india indian indians it govt government centre center centre’s startups startup companies firms tech techies banks gccs gcc top big the this why how what here report survey study experts analysts jobs hiring freshers employees staff workers students engineers graduates mncs firms’ sector industry over nearly about around more fewer several many new us uk global major leading budget union state states ministry labour iit iits nasscom naukri’s ' +
+    // Kinds of hiring and sectors: "Festive hiring to rise 20%", "Gig hiring", "AI hiring", "Fintech hiring".
+    'festive seasonal gig contract contractual temporary temp white-collar blue-collar fresher campus women diversity ai genai gen ' +
+    'retail fintech edtech healthtech healthcare pharma bfsi banking manufacturing e-commerce ecommerce quick-commerce q-commerce logistics ' +
+    'telecom auto automobile ev semiconductor semiconductors chip it/ites ites bpo services saas deeptech hr recruitment placement placements ' +
+    'police army railway railways defence public private overall annual monthly weekly diwali holiday summer winter march april may june ' +
+    'july august september october november december january february')
     .split(' ')
 );
 
 /** Company named at the start of a hiring headline ("Acme Labs to hire 500 ..."), when no known company matched. */
 function headlineSubject(title: string): string | null {
   const m = title.match(
-    /^([A-Z][\w&.'’-]*(?:\s+(?:[A-Z][\w&.'’-]*|&|of)){0,3})\s+(?:to hire|plans to hire|will hire|set to hire|looks to hire|eyes|hires|is hiring|hiring|onboards|to onboard|lays off|to lay off|cuts|raises|bags|secures|opens|to open|launches|announces|expands)\b/
+    /^([A-Z][\w&.'’-]*(?:\s+(?:[A-Z][\w&.'’-]*|&|of)){0,3})\s+(?:to hire|plans to hire|will hire|set to hire|looks to hire|eyes|hires|is hiring|onboards|to onboard|lays off|to lay off|cuts|raises|bags|secures|opens|to open|launches|announces|expands)\b/
   );
   if (!m) return null;
   const name = m[1].trim();
@@ -121,21 +145,38 @@ export interface CompanyMatch {
   name: string;
 }
 
-/** The company the article is about: the earliest known company in the headline, else in the summary. */
-export function matchCompany(title: string, summary: string): CompanyMatch | null {
-  for (const text of [title, summary]) {
-    let best: { m: Matcher; at: number } | null = null;
-    for (const m of matchers()) {
-      const hit = text.match(m.re);
-      if (!hit || hit.index === undefined) continue;
-      if (m.unless && m.unless.test(`${title} ${summary}`)) continue;
-      const at = hit.index + hit[1].length;
-      if (!best || at < best.at) best = { m, at };
-    }
-    if (best) return { slug: best.m.slug, name: best.m.name };
+const INSTITUTION = /\b(IITs?|NITs?|IIMs?|IIITs?|BITS|AIIMS|colleges?|universit(y|ies)|institutes?|campus(es)?|placement cells?)\b/i;
+
+/** Known companies named in the text, earliest first, one entry per company. */
+function companiesIn(text: string, both: string): Matcher[] {
+  const hits: { m: Matcher; at: number }[] = [];
+  for (const m of matchers()) {
+    const hit = text.match(m.re);
+    if (!hit || hit.index === undefined) continue;
+    if (m.unless && m.unless.test(both)) continue;
+    hits.push({ m, at: hit.index + hit[1].length });
   }
+  hits.sort((a, b) => a.at - b.at);
+  const seen = new Set<string>();
+  return hits.filter((h) => !seen.has(h.m.slug) && seen.add(h.m.slug)).map((h) => h.m);
+}
+
+/**
+ * The company the article is about: the earliest known company in the headline; else a company named at the start
+ * of the headline; else the one known company in the summary. A summary naming several companies (a placement
+ * story listing recruiters), or one under a headline about a college, says nothing about which company the article
+ * is about, so it gives no company.
+ */
+export function matchCompany(title: string, summary: string): CompanyMatch | null {
+  const both = `${title} ${summary}`;
+  const inTitle = companiesIn(title, both);
+  if (inTitle.length) return { slug: inTitle[0].slug, name: inTitle[0].name };
   const subject = headlineSubject(title);
-  return subject ? { slug: null, name: subject } : null;
+  if (subject) return { slug: null, name: subject };
+  // A headline about a college ("IIT bars firms from placements") is not about a company its summary mentions.
+  if (INSTITUTION.test(title)) return null;
+  const inSummary = companiesIn(summary, both);
+  return inSummary.length === 1 ? { slug: inSummary[0].slug, name: inSummary[0].name } : null;
 }
 
 // ── Facts ────────────────────────────────────────────────────────────────────

@@ -29,6 +29,11 @@ export interface SourceContext {
   now: Date;
   /** Non-fatal problems (one board down, etc.). Fatal ones should throw. */
   warn: (message: string) => void;
+  /**
+   * Says that every job whose source id starts with this prefix was read (one company's whole listing). When a
+   * warning stops expiry for the whole source, unseen jobs under these prefixes are still expired.
+   */
+  complete?: (idPrefix: string) => void;
 }
 
 export interface SourceDefinition {
@@ -154,7 +159,7 @@ export const SOURCES: SourceDefinition[] = [
     officialApi: true,
     timeoutMs: 20 * 60_000,
     fetchCandidates: (ctx) =>
-      fetchCareersJobs(ctx.fetch, { companies: feedCompanies(), maxPages: envInt('SCRAPER_MAX_PAGES', 10), now: ctx.now, warn: ctx.warn }),
+      fetchCareersJobs(ctx.fetch, { companies: feedCompanies(), maxPages: envInt('SCRAPER_MAX_PAGES', 25), now: ctx.now, warn: ctx.warn, complete: ctx.complete }),
   },
   {
     id: 'unstop',

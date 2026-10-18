@@ -59,8 +59,12 @@ export function classifyRoleFamily(title: string, description = ''): RoleFamily 
 }
 
 export function classifySeniority(title: string, employmentType: EmploymentType): Seniority {
-  const t = title.toLowerCase();
+  // "Member of Technical Staff" is a title (Adobe, Salesforce, Oracle): AMTS is entry, SMTS/LMTS/PMTS senior.
+  const t = title.toLowerCase().replace(/\b(member of (the )?technical staff|mts)\b/g, ' mts ');
   if (employmentType === 'internship' || /\b(intern|internship|trainee|apprentice)\b/.test(t)) return 'intern';
+  if (/\b(associate mts|amts)\b/.test(t)) return 'entry';
+  if (/\b(lmts|pmts|cmts)\b/.test(t)) return 'lead';
+  if (/\bsmts\b/.test(t)) return 'senior';
   // "Manager" alone is a role (Product Manager), not a seniority signal.
   if (/\b(principal|staff|lead|head of|director|vp|vice president|architect)\b/.test(t)) return 'lead';
   if (/\b(senior|sr\.?|iii|level 3|l5|sde[\s-]?3)\b/.test(t)) return 'senior';

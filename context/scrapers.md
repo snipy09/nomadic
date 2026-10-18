@@ -9,11 +9,11 @@ apps only read what they publish. robots.txt is obeyed; requests to one site are
 
 | Scraper | Writes | Sources |
 |---|---|---|
-| jobs (`run`) | `jobs` | Internshala (45 listing pages × 5), Unstop jobs + internships, company careers sites (Workday, SmartRecruiters, Eightfold v2/pcsx, Oracle, amazon.jobs), Greenhouse/Lever/Ashby boards (built-in + feed companies + discovered), Remotive, Jobicy, Arbeitnow, RSS, Adzuna India (needs a key). Naukri/Indeed opt-in. ≤ 1,000 new jobs per run; jobs older than 30 days are skipped and expire (migration 033). |
-| discover | `state/boards.json` | ~370 India-hiring companies (`sources/india-companies.ts`) probed on the Greenhouse, Lever, Ashby and SmartRecruiters APIs; boards with ≥ 1 India-open job are kept and feed jobs + companies. |
+| jobs (`run`) | `jobs` | Internshala (45 listing pages × 5, 1 s apart, stops paging at a mostly-seen page), Unstop jobs + internships, company careers sites (Workday, SmartRecruiters, Eightfold v2/pcsx, Oracle, amazon.jobs), Greenhouse/Lever/Ashby boards (built-in + feed companies + discovered), Remotive, Jobicy, Arbeitnow, RSS, Adzuna India (needs a key). Naukri/Indeed opt-in. ≤ 5,000 new jobs per run (was 1,000: a 2,800-job backlog); careers sites read up to 25 pages per company, and a company read in full expires its vanished jobs even when another company was cut off; jobs older than 30 days are skipped and expire (migration 033). |
+| discover | `state/boards.json` | ~370 India-hiring companies (`sources/india-companies.ts`) probed on the Greenhouse, Lever, Ashby and SmartRecruiters APIs (a platform whose robots.txt disallows the API, SmartRecruiters today, is asked once per run and skipped); boards with ≥ 1 India-open job are kept and feed jobs + companies. |
 | companies (`feed --sources companies`) | `companies`, `company_openings`, `company_hiring_snapshots` | 66 famous companies (`feed/companies.ts`) + discovered boards; one snapshot per company per IST day. |
 | hackathons (`feed --sources hackathons`) | `hackathons` | Devfolio, Unstop, Devpost, HackerEarth, Hack2skill, MLH (schema.org markup), Codeforces contests (official API). |
-| news | `news_items` | Indian publishers' RSS (`news/feeds.ts`): hiring plans, campus drives, layoffs, funding/expansion of known companies; company, roles, headcount, period and cities read from the headline + summary only. Google News RSS is not used (non-commercial terms). |
+| news | `news_items` | Indian publishers' RSS (`news/feeds.ts`): hiring plans, campus drives, layoffs, funding/expansion of known companies; company, roles, headcount, period and cities read from the headline + summary only. Government/police/exam recruitment, single executive hires and deal stories are dropped; a company is tagged from the headline, or from the summary only when it names exactly one company (never under a college headline). A feed whose items are all past the window shows as STALE. Google News RSS is not used (non-commercial terms). |
 | contacts | `outreach_contacts` | HN "Who is hiring", public job pages, company team/contact pages; no LinkedIn scraping, no guessed emails, MX-checked. |
 
 ## The Desktop scraper folder
@@ -49,5 +49,18 @@ What was changed to get there:
 - Jobspresso: `/jobs/feed/` (the old `/feed/` is the empty blog). The link check now ignores closed-job phrases in
   `<script>`/`<style>` (WordPress themes ship "position has been filled" on every page).
 - Lever boards get 60 s (Palantir's board is one ~6 MB response).
+
+Fixes after the 18 Oct 2026 publishing run (scraper report review):
+- News: ie-jobs and moneycontrol removed (every item older than 30 days). yourstory, toi-business and ht-jobs are general
+  business desks: 0 kept in one run is expected; they cost one request each per run.
+- `auto`: a `state\boards.json` newer than the last recorded discovery counts as that discovery (a "Test all sources"
+  dry run probes for real but recorded nothing, so discovery ran again 30 min later); `--force all` ("Run everything",
+  "Test all sources") leaves out a discovery that is not due; "Find company boards now" still runs it.
+- Palantir removed from the built-in Lever boards (0 India jobs of ~310 every run).
+- "Member of Technical Staff" (Adobe, Salesforce, Oracle) no longer counts as staff-level: AMTS entry, MTS unknown,
+  SMTS/LMTS/PMTS senior. amazon.jobs `university_job` marks campus roles entry level.
+- HackerEarth: an answer without its `response` list is FAILED (was a silent 0 of 0); an empty list is still 0.
+- Contacts: names are only kept when they match the address (no guessed names), so team inboxes have none; Dell's 502 and
+  Coinbase's 403 are their servers, not the scraper.
 
 Adzuna's terms want "Jobs by Adzuna" credit and a licence for ongoing commercial use.

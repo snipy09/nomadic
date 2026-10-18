@@ -272,7 +272,8 @@ export function normalizeAmazonJob(item: any, now: Date): RawOpening | null {
     url: `https://www.amazon.jobs${path}`,
     postedAt: parsePostedDate(item?.posted_date, now),
     typeHint: item?.job_schedule_type ? String(item.job_schedule_type) : null,
-    levelHint: null,
+    // amazon.jobs marks campus roles (interns, new grads) with university_job; titles often do not say so.
+    levelHint: item?.university_job === true || item?.university_job === 'true' ? 'graduate' : null,
   };
 }
 

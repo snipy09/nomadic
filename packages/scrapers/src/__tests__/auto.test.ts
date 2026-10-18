@@ -32,7 +32,7 @@ describe('settings.ini', () => {
       region = all
       [jobs]
       include_naukri_and_indeed = yes
-      max_new_per_run = 5000
+      max_new_per_run = 2500
       [news]
       feeds_off = et-it, ht-jobs
       [mystery]
@@ -40,7 +40,7 @@ describe('settings.ini', () => {
     `);
     expect(settings.every).toMatchObject({ jobs: 2, contacts: 0, news: 3 });
     expect(settings.region).toBe('all');
-    expect(settings.jobs).toMatchObject({ includeTier3: true, maxNewPerRun: 5000 });
+    expect(settings.jobs).toMatchObject({ includeTier3: true, maxNewPerRun: 2500 });
     expect(settings.news.feedsOff).toEqual(['et-it', 'ht-jobs']);
     expect(warnings).toEqual(['[schedule] news = soon is not a number from 0 to 744: using 3', 'unknown setting [mystery] x (ignored)']);
     expect(readSettings(null).warnings[0]).toMatch(/not found/);
@@ -72,7 +72,7 @@ describe('schedule', () => {
   it('builds each scraper command from the settings', () => {
     const paths = folderPaths('/S');
     expect(taskArgs('jobs', DEFAULT_SETTINGS, paths, false)).toEqual([
-      'run', '--publish', '--max-new', '1000', '--max-age-days', '30', '--region', 'india', '--summary-dir', join('/S', 'reports', 'jobs'), '--json', join('/S', 'state', 'jobs-report.json'),
+      'run', '--publish', '--max-new', '5000', '--max-age-days', '30', '--region', 'india', '--summary-dir', join('/S', 'reports', 'jobs'), '--json', join('/S', 'state', 'jobs-report.json'),
     ]);
     expect(taskArgs('news', DEFAULT_SETTINGS, paths, true)).toEqual(['news', '--max-age-days', '30', '--summary-dir', join('/S', 'reports', 'news')]);
     expect(taskArgs('discover', DEFAULT_SETTINGS, paths, false)).toEqual(['discover', '--out', join('/S', 'state', 'boards.json'), '--summary-dir', join('/S', 'reports', 'discover')]);
@@ -123,6 +123,32 @@ describe('auto run', () => {
     await runAuto({ home: dir, force: ['jobs'], dryRun: true, now: () => NOW, log: () => undefined, exec: async (a) => (calls.push(a), 0) });
     expect(calls).toEqual([expect.not.arrayContaining(['--publish'])]);
     expect(loadState(join(dir, 'state', 'auto-state.json')).jobs.lastStartedAt).toBeUndefined();
+  });
+
+  it('counts a boards file from a dry run as discovery, so the next check and "run everything" skip it', async () => {
+    const dir = home();
+    const calls: string[][] = [];
+    const exec = async (a: string[]) => {
+      calls.push(a);
+      // discover writes state/boards.json even in a dry run.
+      if (a[0] === 'discover') writeFileSync(join(dir, 'state', 'boards.json'), JSON.stringify({ version: 1, generatedAt: NOW.toISOString(), boards: [] }));
+      return 0;
+    };
+    await runAuto({ home: dir, force: 'all', dryRun: true, now: () => NOW, log: () => undefined, exec });
+    expect(calls.map((a) => a[0])).toContain('discover');
+    calls.length = 0;
+    const later = new Date(NOW.getTime() + 0.5 * H);
+    await runAuto({ home: dir, now: () => later, log: () => undefined, exec });
+    expect(calls.map((a) => a[0])).not.toContain('discover');
+    expect(calls.length).toBeGreaterThan(0);
+    calls.length = 0;
+    const logs: string[] = [];
+    await runAuto({ home: dir, force: 'all', dryRun: true, now: () => later, log: (m) => logs.push(m), exec });
+    expect(calls.map((a) => a[0])).not.toContain('discover');
+    expect(logs.join('\n')).toMatch(/Find company job boards: skipped/);
+    calls.length = 0;
+    await runAuto({ home: dir, force: ['discover'], dryRun: true, now: () => later, log: () => undefined, exec });
+    expect(calls.map((a) => a[0])).toEqual(['discover']);
   });
 
   it('does not start while a live run holds the lock, and takes over a stale one', async () => {

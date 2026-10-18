@@ -116,10 +116,21 @@ const EXPERIENCED =
 const ENTRY =
   /\b(intern|internship|new grad|new graduate|graduate|grad|fresher|freshers|campus|entry[\s-]?level|junior|jr\.?|trainee|apprentice|early career|university|associate software|sde[\s-]?(i|1)|engineer[\s-]?(i|1)|analyst[\s-]?(i|1)|summer analyst|0-[12] years)\b/i;
 
+/**
+ * "Member of Technical Staff" (Adobe, Salesforce, Oracle) is a job title, not a staff-level seniority: AMTS is entry,
+ * a plain MTS is not senior, and SMTS/LMTS/PMTS are.
+ */
+const ASSOCIATE_MTS = /\b(associate member of technical staff|amts)\b/i;
+const SENIOR_MTS = /\b(smts|lmts|pmts|cmts)\b/i;
+const withoutMts = (title: string) => title.replace(/\b(member of (the )?technical staff|mts)\b/gi, ' ');
+
 export function classifyLevel(title: string, levelHint?: string | null): Level {
   const hint = levelHint ?? '';
   if (/entry|intern|graduate|student|associate$/i.test(hint)) return 'entry';
   if (/mid|senior|director|executive|experienced/i.test(hint)) return 'experienced';
+  if (ASSOCIATE_MTS.test(title)) return 'entry';
+  if (SENIOR_MTS.test(title)) return 'experienced';
+  title = withoutMts(title);
   // "Software Engineer I" ends in a lone "I"; "Senior Associate" and "Engineer II" are experienced.
   if (/\b(engineer|developer|analyst|sde)\s+i$/i.test(title.trim())) return 'entry';
   if (EXPERIENCED.test(title)) return INTERN.test(title) ? 'entry' : 'experienced';

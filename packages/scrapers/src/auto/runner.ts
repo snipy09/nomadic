@@ -86,6 +86,26 @@ export function loadState(path: string): AutoState {
   return base;
 }
 
+/**
+ * Board discovery writes no Supabase data, so a dry run of it ("Test all sources") does the same work as a real run
+ * and leaves a fresh state/boards.json. Counting that file as its last run stops the next scheduled check from
+ * probing every board again (it took ~8 minutes and 1,800 requests).
+ */
+export function withBoardsFile(state: AutoState, boardsPath: string): AutoState {
+  if (!existsSync(boardsPath)) return state;
+  try {
+    const at = JSON.parse(readFileSync(boardsPath, 'utf8'))?.generatedAt;
+    const ms = typeof at === 'string' ? Date.parse(at) : NaN;
+    const last = state.discover.lastStartedAt ? Date.parse(state.discover.lastStartedAt) : 0;
+    if (Number.isFinite(ms) && ms > last) {
+      return { ...state, discover: { ...state.discover, lastStartedAt: at, lastFinishedAt: at, lastOk: true, lastError: null, failures: 0 } };
+    }
+  } catch {
+    /* an unreadable boards file only means discovery is due */
+  }
+  return state;
+}
+
 function saveState(path: string, state: AutoState) {
   writeFileSync(`${path}.tmp`, JSON.stringify(state, null, 2));
   renameSync(`${path}.tmp`, path);
@@ -197,13 +217,20 @@ export async function runAuto(options: AutoOptions): Promise<AutoResult> {
   const result: AutoResult = { locked: null, ran: [], warnings };
   try {
     Object.assign(process.env, settingsEnv(settings, paths));
-    const state = loadState(paths.stateFile);
+    const state = withBoardsFile(loadState(paths.stateFile), paths.boards);
+    const due = dueTasks(now(), settings, state);
+    // "Run everything" and "Test all sources" leave out a discovery that is not due: it is weekly and slow, and the
+    // boards it found are still in state/boards.json. "Find company boards now" (force discover) still runs it.
     const tasks =
       options.force === 'all'
-        ? TASK_IDS.filter((id) => settings.every[id] > 0)
+        ? TASK_IDS.filter((id) => settings.every[id] > 0 && (id !== 'discover' || due.includes(id)))
         : options.force?.length
           ? options.force
-          : dueTasks(now(), settings, state);
+          : due;
+    if (options.force === 'all' && settings.every.discover > 0 && !tasks.includes('discover')) {
+      const next = nextDueAt('discover', settings, state);
+      log(`[auto] ${TASK_LABEL.discover}: skipped, last run ${istTime(new Date(state.discover.lastStartedAt!))}${next ? `; next at ${istTime(next)}` : ''}.`);
+    }
     if (!tasks.length) {
       const next = TASK_IDS.map((id) => ({ id, at: nextDueAt(id, settings, state) })).filter((x) => x.at) as { id: TaskId; at: Date }[];
       next.sort((a, b) => a.at.getTime() - b.at.getTime());
@@ -251,7 +278,7 @@ export const istTime = (d: Date) =>
 export function formatStatus(home: string, now: Date): string {
   const paths = folderPaths(home);
   const { settings, warnings } = readSettings(existsSync(paths.settings) ? readFileSync(paths.settings, 'utf8') : null);
-  const state = loadState(paths.stateFile);
+  const state = withBoardsFile(loadState(paths.stateFile), paths.boards);
   const lines = ['NOMADIC SCRAPERS - STATUS', `Folder: ${home}`, `Now:    ${istTime(now)} IST`, ''];
   lines.push(`${'Scraper'.padEnd(26)} ${'Every'.padEnd(8)} ${'Last run (IST)'.padEnd(20)} ${'Result'.padEnd(8)} Next run (IST)`);
   for (const id of TASK_IDS) {

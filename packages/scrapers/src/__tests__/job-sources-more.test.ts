@@ -7,7 +7,7 @@ import { PoliteFetcher } from '../feed/http.js';
 import { parseJob } from '../job-schema.js';
 import { runPipeline } from '../pipeline/run.js';
 import { fetchAdzuna, normalizeAdzunaJob } from '../sources/adzuna.js';
-import { discoverBoards, feedCompanies, loadDiscoveredBoards, mergeBoards, probeBoard, type DiscoveredBoard } from '../sources/boards.js';
+import { discoverBoards, feedCompanies, formatDiscoverySummary, loadDiscoveredBoards, mergeBoards, probeBoard, type DiscoveredBoard } from '../sources/boards.js';
 import { fetchCareersJobs, openingToCandidate } from '../sources/careers-jobs.js';
 import { INDIA_COMPANIES, boardSlugsFor, slugify } from '../sources/india-companies.js';
 import type { SourceDefinition } from '../sources/registry.js';
@@ -149,6 +149,38 @@ describe('discovered boards', () => {
   });
 });
 
+describe('board discovery and robots.txt', () => {
+  it('stops asking a platform whose robots.txt disallows its API, and drops its old boards', async () => {
+    const calls: string[] = [];
+    const fetchImpl = async (url: string) => {
+      calls.push(url);
+      const u = new URL(url);
+      if (u.pathname === '/robots.txt') {
+        return new Response(u.host === 'api.smartrecruiters.com' ? 'User-agent: LinkedInBot\nAllow: /\n\nUser-agent: *\nDisallow: /\n' : '', {
+          status: u.host === 'api.smartrecruiters.com' ? 200 : 404,
+        });
+      }
+      return new Response('not found', { status: 404 });
+    };
+    const http = new PoliteFetcher({ fetchImpl, sleep: noSleep, minDelayMs: 0 });
+    const candidates = ['alpha', 'bravo', 'charlie', 'delta'].map((slug) => ({ slug, name: slug, category: 'product' as const }));
+    const report = await discoverBoards({
+      http,
+      now: NOW,
+      candidates,
+      concurrency: 1,
+      previous: [board({ slug: 'alpha', name: 'alpha', ats: 'smartrecruiters', board: 'alpha' })],
+    });
+    expect(report.blocked).toEqual(['smartrecruiters']);
+    expect(report.errors).toEqual([]);
+    expect(report.file.boards).toEqual([]);
+    expect(calls.filter((c) => c.includes('smartrecruiters'))).toEqual(['https://api.smartrecruiters.com/robots.txt']);
+    // Greenhouse, Lever and Ashby are still probed for every company; SmartRecruiters once.
+    expect(report.probed).toBe(candidates.length * 3 + 1);
+    expect(formatDiscoverySummary(report)).toContain('Skipped (robots.txt disallows the API): smartrecruiters.');
+  });
+});
+
 describe('Unstop jobs', () => {
   const item = {
     id: 991,
@@ -259,6 +291,24 @@ describe('company careers on the job board', () => {
     const jobs = await fetchCareersJobs(fetchImpl, { companies: [visa, stripe, broken], maxPages: 2, now: NOW, warn: (m) => warnings.push(m) });
     expect(jobs.map((j) => j.sourceJobId)).toEqual(['visa:v1']);
     expect(warnings.some((w) => w.startsWith('broken:'))).toBe(true);
+  });
+
+  it('marks companies read in full, and skips the rest of a platform robots.txt disallows', async () => {
+    const calls: string[] = [];
+    const fetchImpl = async (url: string) => {
+      calls.push(url);
+      const u = new URL(url);
+      if (u.pathname === '/robots.txt') return new Response(u.host === 'api.smartrecruiters.com' ? 'User-agent: *\nDisallow: /\n' : '', { status: u.host === 'api.smartrecruiters.com' ? 200 : 404 });
+      return new Response(JSON.stringify({ hits: 1, jobs: [{ id_icims: '9', title: 'SDE', job_path: '/en/jobs/9/sde', normalized_location: 'Bengaluru, KA, IND' }] }), { status: 200 });
+    };
+    const sr = (slug: string) => ({ ...COMPANIES.find((c) => c.slug === 'visa')!, slug, careers: { kind: 'smartrecruiters' as const, company: slug } });
+    const amazon = COMPANIES.find((c) => c.slug === 'amazon')!;
+    const warnings: string[] = [];
+    const complete: string[] = [];
+    await fetchCareersJobs(fetchImpl, { companies: [sr('one'), sr('two'), sr('three'), amazon], maxPages: 2, now: NOW, warn: (m) => warnings.push(m), complete: (p) => complete.push(p), concurrency: 1 });
+    expect(complete).toEqual(['amazon:']);
+    expect(calls.filter((c) => c.includes('smartrecruiters'))).toEqual(['https://api.smartrecruiters.com/robots.txt']);
+    expect(warnings).toContain('smartrecruiters: robots.txt disallows its API; 2 more smartrecruiters companies skipped');
   });
 });
 

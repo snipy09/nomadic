@@ -198,6 +198,34 @@ describe('runPipeline', () => {
     expect(store.activeJobs()).toHaveLength(10);
   });
 
+  it('after a partial fetch, still expires unseen jobs of the companies read in full', async () => {
+    const store = new MemoryJobStore();
+    const now = clock();
+    const job = (id: string) => candidate('careers', id, { applyUrl: `https://careers.example/${id}` });
+    let items = [job('acme:1'), job('acme:2'), job('big:1'), job('big:2')];
+    let partial = false;
+    const source: SourceDefinition = {
+      id: 'careers',
+      label: 'Careers sites',
+      tier: 1,
+      officialApi: true,
+      fetchCandidates: async (ctx) => {
+        ctx.complete?.('acme:');
+        if (partial) ctx.warn('big: stopped after 25 pages (more listed)');
+        else ctx.complete?.('big:');
+        return items;
+      },
+    };
+    await runPipeline({ sources: [source], publish: true, store, fetch: noNetwork, now });
+    // acme:2 closed on Acme's site; big:2 is past Big's page limit, so it is not seen but still open.
+    items = [job('acme:1'), job('big:1')];
+    partial = true;
+    const report = await runPipeline({ sources: [source], publish: true, store, fetch: noNetwork, now });
+    expect(report.sources[0].expired).toBe(1);
+    expect(store.activeJobs().map((j) => j.source_id).sort()).toEqual(['acme:1', 'big:1', 'big:2']);
+    expect(report.sources[0].warnings.some((w) => w.startsWith('expired unseen jobs only for the 1 companies'))).toBe(true);
+  });
+
   it('does not expire unseen jobs after a partial fetch or a truncated run', async () => {
     const store = new MemoryJobStore();
     const now = clock();
