@@ -21,6 +21,8 @@ apps only read what they publish. robots.txt is obeyed; requests to one site are
 `Desktop\Nomadic Content\Scraper`: every scraper bundled into `bin\nomadic-scrapers.mjs` (Node 22 only), built from
 `scripts/scraper-folder` by `npm run build:scraper-folder` and installed/updated by
 `scripts\windows\Install scraper folder.cmd` (keeps `.env`, `settings.ini`, `reports`, `logs`, `state`).
+  Never run the launchers in `scripts/scraper-folder` itself (no bundle there): they now just run that installer.
+  The installer also removes a "Nomadic scrapers" task registered from another copy.
 
 - `Setup.cmd`: Node check, service key (reuses `Desktop\Nomadic\.env`), optional Adzuna key, turns on auto scraping.
 - Auto scraping: scheduled task "Nomadic scrapers" (current user, no admin, hidden via `bin\run-scheduled.vbs`) runs

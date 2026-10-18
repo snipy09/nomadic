@@ -11,6 +11,7 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
+call "%BIN%need-bundle.cmd" || (pause & exit /b 1)
 node "%BIN%nomadic-scrapers.mjs" auto --home "%FOLDER%" --force %*
 set "RC=%ERRORLEVEL%"
 echo.

@@ -7,6 +7,20 @@ $envPath = Join-Path $folder '.env'
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 $defaultUrl = 'https://grqkiddfwoyicktpgdea.supabase.co'
 
+# Started from the repo's source copy (no bundled scrapers): build and install the real folder instead, so the
+# schedule and the .env never point at the repo.
+if (-not (Test-Path (Join-Path $bin 'nomadic-scrapers.mjs'))) {
+  $installer = Join-Path $folder '..\windows\install-scraper-folder.ps1'
+  if (Test-Path $installer) {
+    Write-Host 'This is the source copy of the scraper folder in the repo. Installing the real one to Desktop\Nomadic Content\Scraper;'
+    Write-Host 'use the launchers there.'
+    & $installer
+  } else {
+    Write-Host 'bin\nomadic-scrapers.mjs is missing. Reinstall with "Install scraper folder.cmd" in the repo.' -ForegroundColor Red
+  }
+  exit 1
+}
+
 Write-Host 'NOMADIC SCRAPERS - SETUP' -ForegroundColor Cyan
 Write-Host ''
 

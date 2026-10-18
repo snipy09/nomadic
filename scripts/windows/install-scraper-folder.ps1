@@ -35,6 +35,13 @@ if (-not (Test-Path (Join-Path $target 'settings.ini'))) { Copy-Item (Join-Path 
 Write-Host ''
 Write-Host "Scraper folder ready: $target" -ForegroundColor Green
 $task = Get-ScheduledTask -TaskName 'Nomadic scrapers' -ErrorAction SilentlyContinue
+# A task registered from another copy (e.g. the repo's scripts\scraper-folder, which has no bundle) fails on every
+# start: drop it here; Setup.cmd or schedule.ps1 below registers it again for this folder.
+$taskPaths = ($task.Actions | ForEach-Object { "$($_.Arguments) $($_.WorkingDirectory)" }) -join ' '
+if ($task -and $taskPaths.IndexOf($target, [StringComparison]::OrdinalIgnoreCase) -lt 0) {
+  Unregister-ScheduledTask -TaskName 'Nomadic scrapers' -Confirm:$false -ErrorAction SilentlyContinue
+  Write-Host "Removed the auto scraping task of another copy of the folder (it pointed outside $target)."
+}
 if (-not (Test-Path (Join-Path $target '.env'))) {
   Write-Host 'Next: double-click Setup.cmd in that folder (Supabase key, then auto scraping turns on).'
 } elseif ($task) {
