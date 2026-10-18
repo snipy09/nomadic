@@ -23,7 +23,7 @@ async function start() {
   if (Capacitor.isNativePlatform()) {
     // Android back: close the top dialog or go back in the app's own history; at the root, leave the app.
     CapApp.addListener('backButton', ({ canGoBack }) => {
-      const esc = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true });
+      const esc = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
       const handled = !document.dispatchEvent(esc);
       if (handled) return;
       if (canGoBack) window.history.back();

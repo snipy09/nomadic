@@ -54,6 +54,11 @@ repo. Every update must be signed with that same key or phones refuse to install
 `android/app/build/outputs/apk/release/app-release.apk`, published as `Nomadic-<ver>-android.apk` in
 `nomadic-releases` tag `android-v<ver>`; then set `ANDROID_DOWNLOAD.version` in `packages/config/src/downloads.ts`.
 
+Local emulator (18 Oct 2026): AVD `NomadicTest` (Pixel 7, API 35 google_apis x86_64, WHPX). Start it with
+`emulator -avd NomadicTest -gpu auto`; `-gpu swiftshader_indirect` draws only half the window on this laptop.
+Android back sends a cancelable Escape first: a dialog, the reset-password view or "Create account" handles it
+(`preventDefault`), otherwise the app goes back in history or is minimised.
+
 ## Limits today
 
 No Google sign-in on the phone yet (email + password), no push notifications, no Play Billing decision yet (Play

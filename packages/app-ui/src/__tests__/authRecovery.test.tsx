@@ -64,6 +64,26 @@ describe('Forgot password', () => {
     expect((screen.getByLabelText(/^password/i) as HTMLInputElement).value).toBe('');
   });
 
+  it('Escape (Android back) leaves the reset flow and Create account for sign in, and marks the press handled', async () => {
+    setup();
+    const pressBack = () => {
+      const e = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+      return !document.dispatchEvent(e);
+    };
+    await userEvent.click(screen.getByRole('button', { name: /forgot password/i }));
+    expect(screen.getByRole('heading', { name: /reset your password/i })).toBeTruthy();
+    expect(pressBack()).toBe(true);
+    expect(await screen.findByRole('heading', { name: /sign in to nomadic/i })).toBeTruthy();
+
+    await userEvent.click(screen.getByRole('tab', { name: /create account/i }));
+    expect(screen.getByRole('heading', { name: /create your account/i })).toBeTruthy();
+    expect(pressBack()).toBe(true);
+    expect(await screen.findByRole('heading', { name: /sign in to nomadic/i })).toBeTruthy();
+
+    // On the sign-in form the press is not handled, so the host can leave the app.
+    expect(pressBack()).toBe(false);
+  });
+
   it('checks the email and the password rule before calling the main process', async () => {
     const { api } = setup();
     await userEvent.click(screen.getByRole('button', { name: /forgot password/i }));

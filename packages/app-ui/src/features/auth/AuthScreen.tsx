@@ -207,6 +207,20 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog, n
     setTimeout(() => document.getElementById(email ? IDS.password : IDS.email)?.focus(), 0);
   };
 
+  // Escape (and the Android back button, which sends Escape first) leaves the reset flow or "Create account" for
+  // sign in. preventDefault tells the Android host the press was handled, so the app is not minimised.
+  useEffect(() => {
+    if (view !== 'forgot' && !(view === 'form' && mode === 'signup')) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented || termsOpen) return;
+      e.preventDefault();
+      if (view === 'forgot') backFromForgot('');
+      else switchMode('signin');
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  });
+
   const finishSignup = () => {
     const u = pendingUser;
     if (!u) return;
