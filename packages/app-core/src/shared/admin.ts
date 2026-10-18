@@ -96,6 +96,9 @@ export interface AdminUpiOrder {
   submittedAt: string | null;
   reviewedAt: string | null;
   reviewNote: string | null;
+  /** First-month coupon order (037): amountInr is the discounted price, listPriceInr the plan price. */
+  couponApplied: boolean;
+  listPriceInr: number | null;
 }
 
 export interface AdminUpiQuery {

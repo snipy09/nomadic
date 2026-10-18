@@ -176,6 +176,28 @@ describe('UpgradeDialog', () => {
     expect(await screen.findByText(/payment sent for review/i)).toBeTruthy();
   });
 
+  it('applies a coupon on the UPI route even when Razorpay is set up, and shows refusals by the field', async () => {
+    const base = upiPayment();
+    const api = mockApi({
+      upiCreateOrder: vi.fn()
+        .mockResolvedValueOnce({ success: false, code: 'invalid_coupon', error: 'That coupon code is not valid.' })
+        .mockResolvedValueOnce({ success: true, payment: { ...base, order: { ...base.order, amountInr: 1, couponApplied: true, listPriceInr: 249 } } }),
+      upiListOrders: vi.fn().mockResolvedValue({ success: true, orders: [] }),
+    });
+    wrap(<UpgradeDialog open onOpenChange={() => {}} />);
+    await screen.findByText('Current plan');
+    await userEvent.click(screen.getByRole('button', { name: /add a coupon code/i }));
+    await userEvent.type(screen.getByRole('textbox', { name: /coupon code/i }), 'wrong');
+    await userEvent.click(screen.getByRole('button', { name: /upgrade to max/i }));
+    expect(await screen.findByText('That coupon code is not valid.')).toBeTruthy();
+    expect(api.upiCreateOrder).toHaveBeenCalledWith('max', 'wrong');
+    expect(api.startCheckout).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: /upgrade to pro/i }));
+    expect(api.upiCreateOrder).toHaveBeenLastCalledWith('pro', 'wrong');
+    expect(await screen.findByText(/coupon applied/i)).toBeTruthy();
+    expect(screen.getByText(/then ₹249 a month when you renew/)).toBeTruthy();
+  });
+
   it('falls back to the manual route when UPI is not set up on the server', async () => {
     const api = mockApi({
       startCheckout: vi.fn().mockResolvedValue({ success: false, notConfigured: true, error: 'x' }),

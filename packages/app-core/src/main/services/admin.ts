@@ -389,6 +389,8 @@ export function toUpiOrder(r: Row): AdminUpiOrder {
     submittedAt: strOrNull(r['submitted_at']),
     reviewedAt: strOrNull(r['reviewed_at']),
     reviewNote: strOrNull(r['review_note']),
+    couponApplied: r['coupon_applied'] === true,
+    listPriceInr: r['list_price_inr'] == null ? null : num(r['list_price_inr']),
   };
 }
 

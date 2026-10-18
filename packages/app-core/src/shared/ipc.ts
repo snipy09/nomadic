@@ -456,6 +456,9 @@ export interface UpiOrder {
   reviewedAt: string | null;
   /** The reviewer's reason, only for rejected orders. */
   reviewNote: string | null;
+  /** Opened with a first-month coupon (037); listPriceInr is the plan price it replaced. */
+  couponApplied: boolean;
+  listPriceInr: number | null;
 }
 
 /** A newly opened (or reused) order with where to pay. */
@@ -469,7 +472,8 @@ export interface UpiPayment {
 
 export type UpiErrorCode =
   | EntitlementsErrorCode | 'not_configured' | 'invalid_plan' | 'rate_limited' | 'invalid_utr'
-  | 'not_found' | 'already_submitted' | 'utr_used' | 'server_outdated';
+  | 'not_found' | 'already_submitted' | 'utr_used' | 'server_outdated'
+  | 'invalid_coupon' | 'coupon_used' | 'coupon_not_eligible';
 
 export type UpiCreateOrderResult = { success: true; payment: UpiPayment } | { success: false; code: UpiErrorCode; error: string };
 export type UpiSubmitUtrResult = { success: true } | { success: false; code: UpiErrorCode; error: string };
@@ -1249,7 +1253,7 @@ export interface IpcChannels {
   'start-checkout': Channel<[plan: Exclude<BillingPlanId, 'free'>], CheckoutResult>;
   'get-payment-history': Channel<[], PaymentHistoryResult>;
   /** Opens (or reuses) a UPI order: amount, reference and the operator's UPI ID from the server (035). */
-  'upi-create-order': Channel<[plan: Exclude<BillingPlanId, 'free'>], UpiCreateOrderResult>;
+  'upi-create-order': Channel<[plan: Exclude<BillingPlanId, 'free'>, coupon?: string], UpiCreateOrderResult>;
   /** Reports the UTR of a UPI payment; an admin then approves or rejects it. */
   'upi-submit-utr': Channel<[orderId: string, utr: string], UpiSubmitUtrResult>;
   'upi-list-orders': Channel<[], UpiListOrdersResult>;

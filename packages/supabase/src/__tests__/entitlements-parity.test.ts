@@ -134,3 +134,41 @@ describe('035 UPI direct payments', () => {
     expect(paste).toContain('admin_review_upi_order');
   });
 });
+
+describe('037 first-month coupons', () => {
+  const sql = read('037_billing_coupons.sql');
+  const price = (id: 'pro' | 'max') => PLANS.find((p) => p.id === id)!.priceInr;
+
+  it('keeps the config prices for orders without a coupon', () => {
+    expect(sql).toContain(`c_upi_price_pro CONSTANT NUMERIC := ${price('pro')};`);
+    expect(sql).toContain(`c_upi_price_max CONSTANT NUMERIC := ${price('max')};`);
+  });
+
+  it('stores only code hashes, never a code', () => {
+    expect(sql).toMatch(/code_hash\s+TEXT PRIMARY KEY CHECK \(code_hash ~ '\^\[0-9a-f\]\{64\}\$'\)/);
+    const inserts = sql.split('\n').filter((l) => l.includes('INSERT INTO public.billing_coupons'));
+    expect(inserts.every((l) => l.trimStart().startsWith('--'))).toBe(true);
+    expect(sql).toContain('REVOKE ALL ON public.billing_coupons FROM anon, authenticated;');
+    expect(sql).toContain("REVOKE ALL ON FUNCTION public.billing_coupon_problem(UUID, TEXT, TEXT, UUID) FROM PUBLIC, anon, authenticated;");
+  });
+
+  it('re-checks the coupon on submit and on approval, and keeps the session and admin checks', () => {
+    const at = (name: string) => sql.slice(sql.indexOf(`CREATE OR REPLACE FUNCTION public.${name}(`), sql.indexOf('$$;', sql.indexOf(`CREATE OR REPLACE FUNCTION public.${name}(`)));
+    for (const name of ['billing_upi_create_order', 'billing_upi_submit_utr', 'admin_review_upi_order']) {
+      expect(at(name)).toContain('billing_coupon_problem(');
+    }
+    for (const name of ['billing_upi_create_order', 'billing_upi_submit_utr', 'billing_upi_list_orders']) {
+      expect(at(name)).toMatch(/IF NOT public\.billing_session_ok\(p_user_id, p_session_token, p_device_fingerprint\) THEN/);
+    }
+    expect(at('admin_review_upi_order')).toContain('public.admin_check_caller(p_user_id, p_session_token, p_device_fingerprint)');
+    expect(at('admin_review_upi_order')).toContain('handle_razorpay_payment_success');
+    expect(sql).toMatch(/DROP FUNCTION IF EXISTS public\.billing_upi_create_order\(UUID, TEXT, TEXT, TEXT\);/);
+    expect(sql).toMatch(/GRANT EXECUTE ON FUNCTION public\.billing_upi_create_order\(UUID, TEXT, TEXT, TEXT, TEXT\) TO anon, authenticated, service_role;/);
+  });
+
+  it('has a paste file without blank lines', () => {
+    const paste = readFileSync(path.join(dir, '../baseline/apply_037.sql'), 'utf8');
+    expect(paste).not.toMatch(/\r?\n[ \t]*\r?\n/);
+    expect(paste).toContain('billing_coupon_problem');
+  });
+});

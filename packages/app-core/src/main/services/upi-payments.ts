@@ -28,6 +28,9 @@ const MESSAGES: Record<UpiErrorCode, string> = {
   already_submitted: 'This payment was already sent for review.',
   utr_used: 'This UTR was already used for another payment. Check the number in your payment app.',
   server_outdated: 'UPI payments are not available on the server yet.',
+  invalid_coupon: 'That coupon code is not valid.',
+  coupon_used: 'This account has already used a coupon.',
+  coupon_not_eligible: 'Coupons are for the first paid month only, on an account that is on the Free plan.',
 };
 
 const fail = (code: UpiErrorCode) => ({ success: false as const, code, error: MESSAGES[code] });
@@ -52,6 +55,8 @@ export function mapUpiOrder(row: Record<string, unknown>): UpiOrder | null {
     submittedAt: strOrNull(row['submitted_at']),
     reviewedAt: strOrNull(row['reviewed_at']),
     reviewNote: strOrNull(row['review_note']),
+    couponApplied: row['coupon_applied'] === true,
+    listPriceInr: row['list_price_inr'] == null || !Number.isFinite(Number(row['list_price_inr'])) ? null : Number(row['list_price_inr']),
   };
 }
 
@@ -95,8 +100,10 @@ async function call(fn: string, params: Record<string, unknown>): Promise<Rpc> {
   }
 }
 
-export async function createUpiOrder(plan: Exclude<BillingPlanId, 'free'>): Promise<UpiCreateOrderResult> {
-  const res = await call('billing_upi_create_order', { p_plan: plan });
+export async function createUpiOrder(plan: Exclude<BillingPlanId, 'free'>, coupon?: string): Promise<UpiCreateOrderResult> {
+  const code = coupon?.replace(/\s/g, '').toUpperCase() ?? '';
+  // The code is checked only on the server (037); it is never stored or logged here.
+  const res = await call('billing_upi_create_order', code ? { p_plan: plan, p_coupon: code } : { p_plan: plan });
   if (!res.ok) return fail(res.code);
   const order = mapUpiOrder(res.body);
   const vpa = strOrNull(res.body['vpa']);

@@ -88,6 +88,12 @@ export function UpiPayPanel({ payment, onSubmitted, onCancel }: UpiPayPanelProps
         )}
         <div className="flex min-w-[14rem] flex-1 flex-col gap-2 text-body text-fg">
           <h3 className="text-heading font-strong">Pay {formatPrice(order.amountInr)} for {plan.name} by UPI</h3>
+          {order.couponApplied && (
+            <p className="text-body text-success-fg">
+              Coupon applied: {formatPrice(order.amountInr)} for your first month
+              {order.listPriceInr ? `, then ${formatPrice(order.listPriceInr)} a month when you renew` : ''}.
+            </p>
+          )}
           {!inReview && (
             <p className="text-fg-muted">Scan the code with any UPI app (Google Pay, PhonePe, Paytm, BHIM). The amount and reference are filled in; do not change them.</p>
           )}
