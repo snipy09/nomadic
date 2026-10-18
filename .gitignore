@@ -76,3 +76,6 @@ marketing/
 
 # Tester builds are committed on purpose (Mac zips split under GitHub's 100 MB limit).
 !tester-builds/**
+
+# Written by the scraper folder's schedule.ps1 (machine-specific node.exe path)
+scripts/scraper-folder/bin/node-path.txt

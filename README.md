@@ -92,7 +92,8 @@ Indian publishers, and Outreach contacts. Details: [`context/scrapers.md`](conte
   phone per account (migration 032).
 - Row-level security on every table; clients call only session-checked `SECURITY DEFINER` functions on an explicit
   allow-list ([`docs/security/SECURITY_CHECKLIST.md`](docs/security/SECURITY_CHECKLIST.md)).
-- Migrations: `packages/supabase/migrations` (001–033 live, no 013; next is 034). New project setup:
+- Migrations: `packages/supabase/migrations` (001–033, 035 and 036 live, no 013; 034 in the repo, not applied;
+  next is 037). New project setup:
   [`docs/guides/DATABASE_SETUP.md`](docs/guides/DATABASE_SETUP.md).
 - Edge Functions: `ai-proxy` (Gemini, per-plan daily limits), `send-email-code` (Resend), `google-sign-in`,
   `razorpay-webhook` (not deployed yet). Keys live in Supabase Vault, never in the apps.
@@ -100,10 +101,14 @@ Indian publishers, and Outreach contacts. Details: [`context/scrapers.md`](conte
 ## Releasing
 
 - Windows: [`docs/guides/RELEASE.md`](docs/guides/RELEASE.md). `npm run package:desktop` on Windows, or
-  `scripts/windows/Build Nomadic.bat` (copies the .exe files to Downloads). Current version 1.4.0.
-- macOS: [`docs/guides/MAC_APP.md`](docs/guides/MAC_APP.md). Unsigned test DMGs from `build-mac.yml`.
-- Android: [`docs/guides/MOBILE_APP.md`](docs/guides/MOBILE_APP.md). Debug APK from `android-app.yml`; release
-  signing and the Play Store are not set up yet.
+  `scripts/windows/Build Nomadic.bat` (copies the .exe files to Downloads). Current version 1.5.0.
+- macOS: [`docs/guides/MAC_APP.md`](docs/guides/MAC_APP.md). Unsigned test DMGs from `build-mac.yml` (1.4.0).
+- Android: [`docs/guides/MOBILE_APP.md`](docs/guides/MOBILE_APP.md). Signed release APK built on the owner's laptop
+  (1.5.0 live on the website, 1.5.1 with Google sign-in built); debug APK from `android-app.yml`. Not on the Play Store.
+- Public downloads are release assets in `snipy09/nomadic-releases` (tags `win-v<ver>`, `mac-v<ver>`, `android-v<ver>`).
+
+All work lands on `main`; there are no other branches (old ones were removed 18 Oct 2026, unmerged ones kept as
+`archive/*` tags).
 
 ## Legal
 

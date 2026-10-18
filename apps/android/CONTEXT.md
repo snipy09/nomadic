@@ -4,7 +4,7 @@ Last updated: 7 October 2026 (renamed from `apps/mobile`). Project-wide context:
 [`context/README.md`](../../context/README.md). Full guide: [`docs/guides/MOBILE_APP.md`](../../docs/guides/MOBILE_APP.md);
 apply on Android (built, not wired into the app yet): [`docs/guides/ANDROID_APPLY.md`](../../docs/guides/ANDROID_APPLY.md).
 
-Status: version 1.5.0, signed release APK sideloaded from the website, not on the Play Store. Package id `com.nomadic.career`.
+Status: version 1.5.1 built (Google sign-in); 1.5.0 is the signed release APK sideloaded from the website, not on the Play Store. Package id `com.nomadic.career`.
 
 ## What the phone has
 
