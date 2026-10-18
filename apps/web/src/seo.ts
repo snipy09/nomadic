@@ -1,4 +1,4 @@
-import { pricingSentence } from '@nomadic/config';
+import { ANDROID_DOWNLOAD, pricingSentence } from '@nomadic/config';
 
 export const SITE = 'https://nomadicai.vercel.app';
 
@@ -34,13 +34,17 @@ export const PAGES: Record<PageId, PageMeta> = {
   },
   download: {
     path: '/download',
-    title: 'Download Nomadic for Windows and Mac',
-    description:
-      'Download Nomadic free for Windows 10/11 and macOS (Apple Silicon and Intel), with step-by-step install guides. Android is coming soon.',
+    title: ANDROID_DOWNLOAD.version ? 'Download Nomadic for Windows, Mac and Android' : 'Download Nomadic for Windows and Mac',
+    description: ANDROID_DOWNLOAD.version
+      ? `Download Nomadic free for Windows 10/11, macOS (Apple Silicon and Intel) and Android ${ANDROID_DOWNLOAD.minimumAndroid}+, with step-by-step install guides.`
+      : 'Download Nomadic free for Windows 10/11 and macOS (Apple Silicon and Intel), with step-by-step install guides. Android is coming soon.',
     index: true,
     updated: '2026-10-18',
     priority: '0.8',
-    og: { heading: 'Download Nomadic', sub: 'Free for Windows and macOS. Install guides included.' },
+    og: {
+      heading: 'Download Nomadic',
+      sub: ANDROID_DOWNLOAD.version ? 'Free for Windows, macOS and Android. Install guides included.' : 'Free for Windows and macOS. Install guides included.',
+    },
   },
   terms: {
     path: '/terms',

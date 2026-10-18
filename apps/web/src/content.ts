@@ -253,11 +253,15 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Can I download it yet?',
-    a: 'Yes. Open the download page: Windows is a zip you extract and run, macOS has a one-line Terminal installer or a DMG, and each comes with a short install guide.',
+    a: `Yes. Open the download page: Windows is a zip you extract and run, macOS has a one-line Terminal installer or a DMG${
+      ANDROID_DOWNLOAD.version ? ', Android is an APK you install from the site' : ''
+    }, and each comes with a short install guide.`,
   },
   {
     q: 'Which operating systems does it run on?',
-    a: 'Windows 10 and 11 (64-bit) and macOS 11 Big Sur or later, on both Apple Silicon and Intel Macs. An Android app is on the way.',
+    a: `Windows 10 and 11 (64-bit) and macOS 11 Big Sur or later, on both Apple Silicon and Intel Macs. ${
+      ANDROID_DOWNLOAD.version ? `Android ${ANDROID_DOWNLOAD.minimumAndroid} or later on phones.` : 'An Android app is on the way.'
+    }`,
   },
   {
     q: 'Can Nomadic apply to jobs for me?',
