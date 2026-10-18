@@ -75,7 +75,7 @@ if (-not (Get-Value 'SUPABASE_URL')) { Set-Value 'SUPABASE_URL' $defaultUrl }
 # Asks Supabase whether the key works for this project: 'ok', 'rejected' (wrong project, rotated) or 'offline'.
 function Test-Key([string]$value) {
   try {
-    Invoke-WebRequest -UseBasicParsing -TimeoutSec 20 -Uri "$(Get-Value 'SUPABASE_URL')/rest/v1/companies?select=id&limit=1" `
+    Invoke-WebRequest -UseBasicParsing -TimeoutSec 20 -Uri "$(Get-Value 'SUPABASE_URL')/rest/v1/companies?select=*&limit=1" `
       -Headers @{ apikey = $value; Authorization = "Bearer $value" } | Out-Null
     return 'ok'
   } catch {
