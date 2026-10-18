@@ -44,8 +44,20 @@ if ($major -lt 22) {
 Write-Host "Node.js $(& node --version): OK"
 
 # -- .env ---------------------------------------------------------------------
+$sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+# Earlier setups locked .env to "$env:USERNAME:(R,W)", which on some accounts (Microsoft account, OneDrive Desktop)
+# left it unreadable even for its owner. The owner may always rewrite the permissions: reset them, then retry.
+function Read-EnvFile {
+  try { return @(Get-Content -LiteralPath $envPath -ErrorAction Stop) } catch { }
+  & icacls $envPath /reset | Out-Null
+  & icacls $envPath /grant "*$($sid):(F)" | Out-Null
+  try { return @(Get-Content -LiteralPath $envPath -ErrorAction Stop) } catch {
+    Write-Host "Cannot read $envPath (access denied). Delete that file and run Setup.cmd again." -ForegroundColor Red
+    exit 1
+  }
+}
 $lines = @()
-if (Test-Path $envPath) { $lines = @(Get-Content $envPath) }
+if (Test-Path -LiteralPath $envPath) { $lines = @(Read-EnvFile) }
 function Get-Value([string]$name) {
   $line = $lines | Where-Object { $_ -match "^$name=" } | Select-Object -First 1
   if ($line) { return ($line -replace "^$name=", '').Trim() } else { return '' }
@@ -97,7 +109,8 @@ if (-not (Get-Value 'ADZUNA_APP_ID')) {
 }
 
 [IO.File]::WriteAllText($envPath, (($lines -join "`n") + "`n"), $utf8)
-try { & icacls $envPath /inheritance:r /grant:r "$($env:USERNAME):(R,W)" | Out-Null } catch { }
+# Only this user (by SID, so the account name does not matter) may open the key file.
+try { & icacls $envPath /inheritance:r /grant:r "*$($sid):(F)" | Out-Null } catch { }
 
 # -- Auto scraping ------------------------------------------------------------
 Write-Host ''
