@@ -34,13 +34,13 @@ export const PAGES: Record<PageId, PageMeta> = {
   },
   download: {
     path: '/download',
-    title: 'Nomadic for desktop: download coming soon',
+    title: 'Download Nomadic for Windows and Mac',
     description:
-      'Nomadic for Windows is coming soon, with macOS after the beta. See what the first release does and where the installer will appear.',
+      'Download Nomadic free for Windows 10/11 and macOS (Apple Silicon and Intel), with step-by-step install guides. Android is coming soon.',
     index: true,
-    updated: '2026-10-06',
+    updated: '2026-10-18',
     priority: '0.8',
-    og: { heading: 'Nomadic for desktop', sub: 'Windows first, macOS after the beta. Download coming soon.' },
+    og: { heading: 'Download Nomadic', sub: 'Free for Windows and macOS. Install guides included.' },
   },
   terms: {
     path: '/terms',

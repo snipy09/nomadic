@@ -1,6 +1,6 @@
 import { Check } from 'lucide-react';
 import { PAID_PRICES, PLANS } from '../content';
-import ComingSoon from './ComingSoon';
+import DownloadCta from './DownloadCta';
 import Reveal from './Reveal';
 
 export default function Pricing() {
@@ -12,7 +12,7 @@ export default function Pricing() {
         </Reveal>
         <Reveal kind="up" delay={140}>
           <p className="mt-5 max-w-2xl text-lg text-ink-soft">
-            Prices are in Indian rupees. Plans open when the download does.
+            Prices are in Indian rupees. Start free, then upgrade inside the app and pay by UPI.
           </p>
         </Reveal>
 
@@ -51,10 +51,10 @@ export default function Pricing() {
                   ))}
                 </ul>
 
-                <ComingSoon
+                <DownloadCta
                   block
                   tone={dark ? 'dark' : 'light'}
-                  label={`Get ${plan.name}`}
+                  label={plan.id === 'free' ? 'Download free' : `Get ${plan.name}`}
                   className="mt-8"
                 />
               </Reveal>

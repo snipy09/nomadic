@@ -32,8 +32,7 @@ function offers() {
     price: plan.price.replace(/[^\d.]/g, '') || '0',
     priceCurrency: 'INR',
     description: plan.summary,
-    // The download is not public yet, so the offer is listed as not yet on sale.
-    availability: 'https://schema.org/PreOrder',
+    availability: 'https://schema.org/InStock',
     url: `${SITE}/#pricing`,
   }));
 }

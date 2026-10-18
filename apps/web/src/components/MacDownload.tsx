@@ -71,7 +71,7 @@ export function MacInstallSteps() {
     <section aria-labelledby="mac-install-title" className="bg-white">
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-24">
         <h2 id="mac-install-title" className="wide max-w-3xl text-[clamp(1.5rem,3.6vw,2.75rem)]">
-          Installing on a Mac
+          Installing the DMG on a Mac
         </h2>
         <ol className="mt-8 max-w-2xl list-decimal space-y-3 pl-6 text-lg">
           <li>Open the downloaded DMG.</li>
@@ -87,7 +87,7 @@ export function MacInstallSteps() {
         </ol>
         <p className="mt-6 max-w-2xl text-ink-soft">
           Why the extra step: Nomadic for Mac is distributed without Apple&apos;s paid notarization service, so macOS asks
-          you to confirm once. You never need to turn off macOS security or use Terminal.
+          you to confirm once. You never need to turn off macOS security. The Terminal command above skips these steps.
         </p>
       </div>
     </section>

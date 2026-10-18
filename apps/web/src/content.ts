@@ -1,4 +1,22 @@
-import { PLANS as CONFIG_PLANS, formatPrice, pricingSentence } from '@nomadic/config';
+import { PLANS as CONFIG_PLANS, formatPrice, pricingSentence, ANDROID_DOWNLOAD, MAC_DOWNLOAD, WINDOWS_DOWNLOAD } from '@nomadic/config';
+
+/** Platforms with a public release, in order: e.g. ['Windows', 'macOS']. Driven by packages/config downloads.ts. */
+export function releasedPlatforms(): string[] {
+  return [
+    WINDOWS_DOWNLOAD.version && 'Windows',
+    MAC_DOWNLOAD.version && 'macOS',
+    ANDROID_DOWNLOAD.version && 'Android',
+  ].filter((p): p is string => Boolean(p));
+}
+
+/** One sentence for the hero and closing call: which platforms can be downloaded now. */
+export function platformLine(): string {
+  const p = releasedPlatforms();
+  if (p.length === 0) return 'Public downloads are not open yet.';
+  const list = p.length === 1 ? p[0] : `${p.slice(0, -1).join(', ')} and ${p[p.length - 1]}`;
+  const android = ANDROID_DOWNLOAD.version ? '' : ' Android is coming soon.';
+  return `Free to download for ${list}.${android}`;
+}
 // All sample data on the site is invented. Company names, people and domains are fictional.
 
 export type StageId = 'learn' | 'find' | 'apply' | 'track';
@@ -208,20 +226,20 @@ export const DATA_HANDLING: DataHandlingRow[] = [
     items: [
       'Sell, rent or share your data with advertisers or data brokers',
       'Submit an application you have not reviewed and confirmed',
-      'See your card, UPI or bank details (payments go through Razorpay)',
+      'See your card or bank details (you pay from your own UPI app)',
     ],
   },
 ];
 
 export const SIGNUP = {
-  label: 'Get an email when the download opens',
+  label: 'Get an email when something big ships',
   placeholder: 'you@example.com',
   button: 'Notify me',
   sending: 'Adding you',
-  done: 'You are on the list. We will email you once, when the download opens.',
+  done: 'You are on the list. We will email you only when something big ships.',
   invalid: 'Enter a full email address, like you@example.com.',
   failed: 'That did not go through. Check your connection and try again.',
-  note: 'One email when it launches. No spam, and we never share your address.',
+  note: 'A few emails a year at most. No spam, and we never share your address.',
 };
 
 export const FAQS: { q: string; a: string }[] = [
@@ -235,11 +253,11 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Can I download it yet?',
-    a: 'Not yet. Public downloads are coming soon. Leave your email on the home page and we will write once, the day the installer is ready.',
+    a: 'Yes. Open the download page: Windows is a zip you extract and run, macOS has a one-line Terminal installer or a DMG, and each comes with a short install guide.',
   },
   {
     q: 'Which operating systems does it run on?',
-    a: 'Windows first. A macOS version follows after the beta.',
+    a: 'Windows 10 and 11 (64-bit) and macOS 11 Big Sur or later, on both Apple Silicon and Intel Macs. An Android app is on the way.',
   },
   {
     q: 'Can Nomadic apply to jobs for me?',
@@ -263,6 +281,6 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'What do the plans cost?',
-    a: `${pricingSentence()} Plans open when the download does.`,
+    a: `${pricingSentence()} Upgrade inside the app and pay from any UPI app; your plan is switched on after the payment is checked.`,
   },
 ];

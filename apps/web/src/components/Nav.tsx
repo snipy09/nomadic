@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Menu, X } from 'lucide-react';
-import ComingSoon from './ComingSoon';
+import DownloadCta from './DownloadCta';
 import Logo from './Logo';
 import { scrollToId, useScrollProgress, useScrollSpy } from '../hooks';
 
@@ -90,7 +90,7 @@ export default function Nav({ variant = 'home' }: { variant?: 'home' | 'page' })
         </nav>
 
         <div className="flex items-center gap-3">
-          <ComingSoon size="sm" label="Download" className="hidden sm:inline-flex" />
+          <DownloadCta size="sm" label="Download" className="hidden sm:inline-flex" />
           <button
             type="button"
             aria-expanded={open}
@@ -122,7 +122,7 @@ export default function Nav({ variant = 'home' }: { variant?: 'home' | 'page' })
                 {link.label}
               </a>
             ))}
-            <ComingSoon block className="mt-5" />
+            <DownloadCta block className="mt-5" />
           </nav>
         </div>
       )}

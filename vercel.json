@@ -7,6 +7,23 @@
   "ignoreCommand": "git diff --quiet ${VERCEL_GIT_PREVIOUS_SHA:-HEAD^} HEAD -- apps/web packages/config package.json package-lock.json vercel.json || exit 1",
   "cleanUrls": true,
   "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/downloads/Nomadic-:version(\\d+\\.\\d+\\.\\d+)-mac-:file(arm64\\.dmg|x64\\.dmg|SHA256SUMS\\.txt)",
+      "destination": "https://github.com/snipy09/nomadic-releases/releases/download/mac-v:version/Nomadic-:version-mac-:file",
+      "permanent": false
+    },
+    {
+      "source": "/downloads/Nomadic-:version(\\d+\\.\\d+\\.\\d+)-windows-:file(x64\\.zip|SHA256SUMS\\.txt)",
+      "destination": "https://github.com/snipy09/nomadic-releases/releases/download/win-v:version/Nomadic-:version-windows-:file",
+      "permanent": false
+    },
+    {
+      "source": "/downloads/Nomadic-:version(\\d+\\.\\d+\\.\\d+)-android:file(\\.apk|-SHA256SUMS\\.txt)",
+      "destination": "https://github.com/snipy09/nomadic-releases/releases/download/android-v:version/Nomadic-:version-android:file",
+      "permanent": false
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

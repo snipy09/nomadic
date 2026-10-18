@@ -1,7 +1,7 @@
 import { CSSProperties } from 'react';
 import Nav from '../components/Nav';
 import Footer from '../components/Footer';
-import ComingSoon from '../components/ComingSoon';
+import DownloadCta from '../components/DownloadCta';
 import EmailSignup from '../components/EmailSignup';
 import HeroDemo from '../components/HeroDemo';
 import RouteSection from '../components/RouteSection';
@@ -13,7 +13,7 @@ import Pricing from '../components/Pricing';
 import Faq from '../components/Faq';
 import Reveal from '../components/Reveal';
 import { scrollToId } from '../hooks';
-import { DATA_HANDLING } from '../content';
+import { DATA_HANDLING, platformLine } from '../content';
 
 const HEADLINE = ['Your whole', 'job search,', 'in one window.'];
 
@@ -40,9 +40,9 @@ function Hero() {
               role you want, day by day, finds openings on company hiring pages, fills in the application forms for you
               to review and keeps every application on one board.
             </p>
-            <ComingSoon tone="dark" size="lg" className="mt-8" />
+            <DownloadCta tone="dark" size="lg" className="mt-8" />
             <p className="mt-4 max-w-md text-white/85">
-              For Windows first, macOS after the beta. Public downloads are not open yet.
+              {platformLine()}
             </p>
             <EmailSignup source="hero" className="mt-8" />
             <a
@@ -114,23 +114,23 @@ function FinalCall() {
     <section aria-labelledby="soon-title" className="on-dark bg-ultra text-white">
       <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 md:py-28">
         <Reveal kind="line" as="h2" id="soon-title" className="wide max-w-4xl text-[clamp(2rem,6vw,4.75rem)]">
-          The download is coming soon.
+          Download Nomadic. It is free.
         </Reveal>
         <Reveal kind="up" delay={160}>
           <p className="mt-6 max-w-xl text-lg text-white/90 sm:text-xl">
-            Public downloads are not open yet. Leave your email and we will tell you the day the installer is ready.
+            {platformLine()} Leave your email too, and we will write when something big ships.
           </p>
         </Reveal>
         <Reveal kind="up" delay={220}>
           <EmailSignup source="final" className="mt-10" />
         </Reveal>
         <Reveal kind="up" delay={280} className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3">
-          <ComingSoon tone="dark" size="lg" />
+          <DownloadCta tone="dark" size="lg" />
           <a
             href="/download"
             className="inline-flex min-h-11 items-center font-bold underline decoration-2 underline-offset-4 hover:text-marigold"
           >
-            Read the details
+            Install guides
           </a>
         </Reveal>
       </div>

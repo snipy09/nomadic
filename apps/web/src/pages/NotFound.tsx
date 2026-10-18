@@ -12,7 +12,7 @@ export default function NotFound() {
         </h1>
         <p className="mt-8 max-w-prose text-lg text-ink-soft">
           The link may be old, or the address may have a typo. The home page has everything Nomadic does,
-          and the download page shows where the installer will appear.
+          and the download page has the Windows and Mac downloads.
         </p>
         <div className="mt-8 flex flex-wrap gap-x-8 gap-y-2 font-semibold">
           <a href="/" className="inline-flex min-h-11 items-center underline decoration-2 underline-offset-4 hover:text-ultra">
