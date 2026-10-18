@@ -51,8 +51,9 @@ Owner actions:
 2. ~~Create the admin account~~: done 5 Oct 2026 (owner account has role `admin`, audit-logged).
 3. Run the app (`npm run dev:desktop`) and test: sign-up, onboarding → roadmap, lesson, feed, apply with review,
    tracker, password reset, AI feedback.
-4. Google OAuth: done (Vault, repo secrets, local `.env`). If the consent screen is in "Testing", add testers or
-   publish it, or only listed Google accounts can sign in.
+4. ~~Google OAuth~~: done (Vault, repo secrets, local `.env`). Consent screen published to production 18 Oct 2026
+   (Branding: app name Nomadic, home/privacy/terms on nomadicai.vercel.app, authorized domains `nomadicai.vercel.app` +
+   `supabase.co`). Not verified by Google, so users see an "unverified app" notice until a custom domain is verified.
 5. Verify a sending domain in Resend; store `email_from` in Vault.
 6. **UPI direct payments** (18 Oct 2026, no gateway accepted the account): live (035 + 036 applied, UPI ID set, enabled). Left: switch to a business/merchant UPI ID when there is one (the personal handle shows the phone number in UPI apps); Windows 1.5.0 has the UPI screen, Mac 1.4.0 does not (falls back to WhatsApp) until a Mac 1.5.0 is built. Android 1.5.0 (signed APK, has the UPI screen) is live on the site (release `android-v1.5.0`, 18 Oct 2026); not yet installed on a real phone. Windows `win-v1.5.0` and Mac `mac-v1.4.0` releases are NOT uploaded yet, so those buttons 404 until the owner runs `gh release create` (files in `Desktop\Nomadic Content\App builds\Nomadic 1.5.0 downloads`). Back up `Desktop\Nomadic Content\Android signing` (losing it means users must uninstall to update). Users pay by QR/UPI link with an order reference and enter the 12-digit UTR; approve or reject in Admin → Payments after checking the bank app. Until enabled, Upgrade falls back to WhatsApp. Razorpay (if it ever approves): Then Payment Pages for Pro/Max →
    `RAZORPAY_CHECKOUT_URL_PRO/MAX`; deploy `razorpay-webhook` with its secret. Not a blocker for other work.
