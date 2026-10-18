@@ -31,8 +31,13 @@ export function structuralCheck(url: string): LinkCheckResult | null {
   return null;
 }
 
+/** Closed phrases inside scripts and styles are translation tables (WordPress themes ship "position has been filled" on every page), not page text. */
 export function findClosedSignal(html: string): string | null {
-  const lower = html.slice(0, MAX_BODY_CHARS).toLowerCase();
+  const lower = html
+    .replace(/<script\b[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style\b[\s\S]*?<\/style>/gi, ' ')
+    .slice(0, MAX_BODY_CHARS)
+    .toLowerCase();
   return ERROR_404_SIGNATURES.find((sig) => lower.includes(sig)) ?? null;
 }
 

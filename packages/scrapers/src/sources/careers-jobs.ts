@@ -8,11 +8,11 @@ import type { FetchLike } from './ats.js';
 
 /**
  * Company careers sites on the job board: the same listings the feed scraper reads for company snapshots (Workday,
- * SmartRecruiters, Eightfold, Oracle, amazon.jobs, Google careers), turned into job board rows. Greenhouse, Lever and
+ * SmartRecruiters, Eightfold, Oracle, amazon.jobs), turned into job board rows. Greenhouse, Lever and
  * Ashby companies are read by their own sources instead (their board lists include these companies).
  */
 
-export const CAREERS_KINDS = new Set(['workday', 'smartrecruiters', 'eightfold', 'oracle', 'amazon', 'google']);
+export const CAREERS_KINDS = new Set(['workday', 'smartrecruiters', 'eightfold', 'oracle', 'amazon']);
 
 const KIND_TO_EMPLOYMENT: Record<string, EmploymentType> = { internship: 'internship', full_time: 'full_time', other: 'unknown', unknown: 'unknown' };
 

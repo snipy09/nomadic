@@ -19,12 +19,11 @@ export type CareersAdapter =
   /** https://{host}/wday/cxs/{tenant}/{site}/jobs */
   | { kind: 'workday'; host: string; tenant: string; site: string }
   | { kind: 'smartrecruiters'; company: string }
-  /** https://{host}/api/apply/v2/jobs?domain={domain} */
-  | { kind: 'eightfold'; host: string; domain: string }
+  /** https://{host}/api/apply/v2/jobs?domain={domain}, or https://{host}/api/pcsx/search when `api` is 'pcsx' */
+  | { kind: 'eightfold'; host: string; domain: string; api?: 'v2' | 'pcsx' }
   /** Oracle Recruiting Cloud: https://{host}/hcmRestApi/resources/latest/recruitingCEJobRequisitions */
   | { kind: 'oracle'; host: string; site: string }
-  | { kind: 'amazon' }
-  | { kind: 'google' };
+  | { kind: 'amazon' };
 
 export interface CompanyDef {
   slug: string;
@@ -44,8 +43,8 @@ const wd = (tenant: string, n: number, site: string): CareersAdapter => ({
 
 export const COMPANIES: CompanyDef[] = [
   // ── Big tech ─────────────────────────────────────────────────────────────────
-  { slug: 'google', name: 'Google', domain: 'google.com', careersUrl: 'https://www.google.com/about/careers/applications/jobs/results?location=India', category: 'big_tech', careers: { kind: 'google' } },
-  { slug: 'microsoft', name: 'Microsoft', domain: 'microsoft.com', careersUrl: 'https://careers.microsoft.com/', category: 'big_tech', careers: { kind: 'eightfold', host: 'apply.careers.microsoft.com', domain: 'microsoft.com' } },
+  { slug: 'google', name: 'Google', domain: 'google.com', careersUrl: 'https://www.google.com/about/careers/applications/jobs/results?location=India', category: 'big_tech', careers: null }, // robots.txt disallows the jobs results; the old search API is gone (404)
+  { slug: 'microsoft', name: 'Microsoft', domain: 'microsoft.com', careersUrl: 'https://careers.microsoft.com/', category: 'big_tech', careers: { kind: 'eightfold', host: 'apply.careers.microsoft.com', domain: 'microsoft.com', api: 'pcsx' } },
   { slug: 'amazon', name: 'Amazon', domain: 'amazon.jobs', careersUrl: 'https://www.amazon.jobs/en/locations/india', category: 'big_tech', careers: { kind: 'amazon' } },
   { slug: 'apple', name: 'Apple', domain: 'apple.com', careersUrl: 'https://jobs.apple.com/en-in/search?location=india-INDC', category: 'big_tech', careers: null },
   { slug: 'meta', name: 'Meta', domain: 'metacareers.com', careersUrl: 'https://www.metacareers.com/jobs?offices[0]=Bangalore%2C%20India', category: 'big_tech', careers: null },
@@ -58,11 +57,11 @@ export const COMPANIES: CompanyDef[] = [
   { slug: 'uber', name: 'Uber', domain: 'uber.com', careersUrl: 'https://www.uber.com/in/en/careers/', category: 'big_tech', careers: null },
   { slug: 'linkedin', name: 'LinkedIn', domain: 'linkedin.com', careersUrl: 'https://careers.linkedin.com/', category: 'big_tech', careers: null },
   { slug: 'atlassian', name: 'Atlassian', domain: 'atlassian.com', careersUrl: 'https://www.atlassian.com/company/careers/all-jobs', category: 'product', careers: null },
-  { slug: 'walmart', name: 'Walmart Global Tech', domain: 'walmart.com', careersUrl: 'https://careers.walmart.com/', category: 'big_tech', careers: wd('walmart', 5, 'WalmartExternal') },
-  { slug: 'dell', name: 'Dell Technologies', domain: 'dell.com', careersUrl: 'https://jobs.dell.com/', category: 'big_tech', careers: wd('dell', 1, 'External') },
+  { slug: 'walmart', name: 'Walmart Global Tech', domain: 'walmart.com', careersUrl: 'https://careers.walmart.com/', category: 'big_tech', careers: null }, // the Workday tenant is gone; the new careers site is custom
+  { slug: 'dell', name: 'Dell Technologies', domain: 'dell.com', careersUrl: 'https://jobs.dell.com/', category: 'big_tech', careers: { kind: 'oracle', host: 'enterpriseplatform.dell.com', site: 'careers' } },
   { slug: 'hp', name: 'HP', domain: 'hp.com', careersUrl: 'https://jobs.hp.com/', category: 'big_tech', careers: wd('hp', 5, 'ExternalCareerSite') },
   { slug: 'samsung', name: 'Samsung', domain: 'samsung.com', careersUrl: 'https://www.samsung.com/in/about-us/careers/', category: 'big_tech', careers: null },
-  { slug: 'servicenow', name: 'ServiceNow', domain: 'servicenow.com', careersUrl: 'https://careers.servicenow.com/', category: 'product', careers: { kind: 'smartrecruiters', company: 'ServiceNow' } },
+  { slug: 'servicenow', name: 'ServiceNow', domain: 'servicenow.com', careersUrl: 'https://careers.servicenow.com/', category: 'product', careers: null }, // SmartRecruiters' robots.txt admits only LinkedInBot
 
   // ── Product and developer companies hiring in India ─────────────────────────────
   { slug: 'stripe', name: 'Stripe', domain: 'stripe.com', careersUrl: 'https://stripe.com/jobs', category: 'product', careers: { kind: 'greenhouse', board: 'stripe' } },
@@ -73,7 +72,7 @@ export const COMPANIES: CompanyDef[] = [
   { slug: 'coinbase', name: 'Coinbase', domain: 'coinbase.com', careersUrl: 'https://www.coinbase.com/careers', category: 'fintech', careers: { kind: 'greenhouse', board: 'coinbase' } },
   { slug: 'figma', name: 'Figma', domain: 'figma.com', careersUrl: 'https://www.figma.com/careers/', category: 'product', careers: { kind: 'greenhouse', board: 'figma' } },
   { slug: 'mongodb', name: 'MongoDB', domain: 'mongodb.com', careersUrl: 'https://www.mongodb.com/careers', category: 'product', careers: { kind: 'greenhouse', board: 'mongodb' } },
-  { slug: 'postman', name: 'Postman', domain: 'postman.com', careersUrl: 'https://www.postman.com/company/careers/', category: 'product', careers: { kind: 'greenhouse', board: 'postman' } },
+  { slug: 'postman', name: 'Postman', domain: 'postman.com', careersUrl: 'https://www.postman.com/company/careers/', category: 'product', careers: null }, // no public ATS board found
   { slug: 'rubrik', name: 'Rubrik', domain: 'rubrik.com', careersUrl: 'https://www.rubrik.com/company/careers', category: 'product', careers: { kind: 'greenhouse', board: 'rubrik' } },
   { slug: 'twilio', name: 'Twilio', domain: 'twilio.com', careersUrl: 'https://www.twilio.com/en-us/company/jobs', category: 'product', careers: { kind: 'greenhouse', board: 'twilio' } },
   { slug: 'okta', name: 'Okta', domain: 'okta.com', careersUrl: 'https://www.okta.com/company/careers/', category: 'product', careers: { kind: 'greenhouse', board: 'okta' } },
@@ -84,8 +83,8 @@ export const COMPANIES: CompanyDef[] = [
   // ── Indian product companies ──────────────────────────────────────────────────
   { slug: 'flipkart', name: 'Flipkart', domain: 'flipkartcareers.com', careersUrl: 'https://www.flipkartcareers.com/', category: 'indian_product', careers: null },
   { slug: 'meesho', name: 'Meesho', domain: 'meesho.com', careersUrl: 'https://www.meesho.io/jobs', category: 'indian_product', careers: { kind: 'lever', board: 'meesho' } },
-  { slug: 'phonepe', name: 'PhonePe', domain: 'phonepe.com', careersUrl: 'https://www.phonepe.com/careers/', category: 'fintech', careers: { kind: 'greenhouse', board: 'phonepe' } },
-  { slug: 'freshworks', name: 'Freshworks', domain: 'freshworks.com', careersUrl: 'https://www.freshworks.com/company/careers/', category: 'indian_product', careers: { kind: 'smartrecruiters', company: 'Freshworks' } },
+  { slug: 'phonepe', name: 'PhonePe', domain: 'phonepe.com', careersUrl: 'https://www.phonepe.com/careers/', category: 'fintech', careers: null }, // no public ATS board found
+  { slug: 'freshworks', name: 'Freshworks', domain: 'freshworks.com', careersUrl: 'https://www.freshworks.com/company/careers/', category: 'indian_product', careers: null }, // SmartRecruiters' robots.txt admits only LinkedInBot
   { slug: 'swiggy', name: 'Swiggy', domain: 'swiggy.com', careersUrl: 'https://careers.swiggy.com/', category: 'indian_product', careers: null },
   { slug: 'zomato', name: 'Zomato (Eternal)', domain: 'zomato.com', careersUrl: 'https://www.zomato.com/careers', category: 'indian_product', careers: null },
   { slug: 'razorpay', name: 'Razorpay', domain: 'razorpay.com', careersUrl: 'https://razorpay.com/jobs/', category: 'fintech', careers: null },
@@ -97,17 +96,17 @@ export const COMPANIES: CompanyDef[] = [
   { slug: 'browserstack', name: 'BrowserStack', domain: 'browserstack.com', careersUrl: 'https://www.browserstack.com/careers', category: 'indian_product', careers: null },
 
   // ── Finance and payments ───────────────────────────────────────────────────────
-  { slug: 'jpmorgan', name: 'JPMorgan Chase', domain: 'jpmorganchase.com', careersUrl: 'https://careers.jpmorgan.com/in/en/home', category: 'finance', careers: { kind: 'oracle', host: 'jpmc.fa.oraclecloud.com', site: 'CX_1001' } },
+  { slug: 'jpmorgan', name: 'JPMorgan Chase', domain: 'jpmorganchase.com', careersUrl: 'https://careers.jpmorgan.com/in/en/home', category: 'finance', careers: null }, // the site's firewall answers 403 to robots.txt
   { slug: 'goldman-sachs', name: 'Goldman Sachs', domain: 'goldmansachs.com', careersUrl: 'https://www.goldmansachs.com/careers/', category: 'finance', careers: null },
   { slug: 'morgan-stanley', name: 'Morgan Stanley', domain: 'morganstanley.com', careersUrl: 'https://www.morganstanley.com/careers', category: 'finance', careers: null },
-  { slug: 'visa', name: 'Visa', domain: 'visa.com', careersUrl: 'https://corporate.visa.com/en/jobs/', category: 'fintech', careers: { kind: 'smartrecruiters', company: 'Visa' } },
+  { slug: 'visa', name: 'Visa', domain: 'visa.com', careersUrl: 'https://corporate.visa.com/en/jobs/', category: 'fintech', careers: wd('visa', 5, 'Visa') },
   { slug: 'mastercard', name: 'Mastercard', domain: 'mastercard.com', careersUrl: 'https://careers.mastercard.com/', category: 'fintech', careers: wd('mastercard', 1, 'CorporateCareers') },
   { slug: 'paypal', name: 'PayPal', domain: 'paypal.com', careersUrl: 'https://careers.pypl.com/', category: 'fintech', careers: wd('paypal', 1, 'jobs') },
 
   // ── Semiconductors ─────────────────────────────────────────────────────────────
   { slug: 'nvidia', name: 'NVIDIA', domain: 'nvidia.com', careersUrl: 'https://www.nvidia.com/en-in/about-nvidia/careers/', category: 'semiconductor', careers: wd('nvidia', 5, 'NVIDIAExternalCareerSite') },
   { slug: 'intel', name: 'Intel', domain: 'intel.com', careersUrl: 'https://jobs.intel.com/', category: 'semiconductor', careers: wd('intel', 1, 'External') },
-  { slug: 'qualcomm', name: 'Qualcomm', domain: 'qualcomm.com', careersUrl: 'https://careers.qualcomm.com/careers', category: 'semiconductor', careers: { kind: 'eightfold', host: 'careers.qualcomm.com', domain: 'qualcomm.com' } },
+  { slug: 'qualcomm', name: 'Qualcomm', domain: 'qualcomm.com', careersUrl: 'https://careers.qualcomm.com/careers', category: 'semiconductor', careers: { kind: 'eightfold', host: 'careers.qualcomm.com', domain: 'qualcomm.com', api: 'pcsx' } },
   { slug: 'amd', name: 'AMD', domain: 'amd.com', careersUrl: 'https://careers.amd.com/', category: 'semiconductor', careers: null },
   { slug: 'texas-instruments', name: 'Texas Instruments', domain: 'ti.com', careersUrl: 'https://careers.ti.com/', category: 'semiconductor', careers: null },
 

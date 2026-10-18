@@ -79,7 +79,7 @@ describe('discovered boards', () => {
     expect(list.find((c) => c.slug === 'razorpay')?.careers).toEqual({ kind: 'greenhouse', board: 'razorpaysoftware' });
     expect(list.find((c) => c.slug === 'acme')).toMatchObject({ name: 'Acme', careersUrl: 'https://jobs.ashbyhq.com/acme', careers: { kind: 'ashby', board: 'acme' } });
     // A famous company that already has a listing keeps it.
-    expect(list.find((c) => c.slug === 'google')?.careers).toEqual({ kind: 'google' });
+    expect(list.find((c) => c.slug === 'amazon')?.careers).toEqual({ kind: 'amazon' });
   });
 
   it('reads the boards file and ignores a missing or broken one', () => {
@@ -107,11 +107,31 @@ describe('discovered boards', () => {
     expect(await probeBoard(http, 'greenhouse', 'nobody')).toBeNull();
   });
 
+  it('reads the hosted Ashby board page when the posting API cannot be read', async () => {
+    const appData = (jobBoard: unknown) => `<html><script>window.__appData = ${JSON.stringify({ jobBoard })};</script></html>`;
+    const pages: Record<string, string> = {
+      gamma: appData({ jobPostings: [{ id: 'a1', title: 'SWE', locationName: 'Bengaluru', secondaryLocations: [] }, { id: 'a2', title: 'PM', locationName: 'London' }] }),
+      ghost: appData(null),
+    };
+    const fetchImpl = async (url: string) => {
+      const u = new URL(url);
+      if (u.pathname === '/robots.txt') return new Response('', { status: 404 });
+      if (u.host === 'api.ashbyhq.com') return new Response('{}', { status: 500 });
+      const page = pages[u.pathname.slice(1)];
+      return page ? new Response(page, { status: 200, headers: { 'Content-Type': 'text/html' } }) : new Response('', { status: 404 });
+    };
+    const http = new PoliteFetcher({ fetchImpl, sleep: noSleep, minDelayMs: 0 });
+    expect(await probeBoard(http, 'ashby', 'gamma')).toEqual({ total: 2, india: 1 });
+    expect(await probeBoard(http, 'ashby', 'ghost')).toBeNull();
+    expect(await probeBoard(http, 'ashby', 'missing')).toBeNull();
+  });
+
   it('keeps boards with India jobs, drops ones without, and keeps a known board it could not reach', async () => {
     const { fetchImpl } = jsonFetch({
       'https://api.lever.co/v0/postings/acme': () => ({ body: [{ categories: { location: 'Hyderabad' } }] }),
       'https://boards-api.greenhouse.io/v1/boards/zeta/jobs': () => ({ body: { jobs: [{ location: { name: 'New York' } }] } }),
       'https://api.ashbyhq.com/posting-api/job-board/beta': () => ({ status: 500, body: {} }),
+      'https://jobs.ashbyhq.com/beta': () => ({ status: 500, body: {} }),
     });
     const http = new PoliteFetcher({ fetchImpl, sleep: noSleep, minDelayMs: 0 });
     const report = await discoverBoards({
@@ -232,7 +252,7 @@ describe('company careers on the job board', () => {
     const { fetchImpl } = jsonFetch({
       'https://api.smartrecruiters.com/v1/companies/Visa/postings': () => ({ body: { totalFound: 1, content: [{ id: 'v1', name: 'Analyst', location: { city: 'Bengaluru', country: 'in' } }] } }),
     });
-    const visa = COMPANIES.find((c) => c.slug === 'visa')!;
+    const visa = { ...COMPANIES.find((c) => c.slug === 'visa')!, careers: { kind: 'smartrecruiters' as const, company: 'Visa' } };
     const stripe = COMPANIES.find((c) => c.slug === 'stripe')!;
     const broken = { ...visa, slug: 'broken', careers: { kind: 'smartrecruiters' as const, company: 'Broken' } };
     const warnings: string[] = [];

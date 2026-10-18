@@ -52,6 +52,14 @@ describe('checkLink', () => {
     expect((await checkLink(POSTING, fetch)).status).toBe('unknown');
   });
 
+  it('ignores closed phrases inside scripts and styles (theme translation tables)', () => {
+    const page =
+      '<script>var i18n={"This position has been filled":"Sorry, position has been filled"}</script>' +
+      '<style>.filled:after{content:"position has been filled"}</style><h1>Senior Engineer</h1>';
+    expect(findClosedSignal(page)).toBeNull();
+    expect(findClosedSignal(`${page}<p>This position has been filled</p>`)).toBe('position has been filled');
+  });
+
   it('does not scan non-text bodies', async () => {
     const fetch = vi
       .fn()

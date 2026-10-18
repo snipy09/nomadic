@@ -110,17 +110,28 @@ export class PoliteFetcher {
     await this.wait(u.origin, robots);
     this.requests++;
     const method = request.method ?? 'GET';
-    const res = await this.fetchImpl(url, {
-      method,
-      headers: {
-        Accept: 'application/json',
-        'User-Agent': FEED_USER_AGENT,
-        ...(request.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
-        ...request.headers,
-      },
-      body: request.body !== undefined ? JSON.stringify(request.body) : undefined,
-      signal: AbortSignal.timeout(this.timeoutMs),
-    });
+    const send = () =>
+      this.fetchImpl(url, {
+        method,
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': FEED_USER_AGENT,
+          ...(request.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+          ...request.headers,
+        },
+        body: request.body !== undefined ? JSON.stringify(request.body) : undefined,
+        signal: AbortSignal.timeout(this.timeoutMs),
+      });
+    let res = await send();
+    // "Too many requests": wait as asked (Retry-After seconds, default 5 s, at most 30 s) and try once more.
+    if (res.status === 429) {
+      const after = Number(res.headers.get('retry-after'));
+      const ms = Math.min(Number.isFinite(after) && after > 0 ? after * 1000 : 5000, 30000);
+      this.nextAt.set(u.origin, Math.max(this.nextAt.get(u.origin) ?? 0, this.now() + ms + this.minDelayMs));
+      await this.sleep(ms);
+      this.requests++;
+      res = await send();
+    }
     if (!res.ok) throw new Error(`HTTP ${res.status} for ${method} ${url}`);
     return res.json();
   }

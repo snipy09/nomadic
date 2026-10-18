@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  fetchCompanyOpenings,
   normalizeAmazonJob,
   normalizeEightfoldPosition,
-  normalizeGoogleJob,
   normalizeOracleRequisition,
   normalizeSmartRecruitersPosting,
   normalizeWorkdayPosting,
@@ -10,7 +10,7 @@ import {
   parseWorkdayPostedOn,
 } from '../feed/careers.js';
 import { COMPANIES } from '../feed/companies.js';
-import { normalizeDevfolio, normalizeDevpost, normalizeHackerEarth, normalizeUnstop, parseDevpostDates } from '../feed/hackathons.js';
+import { normalizeDevfolio, normalizeDevpost, normalizeHack2skill, normalizeHackerEarth, normalizeUnstop, parseDevpostDates } from '../feed/hackathons.js';
 import { BlockedByRobotsError, PoliteFetcher } from '../feed/http.js';
 import { buildSnapshot, formatFeedSummary, istDate, mergeHackathons, runFeedScrape } from '../feed/run.js';
 import { classifyKind, classifyLevel, classifyRoleFamily, parseHackathon, parseOpening, type Opening } from '../feed/schema.js';
@@ -52,7 +52,7 @@ describe('company registry', () => {
   it('covers big tech, Indian product companies and IT services', () => {
     const cats = new Set(COMPANIES.map((c) => c.category));
     for (const cat of ['big_tech', 'indian_product', 'services', 'finance', 'semiconductor']) expect(cats.has(cat as never)).toBe(true);
-    expect(COMPANIES.filter((c) => c.careers).length).toBeGreaterThanOrEqual(30);
+    expect(COMPANIES.filter((c) => c.careers).length).toBeGreaterThanOrEqual(25);
   });
 });
 
@@ -132,7 +132,7 @@ describe('careers adapters', () => {
     expect(normalizeWorkdayPosting({ title: 'x' }, a, NOW)).toBeNull();
   });
 
-  it('maps SmartRecruiters, Eightfold, Oracle, Amazon and Google postings', () => {
+  it('maps SmartRecruiters, Eightfold, Oracle and Amazon postings', () => {
     const sr = normalizeSmartRecruitersPosting(
       { id: '744000', name: 'Software Engineer Intern', releasedDate: '2026-10-01T10:00:00.000Z', location: { city: 'Bengaluru', country: 'in', remote: false }, typeOfEmployment: { label: 'Intern' }, experienceLevel: { label: 'Internship' } },
       'Visa',
@@ -157,9 +157,30 @@ describe('careers adapters', () => {
 
     const amz = normalizeAmazonJob({ id_icims: '2790123', title: 'SDE I', job_path: '/en/jobs/2790123/sde-i', normalized_location: 'Bengaluru, KA, IND', posted_date: 'October 4, 2026', job_schedule_type: 'full-time' }, NOW)!;
     expect(amz).toMatchObject({ sourceJobId: '2790123', url: 'https://www.amazon.jobs/en/jobs/2790123/sde-i', typeHint: 'full-time' });
+  });
 
-    const g = normalizeGoogleJob({ id: 'jobs/1234', title: 'Software Engineer, University Graduate', locations: [{ display: 'Bengaluru, Karnataka, India' }], publish_date: '2026-10-02T00:00:00Z' }, NOW)!;
-    expect(g).toMatchObject({ sourceJobId: '1234', url: 'https://www.google.com/about/careers/applications/jobs/results/1234' });
+  it('maps an Eightfold pcsx position with a relative link and postedTs', () => {
+    const ef = normalizeEightfoldPosition(
+      { id: 2001, name: 'Software Engineer II', locations: ['Bengaluru, Karnataka, India'], postedTs: 1_790_000_000, positionUrl: '/careers/job/2001', workLocationOption: 'onsite' },
+      { kind: 'eightfold', host: 'apply.careers.microsoft.com', domain: 'microsoft.com', api: 'pcsx' },
+      NOW
+    )!;
+    expect(ef).toMatchObject({ sourceJobId: '2001', url: 'https://apply.careers.microsoft.com/careers/job/2001', remote: false });
+    expect(ef.postedAt).not.toBeNull();
+  });
+
+  it('keeps the Eightfold pages read before a lasting 429, marked truncated', async () => {
+    const fetchImpl = async (url: string) => {
+      if (url.endsWith('/robots.txt')) return new Response('', { status: 404 });
+      if (!url.includes('start=0')) return new Response('', { status: 429 });
+      const positions = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: `Engineer ${i + 1}`, locations: ['Hyderabad, India'], positionUrl: `/careers/job/${i + 1}` }));
+      return new Response(JSON.stringify({ data: { count: 40, positions } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    };
+    const http = new PoliteFetcher({ fetchImpl, sleep: noSleep });
+    const company = { ...COMPANIES.find((c) => c.slug === 'qualcomm')!, careers: { kind: 'eightfold' as const, host: 'careers.q.test', domain: 'q.test', api: 'pcsx' as const } };
+    const result = await fetchCompanyOpenings(company, { http, maxPages: 2, now: NOW });
+    expect(result).toMatchObject({ total: 40, truncated: true });
+    expect(result.openings).toHaveLength(10);
   });
 });
 
@@ -179,6 +200,14 @@ describe('hackathon adapters', () => {
     expect(normalizeHackerEarth({ title: 'Hiring challenge', url: 'https://x', challenge_type: 'hiring' })).toBeNull();
 
     for (const h of [df, un, dp, he]) expect(parseHackathon(h).ok).toBe(true);
+  });
+
+  it('maps Hack2skill events and leaves what it does not state unknown', () => {
+    const h = normalizeHack2skill({ _id: 'e1', eventUrl: 'futurehealth', title: 'Future Health Challenge', status: 'APPROVED', tags: { mode: { value: 'VIRTUAL' } }, registrationEnd: '2026-11-10T18:29:00.000Z' })!;
+    expect(h).toMatchObject({ source: 'hack2skill', url: 'https://hack2skill.com/event/futurehealth', mode: 'online', startsAt: null, inIndia: false, registrationEndsAt: '2026-11-10T18:29:00.000Z' });
+    expect(normalizeHack2skill({ _id: 'e2', eventUrl: 'x', title: 'Y', tags: { mode: { value: 'IN_PERSON' } } })?.mode).toBe('in_person');
+    expect(normalizeHack2skill({ _id: 'e3', eventUrl: 'x', title: 'Draft', status: 'PENDING' })).toBeNull();
+    expect(parseHackathon(h).ok).toBe(true);
   });
 
   it('merges the same event listed on two sites, keeping the richer listing', () => {
@@ -207,6 +236,28 @@ describe('polite fetching', () => {
     const { fetchImpl } = stubFetch({ 'https://b.test/': () => ({}) }, { 'b.test': { status: 403 } });
     const http = new PoliteFetcher({ fetchImpl, sleep: noSleep });
     await expect(http.json('https://b.test/x')).rejects.toThrow('robots.txt could not be read (HTTP 403), so b.test is skipped');
+  });
+
+  it('waits out one 429 (Retry-After) and retries once', async () => {
+    let hits = 0;
+    const fetchImpl = async (url: string) => {
+      if (url.endsWith('/robots.txt')) return new Response('', { status: 404 });
+      hits++;
+      return hits === 1
+        ? new Response('slow down', { status: 429, headers: { 'Retry-After': '3' } })
+        : new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    };
+    const waits: number[] = [];
+    const http = new PoliteFetcher({ fetchImpl, sleep: async (ms) => void waits.push(ms), now: () => 0 });
+    await expect(http.json('https://c.test/x')).resolves.toEqual({ ok: true });
+    expect(waits).toEqual([3000]);
+    expect(hits).toBe(2);
+  });
+
+  it('gives up after a second 429', async () => {
+    const fetchImpl = async (url: string) => new Response('', { status: url.endsWith('/robots.txt') ? 404 : 429 });
+    const http = new PoliteFetcher({ fetchImpl, sleep: noSleep });
+    await expect(http.json('https://d.test/x')).rejects.toThrow('HTTP 429');
   });
 });
 

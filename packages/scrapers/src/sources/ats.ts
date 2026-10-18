@@ -127,9 +127,11 @@ export function normalizeLeverJob(item: any, board: BoardConfig, now = new Date(
 }
 
 export async function fetchLeverBoard(fetchImpl: FetchLike, board: BoardConfig): Promise<JobCandidate[]> {
+  // Lever sends the whole board in one response (Palantir: ~6 MB), so allow longer than the default.
   const data = await getJson(
     fetchImpl,
-    `https://api.lever.co/v0/postings/${encodeURIComponent(board.boardId)}?mode=json`
+    `https://api.lever.co/v0/postings/${encodeURIComponent(board.boardId)}?mode=json`,
+    60000
   );
   const jobs = Array.isArray(data) ? data : [];
   return jobs
@@ -207,11 +209,69 @@ export async function ashbyHostedPageEnabled(fetchImpl: FetchLike, boardId: stri
   }
 }
 
-export async function fetchAshbyBoard(fetchImpl: FetchLike, board: BoardConfig): Promise<JobCandidate[]> {
-  const data = await getJson(
-    fetchImpl,
-    `https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(board.boardId)}?includeCompensation=true`
+/** A posting from the hosted board page's `window.__appData.jobBoard.jobPostings` (no description or date). */
+export function normalizeAshbyPagePosting(item: any, board: BoardConfig): JobCandidate {
+  const secondary: string[] = Array.isArray(item?.secondaryLocations)
+    ? item.secondaryLocations.map((l: any) => cleanText(l?.locationName)).filter(Boolean)
+    : [];
+  return normalizeAshbyJob(
+    {
+      id: item?.id,
+      title: item?.title,
+      location: [cleanText(item?.locationName), ...secondary].filter(Boolean).join('; '),
+      workplaceType: item?.workplaceType,
+      employmentType: item?.employmentType,
+      jobUrl: `https://jobs.ashbyhq.com/${encodeURIComponent(board.boardId)}/${encodeURIComponent(String(item?.id ?? ''))}`,
+    },
+    board
   );
+}
+
+/**
+ * Raw postings from a hosted board page's `window.__appData`. null = no such board (or hosted pages off: the
+ * page then carries `jobBoard: null`); throws when the page has no readable app data.
+ */
+export function parseAshbyBoardPage(html: string): any[] | null {
+  const m = html.match(/window\.__appData\s*=\s*(\{.*?\});\s*(?:<\/script>|\n)/s);
+  if (!m) throw new Error('Ashby board page has no app data');
+  const data = JSON.parse(m[1]);
+  if (data?.jobBoard === null || data?.jobBoard === undefined) return null;
+  const postings = data.jobBoard.jobPostings;
+  return Array.isArray(postings) ? postings.filter((p: any) => p?.id && p?.title) : [];
+}
+
+/**
+ * The hosted board page (jobs.ashbyhq.com/<board>), read when the posting API cannot be: api.ashbyhq.com's
+ * robots.txt answers 401, so polite fetching skips it. A page that lists postings has hosted pages on.
+ */
+export async function fetchAshbyBoardPage(fetchImpl: FetchLike, boardId: string): Promise<any[] | null> {
+  const url = `https://jobs.ashbyhq.com/${encodeURIComponent(boardId)}`;
+  const res = await fetchImpl(url, {
+    headers: { Accept: 'text/html', 'User-Agent': JSON_HEADERS['User-Agent'] },
+    signal: AbortSignal.timeout(20000),
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+  return parseAshbyBoardPage(await res.text());
+}
+
+export async function fetchAshbyBoard(fetchImpl: FetchLike, board: BoardConfig): Promise<JobCandidate[]> {
+  let data: any;
+  try {
+    data = await getJson(
+      fetchImpl,
+      `https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(board.boardId)}?includeCompensation=true`
+    );
+  } catch (err) {
+    let postings: any[] | null;
+    try {
+      postings = await fetchAshbyBoardPage(fetchImpl, board.boardId);
+    } catch {
+      throw err;
+    }
+    // No board page (or hosted pages off): no jobs, so the board's old rows expire as unseen.
+    return (postings ?? []).map((p) => normalizeAshbyPagePosting(p, board));
+  }
   const jobs = Array.isArray(data?.jobs) ? data.jobs : [];
   const listed = jobs.filter((item: any) => item?.id && item?.isListed !== false);
   // No jobs rather than a failed board: the board's old rows then expire as unseen.

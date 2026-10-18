@@ -4,7 +4,7 @@ import { COMPANIES, type CareersAdapter, type CompanyCategory, type CompanyDef }
 import type { PoliteFetcher } from '../feed/http.js';
 import { cleanText } from '../pipeline/normalize.js';
 import { isIndiaEligible } from '../pipeline/region.js';
-import type { BoardConfig } from './ats.js';
+import { fetchAshbyBoardPage, type BoardConfig } from './ats.js';
 import { INDIA_COMPANIES, boardSlugsFor } from './india-companies.js';
 
 /**
@@ -151,7 +151,21 @@ export async function probeBoard(http: PoliteFetcher, ats: DiscoveryAts, board: 
       );
     }
     if (ats === 'ashby') {
-      const data = await getJson(http, `https://api.ashbyhq.com/posting-api/job-board/${b}`);
+      let data: any;
+      try {
+        data = await getJson(http, `https://api.ashbyhq.com/posting-api/job-board/${b}`);
+      } catch (err) {
+        if (err instanceof NotFound) throw err;
+        // The API's robots.txt is unreadable for us (401): read the hosted board page instead.
+        const postings = await fetchAshbyBoardPage(http.asFetch(), board);
+        if (!postings) return null;
+        return count(
+          postings.map((p) => {
+            const places = [p?.locationName, ...(Array.isArray(p?.secondaryLocations) ? p.secondaryLocations.map((s: any) => s?.locationName) : [])];
+            return { location: cleanText(places.filter((x) => typeof x === 'string').join(', ')), remote: /remote/i.test(String(p?.workplaceType ?? '')) };
+          })
+        );
+      }
       const jobs: any[] = (Array.isArray(data?.jobs) ? data.jobs : []).filter((j: any) => j?.isListed !== false);
       return count(
         jobs.map((j) => {

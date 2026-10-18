@@ -46,6 +46,11 @@ export function parsePostedDate(value: unknown, now: Date): string | null {
   else {
     const s = String(value).trim();
     ms = /^\d{10}$/.test(s) ? Number(s) * 1000 : /^\d{13}$/.test(s) ? Number(s) : Date.parse(s);
+    // A bare date like "October 5, 2026" means that day, not local midnight on this machine.
+    if (Number.isFinite(ms) && !/\d:\d|T\d|Z$|[+-]\d{2}:?\d{2}$|^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      const utc = Date.parse(`${s} UTC`);
+      if (Number.isFinite(utc)) ms = utc;
+    }
   }
   if (ms > now.getTime() + 86_400_000) return null;
   return iso(ms);
@@ -164,17 +169,19 @@ export function normalizeEightfoldPosition(item: any, a: Extract<CareersAdapter,
   if (!id || !title) return null;
   const locations: string[] = Array.isArray(item?.locations) ? item.locations.map(String) : [];
   const location = cleanText(locations.length ? locations.join('; ') : item?.location);
-  const url =
-    typeof item?.canonicalPositionUrl === 'string' && item.canonicalPositionUrl.startsWith('http')
-      ? item.canonicalPositionUrl
-      : `https://${a.host}/careers/job/${encodeURIComponent(id)}`;
+  const link = [item?.canonicalPositionUrl, item?.positionUrl].find((u) => typeof u === 'string' && u.length > 0) as string | undefined;
+  const url = link
+    ? link.startsWith('http')
+      ? link
+      : `https://${a.host}${link.startsWith('/') ? '' : '/'}${link}`
+    : `https://${a.host}/careers/job/${encodeURIComponent(id)}`;
   return {
     sourceJobId: id,
     title,
     location,
-    remote: /remote/i.test(String(item?.work_location_option ?? '')),
+    remote: /remote/i.test(String(item?.workLocationOption ?? item?.work_location_option ?? '')),
     url,
-    postedAt: parsePostedDate(item?.t_create, now),
+    postedAt: parsePostedDate(item?.postedTs ?? item?.creationTs ?? item?.t_create, now),
     typeHint: null,
     levelHint: null,
   };
@@ -187,9 +194,19 @@ async function eightfold(a: Extract<CareersAdapter, { kind: 'eightfold' }>, ctx:
   // Eightfold serves 10 per page; allow more pages than the slower APIs.
   const pages = ctx.maxPages * 3;
   for (let page = 0; page < pages; page++) {
-    const data = await ctx.http.json(
-      `https://${a.host}/api/apply/v2/jobs?domain=${encodeURIComponent(a.domain)}&location=India&start=${page * PAGE}&num=${PAGE}&sort_by=timestamp`
-    );
+    const q = `domain=${encodeURIComponent(a.domain)}&location=India&start=${page * PAGE}&sort_by=timestamp`;
+    let data: any;
+    try {
+      // Newer sites answer only the pcsx search (the one their careers page calls); its result sits under `data`.
+      data =
+        a.api === 'pcsx'
+          ? (await ctx.http.json(`https://${a.host}/api/pcsx/search?${q}&query=`))?.data
+          : await ctx.http.json(`https://${a.host}/api/apply/v2/jobs?${q}&num=${PAGE}`);
+    } catch (err) {
+      // Still rate limited after the retry, partway through: keep what was read; truncated, so nothing is expired.
+      if (page > 0 && err instanceof Error && /^HTTP 429 /.test(err.message)) return { openings, total, truncated: true };
+      throw err;
+    }
     total = typeof data?.count === 'number' ? data.count : total;
     const items: any[] = Array.isArray(data?.positions) ? data.positions : [];
     for (const item of items) {
@@ -201,7 +218,7 @@ async function eightfold(a: Extract<CareersAdapter, { kind: 'eightfold' }>, ctx:
   return { openings, total, truncated: true };
 }
 
-// ── Oracle Recruiting Cloud (Oracle, JPMorgan Chase) ──────────────────────────
+// ── Oracle Recruiting Cloud (Oracle, Dell) ────────────────────────────────────
 
 export function normalizeOracleRequisition(item: any, a: Extract<CareersAdapter, { kind: 'oracle' }>, now: Date): RawOpening | null {
   const id = item?.Id ? String(item.Id) : '';
@@ -278,45 +295,6 @@ async function amazon(ctx: CareersContext): Promise<CareersResult> {
   return { openings, total, truncated: true };
 }
 
-// ── Google (careers search API) ───────────────────────────────────────────────
-
-export function normalizeGoogleJob(item: any, now: Date): RawOpening | null {
-  const rawId = String(item?.id ?? item?.job_id ?? '');
-  const id = rawId.replace(/^jobs\//, '');
-  const title = cleanText(item?.title);
-  if (!id || !title) return null;
-  const locations: any[] = Array.isArray(item?.locations) ? item.locations : [];
-  const location = cleanText(locations.map((l) => l?.display ?? [l?.city, l?.country].filter(Boolean).join(', ')).join('; '));
-  const apply = typeof item?.apply_url === 'string' && item.apply_url.startsWith('http') ? item.apply_url : null;
-  return {
-    sourceJobId: id,
-    title,
-    location,
-    remote: /remote/i.test(location),
-    url: apply ?? `https://www.google.com/about/careers/applications/jobs/results/${encodeURIComponent(id)}`,
-    postedAt: parsePostedDate(item?.publish_date ?? item?.created, now),
-    typeHint: null,
-    levelHint: null,
-  };
-}
-
-async function google(ctx: CareersContext): Promise<CareersResult> {
-  const PAGE = 100;
-  const openings: RawOpening[] = [];
-  let total: number | null = null;
-  for (let page = 1; page <= ctx.maxPages; page++) {
-    const data = await ctx.http.json(`https://careers.google.com/api/v3/search/?location=India&page=${page}&page_size=${PAGE}&sort_by=date`);
-    total = typeof data?.count === 'number' ? data.count : total;
-    const items: any[] = Array.isArray(data?.jobs) ? data.jobs : [];
-    for (const item of items) {
-      const o = normalizeGoogleJob(item, ctx.now);
-      if (o) openings.push(o);
-    }
-    if (items.length < PAGE || !data?.next_page) return { openings, total, truncated: false };
-  }
-  return { openings, total, truncated: true };
-}
-
 // ── Dispatch ──────────────────────────────────────────────────────────────────
 
 export async function fetchCompanyOpenings(company: CompanyDef, ctx: CareersContext): Promise<CareersResult> {
@@ -341,8 +319,6 @@ export async function fetchCompanyOpenings(company: CompanyDef, ctx: CareersCont
       return oracle(a, ctx);
     case 'amazon':
       return amazon(ctx);
-    case 'google':
-      return google(ctx);
   }
 }
 

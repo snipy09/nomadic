@@ -4,11 +4,10 @@ import type { PoliteFetcher } from './http.js';
 import type { HackathonCandidate, HackathonMode, HackathonSource } from './schema.js';
 
 /**
- * Hackathon listings: Devfolio, Unstop, Devpost and HackerEarth, read from the JSON their own listing pages
- * load; MLH's season page and Hack2skill's listing, read from the schema.org Event markup they publish; and upcoming
- * Codeforces contests from its official API (kind 'contest'). Only open or upcoming events are asked for. Fields the
- * listing does not give stay null. MLH and Hack2skill pages were not reachable when this was written: if their
- * markup has no Event data the source fails with "no events found", and the parser needs their real layout.
+ * Hackathon listings: Devfolio, Unstop, Devpost, HackerEarth and Hack2skill, read from the JSON their own listing
+ * pages load; MLH's season page, read from the schema.org Event markup it publishes; and upcoming Codeforces contests
+ * from its official API (kind 'contest'). Only open or upcoming events are asked for. Fields the listing does not
+ * give stay null. If MLH's markup has no Event data the source fails with "no events found".
  */
 
 export interface HackathonContext {
@@ -436,7 +435,48 @@ async function pageEvents(ctx: HackathonContext, source: 'mlh' | 'hack2skill', u
 }
 
 const mlh = (ctx: HackathonContext) => pageEvents(ctx, 'mlh', [`https://mlh.io/seasons/${mlhSeason(ctx.now)}/events`]);
-const hack2skill = (ctx: HackathonContext) => pageEvents(ctx, 'hack2skill', ['https://hack2skill.com/', 'https://hack2skill.com/hackathons-listing']);
+
+/**
+ * One Hack2skill event from the JSON its home page loads. It states only the registration window and the mode (no
+ * event dates or place), so dates stay null and an in-person event is not marked as in India.
+ */
+export function normalizeHack2skill(item: any): HackathonCandidate | null {
+  const slug = typeof item?.eventUrl === 'string' ? item.eventUrl.trim() : '';
+  const title = cleanText(item?.title);
+  if (!slug || !title || (item?.status && item.status !== 'APPROVED')) return null;
+  const m = String(item?.tags?.mode?.value ?? '').toUpperCase();
+  const mode: HackathonMode = /VIRTUAL|ONLINE/.test(m) ? 'online' : m === 'HYBRID' ? 'hybrid' : m === 'IN_PERSON' ? 'in_person' : 'unknown';
+  return {
+    source: 'hack2skill',
+    kind: 'hackathon',
+    sourceId: String(item?._id ?? slug),
+    title,
+    organiser: null,
+    url: `https://hack2skill.com/event/${encodeURIComponent(slug)}`,
+    mode,
+    city: null,
+    country: null,
+    inIndia: false,
+    startsAt: null,
+    endsAt: null,
+    registrationEndsAt: isoOrNull(item?.registrationEnd),
+    themes: [],
+    prizeText: null,
+  };
+}
+
+async function hack2skill(ctx: HackathonContext): Promise<HackathonResult> {
+  // The listing ignores paging and returns every event in one answer.
+  const data = (await ctx.http.json('https://hack2skill.com/api/v1/innovator/public/event/list?page=1&records=100'))?.data;
+  if (!data || typeof data !== 'object') throw new Error('Hack2skill listing had no data (its API may have changed)');
+  const items: any[] = Object.values(data).flatMap((v) => (Array.isArray(v) ? v : []));
+  const now = ctx.now.toISOString();
+  const hackathons = items
+    .map(normalizeHack2skill)
+    // No event dates are given: an event whose registration has closed is treated as over.
+    .filter((h): h is HackathonCandidate => h !== null && !(h.registrationEndsAt && h.registrationEndsAt < now));
+  return { hackathons, truncated: false };
+}
 
 export const HACKATHON_FETCHERS: Record<HackathonSource, (ctx: HackathonContext) => Promise<HackathonResult>> = {
   devfolio,

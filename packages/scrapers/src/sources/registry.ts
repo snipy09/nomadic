@@ -82,7 +82,8 @@ const envInt = (name: string, fallback: number) => {
   return Number.isInteger(n) && n > 0 ? n : fallback;
 };
 
-export const RSS_FEEDS = [{ name: 'Jobspresso Tech', url: 'https://jobspresso.co/feed/' }];
+// /feed/ is Jobspresso's (empty) blog feed; the job listings are at /jobs/feed/.
+export const RSS_FEEDS = [{ name: 'Jobspresso Tech', url: 'https://jobspresso.co/jobs/feed/' }];
 
 /** Generic DOM scraping has no default targets; supply them via SCRAPER_DOM_TARGETS (JSON). */
 function domTargetsFromEnv(): { name: string; url: string }[] {
