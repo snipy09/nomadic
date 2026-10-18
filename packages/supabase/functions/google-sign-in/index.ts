@@ -1,7 +1,8 @@
 // google-sign-in Edge Function (SECURITY_CHECKLIST S9, DECISIONS #24).
 //
 // POST { id_token, nonce? } with the anon key as bearer (the desktop app). Verifies the Google ID token server-side
-// (signature via Google's JWKS, iss, aud == the client id stored in Vault as `google_oauth_client_id`, exp,
+// (signature via Google's JWKS, iss, aud in the comma-separated client ids stored in Vault as `google_oauth_client_id`
+// — the desktop client, plus the web client id the Android app uses — exp,
 // email_verified), then calls the service_role-only RPC google_sign_in (migration 021), which finds/links/creates the
 // users_profile row and returns the same row shape as authenticate_user, including a single-use login_ticket. The
 // desktop registers the device with that ticket exactly like password sign-in.
@@ -63,7 +64,10 @@ Deno.serve(async (req: Request) => {
       return json(503, { ok: false, reason: 'Google sign-in is not configured on the server.' });
     }
 
-    const result = await verifyGoogleIdToken(idToken, { audience, getJwks, expectedNonce: nonce });
+    // The Vault value may list several client ids separated by commas: the desktop client and the web client id the
+    // Android app asks Credential Manager for (its tokens carry that id as aud).
+    const audiences = audience.split(',').map((s) => s.trim()).filter(Boolean);
+    const result = await verifyGoogleIdToken(idToken, { audience: audiences, getJwks, expectedNonce: nonce });
     if (!result.ok) {
       console.warn(`[google-sign-in] Token rejected: ${result.error}`);
       return json(401, { ok: false, reason: NOT_VERIFIED });

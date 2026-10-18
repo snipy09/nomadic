@@ -18,6 +18,20 @@ const core = path.join(here, '../../packages/app-core');
 const host = path.join(here, 'src/host');
 const pkg = JSON.parse(fs.readFileSync(path.join(here, 'package.json'), 'utf-8'));
 
+// Google sign-in: the OAuth "Web application" client id that Credential Manager issues ID tokens to (not a secret;
+// the same project needs an "Android" client for com.nomadic.career + the signing key's SHA-1). From the environment
+// or the gitignored apps/android/.env. Without it the Google button is hidden.
+const GOOGLE_WEB_CLIENT_ID = (process.env.GOOGLE_ANDROID_WEB_CLIENT_ID || readDotEnv('GOOGLE_ANDROID_WEB_CLIENT_ID')).trim();
+
+function readDotEnv(key: string): string {
+  try {
+    const line = fs.readFileSync(path.join(here, '.env'), 'utf-8').split(/\r?\n/).find((l) => l.startsWith(`${key}=`));
+    return line ? line.slice(key.length + 1).replace(/^["']|["']$/g, '') : '';
+  } catch {
+    return '';
+  }
+}
+
 const DEFAULT_SUPABASE_URL = 'https://grqkiddfwoyicktpgdea.supabase.co';
 const DEFAULT_SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdycWtpZGRmd295aWNrdHBnZGVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwNTAyNDAsImV4cCI6MjEwNjYyNjI0MH0.ZTuqnzhEbYtmOHgDLTwX8ENFBIkKmrLVo-y6O1Mvsek';
@@ -67,7 +81,8 @@ export default defineConfig({
   plugins: [replaceMainModules(), react(), cspMeta],
   define: {
     'import.meta.env.VITE_PLATFORM': JSON.stringify('android'),
-    'import.meta.env.VITE_GOOGLE_SIGN_IN': JSON.stringify('off'),
+    'import.meta.env.VITE_GOOGLE_SIGN_IN': JSON.stringify(GOOGLE_WEB_CLIENT_ID ? 'on' : 'off'),
+    'import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID': JSON.stringify(GOOGLE_WEB_CLIENT_ID),
     __APP_VERSION__: JSON.stringify(pkg.version),
     'process.env.SUPABASE_URL': JSON.stringify(process.env.SUPABASE_URL || DEFAULT_SUPABASE_URL),
     'process.env.SUPABASE_ANON_KEY': JSON.stringify(process.env.SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY),

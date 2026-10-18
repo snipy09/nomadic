@@ -32,6 +32,10 @@ import { getDb } from '@nomadic/app-core/main/db';
 import { loadDeviceId } from './device';
 import { getLocalDbHealth, initLocalDatabase, persistDbNow } from './db';
 import { DESKTOP_ONLY_ERROR, hostWindow, setAppVersion, setExternalOpener } from './electron';
+import { defaultGoogleDeps, phoneGoogleSignIn } from './google';
+
+// Web client id for Credential Manager (vite.config.ts, from GOOGLE_ANDROID_WEB_CLIENT_ID); empty hides Google.
+const GOOGLE_WEB_CLIENT_ID = ((import.meta as any).env?.VITE_GOOGLE_WEB_CLIENT_ID as string | undefined) || '';
 
 /**
  * Starts the "main process" inside the WebView: the local database, the device id, and the desktop's own
@@ -72,10 +76,8 @@ export async function bootHost(options: BootOptions): Promise<void> {
   handle('delete-application', idArgs, (id) => deleteApplication(id));
 
   // Phone versions of desktop-specific channels.
-  handle('auth-google', googleSignInArgs, () => ({
-    success: false,
-    error: 'Google sign-in is not in the Android app yet. Sign in with your email and password (set one from the desktop app with "Forgot password").',
-  }));
+  const googleDeps = defaultGoogleDeps(GOOGLE_WEB_CLIENT_ID);
+  handle('auth-google', googleSignInArgs, (opts) => phoneGoogleSignIn(googleDeps, opts ?? {}));
   handle('open-external-url', openExternalUrlArgs, async (url) => {
     if (!/^https?:\/\//i.test(url)) return { success: false, error: 'Only web links can be opened.' };
     await options.openExternal(url);

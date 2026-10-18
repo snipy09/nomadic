@@ -100,6 +100,15 @@ describe('verifyGoogleIdToken', () => {
   it('rejects the wrong audience, and fails closed when no audience is configured', async () => {
     expect(await verify(await sign(claims({ aud: 'someone-else.apps.googleusercontent.com' })))).toEqual({ ok: false, error: 'bad_audience' });
     expect(await verify(await sign(claims()), { audience: '' })).toEqual({ ok: false, error: 'bad_audience' });
+    expect(await verify(await sign(claims()), { audience: [] })).toEqual({ ok: false, error: 'bad_audience' });
+  });
+
+  it('accepts any of several audiences (desktop client and the Android web client id)', async () => {
+    const android = 'android-web.apps.googleusercontent.com';
+    expect((await verify(await sign(claims({ aud: android })), { audience: [AUD, android] })).ok).toBe(true);
+    expect((await verify(await sign(claims()), { audience: [android, AUD] })).ok).toBe(true);
+    expect(await verify(await sign(claims({ aud: 'other.apps.googleusercontent.com' })), { audience: [AUD, android] }))
+      .toEqual({ ok: false, error: 'bad_audience' });
   });
 
   it('rejects the wrong issuer', async () => {

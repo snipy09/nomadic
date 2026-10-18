@@ -379,7 +379,13 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess, onLog, n
             <span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" />
           </div>
 
-          {googleWaiting ? (
+          {googleWaiting && IS_MOBILE ? (
+            // The phone's account picker is a native sheet over the app; this shows while the server signs in.
+            <div className="flex items-center gap-2 rounded-md border border-line bg-surface-sunken p-3 text-body text-fg" role="status" aria-live="polite">
+              <Spinner size="sm" label={null} />
+              <span>Signing in with Google…</span>
+            </div>
+          ) : googleWaiting ? (
             <div className="flex flex-col gap-3 rounded-md border border-line bg-surface-sunken p-3" role="status" aria-live="polite">
               <div className="flex items-center gap-2 text-body text-fg">
                 <Spinner size="sm" label={null} />

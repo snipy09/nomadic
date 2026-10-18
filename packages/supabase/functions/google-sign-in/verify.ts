@@ -5,7 +5,7 @@
 // Checks, per https://developers.google.com/identity/openid-connect/openid-connect#validatinganidtoken :
 //   - RS256 signature against Google's JWKS (https://www.googleapis.com/oauth2/v3/certs), key chosen by `kid`
 //   - iss is accounts.google.com (with or without https://)
-//   - aud equals our OAuth client id (read from Vault by the caller)
+//   - aud is one of our OAuth client ids (read from Vault by the caller)
 //   - exp is in the future and iat is not in the future (small clock skew allowed)
 //   - email is present and email_verified is true
 //   - nonce matches when the caller supplies one
@@ -50,8 +50,11 @@ export type VerifyError =
   | 'bad_nonce';
 
 export interface VerifyOptions {
-  /** The OAuth client id the token must be issued to. Required; an empty value fails closed. */
-  audience: string;
+  /**
+   * The OAuth client id(s) the token may be issued to (desktop client, and the web client id the Android app passes
+   * to Credential Manager). Required; empty fails closed.
+   */
+  audience: string | string[];
   /** Returns the JWKS; called again with `forceRefresh` when the token's kid is not in the cached set. */
   getJwks: (forceRefresh: boolean) => Promise<Jwks>;
   /** Current time in seconds since the epoch (tests). */
@@ -94,7 +97,8 @@ function findKey(jwks: Jwks | undefined, kid: string): RsaJwk | undefined {
 }
 
 export async function verifyGoogleIdToken(token: string, opts: VerifyOptions): Promise<VerifyResult> {
-  if (!opts.audience) return { ok: false, error: 'bad_audience' };
+  const audiences = (Array.isArray(opts.audience) ? opts.audience : [opts.audience]).filter((a) => typeof a === 'string' && a);
+  if (audiences.length === 0) return { ok: false, error: 'bad_audience' };
   if (typeof token !== 'string' || token.length > 8192) return { ok: false, error: 'malformed' };
   const parts = token.split('.');
   if (parts.length !== 3) return { ok: false, error: 'malformed' };
@@ -129,7 +133,7 @@ export async function verifyGoogleIdToken(token: string, opts: VerifyOptions): P
   if (typeof claims.iss !== 'string' || !GOOGLE_ISSUERS.includes(claims.iss)) return { ok: false, error: 'bad_issuer' };
 
   const aud = claims.aud;
-  const audOk = typeof aud === 'string' ? aud === opts.audience : Array.isArray(aud) && aud.includes(opts.audience);
+  const audOk = typeof aud === 'string' ? audiences.includes(aud) : Array.isArray(aud) && aud.some((a) => audiences.includes(a));
   if (!audOk) return { ok: false, error: 'bad_audience' };
 
   const now = opts.nowSeconds ?? Math.floor(Date.now() / 1000);

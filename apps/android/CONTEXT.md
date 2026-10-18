@@ -59,7 +59,21 @@ Local emulator (18 Oct 2026): AVD `NomadicTest` (Pixel 7, API 35 google_apis x86
 Android back sends a cancelable Escape first: a dialog, the reset-password view or "Create account" handles it
 (`preventDefault`), otherwise the app goes back in history or is minimised.
 
+## Google sign-in
+
+Native Credential Manager, not a browser redirect. `android/.../GoogleSignInPlugin.java` (Capacitor plugin
+`NomadicGoogle`, registered in `MainActivity`) shows the Google account sheet with `GetSignInWithGoogleOption`
+(server client id + nonce) and returns the ID token. `src/host/google.ts` sends it with that nonce to the
+`google-sign-in` Edge Function (`signInWithGoogleIdToken`, same as the desktop) and emits `oauth-callback`, so the
+sign-in screen, the single-device conflict and onboarding work as on the desktop. No client secret anywhere.
+
+Setup (owner): in the same Google Cloud project as the desktop client, create an OAuth **Web application** client and
+an **Android** client (package `com.nomadic.career`, release SHA-1
+`1A:1D:70:D7:FD:8B:DA:C2:C2:07:DD:31:61:4C:67:CC:42:29:41:D1`). Set Vault `google_oauth_client_id` to
+`<desktop id>,<web id>` (the function accepts any id in the comma list). Build with `GOOGLE_ANDROID_WEB_CLIENT_ID=<web id>`
+in the environment or in the gitignored `apps/android/.env`; without it the Google button is hidden. Checked on the
+emulator (18 Oct 2026) with a placeholder id: the account sheet opens, cancelling shows "Google sign-in was cancelled."
+
 ## Limits today
 
-No Google sign-in on the phone yet (email + password), no push notifications, no Play Billing decision yet (Play
-Billing vs user-choice billing for Pro/Max).
+No push notifications, no Play Billing decision yet (Play Billing vs user-choice billing for Pro/Max).
