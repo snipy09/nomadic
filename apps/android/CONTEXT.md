@@ -73,6 +73,8 @@ an **Android** client (package `com.nomadic.career`, release SHA-1
 `<desktop id>,<web id>` (the function accepts any id in the comma list). Build with `GOOGLE_ANDROID_WEB_CLIENT_ID=<web id>`
 in the environment or in the gitignored `apps/android/.env`; without it the Google button is hidden. Checked on the
 emulator (18 Oct 2026) with a placeholder id: the account sheet opens, cancelling shows "Google sign-in was cancelled."
+Set up 18 Oct 2026 (Google Cloud project `nomadic-510606`): web client `547044972019-7roc…` is in Vault after the
+desktop id and in the laptop's `apps/android/.env`; the Android client exists. 1.5.1 is the first build with it on.
 
 ## Limits today
 

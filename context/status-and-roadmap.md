@@ -23,9 +23,9 @@ screens). The owner has signed in on the packaged v1.0.6 app and run apply up to
 ## What is left
 
 Owner actions:
-00000. **Android Google sign-in** (18 Oct 2026): create the Web and Android OAuth clients, set Vault
-   `google_oauth_client_id` to `<desktop id>,<web id>`, put `GOOGLE_ANDROID_WEB_CLIENT_ID` in `apps/android/.env`, then
-   build and upload the next Android version (see `apps/android/CONTEXT.md`, "Google sign-in").
+00000. **Android 1.5.1 with Google sign-in** (18 Oct 2026): clients, Vault and `.env` are done. Upload
+   `Desktop\Nomadic Content\App builds\Nomadic-1.5.1-android.apk` as release `android-v1.5.1`, try Google sign-in on a
+   real phone, then set `ANDROID_DOWNLOAD.version` to 1.5.1 and redeploy the site.
 0000. **In-app review go-live** (8 Oct 2026): paste `packages/supabase/baseline/apply_034.sql` in the Supabase SQL
    editor (or apply it through the connector). Until then the apps simply never show the review (the status call fails
    quietly). Read results with SQL on `app_reviews`.
