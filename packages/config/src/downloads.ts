@@ -26,7 +26,7 @@ export const WINDOWS_DOWNLOAD: { version: string | null; minimumWindows: string 
 };
 
 export const ANDROID_DOWNLOAD: { version: string | null; minimumAndroid: string } = {
-  version: null,
+  version: '1.5.0',
   minimumAndroid: '7.0',
 };
 
