@@ -12,8 +12,8 @@ changing. Keep facts in `context/` (update the right file and `context/history.m
 - Shared: `packages/app-ui` (every screen), `packages/app-core` (Electron main process, IPC contract, local SQLite),
   `packages/ui` (design system), `packages/config` (prices, flags, legal), learning, form-engine, automation,
   scrapers, supabase.
-- Backend: Supabase project `nomadic` (ref `grqkiddfwoyicktpgdea`, Mumbai). Migrations 001–033 are live (no 013);
-  034 (in-app review) is in the repo, not applied yet; **next is 035**. Data is published by the Desktop scraper folder (`context/scrapers.md`).
+- Backend: Supabase project `nomadic` (ref `grqkiddfwoyicktpgdea`, Mumbai). Migrations 001–033, 035 and 036 are live (no 013);
+  034 (in-app review) is in the repo, not applied yet; **next is 037**. Data is published by the Desktop scraper folder (`context/scrapers.md`).
 
 ## Where a change goes
 

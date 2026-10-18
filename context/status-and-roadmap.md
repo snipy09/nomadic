@@ -54,7 +54,7 @@ Owner actions:
 4. Google OAuth: done (Vault, repo secrets, local `.env`). If the consent screen is in "Testing", add testers or
    publish it, or only listed Google accounts can sign in.
 5. Verify a sending domain in Resend; store `email_from` in Vault.
-6. **UPI direct payments** (18 Oct 2026, no gateway accepted the account): paste `packages/supabase/baseline/apply_035.sql`, then `UPDATE public.upi_settings SET vpa = '<business UPI ID>', payee_name = 'Nomadic', enabled = TRUE;`. Users pay by QR/UPI link with an order reference and enter the 12-digit UTR; approve or reject in Admin → Payments after checking the bank app. Until enabled, Upgrade falls back to WhatsApp. Razorpay (if it ever approves): Then Payment Pages for Pro/Max →
+6. **UPI direct payments** (18 Oct 2026, no gateway accepted the account): live (035 + 036 applied, UPI ID set, enabled). Left: switch to a business/merchant UPI ID when there is one (the personal handle shows the phone number in UPI apps); Windows 1.5.0 has the UPI screen, Mac 1.4.0 does not (falls back to WhatsApp) until a Mac 1.5.0 is built. Users pay by QR/UPI link with an order reference and enter the 12-digit UTR; approve or reject in Admin → Payments after checking the bank app. Until enabled, Upgrade falls back to WhatsApp. Razorpay (if it ever approves): Then Payment Pages for Pro/Max →
    `RAZORPAY_CHECKOUT_URL_PRO/MAX`; deploy `razorpay-webhook` with its secret. Not a blocker for other work.
 7. Code-signing certificate for releases; Sentry DSN if crash reports are wanted.
 8. Lawyer review of the legal text; real `support@` and `grievance@` mailboxes; registered business name.
