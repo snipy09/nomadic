@@ -94,6 +94,19 @@ export function serviceClientFromEnv(env: NodeJS.ProcessEnv = process.env) {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
+/** The project ref a legacy JWT key was issued for, when it differs from the URL's project; otherwise null. */
+export function keyProjectMismatch(url: string, key: string): string | null {
+  const urlRef = /^https:\/\/([a-z0-9]+)\.supabase\.co/i.exec(url)?.[1];
+  const payload = key.startsWith('eyJ') ? key.split('.')[1] : undefined;
+  if (!urlRef || !payload) return null;
+  try {
+    const ref = (JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as { ref?: unknown }).ref;
+    return typeof ref === 'string' && ref !== urlRef ? ref : null;
+  } catch {
+    return null;
+  }
+}
+
 function annotate(level: 'warning' | 'error', message: string) {
   // GitHub Actions turns these into annotations; elsewhere they are plain log lines.
   console.log(process.env.GITHUB_ACTIONS ? `::${level}::${message}` : `[${level}] ${message}`);
@@ -490,6 +503,14 @@ async function runAutoCommand(home: string, force: string | undefined, dryRun: b
     return 2;
   }
   process.env.SUPABASE_URL ||= 'https://grqkiddfwoyicktpgdea.supabase.co';
+  const otherRef = dryRun ? null : keyProjectMismatch(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY ?? '');
+  if (otherRef) {
+    console.error(
+      `The service key in ${envFile} belongs to Supabase project ${otherRef}, not ${process.env.SUPABASE_URL}. ` +
+        'Run Setup.cmd and paste the service_role key of the right project.'
+    );
+    return 2;
+  }
   const stop = teeConsole(join(home, 'logs', `auto-${new Date().toISOString().slice(0, 7)}.log`));
   try {
     const result = await runAuto({ home, force: forced, dryRun, exec: (args) => main(args) });

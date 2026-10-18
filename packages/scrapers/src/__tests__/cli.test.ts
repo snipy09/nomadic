@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { main, serviceClientFromEnv } from '../cli.js';
+import { keyProjectMismatch, main, serviceClientFromEnv } from '../cli.js';
 
 describe('scrape CLI', () => {
   afterEach(() => vi.restoreAllMocks());
@@ -21,5 +21,15 @@ describe('scrape CLI', () => {
   it('requires service-role credentials to publish', () => {
     expect(() => serviceClientFromEnv({ SUPABASE_URL: 'https://x.supabase.co' })).toThrow(/SUPABASE_SERVICE_ROLE_KEY/);
     expect(() => serviceClientFromEnv({})).toThrow(/SUPABASE_URL/);
+  });
+
+  it('spots a JWT service key issued for another project', () => {
+    const jwt = (ref: string) =>
+      `eyJhbGciOiJIUzI1NiJ9.${Buffer.from(JSON.stringify({ ref, role: 'service_role' })).toString('base64url')}.sig`;
+    const url = 'https://grqkiddfwoyicktpgdea.supabase.co';
+    expect(keyProjectMismatch(url, jwt('jympejesevicwleptfzq'))).toBe('jympejesevicwleptfzq');
+    expect(keyProjectMismatch(url, jwt('grqkiddfwoyicktpgdea'))).toBeNull();
+    expect(keyProjectMismatch(url, 'sb_secret_abc')).toBeNull();
+    expect(keyProjectMismatch(url, 'eyJnot.json.x')).toBeNull();
   });
 });

@@ -72,7 +72,23 @@ function Read-Secret([string]$prompt) {
 }
 
 if (-not (Get-Value 'SUPABASE_URL')) { Set-Value 'SUPABASE_URL' $defaultUrl }
+# Asks Supabase whether the key works for this project: 'ok', 'rejected' (wrong project, rotated) or 'offline'.
+function Test-Key([string]$value) {
+  try {
+    Invoke-WebRequest -UseBasicParsing -TimeoutSec 20 -Uri "$(Get-Value 'SUPABASE_URL')/rest/v1/companies?select=id&limit=1" `
+      -Headers @{ apikey = $value; Authorization = "Bearer $value" } | Out-Null
+    return 'ok'
+  } catch {
+    $status = 0
+    if ($_.Exception.Response) { $status = [int]$_.Exception.Response.StatusCode }
+    if ($status -eq 401 -or $status -eq 403) { return 'rejected' } else { return 'offline' }
+  }
+}
 $key = Get-Value 'SUPABASE_SERVICE_ROLE_KEY'
+if ($key -match '^(eyJ|sb_secret_)' -and (Test-Key $key) -eq 'rejected') {
+  Write-Host "The saved service key is rejected by $(Get-Value 'SUPABASE_URL') (another project's key, or rotated). Paste the current one." -ForegroundColor Yellow
+  $key = ''
+}
 if ($key -notmatch '^(eyJ|sb_secret_)') {
   # The old launchers kept the key in the repo's .env (Desktop\Nomadic\.env).
   $repoEnv = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Nomadic\.env'
@@ -90,6 +106,10 @@ if ($key -notmatch '^(eyJ|sb_secret_)') {
   }
   if ($key -notmatch '^(eyJ|sb_secret_)') {
     Write-Host 'That does not look like a service role key (it starts with eyJ or sb_secret_). Nothing saved.' -ForegroundColor Red
+    exit 1
+  }
+  if ((Test-Key $key) -eq 'rejected') {
+    Write-Host "Supabase rejected that key for $(Get-Value 'SUPABASE_URL'). Copy the service_role / secret key of that project. Nothing saved." -ForegroundColor Red
     exit 1
   }
   Set-Value 'SUPABASE_SERVICE_ROLE_KEY' $key
