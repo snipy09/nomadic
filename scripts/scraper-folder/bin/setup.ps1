@@ -84,6 +84,19 @@ function Test-Key([string]$value) {
     if ($status -eq 401 -or $status -eq 403) { return 'rejected' } else { return 'offline' }
   }
 }
+# Says what is wrong with a key without sending it anywhere; empty when it may be right.
+function Describe-Key([string]$value, [string]$urlRef) {
+  if ($value -match '^sb_secret_') { return '' }
+  if ($value -match '^sb_publishable_') { return 'that is the publishable key; the scraper needs the secret / service_role key.' }
+  if ($value -notmatch '^eyJ[\w-]+\.[\w-]+\.[\w-]+$') { return 'that does not look like a key (a service_role key starts with eyJ, a secret key with sb_secret_).' }
+  try {
+    $p = $value.Split('.')[1].Replace('-', '+').Replace('_', '/'); while ($p.Length % 4) { $p += '=' }
+    $claims = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($p)) | ConvertFrom-Json
+  } catch { return 'that key is cut off or damaged; copy it again.' }
+  if ($claims.ref -and $urlRef -and $claims.ref -ne $urlRef) { return "that key is for project $($claims.ref), not $urlRef. Switch project in the dashboard." }
+  if ($claims.role -ne 'service_role') { return "that is the $($claims.role) key; use the service_role one (click Reveal)." }
+  return ''
+}
 $key = Get-Value 'SUPABASE_SERVICE_ROLE_KEY'
 if ($key -match '^(eyJ|sb_secret_)' -and (Test-Key $key) -eq 'rejected') {
   Write-Host "The saved service key is rejected by $(Get-Value 'SUPABASE_URL') (another project's key, or rotated). Paste the current one." -ForegroundColor Yellow
@@ -99,18 +112,20 @@ if ($key -notmatch '^(eyJ|sb_secret_)') {
   if ($old -and (Read-Host "Found the service key in $repoEnv. Use it? (Y/n)") -notmatch '^[nN]') {
     $key = $old
   } else {
+    $urlRef = ([regex]::Match((Get-Value 'SUPABASE_URL'), '^https://([a-z0-9]+)\.')).Groups[1].Value
     Write-Host ''
-    Write-Host 'Paste the Supabase service_role / secret key (Supabase dashboard > Project Settings > API keys).'
+    Write-Host "Paste the service_role / secret key of Supabase project $urlRef"
+    Write-Host '(Supabase dashboard > that project > Project Settings > API keys > service_role "Reveal", or a Secret key).'
     Write-Host 'It is saved only in this folder''s .env and never uploaded. Typing is hidden.'
-    $key = Read-Secret 'Service role key'
-  }
-  if ($key -notmatch '^(eyJ|sb_secret_)') {
-    Write-Host 'That does not look like a service role key (it starts with eyJ or sb_secret_). Nothing saved.' -ForegroundColor Red
-    exit 1
-  }
-  if ((Test-Key $key) -eq 'rejected') {
-    Write-Host "Supabase rejected that key for $(Get-Value 'SUPABASE_URL'). Copy the service_role / secret key of that project. Nothing saved." -ForegroundColor Red
-    exit 1
+    $key = ''
+    for ($try = 1; $try -le 3 -and -not $key; $try++) {
+      # Pasting often brings quotes, "Bearer ", "KEY=" or line breaks along; keep only the key.
+      $raw = (Read-Secret 'Service role key') -replace '\s', '' -replace '^.*=(?=eyJ|sb_)', '' -replace '^Bearer', '' -replace '^[''"]|[''"]$', ''
+      $reason = Describe-Key $raw $urlRef
+      if (-not $reason -and (Test-Key $raw) -eq 'rejected') { $reason = "Supabase rejected it ($($raw.Length) characters). Copy it again with the copy button." }
+      if ($reason) { Write-Host "Not saved: $reason" -ForegroundColor Red } else { $key = $raw }
+    }
+    if (-not $key) { exit 1 }
   }
   Set-Value 'SUPABASE_SERVICE_ROLE_KEY' $key
 }
