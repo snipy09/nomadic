@@ -141,6 +141,6 @@ Write-Host "`nDone. Your app is in: $downloads" -ForegroundColor Cyan
 Write-Host "  - 'Nomadic.Setup.$version.exe'  = installer (recommended)" -ForegroundColor Gray
 Write-Host "  - 'Nomadic.$version.exe'        = portable, no install" -ForegroundColor Gray
 
-# --- 6. Website download (zip with only Nomadic.exe + SHA-256) ----------------
+# --- 6. Website download (zip with only "Nomadic Setup.exe" + SHA-256) ----------------
 & (Join-Path $PSScriptRoot "make-release.ps1")
 Start-Process explorer.exe $downloads

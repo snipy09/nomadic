@@ -1,8 +1,8 @@
 # Nomadic for Windows: one-line installer.
 #   irm https://nomadicai.vercel.app/install/windows.ps1 | iex
-# Downloads the Windows zip, checks its SHA-256, puts Nomadic.exe in %LOCALAPPDATA%\Programs\Nomadic, adds Start menu
-# and Desktop shortcuts and opens it. No admin rights; nothing else on the PC is changed. Files downloaded by PowerShell
-# carry no "downloaded from the internet" mark, so SmartScreen does not stop the app.
+# Downloads the Windows zip, checks its SHA-256 and runs the Nomadic installer inside it ("Nomadic Setup.exe"), which
+# installs Nomadic with Start menu and Desktop shortcuts and an uninstaller, then opens it. Files downloaded by
+# PowerShell carry no "downloaded from the internet" mark, so SmartScreen does not stop the installer.
 # $Version must match WINDOWS_DOWNLOAD.version in packages/config/src/downloads.ts. Keep this file ASCII.
 & {
   $ErrorActionPreference = 'Stop'
@@ -21,7 +21,7 @@
     $work = Join-Path ([IO.Path]::GetTempPath()) ('nomadic-install-' + [Guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $work | Out-Null
     try {
-      Say "Downloading Nomadic $Version for Windows (about 95 MB)..."
+      Say "Downloading Nomadic $Version for Windows (about 90 MB)..."
       $zip = Join-Path $work $zipName
       try { Invoke-WebRequest -UseBasicParsing -Uri "$Site/downloads/$zipName" -OutFile $zip }
       catch { throw 'download failed. Check your internet connection and try again.' }
@@ -40,32 +40,13 @@
       Add-Type -AssemblyName System.IO.Compression.FileSystem
       $unzipped = Join-Path $work 'unzipped'
       [IO.Compression.ZipFile]::ExtractToDirectory($zip, $unzipped)
-      $newExe = Join-Path $unzipped 'Nomadic.exe'
-      if (-not (Test-Path $newExe)) { throw 'Nomadic.exe is missing from the zip.' }
+      $setup = Join-Path $unzipped 'Nomadic Setup.exe'
+      if (-not (Test-Path -LiteralPath $setup)) { throw 'Nomadic Setup.exe is missing from the zip.' }
 
-      # Close a running copy so it can be replaced.
-      Get-Process -Name 'Nomadic', 'NomadicOS' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-      Start-Sleep -Seconds 2
-
-      $dest = Join-Path $env:LOCALAPPDATA 'Programs\Nomadic'
-      New-Item -ItemType Directory -Force -Path $dest | Out-Null
-      $exe = Join-Path $dest 'Nomadic.exe'
-      Copy-Item $newExe $exe -Force
-      Unblock-File $exe -ErrorAction SilentlyContinue
-
-      $shell = New-Object -ComObject WScript.Shell
-      $places = @([Environment]::GetFolderPath('Programs'), [Environment]::GetFolderPath('Desktop'))
-      foreach ($place in $places) {
-        if (-not $place) { continue }
-        $link = $shell.CreateShortcut((Join-Path $place 'Nomadic.lnk'))
-        $link.TargetPath = $exe
-        $link.WorkingDirectory = $dest
-        $link.Description = 'Nomadic'
-        $link.Save()
-      }
-
-      Say "Installed in $dest (Start menu and Desktop shortcuts added). Opening Nomadic..."
-      Start-Process -FilePath $exe -WorkingDirectory $dest
+      Say 'Opening the Nomadic installer. Follow its steps; Nomadic opens when it finishes.'
+      $run = Start-Process -FilePath $setup -Wait -PassThru
+      if ($run.ExitCode -eq 0) { Say 'Done. Nomadic is installed (Start menu and Desktop shortcuts).' }
+      else { Write-Host 'The installer was closed before it finished. Run the command again to install Nomadic.' -ForegroundColor Yellow }
     } finally {
       Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue
     }

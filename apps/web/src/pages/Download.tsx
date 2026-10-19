@@ -185,7 +185,8 @@ function WindowsGuide() {
         </h3>
         <p className="mt-2 text-ink-soft">
           Open <b className="text-ink">PowerShell</b> (Start menu: type PowerShell), paste this line and press Enter. It downloads
-          Nomadic, checks it, installs it with Start menu and Desktop shortcuts and opens it. No blue SmartScreen box.
+          Nomadic, checks it and opens the Nomadic installer. Follow its steps; Nomadic opens when it finishes. No blue SmartScreen
+          box.
         </p>
         <div className="mt-4">
           <CopyCommand command={WINDOWS_COMMAND} shell="PowerShell" prompt="PS> " />
@@ -202,13 +203,13 @@ function WindowsGuide() {
           <Steps>
             {[
               <>Open the downloaded zip, click <b>Extract all</b>, then <b>Extract</b>.</>,
-              <>Double-click <b>Nomadic.exe</b> (the only file in the zip). The first start takes a few seconds.</>,
+              <>Double-click <b>Nomadic Setup.exe</b> (the only file in the zip).</>,
               <>
                 If a blue &quot;Windows protected your PC&quot; box appears, click <b>More info</b>, then <b>Run anyway</b>. Windows asks
                 only the first time.
               </>,
               <>
-                Optional: right-click <b>Nomadic.exe</b> → <b>Show more options</b> → <b>Send to</b> → <b>Desktop (create shortcut)</b>.
+                Follow the installer. It adds Start menu and Desktop shortcuts and opens Nomadic when it finishes.
               </>,
             ]}
           </Steps>
@@ -217,10 +218,10 @@ function WindowsGuide() {
       <div className="space-y-4">
         <Note title="Why the blue box">
           Nomadic is not yet signed with a paid code-signing certificate, so SmartScreen warns about files downloaded in a browser. The
-          PowerShell command skips it. With the zip, run Nomadic after extracting, not from inside the zip.
+          PowerShell command skips it. With the zip, run the installer after extracting, not from inside the zip.
         </Note>
-        <Note title="Updating">Run the command again, or replace Nomadic.exe with the one from the new zip. Your data stays.</Note>
-        <Note title="No admin rights">The command installs only for you, in your user folder.</Note>
+        <Note title="Updating">Run the command again, or run the installer from the new zip. Your data stays.</Note>
+        <Note title="Uninstalling">Settings → Apps → Installed apps → Nomadic → Uninstall.</Note>
       </div>
     </div>
   );
