@@ -1,4 +1,4 @@
-import { CSSProperties, ReactNode, useState } from 'react';
+import { CSSProperties, KeyboardEvent, ReactNode, useEffect, useState } from 'react';
 import {
   ANDROID_DOWNLOAD,
   CONTACT_EMAIL,
@@ -7,15 +7,19 @@ import {
   WINDOWS_DOWNLOAD,
   androidChecksumsPath,
   androidDownloadPath,
+  macChecksumsPath,
   windowsChecksumsPath,
   windowsDownloadPath,
 } from '@nomadic/config';
+import { ArrowDown, Check, Copy, Download as DownloadIcon, Laptop, Monitor, ShieldCheck, Smartphone, type LucideIcon } from 'lucide-react';
 import Nav from '../components/Nav';
 import Footer from '../components/Footer';
 import ComingSoon from '../components/ComingSoon';
-import MacDownload, { MacInstallSteps } from '../components/MacDownload';
+import MacDownload from '../components/MacDownload';
 import { SITE } from '../seo';
 import { platformLine } from '../content';
+import { PLATFORMS, detectPlatform, isPlatform, type Platform } from '../platform';
+import { prefersReducedMotion } from '../hooks';
 
 const delay = (ms: number) => ({ '--d': `${ms}ms` } as CSSProperties);
 
@@ -23,20 +27,117 @@ const MAC_COMMAND = `curl -fsSL ${SITE}${MAC_INSTALL_SCRIPT_PATH} | bash`;
 
 const linkClass = 'font-bold text-ink underline decoration-2 underline-offset-4 hover:text-ultra';
 
-function Steps({ children }: { children: ReactNode }) {
-  return <ol className="mt-6 max-w-2xl list-decimal space-y-3 pl-6 text-lg">{children}</ol>;
+const INFO: Record<Platform, { name: string; icon: LucideIcon; version: string | null; requirement: string }> = {
+  windows: {
+    name: 'Windows',
+    icon: Monitor,
+    version: WINDOWS_DOWNLOAD.version,
+    requirement: `Windows ${WINDOWS_DOWNLOAD.minimumWindows} or Windows 11`,
+  },
+  mac: { name: 'Mac', icon: Laptop, version: MAC_DOWNLOAD.version, requirement: `macOS ${MAC_DOWNLOAD.minimumMacOS} or later` },
+  android: { name: 'Android', icon: Smartphone, version: ANDROID_DOWNLOAD.version, requirement: `Android ${ANDROID_DOWNLOAD.minimumAndroid} or later` },
+};
+
+const CHECKSUMS: Record<Platform, (version: string) => string> = {
+  windows: windowsChecksumsPath,
+  mac: macChecksumsPath,
+  android: androidChecksumsPath,
+};
+
+/* ---------- Platform cards (hero) ---------- */
+
+function PrimaryDownload({ href, label, detail }: { href: string; label: string; detail: string }) {
+  return (
+    <a
+      href={href}
+      className="flex min-h-14 w-full items-center justify-between gap-3 border-2 border-ink bg-ink px-4 py-2 font-bold text-white hover:border-ultra hover:bg-ultra"
+    >
+      <span className="flex flex-col">
+        <span>{label}</span>
+        <span className="text-sm font-normal text-white/75">{detail}</span>
+      </span>
+      <DownloadIcon aria-hidden className="h-5 w-5 shrink-0" />
+    </a>
+  );
 }
 
-function PlatformSection({ id, title, children, tone = 'white' }: { id: string; title: string; children: ReactNode; tone?: 'white' | 'fog' }) {
+function PlatformCard({ platform, mine, onSteps, index }: { platform: Platform; mine: boolean; onSteps: (p: Platform) => void; index: number }) {
+  const { name, icon: Icon, version, requirement } = INFO[platform];
+
+  let action: ReactNode;
+  if (!version) action = <ComingSoon size="md" label="Download" block />;
+  else if (platform === 'windows') action = <PrimaryDownload href={windowsDownloadPath(version)} label="Download for Windows" detail="64-bit zip" />;
+  else if (platform === 'android') action = <PrimaryDownload href={androidDownloadPath(version)} label="Download for Android" detail="APK" />;
+  else action = <MacDownload version={version} />;
+
   return (
-    <section id={id} aria-labelledby={`${id}-title`} className={tone === 'fog' ? 'bg-fog' : 'bg-white'}>
-      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-24">
-        <h2 id={`${id}-title`} className="wide max-w-3xl text-[clamp(1.5rem,3.6vw,2.75rem)]">
-          {title}
-        </h2>
-        {children}
+    <article
+      aria-labelledby={`card-${platform}`}
+      className={`anim-window relative flex min-w-0 flex-col bg-white p-5 text-ink sm:p-6 ${mine ? 'outline outline-4 outline-marigold' : ''}`}
+      style={delay(380 + index * 110)}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <span className="flex h-12 w-12 items-center justify-center bg-fog">
+          <Icon aria-hidden className="h-6 w-6" strokeWidth={2.25} />
+        </span>
+        {mine && <span className="bg-marigold px-2 py-1 text-xs font-bold uppercase tracking-wider">Your device</span>}
       </div>
-    </section>
+      <h2 id={`card-${platform}`} className="wide mt-5 text-3xl">
+        {name}
+      </h2>
+      <p className="mt-2 text-ink-soft">
+        {version && <span className="nums font-bold text-ink">v{version} · </span>}
+        {requirement}
+      </p>
+
+      <div className="mt-6 flex-1">{action}</div>
+
+      <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t-2 border-fog pt-4 text-sm">
+        <a
+          href={`#${platform}`}
+          onClick={(event) => {
+            event.preventDefault();
+            onSteps(platform);
+          }}
+          className="inline-flex min-h-11 items-center gap-1.5 font-bold hover:text-ultra"
+        >
+          Install steps
+          <ArrowDown aria-hidden className="h-4 w-4" />
+        </a>
+        {version && (
+          <a href={CHECKSUMS[platform](version)} className="inline-flex min-h-11 items-center gap-1.5 text-ink-soft hover:text-ultra">
+            <ShieldCheck aria-hidden className="h-4 w-4" />
+            SHA-256
+          </a>
+        )}
+      </div>
+    </article>
+  );
+}
+
+/* ---------- Install guide ---------- */
+
+function Steps({ children, start = 1 }: { children: ReactNode[]; start?: number }) {
+  return (
+    <ol className="space-y-3">
+      {children.map((child, i) => (
+        <li key={i} className="flex gap-4 border-2 border-fog bg-white p-4 sm:p-5">
+          <span aria-hidden className="nums flex h-9 w-9 shrink-0 items-center justify-center bg-marigold font-bold">
+            {start + i}
+          </span>
+          <span className="min-w-0 self-center text-lg leading-snug">{child}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function Note({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="border-l-4 border-ultra bg-fog p-5">
+      <h4 className="font-bold">{title}</h4>
+      <div className="mt-2 text-ink-soft">{children}</div>
+    </div>
   );
 }
 
@@ -52,31 +153,248 @@ function CopyCommand({ command }: { command: string }) {
       .catch(() => undefined);
   };
   return (
-    <div className="mt-4 flex max-w-2xl flex-col gap-2 border-2 border-white sm:flex-row sm:items-stretch">
-      <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap px-4 py-3 font-mono text-sm">{command}</code>
-      <button
-        type="button"
-        onClick={copy}
-        className="min-h-11 border-t-2 border-white px-4 font-bold hover:bg-white hover:text-ink sm:border-l-2 sm:border-t-0"
-      >
-        {copied ? 'Copied' : 'Copy'}
-      </button>
+    <div className="on-dark bg-ink text-white">
+      <div className="flex items-center justify-between border-b border-white/15 px-4 py-2 text-sm text-ink-pale">
+        <span>Terminal</span>
+        <button
+          type="button"
+          onClick={copy}
+          className="inline-flex min-h-9 items-center gap-1.5 px-2 font-bold text-white hover:text-marigold"
+          aria-label={copied ? 'Command copied' : 'Copy command'}
+        >
+          {copied ? <Check aria-hidden className="h-4 w-4" /> : <Copy aria-hidden className="h-4 w-4" />}
+          <span aria-live="polite">{copied ? 'Copied' : 'Copy'}</span>
+        </button>
+      </div>
+      <code className="block overflow-x-auto whitespace-nowrap px-4 py-4 font-mono text-sm">
+        <span aria-hidden className="select-none text-marigold">$ </span>
+        {command}
+      </code>
     </div>
   );
 }
 
+function WindowsGuide() {
+  return (
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-12">
+      <Steps>
+        {[
+          <>Open the downloaded zip, click <b>Extract all</b>, then <b>Extract</b>.</>,
+          <>Open the extracted <b>Nomadic</b> folder and double-click <b>NomadicOS</b>.</>,
+          <>
+            If a blue &quot;Windows protected your PC&quot; box appears, click <b>More info</b>, then <b>Run anyway</b>. Windows asks only
+            the first time.
+          </>,
+          <>
+            Optional: right-click <b>NomadicOS</b> → <b>Show more options</b> → <b>Send to</b> → <b>Desktop (create shortcut)</b>.
+          </>,
+        ]}
+      </Steps>
+      <div className="space-y-4">
+        <Note title="Why the blue box">
+          Nomadic is new and not yet signed with a paid code-signing certificate, so SmartScreen does not know it yet. Run it from
+          the extracted folder, not from inside the zip.
+        </Note>
+        <Note title="Updating">Extract the new zip over the old folder; your data stays in your Windows account.</Note>
+        <Note title="No installer">No admin rights needed.</Note>
+      </div>
+    </div>
+  );
+}
+
+function MacGuide() {
+  return (
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-12">
+      <div className="min-w-0">
+        <h3 className="text-xl font-bold">
+          Easiest: one command <span className="ml-1 bg-marigold px-2 py-0.5 align-middle text-xs uppercase tracking-wider">Recommended</span>
+        </h3>
+        <p className="mt-2 text-ink-soft">
+          Open <b className="text-ink">Terminal</b> (Spotlight: Cmd + Space, type Terminal), paste this line and press Return. It picks the
+          right file for your chip, checks it, installs Nomadic into Applications and opens it. No security prompts.
+        </p>
+        <div className="mt-4">
+          <CopyCommand command={MAC_COMMAND} />
+        </div>
+        <p className="mt-2 text-sm text-ink-soft">
+          <a href={MAC_INSTALL_SCRIPT_PATH} className={linkClass}>
+            Read the script
+          </a>{' '}
+          before you run it, if you like.
+        </p>
+
+        <h3 className="mt-10 text-xl font-bold">Or install the DMG</h3>
+        <div className="mt-4">
+          <Steps>
+            {[
+              <>Open the downloaded DMG.</>,
+              <>Drag Nomadic onto the Applications folder.</>,
+              <>Open Nomadic from Applications.</>,
+              <>
+                If macOS says it cannot verify Nomadic, click <b>Done</b>. Open <b>System Settings → Privacy &amp; Security</b>, scroll down
+                and click <b>Open Anyway</b> next to the Nomadic message.
+              </>,
+              <>
+                Click <b>Open Anyway</b> again and enter your Mac password. From then on Nomadic opens normally.
+              </>,
+            ]}
+          </Steps>
+        </div>
+      </div>
+      <div className="space-y-4">
+        <Note title="Which chip do I have?">
+          Apple menu → About This Mac: &quot;Chip: Apple M…&quot; is Apple Silicon, &quot;Processor: Intel&quot; is Intel.
+        </Note>
+        <Note title="Why the extra step">
+          Nomadic for Mac is distributed without Apple&apos;s paid notarization service, so macOS asks you to confirm once. You never
+          need to turn off macOS security. The Terminal command skips these steps.
+        </Note>
+      </div>
+    </div>
+  );
+}
+
+function AndroidGuide() {
+  return (
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-12">
+      <Steps>
+        {[
+          <>Open this page on your phone in Chrome and tap <b>Download for Android</b>.</>,
+          <>When the download finishes, tap <b>Open</b> (or open it from <b>Files → Downloads</b>).</>,
+          <>
+            If Android says your phone is not allowed to install unknown apps, tap <b>Settings</b>, turn on <b>Allow from this source</b>{' '}
+            for Chrome, then go back.
+          </>,
+          <>Tap <b>Install</b>.</>,
+          <>
+            If Play Protect warns about an unknown app, tap <b>More details</b> → <b>Install anyway</b>. It asks only the first time.
+          </>,
+          <>Open Nomadic. You can turn <b>Allow from this source</b> off again afterwards.</>,
+        ]}
+      </Steps>
+      <div className="space-y-4">
+        {!ANDROID_DOWNLOAD.version && (
+          <Note title="Coming soon">The Android app is coming soon. These are the steps for when it is here.</Note>
+        )}
+        <Note title="Not on the Play Store">The app is installed from this site, not the Play Store.</Note>
+      </div>
+    </div>
+  );
+}
+
+const GUIDES: Record<Platform, () => JSX.Element> = { windows: WindowsGuide, mac: MacGuide, android: AndroidGuide };
+
+function InstallGuide({ tab, onTab }: { tab: Platform; onTab: (p: Platform, focus?: boolean) => void }) {
+  const onKey = (event: KeyboardEvent<HTMLDivElement>) => {
+    const i = PLATFORMS.indexOf(tab);
+    const next =
+      event.key === 'ArrowRight' ? PLATFORMS[(i + 1) % PLATFORMS.length]
+      : event.key === 'ArrowLeft' ? PLATFORMS[(i + PLATFORMS.length - 1) % PLATFORMS.length]
+      : event.key === 'Home' ? PLATFORMS[0]
+      : event.key === 'End' ? PLATFORMS[PLATFORMS.length - 1]
+      : null;
+    if (!next) return;
+    event.preventDefault();
+    onTab(next, true);
+  };
+
+  return (
+    <section id="install" aria-labelledby="install-title" className="bg-white">
+      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-24">
+        <h2 id="install-title" className="wide text-[clamp(1.75rem,4.2vw,3.25rem)]">
+          How to install
+        </h2>
+        <p className="mt-4 max-w-2xl text-lg text-ink-soft">
+          Nomadic is new and not yet code-signed for Windows or notarized by Apple, so each system asks you to confirm once. The steps
+          below show exactly what to click.
+        </p>
+
+        <div role="tablist" aria-label="Platform" onKeyDown={onKey} className="mt-10 inline-flex max-w-full border-2 border-ink">
+          {PLATFORMS.map((p) => {
+            const { name, icon: Icon } = INFO[p];
+            const active = p === tab;
+            return (
+              <button
+                key={p}
+                id={`tab-${p}`}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                aria-controls={p}
+                tabIndex={active ? 0 : -1}
+                onClick={() => onTab(p)}
+                className={`inline-flex min-h-12 items-center gap-2 px-3 font-bold transition-colors duration-150 sm:px-5 ${
+                  active ? 'bg-ink text-white' : 'text-ink hover:bg-fog'
+                }`}
+              >
+                <Icon aria-hidden className="h-4 w-4" />
+                {name}
+              </button>
+            );
+          })}
+        </div>
+
+        {PLATFORMS.map((p) => {
+          const Guide = GUIDES[p];
+          return (
+            <div key={p} id={p} role="tabpanel" aria-labelledby={`tab-${p}`} hidden={p !== tab} tabIndex={0} className="mt-8 focus-visible:outline-offset-8">
+              <Guide />
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Page ---------- */
+
 export default function Download() {
-  const win = WINDOWS_DOWNLOAD.version;
-  const mac = MAC_DOWNLOAD.version;
-  const android = ANDROID_DOWNLOAD.version;
+  const [tab, setTab] = useState<Platform>('windows');
+  const [mine, setMine] = useState<Platform | null>(null);
+  const scrollToGuide = () => {
+    document.getElementById('install')?.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' });
+  };
+
+  const selectTab = (p: Platform, focus = false) => {
+    setTab(p);
+    if (window.location.hash !== `#${p}`) window.history.replaceState(null, '', `#${p}`);
+    if (focus) document.getElementById(`tab-${p}`)?.focus();
+  };
+
+  // After the first render (which matches the prerendered HTML): suggest this device, or open the tab the link asked for.
+  useEffect(() => {
+    const detected = detectPlatform(navigator as Navigator & Parameters<typeof detectPlatform>[0]);
+    setMine(detected);
+    const fromHash = window.location.hash.slice(1);
+    if (isPlatform(fromHash)) {
+      setTab(fromHash);
+      window.requestAnimationFrame(scrollToGuide);
+    } else if (detected) setTab(detected);
+
+    const onHash = () => {
+      const h = window.location.hash.slice(1);
+      if (isPlatform(h)) {
+        setTab(h);
+        window.requestAnimationFrame(scrollToGuide);
+      }
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
+  const showSteps = (p: Platform) => {
+    selectTab(p);
+    window.requestAnimationFrame(scrollToGuide);
+  };
 
   return (
     <div className="min-h-screen">
       <Nav variant="page" />
 
       <main>
-        <section className="on-dark bg-ultra text-white">
-          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-28">
+        <section className="on-dark overflow-hidden bg-ultra text-white">
+          <div className="mx-auto max-w-6xl px-4 pb-16 pt-14 sm:px-6 md:pb-24 md:pt-20">
             <h1 className="wide text-[clamp(2.25rem,6.5vw,5rem)]">
               <span className="line-mask block">
                 <span className="anim-rise block" style={delay(0)}>
@@ -84,149 +402,44 @@ export default function Download() {
                 </span>
               </span>
             </h1>
-            <p className="anim-fade mt-8 max-w-xl text-xl text-white/90" style={delay(300)}>
-              {platformLine()} Pick your computer below; the download starts as soon as you click.
+            <p className="anim-fade mt-6 max-w-xl text-xl text-white/90" style={delay(250)}>
+              {platformLine()} The download starts as soon as you click.
             </p>
-            <nav aria-label="Platforms" className="anim-fade mt-8 flex flex-wrap gap-3" style={delay(450)}>
-              {[
-                { href: '#windows', label: 'Windows' },
-                { href: '#mac', label: 'Mac' },
-                { href: '#android', label: 'Android' },
-              ].map((p) => (
-                <a key={p.href} href={p.href} className="inline-flex min-h-12 items-center border-2 border-white px-5 font-bold hover:bg-white hover:text-ink">
-                  {p.label}
-                </a>
+
+            <div className="mt-10 grid grid-cols-[minmax(0,1fr)] gap-5 md:mt-14 lg:grid-cols-3">
+              {PLATFORMS.map((p, i) => (
+                <PlatformCard key={p} platform={p} mine={p === mine} onSteps={showSteps} index={i} />
               ))}
-            </nav>
-          </div>
-        </section>
-
-        <PlatformSection id="windows" title="Windows">
-          {win ? (
-            <>
-              <div className="mt-8 flex flex-wrap items-center gap-4">
-                <a
-                  href={windowsDownloadPath(win)}
-                  className="inline-flex min-h-16 flex-col justify-center border-2 border-ink bg-ink px-6 py-2 font-bold text-white hover:border-ultra hover:bg-ultra"
-                >
-                  <span className="text-lg">Download for Windows</span>
-                  <span className="text-sm font-normal text-white/80">64-bit zip · v{win}</span>
-                </a>
-                <a href={windowsChecksumsPath(win)} className={linkClass}>
-                  SHA-256
-                </a>
-              </div>
-              <p className="mt-3 text-ink-soft">Windows {WINDOWS_DOWNLOAD.minimumWindows} or Windows 11. No installer, no admin rights needed.</p>
-              <Steps>
-                <li>Open the downloaded zip, click <b>Extract all</b>, then <b>Extract</b>.</li>
-                <li>
-                  Open the extracted <b>Nomadic</b> folder and double-click <b>NomadicOS</b>.
-                </li>
-                <li>
-                  If a blue &quot;Windows protected your PC&quot; box appears, click <b>More info</b>, then <b>Run anyway</b>. Windows asks only
-                  the first time.
-                </li>
-                <li>
-                  Optional: right-click <b>NomadicOS</b> → <b>Show more options</b> → <b>Send to</b> → <b>Desktop (create shortcut)</b>.
-                </li>
-              </Steps>
-              <p className="mt-6 max-w-2xl text-ink-soft">
-                Why the blue box: Nomadic is new and not yet signed with a paid code-signing certificate, so SmartScreen does not know
-                it yet. Run it from the extracted folder, not from inside the zip. To update, extract the new zip over the old folder;
-                your data stays in your Windows account.
-              </p>
-            </>
-          ) : (
-            <div className="mt-8">
-              <ComingSoon size="lg" />
             </div>
-          )}
-        </PlatformSection>
 
-        <section id="mac" aria-labelledby="mac-title" className="on-dark bg-ink text-white">
-          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 md:py-24">
-            <h2 id="mac-title" className="wide max-w-3xl text-[clamp(1.5rem,3.6vw,2.75rem)]">
-              Mac
-            </h2>
-            {mac ? (
-              <>
-                <h3 className="mt-8 text-xl font-bold">Easiest: one command</h3>
-                <p className="mt-2 max-w-2xl text-white/80">
-                  Open <b>Terminal</b> (Spotlight: Cmd + Space, type Terminal), paste this line and press Return. It picks the right
-                  file for your chip, checks it, installs Nomadic into Applications and opens it. No security prompts.
-                </p>
-                <CopyCommand command={MAC_COMMAND} />
-                <p className="mt-2 text-sm text-white/70">
-                  <a href={MAC_INSTALL_SCRIPT_PATH} className="underline underline-offset-4">
-                    Read the script
-                  </a>{' '}
-                  before you run it, if you like.
-                </p>
-
-                <h3 className="mt-10 text-xl font-bold">Or download the DMG</h3>
-                <div className="mt-4">
-                  <MacDownload version={mac} />
-                </div>
-              </>
-            ) : (
-              <div className="mt-8">
-                <ComingSoon tone="dark" size="lg" />
-              </div>
-            )}
-          </div>
-        </section>
-        {mac && <MacInstallSteps />}
-
-        <PlatformSection id="android" title="Android" tone="fog">
-          {android ? (
-            <div className="mt-8 flex flex-wrap items-center gap-4">
-              <a
-                href={androidDownloadPath(android)}
-                className="inline-flex min-h-16 flex-col justify-center border-2 border-ink bg-ink px-6 py-2 font-bold text-white hover:border-ultra hover:bg-ultra"
-              >
-                <span className="text-lg">Download for Android</span>
-                <span className="text-sm font-normal text-white/80">APK · v{android}</span>
-              </a>
-              <a href={androidChecksumsPath(android)} className={linkClass}>
-                SHA-256
-              </a>
-            </div>
-          ) : (
-            <>
-              <p className="mt-4 max-w-2xl text-lg text-ink-soft">The Android app is coming soon. These are the steps for when it is here.</p>
-              <div className="mt-6">
-                <ComingSoon size="lg" />
-              </div>
-            </>
-          )}
-          <p className="mt-6 text-ink-soft">Android {ANDROID_DOWNLOAD.minimumAndroid} or later. The app is installed from this site, not the Play Store.</p>
-          <Steps>
-            <li>Open this page on your phone in Chrome and tap <b>Download for Android</b>.</li>
-            <li>When the download finishes, tap <b>Open</b> (or open it from <b>Files → Downloads</b>).</li>
-            <li>
-              If Android says your phone is not allowed to install unknown apps, tap <b>Settings</b>, turn on <b>Allow from this source</b>{' '}
-              for Chrome, then go back.
-            </li>
-            <li>Tap <b>Install</b>.</li>
-            <li>
-              If Play Protect warns about an unknown app, tap <b>More details</b> → <b>Install anyway</b>. It asks only the first time.
-            </li>
-            <li>Open Nomadic. You can turn <b>Allow from this source</b> off again afterwards.</li>
-          </Steps>
-        </PlatformSection>
-
-        <section className="bg-white">
-          <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-            <p className="max-w-xl text-ink-soft">
-              Stuck on a step? Write to{' '}
-              <a href={`mailto:${CONTACT_EMAIL}`} className={linkClass}>
-                {CONTACT_EMAIL}
-              </a>{' '}
-              and say which computer you use.
+            <p className="anim-fade mt-8 flex items-start gap-2 text-white/85" style={delay(800)}>
+              <ShieldCheck aria-hidden className="mt-1 h-5 w-5 shrink-0" />
+              <span>
+                Free to download. Every file comes with a SHA-256 checksum so you can check it was not changed on the way.
+              </span>
             </p>
-            <a href="/" className="mt-6 inline-block font-bold underline decoration-2 underline-offset-4 hover:text-ultra">
-              Back to the site
-            </a>
+          </div>
+        </section>
+
+        <InstallGuide tab={tab} onTab={selectTab} />
+
+        <section className="on-dark bg-ink text-white">
+          <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-14 sm:px-6 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="wide text-[clamp(1.5rem,3vw,2.25rem)]">Stuck on a step?</h2>
+              <p className="mt-3 max-w-xl text-ink-pale">Write to us and say which computer or phone you use.</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+              <a
+                href={`mailto:${CONTACT_EMAIL}`}
+                className="inline-flex min-h-12 items-center border-2 border-white bg-white px-5 font-bold text-ink hover:border-marigold hover:bg-marigold"
+              >
+                {CONTACT_EMAIL}
+              </a>
+              <a href="/" className="inline-flex min-h-11 items-center font-bold underline decoration-2 underline-offset-4 hover:text-marigold">
+                Back to the site
+              </a>
+            </div>
           </div>
         </section>
       </main>
