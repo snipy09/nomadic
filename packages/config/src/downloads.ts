@@ -6,7 +6,7 @@
  * Set a `version` only after that release's files are uploaded (RELEASES.md); while it is null the site shows "coming
  * soon" for that platform.
  *
- * Windows: a zip of the unpacked app (no installer). It is not code-signed, so Windows SmartScreen asks once
+ * Windows: a zip holding only the portable `Nomadic.exe` (no installer, no other files). It is not code-signed, so Windows SmartScreen asks once
  * ("More info" → "Run anyway"); only a code-signing certificate removes that prompt.
  * macOS: free distribution, no Apple Developer Program. Builds are ad-hoc signed, not notarized, so macOS asks once to
  * allow a DMG opened from the browser; the Terminal one-line installer (apps/web/public/install/mac.sh) avoids that.

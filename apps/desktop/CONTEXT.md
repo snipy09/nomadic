@@ -30,6 +30,9 @@ npm run build:desktop          # out/main + out/renderer
 cd apps/desktop; npm run package:win   # on Windows: dist-electron\*.exe (about 10 min; close NomadicOS first)
 ```
 
+Website download: `scripts/windows/make-release.ps1` (run at the end of `build-nomadic.ps1`) zips ONLY the portable exe as
+`Nomadic.exe` into `Nomadic-<ver>-windows-x64.zip` + `Nomadic-<ver>-windows-SHA256SUMS.txt` (in `Desktop\Nomadic Content\App builds\Nomadic <ver> downloads`).
+
 CI: `ci.yml` builds it on every push; Actions → "Build Windows (unsigned)" packages it; `release.yml` (tag `v*.*.*`)
 makes a signed release (needs the certificate). Bump `version` in `package.json` for each release.
 

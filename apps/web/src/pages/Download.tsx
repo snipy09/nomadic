@@ -120,19 +120,19 @@ export default function Download() {
               <Steps>
                 <li>Open the downloaded zip, click <b>Extract all</b>, then <b>Extract</b>.</li>
                 <li>
-                  Open the extracted <b>Nomadic</b> folder and double-click <b>NomadicOS</b>.
+                  Double-click <b>Nomadic.exe</b> (the only file in the zip). The first start takes a few seconds.
                 </li>
                 <li>
                   If a blue &quot;Windows protected your PC&quot; box appears, click <b>More info</b>, then <b>Run anyway</b>. Windows asks only
                   the first time.
                 </li>
                 <li>
-                  Optional: right-click <b>NomadicOS</b> → <b>Show more options</b> → <b>Send to</b> → <b>Desktop (create shortcut)</b>.
+                  Optional: right-click <b>Nomadic.exe</b> → <b>Show more options</b> → <b>Send to</b> → <b>Desktop (create shortcut)</b>.
                 </li>
               </Steps>
               <p className="mt-6 max-w-2xl text-ink-soft">
                 Why the blue box: Nomadic is new and not yet signed with a paid code-signing certificate, so SmartScreen does not know
-                it yet. Run it from the extracted folder, not from inside the zip. To update, extract the new zip over the old folder;
+                it yet. Run it after extracting, not from inside the zip. To update, replace Nomadic.exe with the one from the new zip;
                 your data stays in your Windows account.
               </p>
             </>
