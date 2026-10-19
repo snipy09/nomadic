@@ -203,7 +203,7 @@ export const getEntitlementsArgs: ArgSchemas<'get-entitlements'> = [
   opt(z.object({ fresh: opt(z.boolean()) }).strict()),
 ];
 export const startCheckoutArgs: ArgSchemas<'start-checkout'> = [z.enum(['pro', 'max'])];
-export const upiCreateOrderArgs: ArgSchemas<'upi-create-order'> = [z.enum(['pro', 'max'])];
+export const upiCreateOrderArgs: ArgSchemas<'upi-create-order'> = [z.enum(['pro', 'max']), z.string().max(40).optional()];
 // Spaces are allowed while typing; the service and the server strip them before the 12-digit check.
 export const upiSubmitUtrArgs: ArgSchemas<'upi-submit-utr'> = [z.string().uuid(), z.string().max(40)];
 

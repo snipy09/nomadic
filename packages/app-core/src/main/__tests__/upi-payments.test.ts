@@ -41,6 +41,24 @@ describe('UPI payments', () => {
     if (res.success) expect(res.payment.intentUrl).toContain('am=249.00');
   });
 
+  it('sends a coupon code upper-cased and maps the discounted order', async () => {
+    h.rpc.mockResolvedValue({
+      data: { ok: true, ...row({ amount_inr: 1, coupon_applied: true, list_price_inr: 249 }), vpa: 'shop@okbank', payee_name: 'Nomadic' },
+      error: null,
+    });
+    const res = await createUpiOrder('pro', ' ab cd ');
+    expect(h.rpc).toHaveBeenCalledWith('billing_upi_create_order', { ...SESSION, p_plan: 'pro', p_coupon: 'ABCD' });
+    expect(res).toMatchObject({ success: true, payment: { order: { amountInr: 1, couponApplied: true, listPriceInr: 249 } } });
+    if (res.success) expect(res.payment.intentUrl).toContain('am=1.00');
+  });
+
+  it('maps coupon refusals', async () => {
+    for (const code of ['invalid_coupon', 'coupon_used', 'coupon_not_eligible'] as const) {
+      h.rpc.mockResolvedValue({ data: { ok: false, error: code }, error: null });
+      expect(await createUpiOrder('max', 'X')).toMatchObject({ success: false, code });
+    }
+  });
+
   it('maps refusals, missing functions and network errors to codes', async () => {
     h.session = null;
     expect(await createUpiOrder('pro')).toMatchObject({ success: false, code: 'signed_out' });

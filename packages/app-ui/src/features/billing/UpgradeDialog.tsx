@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Check, ExternalLink, MessageSquare } from 'lucide-react';
-import { Badge, Button, Card, Dialog, DialogContent, useToast } from '@nomadic/ui';
+import { Badge, Button, Card, Dialog, DialogContent, Field, Input, useToast } from '@nomadic/ui';
 import { PLANS, formatPrice, getPlan, type PlanId } from '@nomadic/config';
 import { getApi } from '../../types';
 import { planRank } from './billingLogic';
@@ -36,13 +36,22 @@ const UPI_POLL_MS = 20_000;
 export function UpgradeDialog({ open, onOpenChange, feature, email }: UpgradeDialogProps) {
   const { toast } = useToast();
   const [checkout, setCheckout] = useState<Checkout>({ state: 'idle' });
+  const [couponOpen, setCouponOpen] = useState(false);
+  const [coupon, setCoupon] = useState('');
+  const [couponError, setCouponError] = useState<string | null>(null);
   const waiting = checkout.state === 'waiting';
   const upiReview = checkout.state === 'upi' && checkout.submitted;
   const ent = useEntitlements({ pollMs: open && waiting ? POLL_MS : open && upiReview ? UPI_POLL_MS : false });
   const current: PlanId | null = ent.status === 'ready' && ent.entitlements ? ent.entitlements.plan : null;
   const expiry = ent.entitlements?.expiresAt ?? null;
 
-  useEffect(() => { if (!open) setCheckout({ state: 'idle' }); }, [open]);
+  useEffect(() => {
+    if (open) return;
+    setCheckout({ state: 'idle' });
+    setCoupon('');
+    setCouponOpen(false);
+    setCouponError(null);
+  }, [open]);
 
   // Payment landed (webhook -> server plan or expiry change): confirm and stop polling.
   useEffect(() => {
@@ -57,6 +66,12 @@ export function UpgradeDialog({ open, onOpenChange, feature, email }: UpgradeDia
   const startCheckout = async (plan: Exclude<PlanId, 'free'>) => {
     const api = getApi();
     setCheckout({ state: 'opening', plan });
+    setCouponError(null);
+    // Coupons are checked by the server on the UPI route only (037), so a code skips Razorpay.
+    if (coupon.trim()) {
+      await startUpi(plan);
+      return;
+    }
     try {
       const res = api.startCheckout ? await api.startCheckout(plan) : { success: false, notConfigured: true };
       if (res.success) setCheckout({ state: 'waiting', plan, fromPlan: current, fromExpiry: expiry });
@@ -74,8 +89,15 @@ export function UpgradeDialog({ open, onOpenChange, feature, email }: UpgradeDia
   // No Razorpay checkout in this build: pay the operator's UPI ID directly; an admin approves the UTR.
   const startUpi = async (plan: Exclude<PlanId, 'free'>) => {
     const api = getApi();
-    const res = api.upiCreateOrder ? await api.upiCreateOrder(plan) : null;
-    if (res?.success) setCheckout({ state: 'upi', plan, payment: res.payment, fromPlan: current, fromExpiry: expiry, submitted: res.payment.order.status !== 'awaiting_payment' });
+    const code = coupon.trim();
+    const res = api.upiCreateOrder ? await (code ? api.upiCreateOrder(plan, code) : api.upiCreateOrder(plan)) : null;
+    if (res && !res.success && code && (res.code === 'invalid_coupon' || res.code === 'coupon_used' || res.code === 'coupon_not_eligible')) {
+      setCheckout({ state: 'idle' });
+      setCouponError(res.error);
+    } else if (code && (!res || (!res.success && (res.code === 'not_configured' || res.code === 'server_outdated')))) {
+      setCheckout({ state: 'idle' });
+      setCouponError('Coupons are not available right now. Remove the code to pay the normal price.');
+    } else if (res?.success) setCheckout({ state: 'upi', plan, payment: res.payment, fromPlan: current, fromExpiry: expiry, submitted: res.payment.order.status !== 'awaiting_payment' });
     else if (!res || res.code === 'not_configured' || res.code === 'server_outdated') setCheckout({ state: 'manual', plan });
     else {
       setCheckout({ state: 'idle' });
@@ -169,6 +191,33 @@ export function UpgradeDialog({ open, onOpenChange, feature, email }: UpgradeDia
               );
             })}
           </ul>
+          {checkout.state !== 'upi' && checkout.state !== 'done' && (
+            couponOpen ? (
+              <form
+                className="flex flex-wrap items-end gap-3"
+                onSubmit={(e) => e.preventDefault()}
+                aria-label="Coupon code"
+              >
+                <Field label="Coupon code" hint="Applied when you choose a plan above." error={couponError} className="min-w-[14rem] max-w-sm flex-1">
+                  <Input
+                    value={coupon}
+                    autoComplete="off"
+                    autoCapitalize="characters"
+                    spellCheck={false}
+                    maxLength={40}
+                    onChange={(e) => { setCoupon(e.target.value); setCouponError(null); }}
+                  />
+                </Field>
+                <Button type="button" variant="ghost" onClick={() => { setCoupon(''); setCouponError(null); setCouponOpen(false); }}>
+                  Remove coupon
+                </Button>
+              </form>
+            ) : (
+              <div>
+                <Button variant="ghost" size="sm" onClick={() => setCouponOpen(true)}>Add a coupon code</Button>
+              </div>
+            )
+          )}
           <p className="text-caption text-fg-subtle">
             Payments go through Razorpay or straight to our UPI ID. Paying again before your paid period ends adds another month.
           </p>

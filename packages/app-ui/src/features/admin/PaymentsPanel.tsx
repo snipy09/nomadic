@@ -93,7 +93,10 @@ export function PaymentsPanel() {
                   {o.fullName && <div className="truncate text-caption text-fg-subtle">{o.fullName}</div>}
                 </TableCell>
                 <TableCell>{getPlan(o.plan).name}</TableCell>
-                <TableCell className="whitespace-nowrap">{formatPrice(o.amountInr)}</TableCell>
+                <TableCell className="whitespace-nowrap">
+                  {formatPrice(o.amountInr)}
+                  {o.couponApplied && <div className="text-caption text-fg-subtle">First-month coupon</div>}
+                </TableCell>
                 <TableCell className="font-mono whitespace-nowrap">{o.reference}</TableCell>
                 <TableCell className="font-mono whitespace-nowrap">{o.utr ?? <span className="text-fg-subtle">None</span>}</TableCell>
                 <TableCell muted className="whitespace-nowrap">

@@ -10,7 +10,7 @@ export function registerBillingIpc(): void {
   handle('get-entitlements', getEntitlementsArgs, (options) => getEntitlements(options ?? {}));
   handle('start-checkout', startCheckoutArgs, (plan) => startCheckout(plan));
   handle('get-payment-history', () => getPaymentHistory());
-  handle('upi-create-order', upiCreateOrderArgs, (plan) => createUpiOrder(plan));
+  handle('upi-create-order', upiCreateOrderArgs, (plan, coupon) => createUpiOrder(plan, coupon));
   handle('upi-submit-utr', upiSubmitUtrArgs, (orderId, utr) => submitUpiUtr(orderId, utr));
   handle('upi-list-orders', () => listUpiOrders());
 }
