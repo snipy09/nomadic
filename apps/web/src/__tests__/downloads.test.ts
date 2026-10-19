@@ -6,6 +6,7 @@ import {
   MAC_DOWNLOAD,
   MAC_INSTALL_SCRIPT_PATH,
   WINDOWS_DOWNLOAD,
+  WINDOWS_INSTALL_SCRIPT_PATH,
   androidChecksumsPath,
   androidDownloadPath,
   downloadsOpen,
@@ -84,5 +85,17 @@ describe('released versions', () => {
     const version = /^VERSION="([^"]+)"$/m.exec(script)?.[1];
     if (MAC_DOWNLOAD.version) expect(version).toBe(MAC_DOWNLOAD.version);
     expect(script).toContain('shasum -a 256');
+  });
+
+  it('the Windows one-line installer is served by the site and installs the advertised version', () => {
+    const script = read(`../../public${WINDOWS_INSTALL_SCRIPT_PATH}`);
+    // irm decodes a response without a charset as ISO-8859-1, so the script must stay ASCII.
+    expect(/^[\x09\x0a\x0d\x20-\x7e]*$/.test(script)).toBe(true);
+    const version = /^\s*\$Version = '([^']+)'$/m.exec(script)?.[1];
+    if (WINDOWS_DOWNLOAD.version) expect(version).toBe(WINDOWS_DOWNLOAD.version);
+    expect(script).toContain('Get-FileHash -Algorithm SHA256');
+    expect(script).toContain('windows-SHA256SUMS.txt');
+    // Under `irm | iex`, `exit` would close the user's PowerShell window.
+    expect(/^\s*exit\b/m.test(script)).toBe(false);
   });
 });

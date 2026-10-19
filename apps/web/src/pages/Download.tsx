@@ -5,6 +5,7 @@ import {
   MAC_DOWNLOAD,
   MAC_INSTALL_SCRIPT_PATH,
   WINDOWS_DOWNLOAD,
+  WINDOWS_INSTALL_SCRIPT_PATH,
   androidChecksumsPath,
   androidDownloadPath,
   macChecksumsPath,
@@ -24,6 +25,7 @@ import { prefersReducedMotion } from '../hooks';
 const delay = (ms: number) => ({ '--d': `${ms}ms` } as CSSProperties);
 
 const MAC_COMMAND = `curl -fsSL ${SITE}${MAC_INSTALL_SCRIPT_PATH} | bash`;
+const WINDOWS_COMMAND = `irm ${SITE}${WINDOWS_INSTALL_SCRIPT_PATH} | iex`;
 
 const linkClass = 'font-bold text-ink underline decoration-2 underline-offset-4 hover:text-ultra';
 
@@ -141,7 +143,7 @@ function Note({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function CopyCommand({ command }: { command: string }) {
+function CopyCommand({ command, shell = 'Terminal', prompt = '$ ' }: { command: string; shell?: string; prompt?: string }) {
   const [copied, setCopied] = useState(false);
   const copy = () => {
     navigator.clipboard
@@ -155,7 +157,7 @@ function CopyCommand({ command }: { command: string }) {
   return (
     <div className="on-dark bg-ink text-white">
       <div className="flex items-center justify-between border-b border-white/15 px-4 py-2 text-sm text-ink-pale">
-        <span>Terminal</span>
+        <span>{shell}</span>
         <button
           type="button"
           onClick={copy}
@@ -167,7 +169,7 @@ function CopyCommand({ command }: { command: string }) {
         </button>
       </div>
       <code className="block overflow-x-auto whitespace-nowrap px-4 py-4 font-mono text-sm">
-        <span aria-hidden className="select-none text-marigold">$ </span>
+        <span aria-hidden className="select-none text-marigold">{prompt}</span>
         {command}
       </code>
     </div>
@@ -177,26 +179,48 @@ function CopyCommand({ command }: { command: string }) {
 function WindowsGuide() {
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:gap-12">
-      <Steps>
-        {[
-          <>Open the downloaded zip, click <b>Extract all</b>, then <b>Extract</b>.</>,
-          <>Double-click <b>Nomadic.exe</b> (the only file in the zip). The first start takes a few seconds.</>,
-          <>
-            If a blue &quot;Windows protected your PC&quot; box appears, click <b>More info</b>, then <b>Run anyway</b>. Windows asks only
-            the first time.
-          </>,
-          <>
-            Optional: right-click <b>Nomadic.exe</b> → <b>Show more options</b> → <b>Send to</b> → <b>Desktop (create shortcut)</b>.
-          </>,
-        ]}
-      </Steps>
+      <div className="min-w-0">
+        <h3 className="text-xl font-bold">
+          Easiest: one command <span className="ml-1 bg-marigold px-2 py-0.5 align-middle text-xs uppercase tracking-wider">Recommended</span>
+        </h3>
+        <p className="mt-2 text-ink-soft">
+          Open <b className="text-ink">PowerShell</b> (Start menu: type PowerShell), paste this line and press Enter. It downloads
+          Nomadic, checks it, installs it with Start menu and Desktop shortcuts and opens it. No blue SmartScreen box.
+        </p>
+        <div className="mt-4">
+          <CopyCommand command={WINDOWS_COMMAND} shell="PowerShell" prompt="PS> " />
+        </div>
+        <p className="mt-2 text-sm text-ink-soft">
+          <a href={WINDOWS_INSTALL_SCRIPT_PATH} className={linkClass}>
+            Read the script
+          </a>{' '}
+          before you run it, if you like.
+        </p>
+
+        <h3 className="mt-10 text-xl font-bold">Or use the zip</h3>
+        <div className="mt-4">
+          <Steps>
+            {[
+              <>Open the downloaded zip, click <b>Extract all</b>, then <b>Extract</b>.</>,
+              <>Double-click <b>Nomadic.exe</b> (the only file in the zip). The first start takes a few seconds.</>,
+              <>
+                If a blue &quot;Windows protected your PC&quot; box appears, click <b>More info</b>, then <b>Run anyway</b>. Windows asks
+                only the first time.
+              </>,
+              <>
+                Optional: right-click <b>Nomadic.exe</b> → <b>Show more options</b> → <b>Send to</b> → <b>Desktop (create shortcut)</b>.
+              </>,
+            ]}
+          </Steps>
+        </div>
+      </div>
       <div className="space-y-4">
         <Note title="Why the blue box">
-          Nomadic is new and not yet signed with a paid code-signing certificate, so SmartScreen does not know it yet. Run it after
-          extracting, not from inside the zip.
+          Nomadic is not yet signed with a paid code-signing certificate, so SmartScreen warns about files downloaded in a browser. The
+          PowerShell command skips it. With the zip, run Nomadic after extracting, not from inside the zip.
         </Note>
-        <Note title="Updating">Replace Nomadic.exe with the one from the new zip; your data stays in your Windows account.</Note>
-        <Note title="No installer">No admin rights needed.</Note>
+        <Note title="Updating">Run the command again, or replace Nomadic.exe with the one from the new zip. Your data stays.</Note>
+        <Note title="No admin rights">The command installs only for you, in your user folder.</Note>
       </div>
     </div>
   );
@@ -305,8 +329,8 @@ function InstallGuide({ tab, onTab }: { tab: Platform; onTab: (p: Platform, focu
           How to install
         </h2>
         <p className="mt-4 max-w-2xl text-lg text-ink-soft">
-          Nomadic is new and not yet code-signed for Windows or notarized by Apple, so each system asks you to confirm once. The steps
-          below show exactly what to click.
+          Nomadic is new and not yet code-signed for Windows or notarized by Apple, so each system asks you to confirm once. On Windows
+          and Mac, one command skips that; the steps below show exactly what to do.
         </p>
 
         <div role="tablist" aria-label="Platform" onKeyDown={onKey} className="mt-10 inline-flex max-w-full border-2 border-ink">

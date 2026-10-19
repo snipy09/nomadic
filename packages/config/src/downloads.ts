@@ -7,7 +7,8 @@
  * soon" for that platform.
  *
  * Windows: a zip holding only the portable `Nomadic.exe` (no installer, no other files). It is not code-signed, so Windows SmartScreen asks once
- * ("More info" → "Run anyway"); only a code-signing certificate removes that prompt.
+ * ("More info" → "Run anyway") for an exe extracted from a browser download; the PowerShell one-line installer
+ * (apps/web/public/install/windows.ps1) avoids that, and only a code-signing certificate removes it for the zip.
  * macOS: free distribution, no Apple Developer Program. Builds are ad-hoc signed, not notarized, so macOS asks once to
  * allow a DMG opened from the browser; the Terminal one-line installer (apps/web/public/install/mac.sh) avoids that.
  * Android: a sideloaded APK (not on the Play Store); the user allows "Install unknown apps" once.
@@ -77,3 +78,6 @@ export function androidChecksumsPath(version: string): string {
 
 /** Mac one-line installer served by the site (apps/web/public/install/mac.sh). */
 export const MAC_INSTALL_SCRIPT_PATH = '/install/mac.sh';
+
+/** Windows one-line installer served by the site (apps/web/public/install/windows.ps1), run with `irm … | iex`. */
+export const WINDOWS_INSTALL_SCRIPT_PATH = '/install/windows.ps1';
