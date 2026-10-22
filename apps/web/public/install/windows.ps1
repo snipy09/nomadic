@@ -1,7 +1,7 @@
 # Nomadic for Windows: one-line installer.
 #   irm https://nomadicai.vercel.app/install/windows.ps1 | iex
-# Downloads the Windows zip, checks its SHA-256 and runs the Nomadic installer inside it ("Nomadic Setup.exe"), which
-# installs Nomadic with Start menu and Desktop shortcuts and an uninstaller, then opens it. Files downloaded by
+# Downloads the Windows zip, checks its SHA-256 and runs the Nomadic installer inside it ("Nomadic Setup.exe") silently
+# (/S), which installs Nomadic with Start menu and Desktop shortcuts and an uninstaller, then opens it. Files downloaded by
 # PowerShell carry no "downloaded from the internet" mark, so SmartScreen does not stop the installer.
 # $Version must match WINDOWS_DOWNLOAD.version in packages/config/src/downloads.ts. Keep this file ASCII.
 & {
@@ -43,10 +43,16 @@
       $setup = Join-Path $unzipped 'Nomadic Setup.exe'
       if (-not (Test-Path -LiteralPath $setup)) { throw 'Nomadic Setup.exe is missing from the zip.' }
 
-      Say 'Opening the Nomadic installer. Follow its steps; Nomadic opens when it finishes.'
-      $run = Start-Process -FilePath $setup -Wait -PassThru
-      if ($run.ExitCode -eq 0) { Say 'Done. Nomadic is installed (Start menu and Desktop shortcuts).' }
-      else { Write-Host 'The installer was closed before it finished. Run the command again to install Nomadic.' -ForegroundColor Yellow }
+      Get-Process -Name 'Nomadic' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+      Say 'Installing Nomadic (no clicks needed)...'
+      $run = Start-Process -FilePath $setup -ArgumentList '/S' -Wait -PassThru
+      if ($run.ExitCode -ne 0) { throw "the installer failed (exit code $($run.ExitCode)). Run the command again." }
+      Say 'Done. Nomadic is installed (Start menu and Desktop shortcuts).'
+      Start-Sleep -Seconds 3
+      if (-not (Get-Process -Name 'Nomadic' -ErrorAction SilentlyContinue)) {
+        $app = Join-Path $env:LOCALAPPDATA 'Programs\Nomadic\Nomadic.exe'
+        if (Test-Path -LiteralPath $app) { Start-Process -FilePath $app }
+      }
     } finally {
       Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue
     }
