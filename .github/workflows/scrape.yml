@@ -3,6 +3,9 @@ name: Scrape jobs
 # Runs the job pipeline (packages/scrapers/src/cli.ts) on a schedule and publishes
 # to Supabase. Requires repository secrets SUPABASE_URL and
 # SUPABASE_SERVICE_ROLE_KEY, and migration 006_scraper_pipeline.sql applied.
+# The Desktop scraper folder on the owner's laptop is the main publisher; until the
+# secrets are set, scheduled runs skip with a notice instead of failing (a run
+# started by hand still fails, so a missing secret is never silent there).
 
 on:
   schedule:
@@ -42,19 +45,42 @@ jobs:
       SOURCES: ${{ inputs.sources }}
       INCLUDE_TIER3: ${{ inputs.include_tier3 && 'true' || 'false' }}
     steps:
+      - name: Check secrets
+        id: secrets
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ -n "$SUPABASE_URL" ] && [ -n "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          elif [ "$EVENT" = "schedule" ] && [ "$MODE" = "run" ]; then
+            echo "::notice::Skipped: set the SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY repository secrets to scrape from Actions."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          elif [ "$MODE" = "run" ]; then
+            echo "::error::Set the SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY repository secrets, or pick dry-run or bench."
+            exit 1
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout
+        if: steps.secrets.outputs.configured == 'true'
         uses: actions/checkout@v4
 
       - name: Set up Node.js
+        if: steps.secrets.outputs.configured == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
 
       - name: Install dependencies
+        if: steps.secrets.outputs.configured == 'true'
         run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Run pipeline
+        if: steps.secrets.outputs.configured == 'true'
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -72,7 +98,7 @@ jobs:
           esac
 
       - name: Upload report
-        if: ${{ always() }}
+        if: ${{ always() && steps.secrets.outputs.configured == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: scrape-report-${{ github.run_id }}

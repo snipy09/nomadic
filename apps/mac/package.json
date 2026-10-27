@@ -1,6 +1,6 @@
 {
   "name": "@nomadic/mac",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Nomadic for macOS: the shared app (packages/app-core + packages/app-ui) with macOS startup, menu and packaging.",
   "author": "Nomadic",
   "main": "out/main/index.cjs",

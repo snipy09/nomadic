@@ -1,6 +1,6 @@
 # Status and what is left
 
-Last updated: 18 October 2026. Feature status, test status, the owner's to-do list and code follow-ups.
+Last updated: 27 October 2026. Feature status, test status, the owner's to-do list and code follow-ups.
 Feature detail: [`docs/FEATURES.md`](../docs/FEATURES.md).
 
 ## Status by feature
@@ -23,12 +23,12 @@ screens). The owner has signed in on the packaged v1.0.6 app and run apply up to
 ## What is left
 
 Owner actions:
-00000. **Android 1.5.1 with Google sign-in** (18 Oct 2026): clients, Vault and `.env` are done. Upload
-   `Desktop\Nomadic Content\App builds\Nomadic-1.5.1-android.apk` as release `android-v1.5.1`, try Google sign-in on a
-   real phone, then set `ANDROID_DOWNLOAD.version` to 1.5.1 and redeploy the site.
-0000. **In-app review go-live** (8 Oct 2026): paste `packages/supabase/baseline/apply_034.sql` in the Supabase SQL
-   editor (or apply it through the connector). Until then the apps simply never show the review (the status call fails
-   quietly). Read results with SQL on `app_reviews`.
+00000. **Android 1.5.1 with Google sign-in** (18 Oct 2026): release `android-v1.5.1` is uploaded (APK SHA-256
+   `f2d66965…a1894f`, checked 27 Oct) and the site points at 1.5.1 (27 Oct). Left: upload its checksum file (the site's
+   SHA-256 link 404s until then): `gh release upload android-v1.5.1 Nomadic-1.5.1-android-SHA256SUMS.txt --repo
+   snipy09/nomadic-releases`, the file holding the one line `f2d66965d5492b832c921346244af687b60b82ad15e11c1b5d0347c8e6a1894f  Nomadic-1.5.1-android.apk`;
+   try Google sign-in on a real phone.
+0000. (Done 27 Oct 2026) In-app review: 034 applied through the connector. Read results with SQL on `app_reviews`.
 000. (Done 18 Oct 2026: folder installed, first dry run's FAILED sources fixed, full dry run passes; see
    `scrapers.md`.) **Scraper folder go-live** (7 Oct 2026): migration 033 is live. On the laptop `git pull` on `main`, double-click `scripts\windows\Install scraper folder.cmd` (builds and installs `Desktop\Nomadic Content\Scraper`,
    removes the old launchers and the old "Nomadic scraper" task), then `Setup.cmd` there (reuses the key in `Desktop\Nomadic\.env`,
@@ -59,7 +59,7 @@ Owner actions:
    (Branding: app name Nomadic, home/privacy/terms on nomadicai.vercel.app, authorized domains `nomadicai.vercel.app` +
    `supabase.co`). Not verified by Google, so users see an "unverified app" notice until a custom domain is verified.
 5. Verify a sending domain in Resend; store `email_from` in Vault.
-6. **UPI direct payments** (18 Oct 2026, no gateway accepted the account): live (035 + 036 applied, UPI ID set, enabled). Left: switch to a business/merchant UPI ID when there is one (the personal handle shows the phone number in UPI apps); Windows 1.5.0 has the UPI screen, Mac 1.4.0 does not (falls back to WhatsApp) until a Mac 1.5.0 is built. Android 1.5.0 (signed APK, has the UPI screen) is live on the site (release `android-v1.5.0`, 18 Oct 2026); not yet installed on a real phone. Windows `win-v1.5.0` and Mac `mac-v1.4.0` releases are NOT uploaded yet, so those buttons 404 until the owner runs `gh release create` (files in `Desktop\Nomadic Content\App builds\Nomadic 1.5.0 downloads`; remake the Windows zip with `scripts\windows\make-release.ps1` first so it holds only `Nomadic.exe`). Back up `Desktop\Nomadic Content\Android signing` (losing it means users must uninstall to update). Users pay by QR/UPI link with an order reference and enter the 12-digit UTR; approve or reject in Admin → Payments after checking the bank app. Until enabled, Upgrade falls back to WhatsApp. Razorpay (if it ever approves): Then Payment Pages for Pro/Max →
+6. **UPI direct payments** (18 Oct 2026, no gateway accepted the account): live (035 + 036 applied, UPI ID set, enabled). Left: switch to a business/merchant UPI ID when there is one (the personal handle shows the phone number in UPI apps); Windows 1.5.0 has the UPI screen; Mac 1.4.0 does not (falls back to WhatsApp). Mac is at 1.5.0 in the repo (27 Oct, same shared UPI code); left: Actions → Release macOS on `main` (publish needs the `MAC_RELEASES_TOKEN` secret, else upload the artifact's DMGs as `mac-v1.5.0` by hand), then set `MAC_DOWNLOAD.version` to 1.5.0. Android 1.5.0 (signed APK, has the UPI screen) is live on the site (release `android-v1.5.0`, 18 Oct 2026); not yet installed on a real phone. Windows `win-v1.5.0` and Mac `mac-v1.4.0` releases are NOT uploaded yet, so those buttons 404 until the owner runs `gh release create` (files in `Desktop\Nomadic Content\App builds\Nomadic 1.5.0 downloads`; remake the Windows zip with `scripts\windows\make-release.ps1` first so it holds only `Nomadic.exe`). Back up `Desktop\Nomadic Content\Android signing` (losing it means users must uninstall to update). Users pay by QR/UPI link with an order reference and enter the 12-digit UTR; approve or reject in Admin → Payments after checking the bank app. Until enabled, Upgrade falls back to WhatsApp. Razorpay (if it ever approves): Then Payment Pages for Pro/Max →
    `RAZORPAY_CHECKOUT_URL_PRO/MAX`; deploy `razorpay-webhook` with its secret. Not a blocker for other work.
 7. Code-signing certificate for releases; Sentry DSN if crash reports are wanted.
 8. Lawyer review of the legal text; real `support@` and `grievance@` mailboxes; registered business name.
@@ -68,7 +68,7 @@ Owner actions:
 11. Rotate the Resend and Gemini keys (they were shared in a chat) and update Vault.
 12. (Done 4 Oct 2026) Migrations 024, 025 and 026 applied.
 13. (Done) `GOOGLE_OAUTH_CLIENT_ID/SECRET` repository secrets.
-14. Paste in the SQL editor: `DROP SCHEMA IF EXISTS zz_unused CASCADE; DROP TABLE IF EXISTS public.hr_contacts;`.
+14. Paste in the SQL editor (all three are empty/unused, checked 27 Oct 2026; the connector needs a confirmation for DROP that timed out): `DROP SCHEMA IF EXISTS zz_unused CASCADE; DROP TABLE IF EXISTS public.hr_contacts; DROP FUNCTION IF EXISTS public.billing_upi_create_order_035_retired(uuid, text, text, text);`.
 15. (Done 18 Oct 2026) Every branch except `main` deleted, local and remote, `gh-pages` included (GitHub Pages was
     off; the site is on Vercel). The two with commits not in `main` are kept as tags: `archive/sweet-allen-rptho0`
     (17 Oct "repo tidy" that moves files into `deploy/` and `packages/scrapers/`; never merged, would now conflict with

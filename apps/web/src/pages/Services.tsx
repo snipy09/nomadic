@@ -5,6 +5,7 @@ import {
   Layers, Target, Code, Database,
   Monitor, RefreshCw, Lock, ArrowUpRight
 } from 'lucide-react';
+import { PLANS } from '../content';
 
 /* ─── Static Data ────────────────────────────────────────────── */
 
@@ -91,10 +92,8 @@ const COURSES_AND_LEARNING = [
   },
 ];
 
-interface PlanFeature {
-  text: string;
-  bold?: boolean;
-}
+// Plans, prices and features come from packages/config (via content.ts), never typed here.
+const SUPPORT_WHATSAPP = '919493833632';
 
 interface PricingPlan {
   name: string;
@@ -102,76 +101,26 @@ interface PricingPlan {
   period: string;
   desc: string;
   featured?: boolean;
-  tag?: string;
-  features: PlanFeature[];
+  features: string[];
   cta: string;
   ctaHref: string;
 }
 
-const PRICING_PLANS: PricingPlan[] = [
-  {
-    name: 'Free Plan',
-    price: '₹0',
-    period: '/ lifetime',
-    desc: 'Tryout & fundamental preview.',
-    features: [
-      { text: '1 Interactive Roadmap Preview' },
-      { text: 'Top 10 Curated Direct Jobs' },
-      { text: 'Top 3 LeetCode Company Sets' },
-      { text: '2 Core CS Textbooks' },
-      { text: 'Local-first candidate storage' },
-    ],
-    cta: 'Download the App',
-    ctaHref: '/download',
-  },
-  {
-    name: 'Pro Plan',
-    price: '₹249',
-    period: '/ mo',
-    desc: 'Full skill mastery & active job seeking.',
-    features: [
-      { text: 'All 52-Week AI Roadmaps', bold: true },
-      { text: '428+ Company LeetCode Sets (17.3k Qs)', bold: true },
-      { text: 'Full 12+ CS Textbook Library' },
-      { text: 'Direct ATS Radar (18/36/54 Page Navigation)' },
-      { text: 'Semi-Auto Apply (50 apps/wk)', bold: true },
-      { text: '25 Verified HR leads/wk + 5 Resumes' },
-    ],
-    cta: 'Upgrade to Pro (₹249)',
-    ctaHref: 'https://wa.me/919493833632?text=Hi%2C%20I%20want%20to%20upgrade%20to%20Nomadic%20Pro%20Plan%20(%E2%82%B9249%2Fmo).',
-  },
-  {
-    name: 'Max Plan',
-    price: '₹599',
-    period: '/ mo',
-    desc: 'Full suite: 100% Autonomous Autopilot.',
-    featured: true,
-    tag: 'Full Autopilot',
-    features: [
-      { text: 'Complete Pro Plan Included', bold: true },
-      { text: '100% Autonomous Auto-Apply (Unlimited)', bold: true },
-      { text: 'Unlimited Background HR Outreach', bold: true },
-      { text: 'Priority 15-min ATS Radar Streaming' },
-      { text: 'Highest priority solver & cloud sync' },
-    ],
-    cta: 'Upgrade to Max (₹599)',
-    ctaHref: 'https://wa.me/919493833632?text=Hi%2C%20I%20want%20to%20upgrade%20to%20Nomadic%20Max%20Plan%20(%E2%82%B9599%2Fmo).',
-  },
-];
-
-const COMPARISON_ROWS: Array<{ feature: string; free: string; pro: string; max: string }> = [
-  { feature: 'AI Career Roadmaps', free: '1 preview', pro: 'Unlimited', max: 'Unlimited' },
-  { feature: 'LeetCode Question Bank', free: '3 companies', pro: '428+ companies', max: '428+ companies' },
-  { feature: 'CS Textbook Library', free: '2 books', pro: '12+ books', max: '12+ books' },
-  { feature: '52-Week Streak Heatmap', free: '—', pro: '✓', max: '✓' },
-  { feature: 'ATS Job Board', free: 'Top 10 only', pro: 'Full (18/36/54 pagination)', max: 'Full + Priority Radar' },
-  { feature: 'Semi-Auto Apply', free: '—', pro: '50 / week', max: '50 / week' },
-  { feature: 'Autonomous Auto-Apply', free: '—', pro: '—', max: 'Unlimited' },
-  { feature: 'Verified HR Leads', free: '—', pro: '25 / week', max: 'Unlimited' },
-  { feature: 'Resume Slots', free: '1', pro: '5', max: '5' },
-  { feature: 'AI Assistant', free: '—', pro: '—', max: '✓ (Exclusive)' },
-  { feature: 'Cloud Sync', free: '—', pro: 'Standard', max: 'Priority' },
-];
+const PRICING_PLANS: PricingPlan[] = PLANS.map((p) => {
+  const free = p.id === 'free';
+  return {
+    name: p.name,
+    price: p.price,
+    period: p.per,
+    desc: p.summary,
+    featured: p.featured,
+    features: p.features,
+    cta: free ? 'Download the App' : `Upgrade to ${p.name} (${p.price})`,
+    ctaHref: free
+      ? '/download'
+      : `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(`Hi, I want to upgrade to Nomadic ${p.name} (${p.price}/mo).`)}`,
+  };
+});
 
 /* ─── Component ──────────────────────────────────────────────── */
 
@@ -357,11 +306,6 @@ export default function Services() {
                   <div>
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-bold text-ink-950 uppercase tracking-wider">{plan.name}</h3>
-                      {plan.tag && (
-                        <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-ink-950 text-white">
-                          {plan.tag}
-                        </span>
-                      )}
                     </div>
                     <div className="mt-3 flex items-baseline gap-1">
                       <span className="text-4xl font-extrabold text-ink-950">{plan.price}</span>
@@ -372,9 +316,9 @@ export default function Services() {
 
                   <ul className="space-y-3 text-xs text-ink-700">
                     {plan.features.map((f) => (
-                      <li key={f.text} className={`flex items-center gap-2.5 ${f.bold ? 'font-medium text-ink-950' : ''}`}>
+                      <li key={f} className="flex items-center gap-2.5">
                         <Check className="w-4 h-4 text-ink-950 shrink-0" />
-                        <span>{f.bold ? <strong>{f.text}</strong> : f.text}</span>
+                        <span>{f}</span>
                       </li>
                     ))}
                   </ul>
@@ -385,7 +329,7 @@ export default function Services() {
                   target={plan.ctaHref.startsWith('http') ? '_blank' : undefined}
                   rel={plan.ctaHref.startsWith('http') ? 'noopener noreferrer' : undefined}
                   className={`w-full text-center py-3 px-4 rounded-xl text-xs font-semibold transition-colors block shadow-fine ${
-                    plan.featured || plan.price !== '₹0'
+                    plan.featured || plan.ctaHref !== '/download'
                       ? 'bg-ink-950 hover:bg-black text-white'
                       : 'border border-ink-200 bg-white hover:bg-ink-50 text-ink-950'
                   }`}
@@ -394,33 +338,6 @@ export default function Services() {
                 </a>
               </div>
             ))}
-          </div>
-
-          {/* Comparison Table */}
-          <div className="max-w-5xl mx-auto mt-8">
-            <h3 className="text-sm font-bold text-ink-950 mb-4">Detailed Feature Comparison</h3>
-            <div className="overflow-x-auto rounded-xl border border-ink-200 shadow-fine">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="bg-ink-50 border-b border-ink-200">
-                    <th className="text-left px-4 py-3 font-semibold text-ink-950 w-2/5">Feature</th>
-                    <th className="text-center px-4 py-3 font-semibold text-ink-950">Free</th>
-                    <th className="text-center px-4 py-3 font-semibold text-ink-950">Pro (₹249/mo)</th>
-                    <th className="text-center px-4 py-3 font-semibold text-ink-950">Max (₹599/mo)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {COMPARISON_ROWS.map((row, idx) => (
-                    <tr key={row.feature} className={`border-b border-ink-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-ink-50'}`}>
-                      <td className="px-4 py-3 font-medium text-ink-800">{row.feature}</td>
-                      <td className="px-4 py-3 text-center text-ink-500">{row.free}</td>
-                      <td className="px-4 py-3 text-center text-ink-800 font-medium">{row.pro}</td>
-                      <td className="px-4 py-3 text-center text-ink-950 font-semibold">{row.max}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           </div>
 
           {/* Payment Methods */}
