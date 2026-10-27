@@ -22,7 +22,10 @@ grep -E 'Capacitor/Console|Capacitor:|chromium|AndroidRuntime' smoke-logcat.txt 
 status=0
 if [ "$ready" != 1 ]; then echo '::error::The app did not log "[Nomadic] host ready".'; status=1; fi
 if grep -q '\[Nomadic\] start failed' smoke-logcat.txt; then echo '::error::The app logged "[Nomadic] start failed".'; status=1; fi
-if grep -q 'FATAL EXCEPTION' smoke-logcat.txt; then echo '::error::The app crashed (FATAL EXCEPTION in logcat).'; status=1; fi
+# Only a crash of our own process fails the run; the emulator's preinstalled Google apps (Gmail, GMS) crash on
+# their own now and then, and AndroidRuntime prints "Process: <package>, PID: …" right after "FATAL EXCEPTION".
+if grep -A1 'FATAL EXCEPTION' smoke-logcat.txt | grep -q "Process: $PKG,"; then echo '::error::The app crashed (FATAL EXCEPTION in logcat).'; status=1;
+elif grep -q 'FATAL EXCEPTION' smoke-logcat.txt; then echo "::warning::Another app on the emulator crashed (not $PKG); see smoke-logcat.txt."; fi
 if [ -f smoke-ui.xml ]; then
   if grep -q 'Sign in to Nomadic' smoke-ui.xml; then echo 'Sign-in screen is on screen.'; else echo '::warning::"Sign in to Nomadic" not found in the UI dump (WebView text may not be exposed); see smoke-screen.png.'; fi
 fi
