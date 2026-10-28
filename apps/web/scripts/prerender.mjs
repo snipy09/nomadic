@@ -25,7 +25,10 @@ const FILES = {
   terms: 'terms.html',
   privacy: 'privacy.html',
   refunds: 'refunds.html',
+  shipping: 'shipping.html',
   contact: 'contact.html',
+  services: 'services.html',
+  about: 'about.html',
   notfound: '404.html',
 };
 

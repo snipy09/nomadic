@@ -1,4 +1,4 @@
-import { CONTACT_EMAIL, CONTACT_PHONE, CONTACT_PHONE_HREF, LEGAL_DOCS, LEGAL_NAME, LEGAL_UPDATED, SUPPORT_EMAIL } from '@nomadic/config';
+import { CONTACT_EMAIL, CONTACT_PHONE, CONTACT_PHONE_HREF, LEGAL_DOCS, LEGAL_NAME, LEGAL_UPDATED, REGISTERED_ADDRESS, SUPPORT_EMAIL, TRADE_NAME } from '@nomadic/config';
 import Nav from '../components/Nav';
 import Footer from '../components/Footer';
 
@@ -42,7 +42,7 @@ export default function Legal({ type }: { type: LegalType }) {
           .
         </p>
         <p className="mt-3 text-ink-soft">
-          Operated by <strong className="text-ink">{LEGAL_NAME}</strong> · Email{' '}
+          Operated by <strong className="text-ink">{LEGAL_NAME}</strong>, trading as {TRADE_NAME}{REGISTERED_ADDRESS ? ` · ${REGISTERED_ADDRESS}` : ''} · Email{' '}
           <a href={`mailto:${CONTACT_EMAIL}`} className="font-bold text-ink underline underline-offset-4">{CONTACT_EMAIL}</a>
           {' '}· Phone{' '}
           <a href={CONTACT_PHONE_HREF} className="font-bold text-ink underline underline-offset-4">{CONTACT_PHONE}</a>

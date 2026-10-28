@@ -43,7 +43,7 @@ describe('pricing is defined once (packages/config)', () => {
 
 describe('share cards and head tags', () => {
   it('points every indexable page at its own generated image', () => {
-    for (const id of ['home', 'download', 'terms', 'privacy', 'refunds', 'contact'] as const) {
+    for (const id of ['home', 'download', 'terms', 'privacy', 'refunds', 'shipping', 'contact', 'services', 'about'] as const) {
       expect(headTags(id)).toContain(`content="${ogImageFor(id)}"`);
     }
     expect(ogImageFor('notfound')).toBe(ogImageFor('home'));
@@ -96,5 +96,33 @@ describe('contact page', () => {
     expect(pageForPath('/contact')).toBe('contact');
     const html = render('/contact');
     for (const text of [LEGAL_NAME, CONTACT_EMAIL, CONTACT_PHONE]) expect(html).toContain(text);
+  });
+});
+
+describe('payment gateway review pages', () => {
+  it('routes the policy, services and about pages and prerenders each', async () => {
+    const { pageForPath } = await import('../seo');
+    const { render } = await import('../entry-server');
+    for (const [path, id] of [['/shipping', 'shipping'], ['/services', 'services'], ['/about', 'about'], ['/refunds', 'refunds']] as const) {
+      expect(pageForPath(path)).toBe(id);
+      expect(render(path).length).toBeGreaterThan(500);
+    }
+  });
+
+  it('names the trade name, durations and refund mode', async () => {
+    const { TERMS, REFUNDS, SHIPPING } = await import('@nomadic/config');
+    expect(JSON.stringify(TERMS)).toContain('This website is operated by');
+    const refunds = JSON.stringify(REFUNDS);
+    expect(refunds).toMatch(/30 days/);
+    expect(refunds).toMatch(/5 to 7 working days/);
+    expect(refunds).toMatch(/original payment method/);
+    expect(JSON.stringify(SHIPPING)).toMatch(/within 5 minutes/);
+  });
+
+  it('prices on /services come from config and the page has no coming-soon text', async () => {
+    const { render } = await import('../entry-server');
+    const html = render('/services');
+    for (const p of CONFIG_PLANS.filter((x) => x.priceInr > 0)) expect(html).toContain(formatPrice(p.priceInr));
+    expect(html.toLowerCase()).not.toContain('coming soon');
   });
 });

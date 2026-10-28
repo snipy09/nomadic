@@ -196,3 +196,9 @@ Last updated: 28 October 2026. What was built when, with the files involved. New
 - 28 Oct 2026: Android bottom nav is News, Learn, Jobs, Dashboard, More (`MOBILE_TABS` in
   `components/shell/MobileShell.tsx`); Dashboard left the More page, which now opens with a profile card (initials, name,
   "Profile, preferences and resumes") that opens Profile. Test: `__tests__/mobileShell.test.tsx`.
+
+## 28 October 2026: payment gateway (PayU) website review fixes
+
+- `/services` rewritten (was off-brand, not prerendered, and contradicted the legal pages: 7-day refund, auto-renew). Now lists the service, plans from config, and the exact use of the payment gateway.
+- New pages `/about` and `/shipping`; Refund and Cancellation policy now states durations (30-day plan, errors reported in 7 days, refunded in 5 to 7 working days to the original payment method). Terms say "This website is operated by …, trading as Nomadic". `LEGAL_VERSION` bumped.
+- `REGISTERED_ADDRESS` in `packages/config/src/legal.ts` is empty until the owner adds the GST address; it then appears on Contact, footer and every policy page.

@@ -8,10 +8,18 @@
  */
 import { CURRENCY, PLANS } from './plans';
 
-export const LEGAL_VERSION = '2026-10-18';
-export const LEGAL_UPDATED = '18 October 2026';
+export const LEGAL_VERSION = '2026-10-28';
+export const LEGAL_UPDATED = '28 October 2026';
 /** Legal owner/operator (sole proprietor) as it appears on invoices, notices and the payment gateway. */
 export const LEGAL_NAME = 'Sajal Kumar Mishra';
+/** Trade name the business operates under. */
+export const TRADE_NAME = 'Nomadic';
+/**
+ * Registered business address exactly as on the GST registration (payment gateways ask for the full GST address).
+ * Set it here and it appears on the Contact, About and Shipping pages, the footer and every legal page. Left empty
+ * until the owner supplies it, because the address is never guessed.
+ */
+export const REGISTERED_ADDRESS = '';
 export const LEGAL_ENTITY = `${LEGAL_NAME} (operating as Nomadic)`;
 export const CONTACT_EMAIL = 'sajalmishra0908@gmail.com';
 export const CONTACT_PHONE = '+91 93468 78325';
@@ -28,7 +36,7 @@ export interface LegalSection {
 }
 
 export interface LegalDoc {
-  id: 'terms' | 'privacy' | 'refunds';
+  id: 'terms' | 'privacy' | 'refunds' | 'shipping';
   title: string;
   summary: string;
   sections: LegalSection[];
@@ -46,6 +54,7 @@ export const TERMS: LegalDoc = {
     {
       title: 'About these terms',
       paragraphs: [
+        `This website is operated by ${LEGAL_NAME}, trading as ${TRADE_NAME}.`,
         `These terms are an agreement between you and ${LEGAL_ENTITY} ("Nomadic", "we", "us"). They apply to the Nomadic desktop app, the website and any related services (together, "the Service"). By creating an account or using the Service you agree to them. If you do not agree, do not use the Service.`,
         'You must be at least 18 years old, or have the consent of a parent or guardian, to use the Service. You confirm that the information you give us is accurate.',
       ],
@@ -85,8 +94,8 @@ export const TERMS: LegalDoc = {
       title: 'Plans and payments',
       paragraphs: [
         `The Service has a Free plan and paid plans: ${paidPlans}. Prices are in ${CURRENCY} and include applicable taxes unless stated otherwise. The features and daily limits of each plan are shown in the app and on the website.`,
-        'Paid plans are paid by UPI directly to us (you enter the UPI transaction reference and we confirm the payment, usually within one working day) or through a payment partner where one is offered, for one month at a time. A plan stays active until the end of the period you paid for; when it ends, your account moves to the Free plan and your data stays in place.',
-        'Refunds are covered by our Refund and Cancellation Policy.',
+        'Paid plans are paid by UPI directly to us (you enter the UPI transaction reference and we confirm the payment, usually within one working day) or online through our payment gateway partner PayU (UPI, cards, net banking and wallets), for one month (30 days) at a time. A plan stays active until the end of the period you paid for; when it ends, your account moves to the Free plan and your data stays in place.',
+        'Refunds and cancellation are covered by our Refund and Cancellation Policy. Delivery is covered by our Shipping and Delivery Policy.',
       ],
     },
     {
@@ -131,7 +140,7 @@ export const TERMS: LegalDoc = {
       paragraphs: [
         `These terms are governed by ${GOVERNING_LAW}. Disputes are subject to ${JURISDICTION}. We encourage you to contact us first so we can try to resolve any problem.`,
         `Questions: ${SUPPORT_EMAIL}. Grievances (including under the Consumer Protection (E-Commerce) Rules, 2020 and the Information Technology Act, 2000): ${GRIEVANCE_EMAIL}. We acknowledge grievances within 48 hours and aim to resolve them within 30 days.`,
-        `Operator: ${LEGAL_NAME}. Email: ${CONTACT_EMAIL}. Phone: ${CONTACT_PHONE}.`,
+        `Operator: ${LEGAL_NAME}, trading as ${TRADE_NAME}.${REGISTERED_ADDRESS ? ` Registered address: ${REGISTERED_ADDRESS}.` : ''} Email: ${CONTACT_EMAIL}. Phone: ${CONTACT_PHONE}.`,
       ],
     },
   ],
@@ -155,7 +164,7 @@ export const PRIVACY: LegalDoc = {
         'Profile and application data you add: contact details, education, skills, target role, links (LinkedIn, GitHub, portfolio), answers to common application questions, resumes, saved jobs, and your application history and notes.',
         'Learning data: your learning goal, lesson and practice progress, quiz answers and review schedule.',
         'Device and security data: a device identifier, device name, IP address at sign-in, and sign-in attempts, used to keep one active session per account and to protect against abuse.',
-        'Payment data: for a UPI payment made directly to us we store the order reference, plan, amount, the UPI transaction reference (UTR) you enter and whether we approved it, to confirm the payment and keep payment records. Where a payment partner such as Razorpay processes a payment, we receive the payment status, amount, plan and a payment reference. We never see or store your UPI PIN, card or bank login details.',
+        'Payment data: for a UPI payment made directly to us we store the order reference, plan, amount, the UPI transaction reference (UTR) you enter and whether we approved it, to confirm the payment and keep payment records. Where a payment gateway partner such as PayU or Razorpay processes a payment, we receive the payment status, amount, plan and a payment reference. We never see or store your UPI PIN, card or bank login details.',
         'We do not collect your passwords for job portals. You sign in to those websites yourself in your browser.',
       ],
     },
@@ -177,7 +186,7 @@ export const PRIVACY: LegalDoc = {
     {
       title: 'Who we share it with',
       paragraphs: [
-        'Service providers who process data on our behalf, only to provide the Service: Supabase (database and server functions), Razorpay (payments, where offered), Resend (sending account emails), and Google (Gemini AI for answer suggestions and practice feedback, and Google sign-in if you choose it).',
+        'Service providers who process data on our behalf, only to provide the Service: Supabase (database and server functions), PayU and Razorpay (online payments, where offered), Resend (sending account emails), and Google (Gemini AI for answer suggestions and practice feedback, and Google sign-in if you choose it).',
         'When you use an AI feature, we send only what that request needs, for example an application question with the relevant profile details, or a practice question with your answer. Our AI requests go through our own server; your data is not used by us to train AI models.',
         'Company logos are loaded from Google\'s public favicon service. It receives the company\'s web address and, like any website, your device\'s IP address; never your account or profile details.',
         'Employers and job websites receive the application details only when you review and submit an application yourself.',
@@ -223,28 +232,68 @@ export const PRIVACY: LegalDoc = {
 export const REFUNDS: LegalDoc = {
   id: 'refunds',
   title: 'Refund and Cancellation Policy',
-  summary: 'Paid plans are monthly, do not renew automatically, and are non-refundable.',
+  summary: 'Paid plans last 30 days, do not renew automatically, and are non-refundable except for payment errors, which are refunded in 5 to 7 working days.',
   sections: [
     {
-      title: 'Plans are monthly and do not renew automatically',
+      title: 'Cancellation Policy: duration',
       paragraphs: [
-        'Each payment buys one month of the chosen plan. Nothing is charged again unless you choose to pay for another month, so there is nothing to cancel. When the month ends, your account moves to the Free plan and keeps all your data.',
+        'Each payment buys one plan period of 30 days. Plans do not renew automatically and nothing is charged again unless you choose to pay for another period, so there is no subscription to cancel.',
+        'You can stop at any time. A plan stays active until the end of the 30 days you paid for, then your account moves to the Free plan and keeps all your data. To close your account entirely, write to ' + SUPPORT_EMAIL + '; we confirm within 2 working days and delete your account data within 30 days.',
       ],
     },
     {
-      title: 'No refunds',
+      title: 'Refund Policy: no refunds',
       paragraphs: [
-        'All payments are final. We do not offer refunds for a plan once it is paid for, including for unused days or if you stop using the Service during the month. You can try the Free plan before you pay.',
-        'The only exception is a payment error: if you were charged twice or charged the wrong amount, write to ' + SUPPORT_EMAIL + ' and we will return the extra amount to the original payment method (or by UPI to the account that paid), usually within 5 to 7 working days.',
+        'Paid plans give instant access to digital features, so all payments are final. We do not refund a plan once it is paid for, including for unused days or if you stop using the Service during the 30 days. You can try the Free plan before you pay.',
+      ],
+    },
+    {
+      title: 'Refund Policy: payment errors (duration and mode)',
+      paragraphs: [
+        'The only exception is a payment error: you were charged twice, charged a wrong amount, or paid and your plan was not activated. Report it within 7 days of the payment by writing to ' + SUPPORT_EMAIL + ' with your account email and the payment reference.',
+        'Once we confirm the error, the extra or failed amount is refunded in full within 5 to 7 working days. The refund mode is the original payment method (card, UPI account, net banking or wallet used to pay); where that is not possible we refund by UPI or bank transfer to the account that paid. If your plan was not activated, we may activate it instead of refunding, if you prefer.',
       ],
     },
     {
       title: 'Contact',
       paragraphs: [`For any payment question write to ${SUPPORT_EMAIL} with your account email and the payment reference.`,
-        `Merchant: ${LEGAL_NAME}. Email: ${CONTACT_EMAIL}. Phone: ${CONTACT_PHONE}.`,
+        `Merchant: ${LEGAL_NAME}, trading as ${TRADE_NAME}.${REGISTERED_ADDRESS ? ` Registered address: ${REGISTERED_ADDRESS}.` : ''} Email: ${CONTACT_EMAIL}. Phone: ${CONTACT_PHONE}.`,
       ],
     },
   ],
 };
 
-export const LEGAL_DOCS = { terms: TERMS, privacy: PRIVACY, refunds: REFUNDS } as const;
+export const SHIPPING: LegalDoc = {
+  id: 'shipping',
+  title: 'Shipping and Delivery Policy',
+  summary: 'Nomadic is digital software. Nothing is shipped; plans activate within minutes of payment.',
+  sections: [
+    {
+      title: 'No physical shipping',
+      paragraphs: [
+        'Nomadic is a downloadable software app (Windows, macOS and Android) with online account features. We do not sell or ship physical goods, so there are no shipping charges and no courier delivery.',
+      ],
+    },
+    {
+      title: 'Delivery of the app',
+      paragraphs: [
+        'The app is free to download from our website, and your account works on the Free plan straight away. No payment is needed to download it.',
+      ],
+    },
+    {
+      title: 'Delivery of a paid plan: duration',
+      paragraphs: [
+        'After a successful online payment through PayU, your Pro or Max plan is activated on your account within 5 minutes, usually within 60 seconds. For a UPI payment made directly to us, we confirm the transaction reference and activate the plan within 1 working day.',
+        'If your plan is not active 24 hours after a successful payment, write to ' + SUPPORT_EMAIL + ' with your account email and the payment reference. We activate it or refund the payment as set out in the Refund and Cancellation Policy.',
+      ],
+    },
+    {
+      title: 'Contact',
+      paragraphs: [
+        `Questions about delivery: ${SUPPORT_EMAIL}. Merchant: ${LEGAL_NAME}, trading as ${TRADE_NAME}.${REGISTERED_ADDRESS ? ` Registered address: ${REGISTERED_ADDRESS}.` : ''} Phone: ${CONTACT_PHONE}.`,
+      ],
+    },
+  ],
+};
+
+export const LEGAL_DOCS = { terms: TERMS, privacy: PRIVACY, refunds: REFUNDS, shipping: SHIPPING } as const;

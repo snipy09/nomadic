@@ -1,4 +1,4 @@
-import { CONTACT_EMAIL, CONTACT_PHONE, CONTACT_PHONE_HREF, LEGAL_NAME } from '@nomadic/config';
+import { CONTACT_EMAIL, CONTACT_PHONE, CONTACT_PHONE_HREF, LEGAL_NAME, REGISTERED_ADDRESS } from '@nomadic/config';
 import Logo from './Logo';
 
 const LINK ='inline-flex min-h-11 items-center underline decoration-2 underline-offset-4 hover:text-marigold';
@@ -38,7 +38,16 @@ export default function Footer() {
             Privacy
           </a>
           <a href="/refunds" className={LINK}>
-            Refunds
+            Refund and cancellation
+          </a>
+          <a href="/shipping" className={LINK}>
+            Shipping
+          </a>
+          <a href="/services" className={LINK}>
+            Services and pricing
+          </a>
+          <a href="/about" className={LINK}>
+            About
           </a>
           <a href="/contact" className={LINK}>
             Contact
@@ -50,7 +59,7 @@ export default function Footer() {
       </div>
       <div className="border-t border-white/15">
         <p className="mx-auto max-w-6xl px-4 py-5 text-sm text-ink-pale sm:px-6">
-          © 2026 {LEGAL_NAME} (Nomadic). Phone: <a href={CONTACT_PHONE_HREF} className="underline">{CONTACT_PHONE}</a>. All sample companies, people and listings on this site are fictional.
+          © 2026 {LEGAL_NAME} (Nomadic).{REGISTERED_ADDRESS ? ` ${REGISTERED_ADDRESS}.` : ''} Phone: <a href={CONTACT_PHONE_HREF} className="underline">{CONTACT_PHONE}</a>. All sample companies, people and listings on this site are fictional.
         </p>
       </div>
     </footer>

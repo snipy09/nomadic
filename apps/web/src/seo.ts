@@ -6,7 +6,7 @@ export const SITE = 'https://nomadicai.vercel.app';
 export const ogImageFor = (id: PageId) => `${SITE}/og/${id === 'notfound' ? 'home' : id}.png`;
 export const OG_IMAGE = ogImageFor('home');
 
-export type PageId = 'home' | 'download' | 'terms' | 'privacy' | 'refunds' | 'contact' | 'services' | 'notfound';
+export type PageId = 'home' | 'download' | 'terms' | 'privacy' | 'refunds' | 'shipping' | 'contact' | 'services' | 'about' | 'notfound';
 
 export interface PageMeta {
   path: string;
@@ -69,29 +69,47 @@ export const PAGES: Record<PageId, PageMeta> = {
   refunds: {
     path: '/refunds',
     title: 'Refund and Cancellation Policy | Nomadic',
-    description: 'How refunds and cancellations work for Nomadic Pro and Max plans: monthly, no auto-renewal, all payments final.',
+    description: 'Refund and cancellation policy for Nomadic Pro and Max plans: 30-day plans, no auto-renewal, payment errors refunded in 5 to 7 working days.',
     index: true,
-    updated: '2026-10-03',
+    updated: '2026-10-28',
     priority: '0.3',
-    og: { heading: 'Refund and Cancellation', sub: 'Monthly plans, no auto-renewal, all payments final.' },
+    og: { heading: 'Refund and Cancellation', sub: '30-day plans, no auto-renewal, errors refunded in 5 to 7 days.' },
+  },
+  shipping: {
+    path: '/shipping',
+    title: 'Shipping and Delivery Policy | Nomadic',
+    description: 'Nomadic is digital software: nothing is shipped, and a paid plan is activated within minutes of payment.',
+    index: true,
+    updated: '2026-10-28',
+    priority: '0.3',
+    og: { heading: 'Shipping and Delivery', sub: 'Digital software. Plans activate within minutes.' },
   },
   contact: {
     path: '/contact',
     title: 'Contact Us | Nomadic',
-    description: 'Contact Nomadic: operator, email and phone for support, payments and grievances.',
+    description: 'Contact Nomadic: operator, address, email and phone for support, payments and grievances.',
     index: true,
-    updated: '2026-10-08',
+    updated: '2026-10-28',
     priority: '0.4',
     og: { heading: 'Contact us', sub: 'Support, payments and grievances.' },
   },
   services: {
     path: '/services',
-    title: 'Services & Pricing | Nomadic',
-    description: 'A complete breakdown of Nomadic platform courses, features, subscriptions, automation capabilities, and delivery options.',
+    title: 'Services and Pricing | Nomadic',
+    description: 'What Nomadic includes, the Free, Pro and Max plans with prices in INR, and how online payment works.',
     index: true,
-    updated: '2026-10-10',
+    updated: '2026-10-28',
     priority: '0.8',
-    og: { heading: 'Services & Pricing', sub: 'Everything Nomadic delivers.' },
+    og: { heading: 'Services and pricing', sub: 'Free, Pro and Max plans in INR.' },
+  },
+  about: {
+    path: '/about',
+    title: 'About Us | Nomadic',
+    description: 'Nomadic is a career app for engineering students in India: learning roadmap, practice, jobs, reviewed applications and a tracker.',
+    index: true,
+    updated: '2026-10-28',
+    priority: '0.5',
+    og: { heading: 'About Nomadic', sub: 'A career app for engineering students in India.' },
   },
   notfound: {
     path: '/404',

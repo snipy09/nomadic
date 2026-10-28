@@ -1,4 +1,4 @@
-import { CONTACT_EMAIL, CONTACT_PHONE, CONTACT_PHONE_HREF, LEGAL_NAME } from '@nomadic/config';
+import { CONTACT_EMAIL, CONTACT_PHONE, CONTACT_PHONE_HREF, LEGAL_NAME, REGISTERED_ADDRESS, TRADE_NAME } from '@nomadic/config';
 import Nav from '../components/Nav';
 import Footer from '../components/Footer';
 
@@ -7,7 +7,8 @@ const LINK = 'font-bold text-ink underline decoration-2 underline-offset-4 hover
 /** Contact details from @nomadic/config, the same source the legal pages and footer use. */
 export default function Contact() {
   const rows = [
-    { label: 'Operated by', value: <span className="font-bold text-ink">{LEGAL_NAME} (operating as Nomadic)</span> },
+    { label: 'Operated by', value: <span className="font-bold text-ink">{LEGAL_NAME}, trading as {TRADE_NAME}</span> },
+    ...(REGISTERED_ADDRESS ? [{ label: 'Registered address', value: <span>{REGISTERED_ADDRESS}</span> }] : []),
     { label: 'Email', value: <a href={`mailto:${CONTACT_EMAIL}`} className={LINK}>{CONTACT_EMAIL}</a> },
     { label: 'Phone', value: <a href={CONTACT_PHONE_HREF} className={LINK}>{CONTACT_PHONE}</a> },
   ];
@@ -40,7 +41,8 @@ export default function Contact() {
             See also the{' '}
             <a href="/terms" className={LINK}>Terms and Conditions</a>,{' '}
             <a href="/privacy" className={LINK}>Privacy Policy</a> and{' '}
-            <a href="/refunds" className={LINK}>Refund and Cancellation Policy</a>.
+            <a href="/refunds" className={LINK}>Refund and Cancellation Policy</a> and{' '}
+            <a href="/shipping" className={LINK}>Shipping and Delivery Policy</a>.
           </p>
         </div>
       </main>
