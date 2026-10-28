@@ -2,7 +2,7 @@
  * The roadmap intake as one question per page. Pure: which pages a mode shows,
  * whether a page can be left, and the plain-language recap on the last page.
  */
-import { STREAMS, endDateForWeeks, formatDay, type Stream } from '@job-automator/learning';
+import { ROLE_SHARES, STREAMS, endDateForWeeks, formatDay, type Stream } from '@job-automator/learning';
 import { roleById } from './content';
 import { AIM_OPTIONS, LANGUAGE_OPTIONS, LEVEL_OPTIONS, WEEKDAY_CHIPS, formatMinutes, streamLabel, type IntakeDraft } from './learnModel';
 
@@ -30,12 +30,28 @@ export const INTAKE_STEPS: Record<IntakeStepId, IntakeStepDef> = {
   summary: { id: 'summary', label: 'Review', title: 'Your plan at a glance', description: 'Check the details, then build your week-by-week roadmap.' },
 };
 
-/** Roles whose roadmap has no DSA stream, so they skip the language page. */
-const NO_DSA_ROLES = new Set(['product-manager', 'design']);
+/** Streams a role's roadmap can hold: a zero share (DSA and Core CS for product and design) is never asked about. */
+export function roleStreams(role: IntakeDraft['role']): Stream[] {
+  const shares = ROLE_SHARES[role];
+  return STREAMS.filter((s) => !shares || (shares[s] ?? 0) > 0);
+}
+
+/** Streams the level page asks about: the role's streams, aptitude only for campus drives. */
+export function levelStreams(d: Pick<IntakeDraft, 'role' | 'aim'>): Array<'dsa' | 'core_cs' | 'dev' | 'aptitude'> {
+  const on = roleStreams(d.role);
+  return (['dsa', 'core_cs', 'dev', 'aptitude'] as const).filter((s) => on.includes(s) && (s !== 'aptitude' || d.aim === 'campus'));
+}
+
+/** The intake's name for a stream: "Development" reads as product or design skills for those roles. */
+export function intakeStreamLabel(s: Stream, role: IntakeDraft['role']): string {
+  if (s === 'dev' && role === 'product-manager') return 'Product skills';
+  if (s === 'dev' && role === 'design') return 'Design skills';
+  return streamLabel(s);
+}
 
 /** Pages for Learn (everything) or onboarding (the short version). */
 export function intakeSteps(mode: 'full' | 'short', draft: Pick<IntakeDraft, 'role'>): IntakeStepId[] {
-  const lang = NO_DSA_ROLES.has(draft.role) ? [] : (['language'] as const);
+  const lang = roleStreams(draft.role).includes('dsa') ? (['language'] as const) : [];
   return mode === 'full'
     ? ['role', 'aim', 'duration', 'schedule', 'level', ...lang, 'focus', 'extras', 'summary']
     : ['role', 'aim', 'duration', 'schedule', 'level', ...lang, 'summary'];
@@ -56,7 +72,7 @@ export function stepProblem(step: IntakeStepId, d: IntakeDraft, roleChosen = tru
     case 'duration':
       return d.weeks >= 1 && d.weeks <= 104 ? null : 'Pick a duration between 1 and 104 weeks.';
     case 'focus':
-      return d.streams.length ? null : 'Keep at least one area on.';
+      return roleStreams(d.role).some((s) => d.streams.includes(s)) ? null : 'Keep at least one area on.';
     default:
       return null;
   }
@@ -94,15 +110,14 @@ export function intakeRecap(d: IntakeDraft, steps: IntakeStepId[]): RecapRow[] {
     rows.push({ step: 'schedule', label: 'Schedule', value: `${parts.join(' · ')} (${formatMinutes(weeklyMinutes(d))} a week)` });
   }
   if (has('level')) {
-    const levels = (['dsa', 'core_cs', 'dev', 'aptitude'] as const)
-      .filter((s) => s !== 'aptitude' || d.aim === 'campus')
-      .map((s) => `${streamLabel(s)}: ${LEVEL_OPTIONS.find((l) => l.value === d.levels[s])?.label.toLowerCase()}`);
+    const levels = levelStreams(d).map((s) => `${intakeStreamLabel(s, d.role)}: ${LEVEL_OPTIONS.find((l) => l.value === d.levels[s])?.label.toLowerCase()}`);
     rows.push({ step: 'level', label: 'Level', value: levels.join(' · ') });
   }
   if (has('language')) rows.push({ step: 'language', label: 'DSA language', value: LANGUAGE_OPTIONS.find((l) => l.value === d.language)?.label ?? d.language });
   if (has('focus')) {
-    const on = STREAMS.filter((s: Stream) => d.streams.includes(s)).map(streamLabel);
-    rows.push({ step: 'focus', label: 'Covers', value: on.length === STREAMS.length ? 'Everything' : on.join(', ') });
+    const all = roleStreams(d.role);
+    const on = all.filter((s) => d.streams.includes(s)).map((s) => intakeStreamLabel(s, d.role));
+    rows.push({ step: 'focus', label: 'Covers', value: on.length === all.length ? 'Everything' : on.join(', ') });
   }
   if (has('extras')) {
     const bits = [

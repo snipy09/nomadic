@@ -273,7 +273,7 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'What can I learn with it?',
-    a: 'Roadmaps for frontend, backend, full-stack, data, machine learning, product, design and DevOps roles, with DSA, core CS and aptitude mixed in. Practice has around 1,800 company-tagged coding problems and interview questions, and the Projects library has about 4,100 guided projects with starter code, hints and checks.',
+    a: 'Roadmaps for frontend, backend, full-stack, data, machine learning, product, design and DevOps roles, with DSA, core CS and aptitude mixed in where the role needs them. Every lesson has one-click buttons to learn it from a YouTube search or a ready-made ChatGPT prompt. Practice has around 1,800 company-tagged coding problems and interview questions, and the Projects library has about 4,100 guided projects with starter code, hints and checks.',
   },
   {
     q: 'Where is my data stored?',

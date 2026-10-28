@@ -6,10 +6,10 @@ application. Three apps share one codebase: **Windows**, **macOS** (test builds)
 
 | | Windows | macOS | Android |
 |---|---|---|---|
-| Learn: roadmap, path, today, topics, quizzes, progress | ✓ | ✓ | ✓ |
+| Learn: roadmap, path, today, topics, quizzes, progress; "Learn from YouTube / ChatGPT" on every lesson | ✓ | ✓ | ✓ |
 | Job board with match %, Saved, Hidden; News | ✓ | ✓ | ✓ (News is Home) |
 | Apply with review (fills the real form, you approve every field) | ✓ | ✓ | "Auto apply from desktop" |
-| Tracker, Application answers, Settings, Help, Admin | ✓ | ✓ | ✓ |
+| Tracker, Application answers, Settings, Help, Admin | ✓ | ✓ | ✓ (Tracker opens from Jobs) |
 | Practice (~1,800 company problems, mock mode, AI feedback) | ✓ | ✓ | – |
 | Projects (~4,100 guided projects, repo check, AI help) | ✓ | ✓ | – |
 | Outreach (behind a feature flag, shown as "Soon") | ✓ | ✓ | – |
@@ -101,10 +101,10 @@ Indian publishers, and Outreach contacts. Details: [`context/scrapers.md`](conte
 ## Releasing
 
 - Windows: [`docs/guides/RELEASE.md`](docs/guides/RELEASE.md). `npm run package:desktop` on Windows, or
-  `scripts/windows/Build Nomadic.bat` (copies the .exe files to Downloads). Current version 1.5.0.
-- macOS: [`docs/guides/MAC_APP.md`](docs/guides/MAC_APP.md). Unsigned test DMGs from `build-mac.yml` (1.4.0).
+  `scripts/windows/Build Nomadic.bat` (copies the .exe files to Downloads). Current version 1.6.0 (1.5.0 on the website).
+- macOS: [`docs/guides/MAC_APP.md`](docs/guides/MAC_APP.md). Unsigned test DMGs from `build-mac.yml` (code 1.6.0; site 1.4.0).
 - Android: [`docs/guides/MOBILE_APP.md`](docs/guides/MOBILE_APP.md). Signed release APK built on the owner's laptop
-  (1.5.0 live on the website, 1.5.1 with Google sign-in built); debug APK from `android-app.yml`. Not on the Play Store.
+  (code 1.6.0; 1.5.1 live on the website); debug APK from `android-app.yml`. Not on the Play Store.
 - Public downloads are release assets in `snipy09/nomadic-releases` (tags `win-v<ver>`, `mac-v<ver>`, `android-v<ver>`).
 
 All work lands on `main`; there are no other branches (old ones were removed 18 Oct 2026, unmerged ones kept as

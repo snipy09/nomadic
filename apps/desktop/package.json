@@ -1,6 +1,6 @@
 {
   "name": "@nomadic/desktop",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Nomadic for Windows: the shared app (packages/app-core + packages/app-ui) with Windows startup and packaging.",
   "author": "Nomadic",
   "main": "out/main/index.cjs",

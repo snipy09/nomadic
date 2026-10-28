@@ -3,6 +3,7 @@ import { CalendarClock } from 'lucide-react';
 import { EmptyState, useToast } from '@nomadic/ui';
 import { formatDay, type PathDay, type PlanTask, type Schedule } from '@job-automator/learning';
 import { DayTaskList } from './DayTaskList';
+import type { LessonLinksProps } from './LessonLinks';
 import { entryViews, type EntryView, type Progress } from './learnModel';
 import { DayHeader, useTaskOpener } from './TodayScreen';
 
@@ -16,10 +17,11 @@ interface DayScreenProps {
   onToggle: (view: EntryView, done: boolean, durationS: number) => Promise<{ ok: boolean; error?: string }>;
   onOpenTask: (task: PlanTask) => void;
   onMove: (key: string, toDate: string) => Promise<void>;
+  intake?: LessonLinksProps['intake'];
 }
 
 /** Any day of the path: its tasks with what to learn; work can be ticked early or late, or moved to another day. */
-export function DayScreen({ date, today, schedule, progress, pathDay, onBack, onToggle, onOpenTask, onMove }: DayScreenProps) {
+export function DayScreen({ date, today, schedule, progress, pathDay, onBack, onToggle, onOpenTask, onMove, intake }: DayScreenProps) {
   const { toast } = useToast();
   const { open, spent } = useTaskOpener(onOpenTask);
   const day = schedule.days.find((d) => d.date === date) ?? null;
@@ -48,6 +50,7 @@ export function DayScreen({ date, today, schedule, progress, pathDay, onBack, on
             if (!res.ok) toast({ title: 'Not saved', description: res.error, tone: 'danger' });
           }}
           onOpen={open}
+          intake={intake}
           moveTargets={date >= today ? targets : undefined}
           onMove={(v, to) => void onMove(v.key, to)}
         />

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { allProjects } from '../features/learn/catalog';
-import { INTAKE_STEPS, intakeRecap, intakeSteps, stepProblem, weeklyMinutes } from '../features/learn/intakeSteps';
+import { INTAKE_STEPS, intakeRecap, intakeStreamLabel, intakeSteps, levelStreams, roleStreams, stepProblem, weeklyMinutes } from '../features/learn/intakeSteps';
 import { defaultIntakeDraft } from '../features/learn/learnModel';
 import { DEFAULT_FILTERS, cardHours, filterCards, kindCounts, libraryCards, sortCards } from '../features/projects/projectsLogic';
 
@@ -20,6 +20,25 @@ describe('intake pages', () => {
     expect(steps).not.toContain('extras');
     expect(steps).not.toContain('focus');
     expect(steps.at(-1)).toBe('summary');
+  });
+
+  it('never asks product or design students about DSA or Core CS', () => {
+    for (const role of ['product-manager', 'design'] as const) {
+      const d = { ...draft, role, aim: 'campus' as const };
+      expect(roleStreams(role)).not.toContain('dsa');
+      expect(roleStreams(role)).not.toContain('core_cs');
+      expect(levelStreams(d)).toEqual(['dev', 'aptitude']);
+      const recap = intakeRecap(d, intakeSteps('full', d)).map((r) => r.value).join(' ');
+      expect(recap).not.toMatch(/DSA|Core CS/);
+    }
+    expect(intakeStreamLabel('dev', 'product-manager')).toBe('Product skills');
+    expect(stepProblem('focus', { ...draft, role: 'product-manager', streams: ['dsa', 'core_cs'] })).toMatch(/at least one/);
+  });
+
+  it('keeps every stream for engineering roles', () => {
+    expect(levelStreams({ role: 'fullstack', aim: 'campus' })).toEqual(['dsa', 'core_cs', 'dev', 'aptitude']);
+    expect(levelStreams({ role: 'fullstack', aim: 'offcampus' })).toEqual(['dsa', 'core_cs', 'dev']);
+    expect(intakeStreamLabel('dev', 'fullstack')).toBe('Development');
   });
 
   it('skips the DSA language for roles without DSA', () => {

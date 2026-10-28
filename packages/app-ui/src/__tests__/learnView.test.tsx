@@ -201,6 +201,18 @@ describe('LearnView (Learn v2)', () => {
     expect(await screen.findByText(/week 1 · day \d+ ·/i)).toBeTruthy();
   });
 
+  it('opens a lesson on YouTube and in ChatGPT from Today', async () => {
+    const { roadmap, schedule } = plan();
+    const api = mockApi({ roadmap, schedule });
+    renderLearn();
+    await openToday();
+    const yt = await screen.findAllByRole('button', { name: /learn from youtube/i });
+    await userEvent.click(yt[0]);
+    expect(api.openExternalUrl).toHaveBeenCalledWith(expect.stringMatching(/^https:\/\/www\.youtube\.com\/results\?search_query=/));
+    await userEvent.click(screen.getAllByRole('button', { name: /learn from chatgpt/i })[0]);
+    await waitFor(() => expect(api.openExternalUrl).toHaveBeenCalledWith(expect.stringMatching(/^https:\/\/chatgpt\.com\/\?q=/)));
+  });
+
   it('opens a problem in the browser from a solve task', async () => {
     const { roadmap, schedule } = plan();
     const api = mockApi({ roadmap, schedule });

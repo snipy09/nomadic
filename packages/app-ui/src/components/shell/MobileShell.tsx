@@ -1,5 +1,5 @@
 import React from 'react';
-import { Briefcase, ChevronRight, Compass, LayoutDashboard, LayoutGrid, LifeBuoy, ListChecks, LogOut, Menu, MessageSquareText, Newspaper, Settings as SettingsIcon, Shield, Sparkles } from 'lucide-react';
+import { Briefcase, ChevronRight, Compass, LayoutDashboard, LifeBuoy, ListChecks, LogOut, Menu, MessageSquareText, Newspaper, Settings as SettingsIcon, Shield, Sparkles } from 'lucide-react';
 import { cn } from '@nomadic/ui';
 import type { AppUser, TabType } from '../../types';
 
@@ -21,8 +21,8 @@ const MORE_PAGES: ReadonlySet<TabType> = new Set<TabType>(['more', 'dashboard', 
 export const MOBILE_TABS: MobileTab[] = [
   { id: 'home', label: 'News', icon: Newspaper, owns: (t) => t === 'home' },
   { id: 'learner-roadmaps', label: 'Learn', icon: Compass, owns: (t) => t === 'learner-roadmaps' },
-  { id: 'feed', label: 'Jobs', icon: Briefcase, owns: (t) => t === 'feed' },
-  { id: 'applications', label: 'Tracker', icon: LayoutGrid, owns: (t) => t === 'applications' },
+  // The tracker is opened from Jobs on the phone, so Jobs stays lit there.
+  { id: 'feed', label: 'Jobs', icon: Briefcase, owns: (t) => t === 'feed' || t === 'applications' },
   { id: 'more', label: 'More', icon: Menu, owns: (t) => MORE_PAGES.has(t) || t.startsWith('admin') },
 ];
 

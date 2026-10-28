@@ -66,8 +66,9 @@ describe('feed logic', () => {
     expect(pageRange(5, 20)).toEqual([1, '…', 4, 5, 6, '…', 20]);
     expect(pageRange(1, 3)).toEqual([1, 2, 3]);
     const now = Date.parse('2026-10-03T12:00:00Z');
-    expect(postedLabel('2026-10-03T01:00:00Z', now)).toBe('Today');
-    expect(postedLabel('2026-09-28T12:00:00Z', now)).toBe('5d ago');
+    expect(postedLabel('2026-10-03T01:00:00Z', now)).toBe('3 Oct (today)');
+    expect(postedLabel('2026-09-28T12:00:00Z', now)).toMatch(/^28 Sept? \(5d ago\)$/);
+    expect(postedLabel('2025-12-20T12:00:00Z', now)).toMatch(/^20 Dec 2025 \(9mo ago\)$/);
     expect(postedLabel(undefined, now)).toBeNull();
   });
 });

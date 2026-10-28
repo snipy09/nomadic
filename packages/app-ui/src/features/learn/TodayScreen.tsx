@@ -6,6 +6,7 @@ import { getApi, type LearningEventInput } from '../../types';
 import { problemByRef } from './catalog';
 import { skillName, type QuizItem } from './content';
 import { DayTaskList } from './DayTaskList';
+import type { LessonLinksProps } from './LessonLinks';
 import { formatMinutes, type EntryView, type TodayModel } from './learnModel';
 import { QuizForm } from './QuizForm';
 import { reviewEvents } from './quizLogic';
@@ -85,6 +86,7 @@ interface TodayScreenProps {
   onPace: (factor: number) => Promise<void>;
   onShortfallOption: (option: 'extend' | 'weekend' | 'drop') => Promise<void>;
   onOpenUpgrade?: (feature?: string) => void;
+  intake?: LessonLinksProps['intake'];
 }
 
 /** Today: the day's tasks grouped by topic with what to learn, catch-up banners, reviews and day actions. */
@@ -188,7 +190,7 @@ export function TodayScreen(props: TodayScreenProps) {
             }
           />
         ) : (
-          <DayTaskList views={today.entries} onToggle={(v, d) => void toggle(v, d)} onOpen={open} />
+          <DayTaskList views={today.entries} onToggle={(v, d) => void toggle(v, d)} onOpen={open} intake={props.intake} />
         )}
       </section>
 

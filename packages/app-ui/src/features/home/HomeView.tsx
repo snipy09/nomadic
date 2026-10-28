@@ -8,7 +8,7 @@ import { prefs } from '../../store/preferences';
 import { answeredCount } from '../answers/answersLogic';
 import { dueFollowUps, followUpLabel, stageCounts } from '../applications/applicationsLogic';
 import { useApplications } from '../applications/useApplications';
-import { HIGH_MATCH, withoutHidden, type ScoredJob } from '../feed/feedLogic';
+import { HIGH_MATCH, postedLabel, withoutHidden, type ScoredJob } from '../feed/feedLogic';
 import { CompanyLogo } from '../feed/CompanyLogo';
 import { combinedMastery, inferRole, matchJob, profileMastery } from '../feed/match';
 import { useFeed } from '../feed/useFeed';
@@ -291,7 +291,7 @@ function TopMatches({ profile, onNavigate }: { profile: MasterProfile; onNavigat
                   <CompanyLogo company={j.company} url={j.applyUrl} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-body font-strong text-fg">{j.title}</span>
-                    <span className="block truncate text-caption text-fg-subtle">{[j.company, j.location].filter(Boolean).join(' · ')}</span>
+                    <span className="block truncate text-caption text-fg-subtle">{[j.company, j.location, postedLabel(j.createdAt)].filter(Boolean).join(' · ')}</span>
                   </span>
                   {j.employmentType === 'internship' && <Badge size="sm" tone="neutral">Internship</Badge>}
                   {j.match && (

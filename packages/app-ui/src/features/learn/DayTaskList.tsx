@@ -15,6 +15,7 @@ import {
 import { Badge, Button, Checkbox, Select, cn } from '@nomadic/ui';
 import { partSlice, type PlanTask, type TaskKind } from '@job-automator/learning';
 import { moduleById, problemByRef, projectById, topicById } from './catalog';
+import { LessonLinks, type LessonLinksProps } from './LessonLinks';
 import { InlineText } from './InlineText';
 import { KIND_LABEL, formatMinutes, streamLabel, type EntryView } from './learnModel';
 import { IS_MOBILE } from '../../platform';
@@ -97,10 +98,12 @@ interface Props {
   /** Dates an entry may move to (Day view). */
   moveTargets?: Array<{ value: string; label: string }>;
   onMove?: (v: EntryView, toDate: string) => void;
+  /** The student's intake, for the YouTube and ChatGPT links on lessons. */
+  intake?: LessonLinksProps['intake'];
 }
 
 /** A day's tasks, grouped by topic, each learn task with its exact "what to learn" list. */
-export function DayTaskList({ views, readOnly, onToggle, onOpen, moveTargets, onMove }: Props) {
+export function DayTaskList({ views, readOnly, onToggle, onOpen, moveTargets, onMove, intake }: Props) {
   const groups = groupEntries(views);
   return (
     <ol className="flex flex-col gap-3">
@@ -119,7 +122,7 @@ export function DayTaskList({ views, readOnly, onToggle, onOpen, moveTargets, on
             </div>
             <ul className="divide-y divide-line">
               {g.views.map((v) => (
-                <TaskRow key={v.key} view={v} readOnly={readOnly} onToggle={onToggle} onOpen={onOpen} moveTargets={moveTargets} onMove={onMove} />
+                <TaskRow key={v.key} view={v} readOnly={readOnly} onToggle={onToggle} onOpen={onOpen} moveTargets={moveTargets} onMove={onMove} intake={intake} />
               ))}
             </ul>
           </li>
@@ -129,7 +132,7 @@ export function DayTaskList({ views, readOnly, onToggle, onOpen, moveTargets, on
   );
 }
 
-function TaskRow({ view: v, readOnly, onToggle, onOpen, moveTargets, onMove }: { view: EntryView } & Omit<Props, 'views'>) {
+function TaskRow({ view: v, readOnly, onToggle, onOpen, moveTargets, onMove, intake }: { view: EntryView } & Omit<Props, 'views'>) {
   const t = v.task;
   const topic = t.topic_id ? topicById(t.topic_id) : undefined;
   const isLearn = (t.kind === 'learn' || t.kind === 'read') && !!topic;
@@ -225,6 +228,11 @@ function TaskRow({ view: v, readOnly, onToggle, onOpen, moveTargets, onMove }: {
               </li>
             ))}
           </ol>
+          {topic && (
+            <div className="mt-3 border-t border-line pt-3">
+              <LessonLinks topic={topic} intake={intake} />
+            </div>
+          )}
         </div>
       )}
       {moveTargets && onMove && !v.done && moveTargets.length > 0 && (

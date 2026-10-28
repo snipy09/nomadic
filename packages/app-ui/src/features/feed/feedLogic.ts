@@ -71,8 +71,17 @@ export function postedLabel(createdAt?: string, now = Date.now()): string | null
   const t = new Date(createdAt).getTime();
   if (!t) return null;
   const days = Math.floor((now - t) / 86_400_000);
-  if (days <= 0) return 'Today';
-  if (days === 1) return 'Yesterday';
-  if (days < 30) return `${days}d ago`;
-  return `${Math.floor(days / 30)}mo ago`;
+  const ago = days <= 0 ? 'today' : days === 1 ? 'yesterday' : days < 30 ? `${days}d ago` : `${Math.floor(days / 30)}mo ago`;
+  return `${calendarDate(t, now)} (${ago})`;
+}
+
+/** "28 Oct", with the year when it is not this year (India time). */
+export function calendarDate(t: number, now = Date.now()): string {
+  const year = (x: number) => new Date(x).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', year: 'numeric' });
+  return new Date(t).toLocaleDateString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: 'numeric',
+    month: 'short',
+    ...(year(t) === year(now) ? {} : { year: 'numeric' }),
+  });
 }

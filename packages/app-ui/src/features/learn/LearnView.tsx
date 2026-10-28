@@ -339,6 +339,7 @@ export function LearnView({ currentUser, suggestedRole, onOpenUpgrade, onLog, in
           onToggle={toggle}
           onOpenTask={(task) => openTask(task, s)}
           onMove={(key, to) => saveSchedule(moveEntry(schedule!, key, to), 'Task moved')}
+          intake={roadmap?.intake}
         />
       );
   } else if (s.name === 'progress') {
@@ -403,6 +404,7 @@ export function LearnView({ currentUser, suggestedRole, onOpenUpgrade, onLog, in
         onToggle={toggle}
         onRecord={record}
         onOpenTask={(task) => openTask(task, { name: 'today' })}
+        intake={roadmap?.intake}
         onReplan={async () => {
           const r = await replanWith();
           if (r) await saveSchedule(r.schedule, r.moved ? `${r.moved} tasks moved` : 'Plan is up to date');

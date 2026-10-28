@@ -6,6 +6,7 @@ import { getApi, type LearningEventInput } from '../../types';
 import { learnIndex, moduleById, problemByRef, topicById } from './catalog';
 import { quizItemById, type QuizItem } from './content';
 import { LearnItem } from './DayTaskList';
+import { LessonLinks } from './LessonLinks';
 import { InlineText } from './InlineText';
 import { formatMinutes, knowThisEvent, problemAttemptedEvent, topicProblems, type Progress } from './learnModel';
 import { QuizForm } from './QuizForm';
@@ -81,6 +82,9 @@ export function TopicScreen(props: TopicScreenProps) {
           <Badge size="sm" tone="neutral">{topic.tier}</Badge>
           {topic.ai_drafted && topic.status !== 'published' && <Badge size="sm" tone="warning">AI-drafted, under review</Badge>}
           {learnDone && <Badge size="sm" tone="success">Learned</Badge>}
+        </div>
+        <div className="mt-2">
+          <LessonLinks topic={topic} intake={roadmap?.intake} />
         </div>
       </header>
 

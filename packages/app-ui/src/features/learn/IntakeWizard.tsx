@@ -20,10 +20,10 @@ import {
   X,
 } from 'lucide-react';
 import { Badge, Button, Combobox, Field, IconButton, Input, Textarea, cn } from '@nomadic/ui';
-import { STREAMS, addDays, endDateForWeeks, formatDay, type Feasibility, type Stream } from '@job-automator/learning';
+import { addDays, endDateForWeeks, formatDay, type Feasibility, type Stream } from '@job-automator/learning';
 import { getApi } from '../../types';
 import { ROLES } from './content';
-import { INTAKE_STEPS, intakeRecap, intakeSteps, stepProblem, weeklyMinutes, type IntakeStepId } from './intakeSteps';
+import { INTAKE_STEPS, intakeRecap, intakeStreamLabel, intakeSteps, levelStreams, roleStreams, stepProblem, weeklyMinutes, type IntakeStepId } from './intakeSteps';
 import {
   AIM_OPTIONS,
   LANGUAGE_OPTIONS,
@@ -31,7 +31,6 @@ import {
   WEEKDAY_CHIPS,
   WEEK_PRESETS,
   formatMinutes,
-  streamLabel,
   type IntakeDraft,
 } from './learnModel';
 
@@ -247,6 +246,12 @@ const LEVEL_HINT: Record<'dsa' | 'core_cs' | 'dev' | 'aptitude', string> = {
   aptitude: 'Quant, logical reasoning and verbal ability',
 };
 
+/** What "Development" means for roles that do not write code. */
+const ROLE_DEV_HINT: Partial<Record<string, string>> = {
+  'product-manager': 'Product sense, metrics, PRDs, case and guesstimate interviews',
+  design: 'Design tools, UX research, visual design and your portfolio',
+};
+
 const LANGUAGE_DETAILS: Record<string, string> = {
   cpp: 'Fast and the most common choice for competitive-style problems. STL covers every data structure.',
   java: 'Verbose but clear; Collections and strong typing are liked by interviewers at service companies.',
@@ -325,16 +330,14 @@ export function IntakePage({ step, draft, onChange, companiesAllowed = false, ro
     case 'level':
       return (
         <ul className="flex flex-col divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
-          {(['dsa', 'core_cs', 'dev', 'aptitude'] as const)
-            .filter((s) => s !== 'aptitude' || draft.aim === 'campus')
-            .map((s) => (
+          {levelStreams(draft).map((s) => (
               <li key={s} className="flex flex-wrap items-center gap-3 px-4 py-3">
                 <div className="min-w-[12rem] flex-1">
-                  <div className="text-body-lg font-strong text-fg">{streamLabel(s)}</div>
-                  <div className="text-caption text-fg-subtle">{LEVEL_HINT[s]}</div>
+                  <div className="text-body-lg font-strong text-fg">{intakeStreamLabel(s, draft.role)}</div>
+                  <div className="text-caption text-fg-subtle">{(s === 'dev' && ROLE_DEV_HINT[draft.role]) || LEVEL_HINT[s]}</div>
                 </div>
                 <Segmented
-                  label={`${streamLabel(s)} level`}
+                  label={`${intakeStreamLabel(s, draft.role)} level`}
                   value={draft.levels[s]}
                   onChange={(v) => set('levels', { ...draft.levels, [s]: v })}
                   options={LEVEL_OPTIONS}
@@ -356,7 +359,7 @@ export function IntakePage({ step, draft, onChange, companiesAllowed = false, ro
     case 'focus':
       return (
         <div role="group" aria-label="What to cover" className="grid gap-3 sm:grid-cols-2">
-          {STREAMS.map((s) => {
+          {roleStreams(draft.role).map((s) => {
             const on = draft.streams.includes(s);
             const off = s === 'aptitude' && draft.aim !== 'campus';
             return (
@@ -378,8 +381,8 @@ export function IntakePage({ step, draft, onChange, companiesAllowed = false, ro
                   {on && <Check className="size-3" strokeWidth={3} />}
                 </span>
                 <span className="flex flex-col gap-0.5">
-                  <span className="text-body-lg font-strong text-fg">{streamLabel(s)}</span>
-                  <span className="text-body text-fg-muted">{STREAM_DETAILS[s]}</span>
+                  <span className="text-body-lg font-strong text-fg">{intakeStreamLabel(s, draft.role)}</span>
+                  <span className="text-body text-fg-muted">{(s === 'dev' && ROLE_DEV_HINT[draft.role]) || STREAM_DETAILS[s]}</span>
                   {off && on && <span className="text-caption text-fg-subtle">Only planned for campus placements.</span>}
                 </span>
               </button>
