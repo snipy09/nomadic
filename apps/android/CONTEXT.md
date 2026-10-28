@@ -8,9 +8,9 @@ Status: version 1.5.1 built (Google sign-in); 1.5.0 is the signed release APK si
 
 ## What the phone has
 
-Everything except Practice, Projects, the apply engine and Outreach. News is the first tab (Dashboard under More); job
+Everything except Practice, Projects, the apply engine and Outreach. News is the first tab; job
 actions say **"Auto apply from desktop"** (saves the job to the account for the computer). Its own onboarding, bottom tab
-bar (News, Learn, Jobs, More; the Tracker opens from Jobs and lights the Jobs tab, 28 Oct 2026), bottom-sheet drawers and touch-size controls. Saved and hidden jobs sync both ways with the computer apps.
+bar (News, Learn, Jobs, Dashboard, More; the Tracker opens from Jobs and lights the Jobs tab; More starts with a profile card that opens Profile, 28 Oct 2026), bottom-sheet drawers and touch-size controls. Saved and hidden jobs sync both ways with the computer apps.
 
 ## What this folder owns
 

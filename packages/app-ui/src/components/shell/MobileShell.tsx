@@ -4,7 +4,7 @@ import { cn } from '@nomadic/ui';
 import type { AppUser, TabType } from '../../types';
 
 /**
- * The Android app's shell (iOS-style): pages scroll under a bottom tab bar with five destinations.
+ * The Android app's shell (iOS-style): pages scroll under a bottom tab bar (News, Learn, Jobs, Dashboard, More).
  * Respects the system safe areas (status bar, gesture bar) and gives every control a 44 px target.
  */
 
@@ -16,13 +16,14 @@ interface MobileTab {
   owns: (tab: TabType) => boolean;
 }
 
-const MORE_PAGES: ReadonlySet<TabType> = new Set<TabType>(['more', 'dashboard', 'answers', 'settings', 'profile', 'help', 'logs', 'account']);
+const MORE_PAGES: ReadonlySet<TabType> = new Set<TabType>(['more', 'answers', 'settings', 'profile', 'help', 'logs', 'account']);
 
 export const MOBILE_TABS: MobileTab[] = [
   { id: 'home', label: 'News', icon: Newspaper, owns: (t) => t === 'home' },
   { id: 'learner-roadmaps', label: 'Learn', icon: Compass, owns: (t) => t === 'learner-roadmaps' },
   // The tracker is opened from Jobs on the phone, so Jobs stays lit there.
   { id: 'feed', label: 'Jobs', icon: Briefcase, owns: (t) => t === 'feed' || t === 'applications' },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, owns: (t) => t === 'dashboard' },
   { id: 'more', label: 'More', icon: Menu, owns: (t) => MORE_PAGES.has(t) || t.startsWith('admin') },
 ];
 
@@ -73,7 +74,12 @@ interface MoreViewProps {
   onLogout: () => void;
 }
 
-/** The phone's "More" page: everything that is not one of the four main tabs, as an iOS grouped list. */
+function initials(name: string): string {
+  const parts = name.replace(/@.*/, '').split(/[\s._-]+/).filter(Boolean);
+  return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || '?';
+}
+
+/** The phone's "More" page: the profile and everything that is not a main tab, as an iOS grouped list. */
 export function MoreView({ user, onNavigate, onOpenUpgrade, onLogout }: MoreViewProps) {
   const row = (label: string, Icon: React.ComponentType<{ className?: string }>, tone: string, onClick: () => void, danger = false) => (
     <li key={label} className="border-b border-line last:border-b-0">
@@ -101,9 +107,22 @@ export function MoreView({ user, onNavigate, onOpenUpgrade, onLogout }: MoreView
         <h1 className="text-headline font-bold text-fg">More</h1>
         <p className="truncate text-caption text-fg-subtle">{user.email}</p>
       </div>
-      <ul className="overflow-hidden rounded-lg bg-surface shadow-e1" aria-label="Your progress">
-        {row('Dashboard', LayoutDashboard, 'bg-accent', () => onNavigate('dashboard'))}
-      </ul>
+      <section aria-label="Your profile" className="overflow-hidden rounded-lg bg-surface shadow-e1">
+        <button
+          type="button"
+          onClick={() => onNavigate('profile')}
+          className="flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left active:bg-fg/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+        >
+          <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-accent text-body-lg font-bold text-accent-fg">
+            {initials(user.fullName || user.email)}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-body-lg font-strong text-fg">{user.fullName || 'Your profile'}</span>
+            <span className="block truncate text-caption text-fg-subtle">Profile, preferences and resumes</span>
+          </span>
+          <ChevronRight className="size-4 text-fg-subtle" aria-hidden="true" />
+        </button>
+      </section>
       <ul className="overflow-hidden rounded-lg bg-surface shadow-e1" aria-label="Your account">
         {row('Application answers', MessageSquareText, 'bg-success', () => onNavigate('answers'))}
         {row('Settings', SettingsIcon, 'bg-fg-subtle', () => onNavigate('settings'))}

@@ -193,3 +193,6 @@ Last updated: 28 October 2026. What was built when, with the files involved. New
   drops the Tracker tab (opened from Jobs). Merged `claude/optimistic-babbage-rcqidq` (APK test script) and
   `claude/practical-albattani-9ftnap` (coupon option above plans, silent Windows one-liner). Apps bumped to 1.6.0; site
   FAQ mentions the lesson buttons; download versions unchanged until the 1.6.0 files are uploaded.
+- 28 Oct 2026: Android bottom nav is News, Learn, Jobs, Dashboard, More (`MOBILE_TABS` in
+  `components/shell/MobileShell.tsx`); Dashboard left the More page, which now opens with a profile card (initials, name,
+  "Profile, preferences and resumes") that opens Profile. Test: `__tests__/mobileShell.test.tsx`.
