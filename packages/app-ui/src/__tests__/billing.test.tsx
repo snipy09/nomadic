@@ -186,7 +186,7 @@ describe('UpgradeDialog', () => {
     });
     wrap(<UpgradeDialog open onOpenChange={() => {}} />);
     await screen.findByText('Current plan');
-    await userEvent.click(screen.getByRole('button', { name: /add a coupon code/i }));
+    await userEvent.click(screen.getByRole('button', { name: /have a coupon code/i }));
     await userEvent.type(screen.getByRole('textbox', { name: /coupon code/i }), 'wrong');
     await userEvent.click(screen.getByRole('button', { name: /upgrade to max/i }));
     expect(await screen.findByText('That coupon code is not valid.')).toBeTruthy();

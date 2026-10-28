@@ -185,7 +185,7 @@ function WindowsGuide() {
         </h3>
         <p className="mt-2 text-ink-soft">
           Open <b className="text-ink">PowerShell</b> (Start menu: type PowerShell), paste this line and press Enter. It downloads
-          Nomadic, checks it and opens the Nomadic installer. Follow its steps; Nomadic opens when it finishes. No blue SmartScreen
+          Nomadic, checks it, installs it silently (Start menu and Desktop shortcuts) and opens it. No clicks, no blue SmartScreen
           box.
         </p>
         <div className="mt-4">

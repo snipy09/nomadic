@@ -1,6 +1,7 @@
 # Downloads the newest successful builds on main from GitHub Actions (artifacts are kept 14 days) into
 # Desktop\Nomadic Content\Tester builds\{Windows,Mac,Android}, writes READ ME FIRST.txt for testers and zips the
 # folder to Desktop\Nomadic Content\Nomadic tester builds.zip. Keep this file ASCII (PowerShell 5.1).
+param([string]$Branch = 'main')
 $ErrorActionPreference = 'Stop'
 $repo = 'snipy09/nomadic'
 
@@ -18,7 +19,7 @@ Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path $staging | Out-Null
 
 function Get-LatestRun($workflow) {
-  $json = & gh run list -R $repo --workflow $workflow --branch main --status success --limit 1 --json 'databaseId,createdAt'
+  $json = & gh run list -R $repo --workflow $workflow --branch $Branch --status success --limit 1 --json 'databaseId,createdAt'
   $runs = $json | ConvertFrom-Json
   if (-not $runs) { return $null }
   return $runs[0]

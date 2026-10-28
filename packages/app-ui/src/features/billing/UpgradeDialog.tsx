@@ -149,6 +149,33 @@ export function UpgradeDialog({ open, onOpenChange, feature, email }: UpgradeDia
             <p className="text-caption text-fg-subtle">Could not load your current plan. You can still upgrade; your plan updates once you are back online.</p>
           )}
 
+          {checkout.state !== 'upi' && checkout.state !== 'done' && (
+            couponOpen ? (
+              <form
+                className="flex flex-wrap items-end gap-3"
+                onSubmit={(e) => e.preventDefault()}
+                aria-label="Coupon code"
+              >
+                <Field label="Coupon code" hint="Applied when you choose a plan above." error={couponError} className="min-w-[14rem] max-w-sm flex-1">
+                  <Input
+                    value={coupon}
+                    autoComplete="off"
+                    autoCapitalize="characters"
+                    spellCheck={false}
+                    maxLength={40}
+                    onChange={(e) => { setCoupon(e.target.value); setCouponError(null); }}
+                  />
+                </Field>
+                <Button type="button" variant="ghost" onClick={() => { setCoupon(''); setCouponError(null); setCouponOpen(false); }}>
+                  Remove coupon
+                </Button>
+              </form>
+            ) : (
+              <div>
+                <Button variant="secondary" size="sm" onClick={() => setCouponOpen(true)}>Have a coupon code?</Button>
+              </div>
+            )
+          )}
           <ul className="grid gap-3 md:grid-cols-3" aria-label="Plans">
             {PLANS.map((plan) => {
               const isCurrent = current === plan.id;
@@ -191,33 +218,6 @@ export function UpgradeDialog({ open, onOpenChange, feature, email }: UpgradeDia
               );
             })}
           </ul>
-          {checkout.state !== 'upi' && checkout.state !== 'done' && (
-            couponOpen ? (
-              <form
-                className="flex flex-wrap items-end gap-3"
-                onSubmit={(e) => e.preventDefault()}
-                aria-label="Coupon code"
-              >
-                <Field label="Coupon code" hint="Applied when you choose a plan above." error={couponError} className="min-w-[14rem] max-w-sm flex-1">
-                  <Input
-                    value={coupon}
-                    autoComplete="off"
-                    autoCapitalize="characters"
-                    spellCheck={false}
-                    maxLength={40}
-                    onChange={(e) => { setCoupon(e.target.value); setCouponError(null); }}
-                  />
-                </Field>
-                <Button type="button" variant="ghost" onClick={() => { setCoupon(''); setCouponError(null); setCouponOpen(false); }}>
-                  Remove coupon
-                </Button>
-              </form>
-            ) : (
-              <div>
-                <Button variant="ghost" size="sm" onClick={() => setCouponOpen(true)}>Add a coupon code</Button>
-              </div>
-            )
-          )}
           <p className="text-caption text-fg-subtle">
             Payments go through Razorpay or straight to our UPI ID. Paying again before your paid period ends adds another month.
           </p>
