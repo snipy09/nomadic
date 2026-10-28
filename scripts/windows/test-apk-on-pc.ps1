@@ -2,14 +2,14 @@
 # and opens the app. A phone plugged in over USB with USB debugging on is used instead of the emulator.
 # APK: the path given as the first argument (or dropped on the .cmd), else the newest local Gradle build, else the
 # public release APK (version from packages/config/src/downloads.ts). Keep this file ASCII (PowerShell 5.1).
-param([string]$Apk = '')
+param([string]$Apk = '', [string]$RepoRoot = '')
 # Continue, not Stop: PowerShell 5.1 turns any stderr line of adb/sdkmanager into a terminating error under Stop.
 $ErrorActionPreference = 'Continue'
 $ProgressPreference = 'SilentlyContinue'
 $pkg = 'com.nomadic.career'
 $avd = 'NomadicTest'
 $image = 'system-images;android-35;google_apis;x86_64'
-$repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$repoRoot = if ($RepoRoot) { $RepoRoot } else { Split-Path -Parent (Split-Path -Parent $PSScriptRoot) }
 
 function Fail($msg) { Write-Host $msg -ForegroundColor Red; exit 1 }
 function Step($msg) { Write-Host "-> $msg" -ForegroundColor Cyan }
@@ -44,17 +44,27 @@ if (-not $Apk) {
     $Apk = $local.FullName
     Write-Host "Using the newest local build ($($local.LastWriteTime))."
   } else {
-    $downloads = Get-Content -Raw (Join-Path $repoRoot 'packages\config\src\downloads.ts')
-    $m = [regex]::Match($downloads, "ANDROID_DOWNLOAD[^=]*=\s*\{\s*version:\s*'([0-9.]+)'")
-    if (-not $m.Success) { Fail 'No local APK and no Android release version in packages/config/src/downloads.ts.' }
-    $ver = $m.Groups[1].Value
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    $downloadsTs = Join-Path $repoRoot 'packages\config\src\downloads.ts'
+    $ver = $null
+    if (Test-Path -LiteralPath $downloadsTs) {
+      $m = [regex]::Match((Get-Content -Raw $downloadsTs), "ANDROID_DOWNLOAD[^=]*=\s*\{\s*version:\s*'([0-9.]+)'")
+      if ($m.Success) { $ver = $m.Groups[1].Value }
+    } else {
+      # Run outside the repo: take the newest android-v* release of the public releases repo.
+      try {
+        $rel = Invoke-RestMethod -Uri 'https://api.github.com/repos/snipy09/nomadic-releases/releases?per_page=50' -UseBasicParsing -ErrorAction Stop
+        $tag = $rel | Where-Object { $_.tag_name -like 'android-v*' -and -not $_.draft } | Select-Object -First 1
+        if ($tag) { $ver = $tag.tag_name.Substring(9) }
+      } catch { }
+    }
+    if (-not $ver) { Fail 'No local APK and no Android release version found.' }
     $dir = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Nomadic Content\APK test'
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
     $Apk = Join-Path $dir "Nomadic-$ver-android.apk"
     if (-not (Test-Path -LiteralPath $Apk)) {
       $url = "https://github.com/snipy09/nomadic-releases/releases/download/android-v$ver/Nomadic-$ver-android.apk"
       Step "Downloading the public $ver APK..."
-      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
       try { Invoke-WebRequest -Uri $url -OutFile "$Apk.part" -UseBasicParsing -ErrorAction Stop } catch { Fail "Download failed: $url" }
       Move-Item -LiteralPath "$Apk.part" -Destination $Apk -Force
     }
