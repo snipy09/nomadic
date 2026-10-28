@@ -15,6 +15,7 @@ Last updated: 7 October 2026.
 | Android app | `npm run dev:android` · `npm run build:android` (APK only in CI) |
 | Website | `npm run dev:web` · `npm run build:web` |
 | Scraper folder | `npm run build:scraper-folder` · `scripts\windows\Install scraper folder.cmd` |
+| APK on the PC | `scripts\windows\Test APK on PC.cmd` (drop an `.apk` on it, or double-click): newest local Gradle APK, else the public release APK (version from `downloads.ts`, saved in `Desktop\Nomadic Content\APK test`) → starts AVD `NomadicTest` (created with sdkmanager/avdmanager if missing, API 35 google_apis x86_64) or uses a USB phone → `adb install -r` → opens the app. Reinstalls over a different signing key only on the emulator |
 | Tester builds | `scripts\windows\Get tester builds.cmd` (needs `gh auth login`): newest successful Windows/Mac/Android artifacts on `main` → `Desktop\Nomadic Content\Tester builds` + `Nomadic tester builds.zip`, with `READ ME FIRST.txt` install steps |
 | Tester builds in the repo | `tester-builds/` (plain git; the cloud proxy blocks `lfs.github.com`, so Mac zips are split into <100 MB `.partNNN` files joined by `Join Mac zips.cmd`): 1.4.0 Windows installer + portable (cross-built on Linux with wine), Mac arm64/x64 `.app` zips (`electron-builder --mac dir`, ad-hoc signed with `rcodesign`, no DMG off macOS); built without the Google OAuth secrets, so email sign-in only. No Android APK: the cloud container cannot reach `dl.google.com` |
 
