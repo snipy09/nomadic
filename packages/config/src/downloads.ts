@@ -17,7 +17,7 @@
 export type MacArch = 'arm64' | 'x64';
 
 export const MAC_DOWNLOAD: { version: string | null; minimumMacOS: string } = {
-  version: '1.4.0',
+  version: '1.6.0',
   minimumMacOS: '11 Big Sur',
 };
 
@@ -27,7 +27,7 @@ export const WINDOWS_DOWNLOAD: { version: string | null; minimumWindows: string 
 };
 
 export const ANDROID_DOWNLOAD: { version: string | null; minimumAndroid: string } = {
-  version: '1.5.1',
+  version: '1.6.0',
   minimumAndroid: '7.0',
 };
 

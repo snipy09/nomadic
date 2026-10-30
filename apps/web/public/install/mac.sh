@@ -5,7 +5,7 @@
 # Nothing else on the Mac is changed. VERSION must match MAC_DOWNLOAD.version in packages/config/src/downloads.ts.
 set -euo pipefail
 
-VERSION="1.4.0"
+VERSION="1.6.0"
 SITE="https://nomadicai.vercel.app"
 
 say() { printf '\033[1m%s\033[0m\n' "$*"; }
