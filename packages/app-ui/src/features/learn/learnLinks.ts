@@ -40,7 +40,7 @@ export function chatGptPrompt(topic: Pick<LearnTopic, 'title' | 'learn_items' | 
   const level = stream && stream !== 'interview' && ctx.levels ? ctx.levels[stream] : undefined;
   const levelText = level ? LEVEL_OPTIONS.find((l) => l.value === level)?.label.toLowerCase() : undefined;
   const who = [
-    'I am an engineering student in India',
+    'I am a job seeker in India',
     role ? `preparing for ${role} roles` : null,
     ctx.aim ? `(${AIM_TEXT[ctx.aim]})` : null,
   ].filter(Boolean).join(' ');

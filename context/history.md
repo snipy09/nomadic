@@ -208,3 +208,4 @@ Last updated: 30 October 2026. What was built when, with the files involved. New
   `features/tour/tourLogic.ts`). Clicking "Outreach · Soon" used to bounce to Home: the disabled-tab fallback in
   `App.tsx` now uses `isTabReachable` (`features.ts`, `COMING_SOON_TABS`), so `OutreachComingSoon` shows while the
   `outreach` flag is off. Android still has no Outreach. Tests: `tour.test.tsx`, `outreach.test.tsx`.
+- 2026-10-30: Audience widened from "engineering students" to every job seeker in India (engineers, managers, product/project managers, analysts, designers; freshers to experienced). Updated CLAUDE.md, README, package.json description, `context/` (README, product.md "Audience" section with honest gaps, roadmap follow-ups), `docs/DECISIONS.md` (#5, #10), website copy/SEO (`apps/web`), `ai-proxy` prompts and the ChatGPT lesson prompt. Content and scraper coverage for non-engineering roles is still follow-up work.

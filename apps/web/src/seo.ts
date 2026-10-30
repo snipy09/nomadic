@@ -26,7 +26,7 @@ export const PAGES: Record<PageId, PageMeta> = {
     path: '/',
     title: 'Nomadic: the whole job search, on your desktop',
     description:
-      'Nomadic is a desktop app for engineering students and freshers in India: a day-by-day learning roadmap, guided projects, jobs from company hiring pages matched to your skills, application forms filled for you to review, and one board to track it all.',
+      'Nomadic is a desktop app for job seekers in India: a day-by-day learning roadmap, guided projects, jobs from company hiring pages matched to your skills, application forms filled for you to review, and one board to track it all.',
     index: true,
     updated: '2026-10-06',
     priority: '1.0',
@@ -105,11 +105,11 @@ export const PAGES: Record<PageId, PageMeta> = {
   about: {
     path: '/about',
     title: 'About Us | Nomadic',
-    description: 'Nomadic is a career app for engineering students in India: learning roadmap, practice, jobs, reviewed applications and a tracker.',
+    description: 'Nomadic is a career app for job seekers in India: learning roadmap, practice, jobs, reviewed applications and a tracker.',
     index: true,
     updated: '2026-10-28',
     priority: '0.5',
-    og: { heading: 'About Nomadic', sub: 'A career app for engineering students in India.' },
+    og: { heading: 'About Nomadic', sub: 'A career app for job seekers in India.' },
   },
   notfound: {
     path: '/404',

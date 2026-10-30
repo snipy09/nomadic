@@ -6,7 +6,7 @@ changing. Keep facts in `context/` (update the right file and `context/history.m
 
 ## The repo in one minute
 
-- Nomadic: a career app for engineering students in India. Three apps on shared code:
+- Nomadic: a career app for anyone job-hunting in India: engineers, product and project managers, analysts, designers, freshers and experienced hires. Three apps on shared code:
   `apps/desktop` (Windows, Electron), `apps/mac` (macOS, Electron, test builds), `apps/android` (Capacitor), plus
   `apps/web` (marketing site).
 - Shared: `packages/app-ui` (every screen), `packages/app-core` (Electron main process, IPC contract, local SQLite),

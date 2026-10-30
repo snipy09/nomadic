@@ -48,7 +48,7 @@ export default function Services() {
       <main className="mx-auto max-w-6xl px-4 py-14 sm:px-6 md:py-20">
         <h1 className="wide max-w-4xl text-[clamp(2rem,5.5vw,4rem)]">Services and pricing</h1>
         <p className="mt-5 max-w-2xl text-lg text-ink-soft">
-          Nomadic is a career app for engineering students and freshers in India. It is software you download, with a
+          Nomadic is a career app for job seekers in India, from freshers to experienced hires. It is software you download, with a
           free plan and two paid monthly plans. Prices are in Indian rupees (INR).
         </p>
 

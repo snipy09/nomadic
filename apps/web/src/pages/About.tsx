@@ -13,7 +13,7 @@ export default function About() {
       <main className="mx-auto max-w-6xl px-4 py-14 sm:px-6 md:py-20">
         <h1 className="wide max-w-4xl text-[clamp(2rem,5.5vw,4rem)]">About Nomadic</h1>
         <p className="mt-5 max-w-2xl text-lg text-ink-soft">
-          Nomadic is a career app for engineering students and freshers in India, built to take the whole job search
+          Nomadic is a career app for job seekers in India, from freshers to experienced hires, built to take the whole job search
           to one place.
         </p>
 

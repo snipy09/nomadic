@@ -2,7 +2,7 @@
   "name": "nomadic-monorepo",
   "version": "1.0.6",
   "private": true,
-  "description": "Nomadic: career app for engineering students in India (Windows, macOS, Android), its shared packages, scrapers and website.",
+  "description": "Nomadic: career app for job seekers in India (engineers, managers, product and project managers and more) (Windows, macOS, Android), its shared packages, scrapers and website.",
   "workspaces": [
     "apps/*",
     "packages/*"

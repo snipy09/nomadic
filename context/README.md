@@ -1,7 +1,7 @@
 # Nomadic project context
 
 Everything a person or an AI assistant needs to work on this repo, kept current. Start here.
-Last updated: 7 October 2026.
+Last updated: 30 October 2026.
 
 ## Read in this order
 
@@ -25,7 +25,7 @@ Reference when needed:
 
 ## Nomadic in five lines
 
-- A career app for engineering students in India: learning roadmap, practice, job board with match %, apply with
+- A career app for everyone job-hunting in India (engineers, managers, product/project managers, analysts, designers; freshers to experienced): learning roadmap, practice, job board with match %, apply with
   review (nothing is submitted without the user ticking it), tracker, outreach (behind a flag), admin.
 - Three apps on shared code: Windows (`apps/desktop`), macOS (`apps/mac`, test builds), Android (`apps/android`, no
   apply/practice/projects/outreach) + the website (`apps/web`).

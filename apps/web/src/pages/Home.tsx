@@ -36,7 +36,7 @@ function Hero() {
         <div className="mt-10 grid grid-cols-[minmax(0,1fr)] items-start gap-12 lg:mt-14 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-14">
           <div className="anim-fade min-w-0" style={delay(560)}>
             <p className="max-w-lg text-lg leading-relaxed text-white/90 sm:text-xl">
-              Nomadic is a desktop app for engineering students and freshers in India. It plans what to learn for the
+              Nomadic is a desktop app for job seekers in India, from freshers to experienced hires. It plans what to learn for the
               role you want, day by day, finds openings on company hiring pages, fills in the application forms for you
               to review and keeps every application on one board.
             </p>

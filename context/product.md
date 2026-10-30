@@ -1,13 +1,14 @@
 # Product
 
-Last updated: 7 October 2026. What Nomadic is, who it is for, plans and limits, and the product decisions every change must respect.
+Last updated: 30 October 2026. What Nomadic is, who it is for, plans and limits, and the product decisions every change must respect.
 
 ## What Nomadic is
 
 A **Windows app** (Electron, `apps/desktop`), a **macOS app** (Electron, `apps/mac`, test builds) and an **Android app**
 (Capacitor, `apps/android`: everything except Practice, Projects, apply and Outreach; job actions say "Auto apply from
-desktop" and save the job for the desktop) for **Indian engineering students** looking for placements, internships and
-first jobs. The computer apps cover the whole path:
+desktop" and save the job for the desktop) for **anyone job-hunting in India**: engineers, managers, product and project managers, analysts, designers, freshers
+and experienced hires, looking for internships, first jobs or a move. (Engineering is the deepest content today; see
+"Audience" below.) The computer apps cover the whole path:
 
 1. **Onboarding** (4–5 short steps) ends with a **personal learning roadmap** (core feature).
 2. **Learn (v2)**: a page-by-page intake (one question per page: role, aim, duration, schedule, level, DSA
@@ -42,6 +43,17 @@ Prices and limits live only in `packages/config/src/plans.ts` (SQL copies are pa
 
 Owner: solo founder, no fixed deadline, quality over speed. Product name "Nomadic" is final (old names hirestack /
 jobmaxxer were removed).
+
+## Audience (decided 30 Oct 2026)
+
+- Nomadic is for **everyone looking for a job in India**, not only engineering students: software and data engineers,
+  managers, product and project managers, analysts, designers; freshers, students and experienced hires.
+- Do not write "engineering students" in copy, prompts, docs or code comments. Say "job seekers".
+- Honest gaps (do not claim more than exists): Learn content is engineering-first. `product-manager` and `design`
+  role families exist but are thin; there is no project-management / general-management / business track yet. The
+  scraper `classify.ts` tags non-engineering titles as `other` and `direct-dom-scraper.ts` keeps only engineering
+  titles. The profile has no experience-level-aware flow beyond "years of experience". These are the follow-ups in
+  [status-and-roadmap.md](status-and-roadmap.md).
 
 ## Product decisions
 

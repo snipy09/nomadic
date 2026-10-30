@@ -245,7 +245,7 @@ export const SIGNUP = {
 export const FAQS: { q: string; a: string }[] = [
   {
     q: 'What is Nomadic?',
-    a: 'Nomadic is a desktop app for Indian engineering students and freshers that covers the whole job search. It plans what to learn for your target role day by day, finds openings, fills in application forms for you to review and keeps track of every application, all in one place.',
+    a: 'Nomadic is a desktop app for job seekers in India (engineers, managers, product and project managers and more) that covers the whole job search. It plans what to learn for your target role day by day, finds openings, fills in application forms for you to review and keeps track of every application, all in one place.',
   },
   {
     q: 'How does it work?',

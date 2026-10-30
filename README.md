@@ -1,6 +1,6 @@
 # Nomadic
 
-Nomadic helps engineering students in India go from learning to getting hired: a personal learning roadmap,
+Nomadic helps job seekers in India (engineers, managers, product and project managers, analysts, designers; freshers and experienced) go from learning to getting hired: a personal learning roadmap,
 practice, a job board matched to their skills, applications filled in for them to review, and a tracker for every
 application. Three apps share one codebase: **Windows**, **macOS** (test builds) and **Android**.
 
