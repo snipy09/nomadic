@@ -22,7 +22,7 @@ export const MAC_DOWNLOAD: { version: string | null; minimumMacOS: string } = {
 };
 
 export const WINDOWS_DOWNLOAD: { version: string | null; minimumWindows: string } = {
-  version: '1.5.0',
+  version: '1.6.0',
   minimumWindows: '10 (64-bit)',
 };
 
