@@ -24,12 +24,11 @@ screens). The owner has signed in on the packaged v1.0.6 app and run apply up to
 
 Owner actions:
 000000. **Release 1.6.0** (28 Oct 2026: role-aware roadmap intake, YouTube/ChatGPT lesson buttons, dates on news and
-   jobs, no Tracker tab on Android). Versions in `apps/{desktop,mac,android}/package.json` are 1.6.0; the site still
-   points at Windows 1.5.0, Mac 1.4.0, Android 1.5.1 because the 1.6.0 files are not uploaded. Windows: Actions →
+   jobs, no Tracker tab on Android). Versions in `apps/{desktop,mac,android}/package.json` are 1.6.0; Android 1.6.0 is uploaded and the site points at it (30 Oct); the site
+   still points at Windows 1.5.0 and Mac 1.4.0 because their 1.6.0 files are not uploaded. Windows: Actions →
    "Build Windows (unsigned)" artifact on `main` (or `npm run package:desktop` on the laptop), then
    `scripts\windows\make-release.ps1` and `gh release create win-v1.6.0 …`. Mac: Release macOS run on `main` (publish
-   needs `MAC_RELEASES_TOKEN`; else download the artifact and `gh release create mac-v1.6.0 …`). Android: signed APK
-   only on the laptop (signing key), `gh release create android-v1.6.0 …`. After each upload set the matching
+   needs `MAC_RELEASES_TOKEN`; else download the artifact and `gh release create mac-v1.6.0 …`). Android: done. After each upload set the matching
    `version` in `packages/config/src/downloads.ts` (and `$Version` in `apps/web/public/install/windows.ps1` for Windows)
    and push; Vercel redeploys the site.
 00000. **Android 1.5.1 with Google sign-in** (18 Oct 2026): release `android-v1.5.1` is uploaded (APK SHA-256

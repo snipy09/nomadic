@@ -202,3 +202,7 @@ Last updated: 28 October 2026. What was built when, with the files involved. New
 - `/services` rewritten (was off-brand, not prerendered, and contradicted the legal pages: 7-day refund, auto-renew). Now lists the service, plans from config, and the exact use of the payment gateway.
 - New pages `/about` and `/shipping`; Refund and Cancellation policy now states durations (30-day plan, errors reported in 7 days, refunded in 5 to 7 working days to the original payment method). Terms say "This website is operated by …, trading as Nomadic". `LEGAL_VERSION` bumped.
 - `REGISTERED_ADDRESS` in `packages/config/src/legal.ts` is empty until the owner adds the GST address; it then appears on Contact, footer and every policy page.
+
+## 30 October 2026: Android 1.6.0 on the site
+
+- `ANDROID_DOWNLOAD.version` set to 1.6.0 (release `android-v1.6.0` verified: APK serves 200). Windows stays 1.5.0 and Mac 1.4.0 until their 1.6.0 releases exist. Checksum files still 404 for Android (owner upload pending).
