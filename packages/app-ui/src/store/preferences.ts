@@ -24,6 +24,7 @@ const K = {
   sidebarCollapsed: 'nomadic_sidebar_collapsed',
   applicationsView: 'nomadic_applications_view',
   homeChecklistHidden: 'nomadic_home_checklist_hidden',
+  lessonScreen: (key: string) => `nomadic_lesson_screen_${key}`,
   tourSeen: (email: string) => `nomadic_tour_seen_${email.trim().toLowerCase()}`,
   reviewSnoozed: (email: string) => `nomadic_review_snoozed_until_${email.trim().toLowerCase()}`,
 } as const;
@@ -74,6 +75,12 @@ export const prefs = {
   setApplicationsView: (v: 'board' | 'list') => write(K.applicationsView, v),
   getHomeChecklistHidden: () => read(K.homeChecklistHidden) === 'true',
   setHomeChecklistHidden: (v: boolean) => write(K.homeChecklistHidden, v ? 'true' : null),
+  /** The screen a lesson was left on (per lesson entry), so it resumes there. */
+  getLessonScreen(key: string): number {
+    const n = Number(read(K.lessonScreen(key)));
+    return Number.isInteger(n) && n > 0 ? n : 0;
+  },
+  setLessonScreen: (key: string, screen: number) => write(K.lessonScreen(key), screen > 0 ? String(screen) : null),
   /** The first-run walkthrough, once per account on this computer. */
   getTourSeen: (email: string) => read(K.tourSeen(email)) === 'true',
   setTourSeen: (email: string) => write(K.tourSeen(email), 'true'),

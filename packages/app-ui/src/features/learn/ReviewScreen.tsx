@@ -64,7 +64,11 @@ interface ReviewScreenProps {
   onDiscard?: () => void;
 }
 
-/** Review a generated roadmap: modules, hours and why, what was left out, projects; edit, regenerate or accept. */
+/**
+ * Review a generated roadmap: the plan in numbers and its first week, then
+ * "See everything" for modules (with the AI's reasons), projects, what was left
+ * out and regenerating with a note. Start, or change the details.
+ */
 export function ReviewScreen({ draft, busy, beginnerOnly, onAccept, onRegenerate, onEditIntake, onDiscard }: ReviewScreenProps) {
   const { toast } = useToast();
   const [roadmap, setRoadmap] = useState(draft.roadmap);
@@ -72,6 +76,7 @@ export function ReviewScreen({ draft, busy, beginnerOnly, onAccept, onRegenerate
   const [warnings, setWarnings] = useState<string[]>([]);
   const [note, setNote] = useState('');
   const [accepting, setAccepting] = useState(false);
+  const [everything, setEverything] = useState(false);
 
   const edit = (diff: RoadmapDiffInput) => {
     const res = applyRoadmapDiff(roadmap, diff, learnIndex());
@@ -108,21 +113,30 @@ export function ReviewScreen({ draft, busy, beginnerOnly, onAccept, onRegenerate
     if (!res.ok) toast({ title: 'Roadmap not saved', description: res.error, tone: 'danger' });
   };
 
+  const planWeeks = preview.weeks.filter((w) => w.days.length);
+  const sessions = planWeeks.reduce((n, w) => n + w.days.length, 0);
+  const minutes = planWeeks.reduce((n, w) => n + w.minutes, 0);
+  const firstWeek = planWeeks[0];
+
   return (
-    <div className="flex flex-col gap-4">
-      <Card padding="md" className="flex flex-col gap-2">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+      <Card padding="lg" className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="mr-auto text-title font-strong text-fg">Review your roadmap</h2>
+          <h2 className="mr-auto text-title font-strong text-fg">Your plan is ready</h2>
           <Badge tone={roadmap.source === 'ai' ? 'accent' : 'neutral'} icon={roadmap.source === 'ai' ? <Sparkles /> : undefined}>
             {roadmap.source === 'ai' ? 'AI plan from the reviewed catalogue' : 'Standard planner'}
           </Badge>
         </div>
-        <p className="text-body text-fg">{roadmap.summary}</p>
+        <dl className="grid grid-cols-3 divide-x divide-line rounded-lg border border-line">
+          <div className="flex flex-col-reverse px-4 py-3"><dt className="text-caption text-fg-subtle">weeks</dt><dd className="text-title font-strong text-fg">{planWeeks.length}</dd></div>
+          <div className="flex flex-col-reverse px-4 py-3"><dt className="text-caption text-fg-subtle">study sessions</dt><dd className="text-title font-strong text-fg">{sessions}</dd></div>
+          <div className="flex flex-col-reverse px-4 py-3"><dt className="text-caption text-fg-subtle">of study</dt><dd className="text-title font-strong text-fg">{formatMinutes(minutes)}</dd></div>
+        </dl>
+        {roadmap.summary && <p className="text-body text-fg">{roadmap.summary}</p>}
         {draft.notice && <p className="text-caption text-fg-subtle">{draft.notice}</p>}
         <div className="flex flex-wrap gap-2 text-caption text-fg-subtle">
           <span>{formatDay(schedule.start_date)} to {formatDay(schedule.end_date)}</span>
           {lastDay && <span>· planned work ends {formatDay(lastDay.date)}</span>}
-          <span>· {Object.entries(roadmap.streams).map(([s, p]) => `${streamLabel(s as never)} ${p}%`).join(', ')}</span>
         </div>
         {[...roadmap.warnings, ...warnings].length > 0 && (
           <ul className="flex flex-col gap-1">
@@ -135,8 +149,47 @@ export function ReviewScreen({ draft, busy, beginnerOnly, onAccept, onRegenerate
           </ul>
         )}
         <p className="text-caption text-fg-subtle">AI-drafted lessons and projects are under review; links come only from checked resources and LeetCode.</p>
+        <div className="flex flex-wrap gap-2 border-t border-line pt-3">
+          <Button variant="primary" size="lg" onClick={accept} loading={accepting} disabled={busy}>Start my plan</Button>
+          <Button variant="ghost" onClick={onEditIntake} disabled={busy || accepting}>Change plan details</Button>
+          {onDiscard && <Button variant="ghost" onClick={onDiscard} disabled={busy || accepting}>Cancel</Button>}
+        </div>
       </Card>
 
+      {firstWeek && (
+        <section aria-labelledby="review-first-week" className="flex flex-col gap-2">
+          <h3 id="review-first-week" className="text-heading font-strong text-fg">Your first week: {firstWeek.title}</h3>
+          <ol className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface">
+            {firstWeek.days.map((d) => (
+              <li key={d.date} className="flex gap-3 px-4 py-2.5 text-body">
+                <span className="w-24 shrink-0 text-fg-subtle">{formatDay(d.date)}</span>
+                <span className="min-w-0 flex-1 text-fg">
+                  {d.title}
+                  {d.subtitle && <span className="text-fg-subtle"> · {d.subtitle}</span>}
+                </span>
+                <span className="shrink-0 text-caption text-fg-subtle">{formatMinutes(d.minutes)}</span>
+              </li>
+            ))}
+          </ol>
+          <p className="text-caption text-fg-subtle">
+            Covers {Object.entries(roadmap.streams).map(([s, p]) => `${streamLabel(s as never)} ${p}%`).join(', ')}.
+          </p>
+        </section>
+      )}
+
+      <div>
+        <Button
+          variant="secondary"
+          aria-expanded={everything}
+          onClick={() => setEverything((e) => !e)}
+          rightIcon={<ChevronDown className={everything ? 'rotate-180 transition-transform duration-fast' : 'transition-transform duration-fast'} />}
+        >
+          {everything ? 'Hide the details' : 'See everything: weeks, modules, projects'}
+        </Button>
+      </div>
+
+      {everything && (
+      <>
       <section aria-labelledby="review-weeks" className="flex flex-col gap-2">
         <h3 id="review-weeks" className="text-heading font-strong text-fg">Week by week ({preview.weeks.filter((w) => w.days.length).length} weeks)</h3>
         <ol className="flex flex-col gap-1.5">
@@ -271,12 +324,12 @@ export function ReviewScreen({ draft, busy, beginnerOnly, onAccept, onRegenerate
         <label htmlFor="review-note" className="text-body font-strong text-fg">Regenerate with a note</label>
         <Textarea id="review-note" rows={2} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} placeholder='For example: "more DP, less aptitude"' />
         <div className="flex flex-wrap gap-2">
-          <Button onClick={accept} loading={accepting} disabled={busy}>Accept roadmap</Button>
           <Button variant="secondary" onClick={() => onRegenerate(note)} disabled={busy || accepting}>Regenerate</Button>
-          <Button variant="ghost" onClick={onEditIntake} disabled={busy || accepting}>Change plan details</Button>
-          {onDiscard && <Button variant="ghost" onClick={onDiscard} disabled={busy || accepting}>Cancel</Button>}
+          <Button onClick={accept} loading={accepting} disabled={busy}>Start my plan</Button>
         </div>
       </Card>
+      </>
+      )}
     </div>
   );
 }

@@ -58,9 +58,3 @@
     color: #ffffff;
   }
 }
-
-/* Learn path: the "Start" bubble above the current day bobs gently (off for reduced motion via motion-reduce:). */
-@keyframes nm-bob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
-}

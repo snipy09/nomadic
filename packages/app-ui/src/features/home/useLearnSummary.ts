@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { buildPath, type LearningEvent, type PathDay, type Streak } from '@job-automator/learning';
+import { buildPath, rollForward, type LearningEvent, type PathDay, type Streak } from '@job-automator/learning';
 import { learnIndex } from '../learn/catalog';
 import { roleById } from '../learn/content';
 import { buildTodayModel, progressModel, progressOf, todayOf } from '../learn/learnModel';
@@ -23,11 +23,13 @@ export function useLearnSummary(now: Date = new Date()): LearnSummary {
   const date = todayOf(now);
   return useMemo(() => {
     const roadmap = data.roadmap;
-    const schedule = data.schedule && roadmap && data.schedule.roadmap_id === roadmap.id ? data.schedule : null;
+    const saved = data.schedule && roadmap && data.schedule.roadmap_id === roadmap.id ? data.schedule : null;
     const empty: LearnSummary = { status: data.status, hasRoadmap: false, roleName: '', today: null, next: null, percent: 0, streak: null };
-    if (!roadmap || !schedule) return empty;
+    if (!roadmap || !saved) return empty;
     const index = learnIndex();
     const events = data.events as unknown as LearningEvent[];
+    // Learn moves unfinished work forward when it opens; Home shows the same plan without saving it.
+    const schedule = rollForward({ schedule: saved, roadmap, index, done: progressOf(roadmap, saved, events, index).done, today: date })?.schedule ?? saved;
     const progress = progressOf(roadmap, schedule, events, index);
     const path = buildPath({ schedule, roadmap, tasks: progress.byId, index, done: progress.done, today: date });
     const days = path.weeks.flatMap((w) => w.days);

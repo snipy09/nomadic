@@ -552,6 +552,26 @@ export function skipToday(input: Parameters<typeof replan>[0]): ReplanResult {
   return replan({ ...input, schedule: { ...input.schedule, days }, templates: 'keep' });
 }
 
+/** Entries on days before `today` that are not done. */
+export function unfinishedBefore(schedule: Pick<Schedule, 'days'>, done: Set<string>, today: string): number {
+  let n = 0;
+  for (const d of schedule.days) {
+    if (d.date >= today) break;
+    for (const e of d.tasks) if (!done.has(entryKey(e)) && !done.has(e.task_id)) n++;
+  }
+  return n;
+}
+
+/**
+ * Moves unfinished work from earlier days forward (a re-plan that keeps every
+ * future day as it is). Null when nothing is behind, so it can run every time
+ * the plan opens: a second run finds nothing to move.
+ */
+export function rollForward(input: Parameters<typeof replan>[0]): ReplanResult | null {
+  if (!unfinishedBefore(input.schedule, input.done, input.today)) return null;
+  return replan({ ...input, templates: 'keep' });
+}
+
 /** "Do more today": pulls the first not-done entry of the next non-empty day into today. */
 export function doMore(schedule: Schedule, today: string, done: Set<string> = new Set()): Schedule {
   const todayIdx = schedule.days.findIndex((d) => d.date === today);
@@ -567,6 +587,23 @@ export function doMore(schedule: Schedule, today: string, done: Set<string> = ne
     return { ...schedule, days };
   }
   return schedule;
+}
+
+/** "Start the next session now": moves every not-done entry of the next day with work into today. */
+export function pullNextDay(schedule: Schedule, today: string, done: Set<string> = new Set()): Schedule {
+  const todayIdx = schedule.days.findIndex((d) => d.date === today);
+  if (todayIdx < 0) return schedule;
+  const open = (x: ScheduleEntry) => !done.has(entryKey(x)) && !done.has(x.task_id);
+  const i = schedule.days.findIndex((d, j) => j > todayIdx && d.tasks.some(open));
+  if (i < 0) return schedule;
+  const moving = schedule.days[i].tasks.filter(open);
+  const days = schedule.days.map((d, j) => {
+    if (j === i) return { ...d, tasks: d.tasks.filter((x) => !open(x)) };
+    if (j === todayIdx) return { ...d, tasks: [...d.tasks, ...moving] };
+    return d;
+  });
+  // Parts keep their numbers (like doMore), so done part keys stay valid.
+  return { ...schedule, days };
 }
 
 /** Moves one entry (by key) to another date in the schedule. */

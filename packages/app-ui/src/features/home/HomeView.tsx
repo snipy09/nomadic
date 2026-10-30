@@ -153,7 +153,7 @@ function TodayCard({ learn, onNavigate }: { learn: LearnSummary; onNavigate: Hom
         {d ? (
           <>
             <div>
-              <p className="text-caption text-fg-subtle">Week {d.week} · Day {d.day} · {formatMinutes(d.minutes)}</p>
+              <p className="text-caption text-fg-subtle">Week {d.week} · Session {d.day} · {formatMinutes(d.minutes)}</p>
               <p className="mt-0.5 text-heading font-strong text-fg">{d.title}</p>
               {d.subtitle && <p className="truncate text-caption text-fg-muted">Also: {d.subtitle}</p>}
             </div>
@@ -166,12 +166,12 @@ function TodayCard({ learn, onNavigate }: { learn: LearnSummary; onNavigate: Hom
           </>
         ) : (
           <p className="text-body text-fg-muted">
-            Nothing planned today.{learn.next ? ` Next up on ${formatDay(learn.next.date)}: ${learn.next.title}.` : ''}
+            Nothing planned today.{learn.next ? ` Next session on ${formatDay(learn.next.date)}: ${learn.next.title}.` : ''}
           </p>
         )}
         <div className="mt-auto flex items-center gap-3 pt-1">
-          <Button variant="primary" rightIcon={<ArrowRight />} onClick={() => onNavigate('learner-roadmaps', d ? 'today' : 'path')}>
-            {!d ? 'Open your path' : d.state === 'done' ? 'Review today' : d.done ? 'Continue' : 'Start today'}
+          <Button variant="primary" rightIcon={<ArrowRight />} onClick={() => onNavigate('learner-roadmaps', !d ? 'plan' : d.state === 'done' ? 'today' : 'continue')}>
+            {!d ? 'Open your plan' : d.state === 'done' ? 'Review today' : d.done ? 'Continue' : 'Start today'}
           </Button>
           <span className={cn('flex items-center gap-1 text-caption [&_svg]:size-3.5', streak > 0 ? 'text-warning-fg' : 'text-fg-subtle')}>
             <Flame aria-hidden="true" />{streak} day streak

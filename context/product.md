@@ -1,6 +1,6 @@
 # Product
 
-Last updated: 7 October 2026. What Nomadic is, who it is for, plans and limits, and the product decisions every change must respect.
+Last updated: 30 October 2026. What Nomadic is, who it is for, plans and limits, and the product decisions every change must respect.
 
 ## What Nomadic is
 
@@ -10,13 +10,18 @@ desktop" and save the job for the desktop) for **Indian engineering students** l
 first jobs. The computer apps cover the whole path:
 
 1. **Onboarding** (4–5 short steps) ends with a **personal learning roadmap** (core feature).
-2. **Learn (v2)**: a page-by-page intake (one question per page: role, aim, duration, schedule, level, DSA
-   language, focus, extras, summary) → a roadmap of modules → day-sized topics → tasks, picked by AI from the
-   reviewed catalogue (rules planner as fallback) and fitted into dated days by a deterministic scheduler (buffer,
-   revision and OA-mock days, re-plan, pace factor). Shown as a Duolingo-style **path**: a banner per week ("Week 3:
-   Arrays & Web foundations") and a node per study day ("Day 2: Prefix sums"), plus Today, a day page, Topic and
-   Progress. Every topic has a "What to learn" list (no external resources are shown in Learn), named LeetCode
-   problems, quizzes with SM-2 reviews.
+2. **Learn (v2)**: an intake of six questions, one per page (role, goal, duration, schedule, level, DSA language;
+   what to cover and extras are optional rows on the summary) → a roadmap of modules → day-sized topics → tasks,
+   picked by AI from the reviewed catalogue (rules planner as fallback) and fitted into dated days by a deterministic
+   scheduler (language basics before any DSA problem; reserve, revision and OA-mock days; pace factor). Two tabs:
+   **Today** (the next study session in a fixed order: warm-up review → main lesson → its practice → side topic →
+   project / tests, with one "Next up" button) and **Plan** (this week's sessions, the roadmap week by week,
+   progress, plan settings). Lessons open in a focus-mode **lesson player**: intro with the names of the points,
+   the points 2–3 per screen (YouTube / ChatGPT for the points on screen), a recap, the check (quiz), today's
+   practice ("Solved" / "Solved with a hint" is the only way a problem is ticked), then the next step. Missed work
+   moves forward by itself (with Undo); the student is asked only when work no longer fits the end date. The streak
+   counts only planned study days. No external resources are shown in Learn beyond LeetCode and the search links.
+   UX plan and research: `docs/plans/LEARN_UX_PLAN.md`.
    **Projects** (sidebar, under Practice): a library of ~4,100 fully guided projects (12 curated + 4,085 generated
    idea × stack × level: 80 app ideas on 5 frontend, 6 backend, 5 full-stack, 3 mobile, 3 CLI and 3 DevOps stacks;
    40 datasets on 3 data and 2 ML stacks), each with stages, steps with starter code, hints, acceptance checks, an

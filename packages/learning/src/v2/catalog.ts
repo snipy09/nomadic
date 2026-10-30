@@ -109,14 +109,19 @@ export function findModuleCycle(modules: LearnModule[]): string[] | null {
  * Topological order of `ids` over prerequisites (hard and soft) that are also
  * in `ids`. Ties keep the order of `ids` (the caller's preference). A cycle in
  * bad data releases the earliest blocked id, so every id is returned once.
+ * Language basics (`lang.*`) always come before every other DSA module in
+ * `ids`: problems are solved in that language from the first day.
  */
 export function orderModules(index: CatalogIndex, ids: string[], extraEdges: Map<string, string[]> = new Map()): string[] {
   const list = [...new Set(ids)];
   const rank = new Map(list.map((id, i) => [id, i]));
   const set = new Set(list);
+  const languages = list.filter((id) => !!index.modules.get(id)?.language);
   const pres = new Map<string, Set<string>>();
   for (const id of list) {
     const p = new Set<string>();
+    const mod = index.modules.get(id);
+    if (mod?.stream === 'dsa' && !mod.language) for (const lang of languages) p.add(lang);
     for (const pre of index.modules.get(id)?.prerequisites ?? []) if (set.has(pre.module_id) && pre.module_id !== id) p.add(pre.module_id);
     for (const pre of extraEdges.get(id) ?? []) if (set.has(pre) && pre !== id) p.add(pre);
     pres.set(id, p);

@@ -3,6 +3,7 @@
  * progress, the on-track forecast, problem stats, re-solve reviews and skill
  * mastery from completed topics and projects.
  */
+import { heatmap, localDay, type Streak } from '../progress';
 import { sm2Step, type ReviewState } from '../sm2';
 import type { LearningEvent, MasteryMap } from '../types';
 import { slugOfRef, type CatalogIndex } from './catalog';
@@ -145,6 +146,43 @@ export function forecast(schedule: Schedule, done: Set<string>, today: string): 
     day_index,
     day_count: schedule.days.length,
   };
+}
+
+/**
+ * The streak over the student's own plan: consecutive days with learning
+ * activity, where a planned rest day (no study time, a skipped day or an
+ * unused reserve day) neither breaks nor adds to it. Outside the plan every
+ * day counts. The current streak survives until the end of today.
+ */
+export function planStreak(
+  events: LearningEvent[],
+  schedule: Pick<Schedule, 'days'> | null,
+  now: Date,
+  tzOffsetMinutes = 0
+): Streak {
+  const active = new Set(heatmap(events, tzOffsetMinutes).keys());
+  const today = localDay(now.toISOString(), tzOffsetMinutes);
+  const byDate = new Map((schedule?.days ?? []).map((d) => [d.date, d]));
+  const isRest = (date: string) => {
+    const d = byDate.get(date);
+    return !!d && (d.capacity === 0 || (d.kind === 'buffer' && d.tasks.length === 0));
+  };
+  const activeToday = active.has(today);
+  let current = 0;
+  for (let d = activeToday ? today : addDays(today, -1), i = 0; i < 3650; i++, d = addDays(d, -1)) {
+    if (active.has(d)) current++;
+    else if (!isRest(d)) break;
+  }
+  let longest = 0;
+  let run = 0;
+  const first = [...active].sort()[0];
+  if (first) {
+    for (let d = first; d <= today; d = addDays(d, 1)) {
+      if (active.has(d)) longest = Math.max(longest, ++run);
+      else if (!isRest(d)) run = 0;
+    }
+  }
+  return { current, longest: Math.max(longest, current), activeToday };
 }
 
 export interface ProblemStats {

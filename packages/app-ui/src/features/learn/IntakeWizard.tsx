@@ -626,32 +626,52 @@ interface WizardProps {
   startAtSummary?: boolean;
 }
 
-/** Learn's intake: one question per page with a progress rail, Back/Continue and a recap before building. */
+/**
+ * Learn's intake: the questions every plan needs, one per page, with a progress
+ * rail, Back/Continue and a recap. Optional pages (what to cover, extras) open
+ * only from the recap; a change made from the recap returns to it.
+ */
 export function IntakeWizard({ draft, onChange, feasibility, companiesAllowed, problem, title, submitLabel = 'Build my roadmap', onSubmit, onCancel, startAtSummary }: WizardProps) {
-  const steps = intakeSteps('full', draft);
+  const steps = intakeSteps('short', draft);
+  const all = intakeSteps('full', draft);
   const [index, setIndex] = useState(startAtSummary ? steps.length - 1 : 0);
+  const [detour, setDetour] = useState<IntakeStepId | null>(null);
+  const [fromSummary, setFromSummary] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const first = useRef(true);
   const headingId = useId();
   const safeIndex = Math.min(index, steps.length - 1);
-  const step = steps[safeIndex];
+  const step = detour ?? steps[safeIndex];
   const def = INTAKE_STEPS[step];
-  const isLast = safeIndex === steps.length - 1;
+  const isLast = !detour && safeIndex === steps.length - 1;
 
   useEffect(() => {
     if (first.current) { first.current = false; return; }
     headingRef.current?.focus();
-  }, [safeIndex]);
+  }, [safeIndex, detour]);
 
   const go = (i: number) => {
     setError(null);
+    setDetour(null);
     setIndex(Math.max(0, Math.min(steps.length - 1, i)));
+  };
+  const toSummary = () => {
+    setFromSummary(false);
+    go(steps.length - 1);
+  };
+  const jump = (s: IntakeStepId) => {
+    setError(null);
+    if (steps.includes(s)) {
+      setFromSummary(true);
+      go(steps.indexOf(s));
+    } else setDetour(s);
   };
   const next = () => {
     const p = isLast ? problem : stepProblem(step, draft);
     if (p) { setError(p); return; }
     if (isLast) onSubmit();
+    else if (detour || fromSummary) toSummary();
     else go(safeIndex + 1);
   };
 
@@ -699,19 +719,20 @@ export function IntakeWizard({ draft, onChange, feasibility, companiesAllowed, p
             draft={draft}
             onChange={(d) => { setError(null); onChange(d); }}
             companiesAllowed={companiesAllowed}
-            steps={steps}
+            steps={all}
             feasibility={feasibility}
-            onJump={(s) => go(steps.indexOf(s))}
+            onJump={jump}
           />
           {error && <p role="alert" className="text-body text-danger-fg">{error}</p>}
           <div className="flex items-center gap-2 border-t border-line pt-4">
-            {safeIndex > 0 && (
-              <Button variant="ghost" leftIcon={<ArrowLeft />} onClick={() => go(safeIndex - 1)}>Back</Button>
+            {detour || fromSummary ? (
+              <Button variant="ghost" leftIcon={<ArrowLeft />} onClick={toSummary}>Back to the summary</Button>
+            ) : (
+              safeIndex > 0 && <Button variant="ghost" leftIcon={<ArrowLeft />} onClick={() => go(safeIndex - 1)}>Back</Button>
             )}
             <div className="flex-1" />
-            {def.optional && !isLast && <Button variant="ghost" onClick={() => go(safeIndex + 1)}>Skip</Button>}
             <Button type="submit" variant="primary" size="lg" rightIcon={isLast ? <Sparkles /> : <ArrowRight />} disabled={isLast && !!problem}>
-              {isLast ? submitLabel : 'Continue'}
+              {isLast ? submitLabel : detour || fromSummary ? 'Done' : 'Continue'}
             </Button>
           </div>
         </form>

@@ -1,6 +1,6 @@
 # Architecture
 
-Last updated: 7 October 2026 (split into shared packages + three apps).
+Last updated: 30 October 2026 (Learn renderer layout; split into shared packages + three apps on 7 October).
 
 ## The rule that shapes the repo
 
@@ -103,6 +103,12 @@ brand/         profile icon and GitHub profile assets (videos and carousels stay
 - **Learn v2**: UI intake → `learnRoadmapGenerate` (`services/learn-v2.ts`: compact catalogue → ai-proxy `roadmap_plan`
   → `normaliseAiRoadmap`, else `planRoadmapRules`; `fitRoadmap` → draft in local `learn_state`) → Review →
   `learnRoadmapAccept`. Day actions run the engine in the UI and save via `learnScheduleSave`. Syncs through 027/028.
+  Renderer: `features/learn/LearnView.tsx` (router: intake, review, Today, Plan, lesson player, warm-up, topic
+  reference, project), `sessionModel.ts` (pure: session order, lesson screens, week summary, plan status),
+  `LessonPlayer.tsx` / `LessonReference.tsx` / `lessonParts.tsx`, `TodayScreen.tsx`, `PlanScreen.tsx`,
+  `ReviewSession.tsx`. Opening Learn runs `rollForward` (missed work → forward, saved, Undo in the toast); Home shows
+  the same rolled plan without saving. LearnView `initialTab`: `today`, `plan` (`path` / `progress` map to it) or
+  `continue` (straight into the next step, used by Home).
 - **AI**: `services/ai-proxy.ts` → `{SUPABASE_URL}/functions/v1/ai-proxy` (anon key as bearer + device session in body)
   → `consume_ai_quota` → Gemini (`gemini-2.5-flash`, JSON schema) → output checks → refund on failure.
 - **News**: `services/news.ts` builds items from published rows only: company hiring snapshots, job-board bursts,

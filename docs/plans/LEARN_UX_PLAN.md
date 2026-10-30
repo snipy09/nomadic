@@ -1,6 +1,7 @@
 # Learn UX plan: less to think about, more learning
 
-Status: plan, not built (30 Oct 2026, revision 2). Covers the whole Learn system: engine, AI roadmap generation,
+Status: phase 1 built on 30 Oct 2026 (structure, screens, way of learning; see "Built" at the end). Phase 2 (the
+content, which modules to include, sample data for AI roadmaps) is next and owner-led. Revision 2 of the plan: Covers the whole Learn system: engine, AI roadmap generation,
 content, timeline, screens, other features that depend on Learn, sync, tests. Rule for the build: **keep every stored
 format, IPC channel and the ai-proxy contract unchanged**, so no migration, no Edge Function redeploy and no owner
 action is needed to ship it.
@@ -296,3 +297,14 @@ screens at 1280 px and phone width, and `context/history.md`, `context/product.m
 Sources: Mayer multimedia principles; Sweller / Renkl worked examples; Roediger & Karpicke 2006; Rowland 2014;
 Chi 1994; Kivetz 2006; Gollwitzer & Sheeran 2006; Ariely & Wertenbroch 2002 (+ replication); Sharif & Shu 2021;
 MIT supply-chain MOOC self-pacing thesis (Bilal); Duolingo path redesign coverage.
+
+## Built (phase 1, 30 Oct 2026)
+
+- Engine: language-first order, `rollForward`, `pullNextDay`, `planStreak` (5.1–5.4).
+- Session and lesson models (`sessionModel.ts`, 5.5–5.6); lesson player and reference view; Today; Plan with week
+  strip, week rows, progress, plan settings (dates and time, task estimates, change with AI, new roadmap) and the
+  session sheet; warm-up review; setup with six walked pages and the collapsed review; Home goes straight to the next
+  step.
+- Deferred on purpose: the study-time-of-day question (needs a new stored intake field), AI "explain this point".
+- Found while building: the default 12-week full-stack plan has ~93 h of time for ~403 h of catalogue, so ~109 h is
+  left out. Plan shows it with a link to Plan settings; the real fix is phase 2 (content scope and module choice).

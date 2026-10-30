@@ -208,3 +208,20 @@ Last updated: 30 October 2026. What was built when, with the files involved. New
   `features/tour/tourLogic.ts`). Clicking "Outreach · Soon" used to bounce to Home: the disabled-tab fallback in
   `App.tsx` now uses `isTabReachable` (`features.ts`, `COMING_SOON_TABS`), so `OutreachComingSoon` shows while the
   `outreach` flag is off. Android still has no Outreach. Tests: `tour.test.tsx`, `outreach.test.tsx`.
+- 30 Oct 2026: **Learn UX redesign, phase 1 (structure and way of learning)** on branch
+  `claude/learning-module-ux-csww0s`; plan, measurements and research in `docs/plans/LEARN_UX_PLAN.md`. Learn has two
+  tabs, Today and Plan, plus a focus-mode lesson player. Removed: the winding path, the day page, the Topic page and
+  the Progress tab (`PathScreen`, `DayScreen`, `DayTaskList`, `TopicScreen`, `ProgressScreen`). New: `sessionModel.ts`,
+  `LessonPlayer.tsx`, `LessonReference.tsx` (also used by Projects for linked topics), `lessonParts.tsx`,
+  `PlanScreen.tsx`, `ReviewSession.tsx`; `TodayScreen.tsx`, `LearnView.tsx`, `ReviewScreen.tsx` ("Your plan is ready"
+  with the first week; details under "See everything"), `IntakeWizard.tsx` (six walked pages; optional pages open from
+  the summary, a change from the summary returns to it) rewritten. Engine (`packages/learning/src/v2`): `orderModules`
+  puts `lang.*` before every other DSA module (language basics used to land on day 7 after problems from day 1);
+  `rollForward` / `unfinishedBefore` and `pullNextDay` in `scheduler.ts`; `planStreak` in `progressV2.ts` (rest and
+  unused reserve days no longer break the streak). One way to mark a problem solved: `solvedEvent` writes `task_done`
+  with quality (the old Topic page "Solved" wrote `problem_attempted`, which ticked nothing). Lesson resume position:
+  `prefs.getLessonScreen` / `setLessonScreen`. No stored format, IPC, migration or ai-proxy change. Tests:
+  `learnView.test.tsx` (rewritten), `sessionModel.test.ts`, `packages/learning/test/v2-flow.test.ts`. Not done (by
+  design): a study-time-of-day field (would change the stored intake) and AI "explain this point". Phase 2 (owner):
+  the content itself, which modules to include, sample data for AI roadmaps; the default 12-week full-stack plan has
+  about 93 h of time for about 403 h of catalogue, so the intake and review warn and much is left out.

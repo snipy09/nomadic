@@ -5,7 +5,7 @@ import type { AppUser } from '../../types';
 import { learnIndex, resolveProject } from '../learn/catalog';
 import { isRoleId } from '../learn/content';
 import { progressOf } from '../learn/learnModel';
-import { TopicScreen } from '../learn/TopicScreen';
+import { LessonReference } from '../learn/LessonReference';
 import { practiceLeft } from '../learn/quizLogic';
 import { useLearning } from '../learn/useLearning';
 import { ProjectBuild } from './ProjectBuild';
@@ -65,14 +65,17 @@ export function ProjectsView({ currentUser, suggestedRole, onOpenUpgrade }: Proj
   if (screen.name === 'topic') {
     return (
       <div className="mx-auto w-full max-w-5xl pb-16">
-        <TopicScreen
+        <LessonReference
           topicId={screen.topicId}
           roadmap={data.roadmap}
           progress={progress}
+          events={events}
           notes={data.notes}
           trackId={role ?? 'fullstack'}
           practiceRemaining={practiceLeft(events, tier, new Date()).remaining}
           isFree={isFree}
+          intake={data.roadmap?.intake}
+          backLabel="Back to the project"
           onBack={() => setScreen({ name: 'project', id: screen.projectId })}
           onRecord={data.record}
           onSaveNote={data.saveNote}

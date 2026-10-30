@@ -18,12 +18,13 @@ import {
   expandRoadmap,
   feasibility,
   forecast,
+  localDay,
   localToday,
   moduleProgress,
+  planStreak,
   problemStats,
   randomUuid,
   resolveReviews,
-  streak,
   streamProgress,
   weeksBetween,
   type Aim,
@@ -258,6 +259,8 @@ export interface TodayModel {
   forecast: Forecast;
   streak: Streak;
   reviews: QuizItem[];
+  /** Review answers recorded today (the warm-up shows as done once the due ones are answered). */
+  reviewsDoneToday: number;
   /** Problems due for a re-solve (refs). */
   resolveDue: string[];
   /** The next date with planned work after today (null when none). */
@@ -301,8 +304,9 @@ export function buildTodayModel(input: {
     minutesDone: entries.filter((e) => e.done).reduce((n, e) => n + e.entry.minutes, 0),
     missed,
     forecast: forecast(schedule, progress.done, date),
-    streak: streak(events, now, tzOffsetMinutes(now)),
+    streak: planStreak(events, schedule, now, tzOffsetMinutes(now)),
     reviews,
+    reviewsDoneToday: events.filter((e) => e.type === 'review_done' && localDay(e.created_at, tzOffsetMinutes(now)) === date).length,
     resolveDue,
     nextStudyDate: next?.date ?? null,
     beforeStart: date < schedule.start_date,
@@ -383,7 +387,23 @@ export function untickEvent(task: PlanTask, key: string, trackId: string, index:
   return { ...taskDoneEvent(task, key, 0, 0, trackId, index, now), payload: { undone: true, track_id: trackId } };
 }
 
-/** A problem attempt from the topic page ("solved", "needed a hint"). */
+/** A solved problem of the plan: ticks its task and feeds re-solve reviews (quality 4, or 3 with a hint). */
+export function solvedEvent(task: PlanTask, key: string, durationS: number, hint: boolean, trackId: string, index: CatalogIndex, now: Date): LearningEventInput {
+  return taskDoneEvent(task, key, task.minutes, durationS, trackId, index, now, { hint, quality: hint ? 3 : 4 });
+}
+
+/** Problem refs the student has solved: ticked solve tasks and attempts recorded outside the plan. */
+export function solvedRefs(done: Set<string>, events: LearningEvent[]): Set<string> {
+  const out = new Set<string>();
+  for (const k of done) {
+    const m = /\/solve\/([a-z0-9-]+)(?:@\d+)?$/.exec(k);
+    if (m) out.add(`lc:${m[1]}`);
+  }
+  for (const e of events) if (e.type === 'problem_attempted' && e.item_id?.startsWith('lc:')) out.add(e.item_id);
+  return out;
+}
+
+/** A problem attempt outside the plan ("solved", "needed a hint"). */
 export function problemAttemptedEvent(ref: string, hint: boolean, trackId: string, now: Date): LearningEventInput {
   return {
     id: randomUuid(),

@@ -1,6 +1,6 @@
 # Status and what is left
 
-Last updated: 28 October 2026. Feature status, test status, the owner's to-do list and code follow-ups.
+Last updated: 30 October 2026. Feature status, test status, the owner's to-do list and code follow-ups.
 Feature detail: [`docs/FEATURES.md`](../docs/FEATURES.md).
 
 ## Status by feature
@@ -73,7 +73,9 @@ Owner actions:
 7. Code-signing certificate for releases; Sentry DSN if crash reports are wanted.
 8. Lawyer review of the legal text; real `support@` and `grievance@` mailboxes; registered business name.
 9. (Done 4 Oct 2026) `require_login_ticket` is on.
-10. Review and publish Learn content (all drafts; 69 lessons have no resource yet); run the link checker.
+10. Review and publish Learn content (all drafts; 69 lessons have no resource yet); run the link checker. Learn UX
+    phase 2 (content, which modules, sample data for AI roadmaps) is the owner's next step after the phase 1
+    structure (`docs/plans/LEARN_UX_PLAN.md`).
 11. Rotate the Resend and Gemini keys (they were shared in a chat) and update Vault.
 12. (Done 4 Oct 2026) Migrations 024, 025 and 026 applied.
 13. (Done) `GOOGLE_OAUTH_CLIENT_ID/SECRET` repository secrets.

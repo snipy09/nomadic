@@ -27,7 +27,7 @@ export const INTAKE_STEPS: Record<IntakeStepId, IntakeStepDef> = {
   language: { id: 'language', label: 'Language', title: 'Which language will you use for DSA?', description: 'Your problems, templates and language basics follow this choice.' },
   focus: { id: 'focus', label: 'Focus', title: 'What should the plan cover?', description: 'Keep everything on for a complete preparation, or switch off what you do not need.' },
   extras: { id: 'extras', label: 'Extras', title: 'Anything else the plan should know?', description: 'Exam weeks, trips and target companies. All optional.', optional: true },
-  summary: { id: 'summary', label: 'Review', title: 'Your plan at a glance', description: 'Check the details, then build your week-by-week roadmap.' },
+  summary: { id: 'summary', label: 'Review', title: 'Your plan at a glance', description: 'Check the details, add anything optional, then build your week-by-week roadmap.' },
 };
 
 /** Streams a role's roadmap can hold: a zero share (DSA and Core CS for product and design) is never asked about. */
@@ -49,7 +49,10 @@ export function intakeStreamLabel(s: Stream, role: IntakeDraft['role']): string 
   return streamLabel(s);
 }
 
-/** Pages for Learn (everything) or onboarding (the short version). */
+/**
+ * Pages in order: 'short' is what every plan needs (walked page by page in Learn
+ * and onboarding); 'full' adds the optional pages, which Learn opens from the recap.
+ */
 export function intakeSteps(mode: 'full' | 'short', draft: Pick<IntakeDraft, 'role'>): IntakeStepId[] {
   const lang = roleStreams(draft.role).includes('dsa') ? (['language'] as const) : [];
   return mode === 'full'
