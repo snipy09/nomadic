@@ -47,6 +47,14 @@ export function tourSteps(mode: WorkspaceMode = 'unified'): TourStep[] {
   return [WELCOME, HOME_STEP, ...pages, ...END_STEPS];
 }
 
+/**
+ * The first-run tour starts on its own only on the desktop, for a signed-in account that has finished onboarding
+ * (a new account sees onboarding first) and has not seen the tour on this computer.
+ */
+export function shouldAutoStartTour(o: { isMobile: boolean; email: string; onboardingDone: boolean; seen: boolean }): boolean {
+  return !o.isMobile && Boolean(o.email) && o.onboardingDone && !o.seen;
+}
+
 export interface Rect { top: number; left: number; width: number; height: number }
 
 export const CARD_WIDTH = 320;

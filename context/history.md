@@ -1,6 +1,6 @@
 # History and handoff notes
 
-Last updated: 28 October 2026. What was built when, with the files involved. Newest work is at the end. Paths are current (after the
+Last updated: 30 October 2026. What was built when, with the files involved. Newest work is at the end. Paths are current (after the
 7 Oct 2026 split: shared UI in `packages/app-ui/src`, shared main process in `packages/app-core/src`).
 
 - 16 Oct 2026: `scripts\windows\Get tester builds.cmd` collects the CI builds for testers. Every Actions job since 12 Oct fails in seconds with no runner assigned (account-level: minutes/spending limit), so no fresh artifacts exist until that is fixed. Same day: 1.4.0 Windows and Mac test builds committed to `tester-builds/` (about 480 MB in git history; Mac zips split in two parts) (Windows build launched under wine to the sign-in screen; Mac builds not run on a Mac).
@@ -202,3 +202,9 @@ Last updated: 28 October 2026. What was built when, with the files involved. New
 - `/services` rewritten (was off-brand, not prerendered, and contradicted the legal pages: 7-day refund, auto-renew). Now lists the service, plans from config, and the exact use of the payment gateway.
 - New pages `/about` and `/shipping`; Refund and Cancellation policy now states durations (30-day plan, errors reported in 7 days, refunded in 5 to 7 working days to the original payment method). Terms say "This website is operated by …, trading as Nomadic". `LEGAL_VERSION` bumped.
 - `REGISTERED_ADDRESS` in `packages/config/src/legal.ts` is empty until the owner adds the GST address; it then appears on Contact, footer and every policy page.
+- 30 Oct 2026, **onboarding before the tour + Outreach "coming soon" reachable** (desktop and Mac; shared code):
+  sign-out now clears the renderer's profile and sign-in resets it before loading, so a new account always gets
+  onboarding first. The tour starts on its own only once onboarding is finished (`shouldAutoStartTour` in
+  `features/tour/tourLogic.ts`). Clicking "Outreach · Soon" used to bounce to Home: the disabled-tab fallback in
+  `App.tsx` now uses `isTabReachable` (`features.ts`, `COMING_SOON_TABS`), so `OutreachComingSoon` shows while the
+  `outreach` flag is off. Android still has no Outreach. Tests: `tour.test.tsx`, `outreach.test.tsx`.

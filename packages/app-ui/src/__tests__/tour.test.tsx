@@ -6,7 +6,7 @@ import userEvent from '@testing-library/user-event';
 import { AppShell, UIProvider } from '@nomadic/ui';
 import { Sidebar } from '../components/Sidebar';
 import { ProductTour } from '../features/tour/ProductTour';
-import { CARD_WIDTH, cardPosition, tourSteps } from '../features/tour/tourLogic';
+import { CARD_WIDTH, cardPosition, shouldAutoStartTour, tourSteps } from '../features/tour/tourLogic';
 import { prefs } from '../store/preferences';
 
 afterEach(() => { cleanup(); localStorage.clear(); });
@@ -97,5 +97,20 @@ describe('tour preference', () => {
     prefs.setTourSeen('A@x.in');
     expect(prefs.getTourSeen('a@x.in')).toBe(true);
     expect(prefs.getTourSeen('b@x.in')).toBe(false);
+  });
+});
+
+describe('shouldAutoStartTour', () => {
+  const base = { isMobile: false, email: 'new@x.in', onboardingDone: true, seen: false };
+
+  it('waits until a new account has finished onboarding', () => {
+    expect(shouldAutoStartTour({ ...base, onboardingDone: false })).toBe(false);
+    expect(shouldAutoStartTour(base)).toBe(true);
+  });
+
+  it('never starts on the phone, when signed out, or once seen', () => {
+    expect(shouldAutoStartTour({ ...base, isMobile: true })).toBe(false);
+    expect(shouldAutoStartTour({ ...base, email: '' })).toBe(false);
+    expect(shouldAutoStartTour({ ...base, seen: true })).toBe(false);
   });
 });

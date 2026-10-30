@@ -5,6 +5,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { UIProvider } from '@nomadic/ui';
 import { OutreachComingSoon } from '../features/outreach/OutreachComingSoon';
 import { draftProblems, senderFacts, templateFor } from '../features/outreach/outreachLogic';
+import { isTabEnabled, isTabReachable } from '../features';
 
 afterEach(() => cleanup());
 
@@ -45,5 +46,17 @@ describe('OutreachComingSoon', () => {
       expect(screen.getByText(label)).toBeTruthy();
     }
     expect(screen.getByText(/nothing is sent without your review/i)).toBeTruthy();
+  });
+});
+
+describe('Outreach tab while the flag is off', () => {
+  it('stays reachable as the coming-soon page instead of bouncing to Home', () => {
+    expect(isTabEnabled('outreach')).toBe(false);
+    expect(isTabReachable('outreach')).toBe(true);
+  });
+
+  it('still sends other disabled tabs home', () => {
+    expect(isTabReachable('opportunities')).toBe(false);
+    expect(isTabReachable('learner-resources')).toBe(false);
   });
 });

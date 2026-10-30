@@ -25,6 +25,7 @@ import { HelpView } from './features/help/HelpView';
 import { AnswersView } from './features/answers/AnswersView';
 import { HomeView } from './features/home/HomeView';
 import { ProductTour } from './features/tour/ProductTour';
+import { shouldAutoStartTour } from './features/tour/tourLogic';
 import { NewsView } from './features/news/NewsView';
 import { UpdateRequiredScreen } from './features/updates/UpdateRequiredScreen';
 import { WhatsNewDialog } from './features/updates/WhatsNewDialog';
@@ -36,10 +37,10 @@ import { ProjectsView } from './features/projects/ProjectsView';
 import { OpportunityBoardView } from './components/OpportunityBoardView';
 import { CommandPalette } from './components/CommandPalette';
 import { NomadicAssistant } from './components/NomadicAssistant';
-import { isTabEnabled, FEATURES } from './features';
+import { isTabEnabled, isTabReachable, FEATURES } from './features';
 import { prefs } from './store/preferences';
 import { normalizeTier } from './utils/tier-utils';
-import { useAppStore } from './store/appStore';
+import { emptyProfile, useAppStore } from './store/appStore';
 import { IS_MOBILE } from './platform';
 import { MobileShell, MoreView } from './components/shell/MobileShell';
 export default function App() {
@@ -147,9 +148,9 @@ export default function App() {
     }
   };
 
-  // A disabled feature's tab (e.g. a restored preference) falls back to the default view.
+  // A disabled feature's tab (e.g. a restored preference) falls back to the default view; "coming soon" pages stay.
   useEffect(() => {
-    if (!isTabEnabled(activeTab)) setActiveTab('home');
+    if (!isTabReachable(activeTab)) setActiveTab('home');
   }, [activeTab, activeTrack]);
 
   useEffect(() => {
@@ -171,7 +172,7 @@ export default function App() {
       if (Date.now() - goPending.current < GO_WINDOW_MS) {
         goPending.current = 0;
         const tab = tabForGoKey(e.key);
-        if (tab && isTabEnabled(tab)) { e.preventDefault(); navigateRef.current(tab); }
+        if (tab && isTabReachable(tab)) { e.preventDefault(); navigateRef.current(tab); }
         return;
       }
       if (e.key === 'g' || e.key === 'G') { goPending.current = Date.now(); return; }
@@ -202,6 +203,9 @@ export default function App() {
 
   const handleLoginSuccess = async (user: AppUser) => {
     void queryClient.invalidateQueries({ queryKey: ENTITLEMENTS_KEY });
+    // Drop the previous account's profile so a new account cannot reach the app (or the tour) before onboarding.
+    setProfile(emptyProfile());
+    if (user.onboardingCompleted === false) setShowOnboarding(true);
     setCurrentUser(user);
     prefs.setUser(user);
 
@@ -228,12 +232,14 @@ export default function App() {
 
   const [signedOutNotice, setSignedOutNotice] = useState<string | null>(null);
 
-  // First-run walkthrough (desktop): once per account on this computer, after onboarding; replayable from Help and search.
+  // First-run walkthrough (desktop): once per account on this computer, only after onboarding is finished; replayable
+  // from Help and search.
   const [tourOpen, setTourOpen] = useState(false);
   const tourEmail = currentUser?.email ?? '';
+  const onboardingDone = onboardingLoaded && !showOnboarding && Boolean(currentUser?.onboardingCompleted || profile.onboardingCompleted);
   useEffect(() => {
-    if (!IS_MOBILE && tourEmail && !prefs.getTourSeen(tourEmail)) setTourOpen(true);
-  }, [tourEmail]);
+    if (shouldAutoStartTour({ isMobile: IS_MOBILE, email: tourEmail, onboardingDone, seen: Boolean(tourEmail) && prefs.getTourSeen(tourEmail) })) setTourOpen(true);
+  }, [tourEmail, onboardingDone]);
   const startTour = () => { setShowCommandPalette(false); setTourOpen(true); };
   const closeTour = () => {
     setTourOpen(false);
@@ -244,6 +250,9 @@ export default function App() {
   const handleLogout = () => {
     queryClient.removeQueries({ queryKey: ENTITLEMENTS_KEY });
     setCurrentUser(null);
+    setProfile(emptyProfile());
+    setShowOnboarding(false);
+    setTourOpen(false);
     try {
       prefs.setUser(null);
       sessionStorage.clear();

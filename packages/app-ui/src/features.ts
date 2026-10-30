@@ -22,3 +22,11 @@ export function isTabEnabled(id: string | null | undefined): boolean {
   const flag = id ? TAB_FLAGS[id] : undefined;
   return flag ? FEATURES[flag] : true;
 }
+
+/** Flag-disabled tabs that still open (desktop only) as a "coming soon" page instead of the module. */
+const COMING_SOON_TABS: ReadonlySet<string> = new Set(['outreach']);
+
+/** A tab can be shown: the module itself, or its "coming soon" page while the flag is off. */
+export function isTabReachable(id: string | null | undefined): boolean {
+  return isTabEnabled(id) || (!IS_MOBILE && Boolean(id) && COMING_SOON_TABS.has(id as string));
+}
