@@ -5,7 +5,7 @@
 // service_role only), calls the model with a strict JSON schema and checks the reply.
 //
 // Environment (set by Supabase): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
-// Optional: AI_PROVIDER (gemini | groq, default gemini), AI_MODEL (default gemini-2.5-flash),
+// Optional: AI_PROVIDER (gemini | groq, default gemini), AI_MODEL (default gemini-3.8-flash),
 //           AI_TIMEOUT_MS (per attempt, default 25000).
 // The key itself is read from Vault: server_secret('gemini_api_key') (migration 018).
 import { createClient } from 'npm:@supabase/supabase-js@2.39.0';

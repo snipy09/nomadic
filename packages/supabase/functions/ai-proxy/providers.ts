@@ -50,7 +50,8 @@ export type FetchLike = (url: string, init: { method: string; headers: Record<st
   text(): Promise<string>;
 }>;
 
-export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
+// Google serves 2.5 models only to keys that used them before (changelog, 18 Sep 2026).
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash';
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const MODEL_RE = /^[a-z0-9][a-z0-9.\-]{1,80}$/;
 
@@ -102,6 +103,7 @@ export class GeminiProvider implements AiProvider {
     };
     // 2.5 Flash models think by default; these short, schema-bound tasks do not need it.
     if (/^gemini-2\.5-flash/.test(this.model)) generationConfig.thinkingConfig = { thinkingBudget: 0 };
+    else if (/^gemini-3/.test(this.model)) generationConfig.thinkingConfig = { thinkingLevel: 'low' };
     const body = JSON.stringify({
       systemInstruction: { parts: [{ text: req.system }] },
       contents: [{ role: 'user', parts: [{ text: req.user }] }],

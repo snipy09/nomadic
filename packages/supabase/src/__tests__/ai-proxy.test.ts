@@ -126,12 +126,13 @@ describe('Gemini provider', () => {
     const p = new GeminiProvider('AQ.test-key', undefined, f.impl);
     expect(await p.generateJson(req)).toEqual({ hello: 'world' });
     const { url, init } = f.calls[0];
-    expect(url).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent');
+    expect(url).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent');
     expect(url).not.toContain('AQ.');
     expect(init.headers['x-goog-api-key']).toBe('AQ.test-key');
     const body = JSON.parse(init.body);
     expect(body.generationConfig).toMatchObject({ responseMimeType: 'application/json', responseSchema: { type: 'OBJECT' }, maxOutputTokens: 100 });
     expect(body.systemInstruction.parts[0].text).toBe('sys');
+    expect(body.generationConfig.thinkingConfig).toEqual({ thinkingLevel: 'low' });
   });
 
   it('uses the configured model', async () => {
@@ -197,7 +198,7 @@ describe('ai-proxy handler', () => {
     const d = deps();
     const res = await handleAiProxy('POST', body(), d);
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ ok: true, kind: 'rubric_feedback', quota: { limit: 30, remaining: 29 }, model: 'gemini-2.5-flash' });
+    expect(res.body).toMatchObject({ ok: true, kind: 'rubric_feedback', quota: { limit: 30, remaining: 29 }, model: 'gemini-3.8-flash' });
     expect(d.consumeQuota).toHaveBeenCalledWith({ userId: USER, sessionToken: 'tok', deviceFingerprint: 'dev', kind: 'rubric_feedback' });
     expect(d.refundQuota).not.toHaveBeenCalled();
   });

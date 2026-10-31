@@ -153,7 +153,7 @@ client; `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are provided by Supabase.
 | Secret | Default | Meaning |
 |---|---|---|
 | `AI_PROVIDER` | `gemini` | `groq` is a stub until it is implemented and benchmarked |
-| `AI_MODEL` | `gemini-2.5-flash` | any Gemini model id the key can use (e.g. `gemini-2.5-flash-lite`) |
+| `AI_MODEL` | `gemini-3.8-flash` | any Gemini model id the key can use (e.g. `gemini-3.5-flash-lite`) |
 | `AI_TIMEOUT_MS` | `25000` | per model attempt; one retry on timeouts, 429/5xx and invalid output |
 
 The desktop calls `{SUPABASE_URL}/functions/v1/ai-proxy` with the anon key as bearer. If the project switches to the new
