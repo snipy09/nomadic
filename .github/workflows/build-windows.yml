@@ -1,7 +1,7 @@
 name: Build Windows (unsigned)
 
 # Manual build of the current desktop app for testing: the NSIS installer and the portable .exe,
-# uploaded as a workflow artifact (kept 14 days), plus the website download (a zip holding only Nomadic.exe and its
+# uploaded as a workflow artifact (kept 14 days), plus the website download (a zip holding only "Nomadic Setup.exe" and its
 # SHA256SUMS, made by scripts/windows/make-release.ps1) as a second artifact. Unsigned, so Windows SmartScreen warns on first run.
 # Signed public releases stay in release.yml (tags v*.*.*, needs the code-signing secrets).
 
@@ -61,7 +61,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Website download (zip with only Nomadic.exe)
+      - name: Website download (zip with only the installer)
         shell: powershell
         run: .\scripts\windows\make-release.ps1 -OutDir "$env:RUNNER_TEMP\website-download"
 
