@@ -22,12 +22,12 @@ export const MAC_DOWNLOAD: { version: string | null; minimumMacOS: string } = {
 };
 
 export const WINDOWS_DOWNLOAD: { version: string | null; minimumWindows: string } = {
-  version: '1.6.0',
+  version: '1.7.0',
   minimumWindows: '10 (64-bit)',
 };
 
 export const ANDROID_DOWNLOAD: { version: string | null; minimumAndroid: string } = {
-  version: '1.6.0',
+  version: '1.7.0',
   minimumAndroid: '7.0',
 };
 

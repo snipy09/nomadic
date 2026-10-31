@@ -32,7 +32,9 @@ Code follow-ups for the wider audience (30 Oct 2026: Nomadic is for every job se
 Owner actions:
 0000000. **Release 1.7.0** (31 Oct 2026: Learn v3 for any role, projects node and capstone, empty Projects page, free
    role choice in onboarding). Code is on `main`; apps are 1.7.0; the ai-proxy with the `tree` and `capstone` formats
-   is deployed (version 5). The site's download links stay on 1.6.0 until the 1.7.0 files are uploaded.
+   is deployed (version 5). Windows and Android 1.7.0 are uploaded and the site points at them (31 Oct, built on the
+   laptop; the APK is signed with the release key like 1.5.1, while the 1.6.0 APK was debug-signed, so 1.6.0 users
+   must uninstall once). Left: Mac 1.7.0 (site stays on Mac 1.6.0).
    **GitHub Actions is blocked again** (31 Oct 2026: CI, Android app, Build macOS, Build Windows and Release macOS
    on `da9f787` all failed in 3-7 s with no runner and no logs, a rerun too; same as 12-19 Oct, account
    billing/spending limit): fix it under GitHub → Settings → Billing and plans, then re-run those runs; until then

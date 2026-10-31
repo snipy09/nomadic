@@ -7,7 +7,7 @@
 & {
   $ErrorActionPreference = 'Stop'
   $ProgressPreference = 'SilentlyContinue'
-  $Version = '1.6.0'
+  $Version = '1.7.0'
   $Site = 'https://nomadicai.vercel.app'
 
   function Say($text) { Write-Host $text -ForegroundColor Cyan }

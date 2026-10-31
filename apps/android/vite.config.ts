@@ -59,7 +59,8 @@ function replaceMainModules(): Plugin {
       const resolved = await this.resolve(source, importer, { ...opts, skipSelf: true });
       if (!resolved) return null;
       const target = REPLACED[realPath(resolved.id.split('?')[0])];
-      return target ? { id: target } : null;
+      // Resolve the replacement like any import, so a Windows build gets one module id, not two copies of device.ts.
+      return target ? this.resolve(target, importer, { ...opts, skipSelf: true }) : null;
     },
   };
 }

@@ -258,3 +258,7 @@ Last updated: 31 October 2026. What was built when, with the files involved. New
 
 - `ANDROID_DOWNLOAD.version` set to 1.6.0 (release `android-v1.6.0` verified: APK serves 200). Windows stays 1.5.0 and Mac 1.4.0 until their 1.6.0 releases exist. Checksum files still 404 for Android (owner upload pending).
 - 2026-10-30: Audience widened from "engineering students" to every job seeker in India (engineers, managers, product/project managers, analysts, designers; freshers to experienced). Updated CLAUDE.md, README, package.json description, `context/` (README, product.md "Audience" section with honest gaps, roadmap follow-ups), `docs/DECISIONS.md` (#5, #10), website copy/SEO (`apps/web`), `ai-proxy` prompts and the ChatGPT lesson prompt. Content and scraper coverage for non-engineering roles is still follow-up work.
+
+## 31 October 2026: Windows and Android 1.7.0 on the site
+
+- Built on the laptop (Actions blocked): win-v1.7.0 and ndroid-v1.7.0 in nomadic-releases with checksum files; downloads.ts Windows/Android and windows.ps1 set to 1.7.0. The 1.6.0 APK turned out debug-signed (CN=Android Debug); 1.7.0 uses the release key (same as 1.5.1). Mac stays 1.6.0 until a Mac build exists.
