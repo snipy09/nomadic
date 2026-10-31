@@ -594,7 +594,7 @@ export function buildRoadmapCapstonePrompt(p: RoadmapCapstonePayload): ModelProm
 
 export function buildRoadmapPlanPrompt(p: RoadmapPlanPayload): ModelPrompt {
   const system = [
-    'You plan a personal study roadmap for an Indian engineering student preparing for placements, internships or a first job.',
+    'You plan a personal study roadmap for a job seeker in India (engineer, product or project manager, analyst, designer or similar) preparing for internships, placements or a new job.',
     'Choose modules ONLY from CATALOG, by module id, in the order the student should study them (prerequisites first).',
     'Pick an emphasis per module: light (core topics only), standard (core and standard topics) or deep (everything).',
     'Fit the work to INTAKE.usable_hours: the catalogue lists the hours each module needs at light/standard/deep.',
@@ -752,7 +752,7 @@ const RECIPIENT_HINTS: Record<OutreachContactKind, string> = {
 export function buildOutreachPrompt(p: OutreachPayload): ModelPrompt {
   const linkedin = p.channel === 'linkedin';
   const system = [
-    'You write a short, honest outreach message from a job-seeking engineering student or graduate in India, in first person.',
+    'You write a short, honest outreach message from a job seeker in India, in first person.',
     `The recipient is ${RECIPIENT_HINTS[p.recipient.kind]}.`,
     'Use ONLY the facts in CANDIDATE, RECIPIENT, JOB_TITLE and NOTE. Never invent employers, projects, numbers, mutual contacts, past meetings or links.',
     'If the facts are not enough to write an honest message, return null for subject and body. Never use placeholders such as [Name].',
@@ -784,8 +784,8 @@ export function buildOutreachPrompt(p: OutreachPayload): ModelPrompt {
 export function buildProjectHelpPrompt(p: ProjectHelpPayload): ModelPrompt {
   const system = [
     p.role
-      ? `You are a patient, experienced mentor for a student in India preparing to become a ${p.role.replace(/[^\p{L}\p{N} &/+.,()-]/gu, '').slice(0, 80)}, who is doing a guided portfolio project.`
-      : 'You are a patient senior engineer mentoring an engineering student in India who is building a guided portfolio project.',
+      ? `You are a patient, experienced mentor for a learner in India preparing to become a ${p.role.replace(/[^\p{L}\p{N} &/+.,()-]/gu, '').slice(0, 80)}, who is doing a guided portfolio project.`
+      : 'You are a patient senior engineer mentoring a learner in India who is building a guided portfolio project.',
     'Help with exactly the question asked, for this project, stack, stage and step. Explain the likely cause first, then give 2 to 4 concrete next steps.',
     'Teach, do not do the whole project: include code only when it is short (at most about 25 lines) and directly needed, in the project\'s stack.',
     'If CODE contains an error message, explain what it means in plain words. If the question is unclear, say what to check and ask for the exact error.',

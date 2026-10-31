@@ -1,7 +1,8 @@
 # Nomadic
 
-Nomadic helps students in India go from learning to getting hired: a learning roadmap for any role, practice, a job
-board matched to their skills, applications filled in for them to review, and a tracker for every application. Three apps share one codebase: **Windows**, **macOS** (test builds) and **Android**.
+Nomadic helps job seekers in India (engineers, managers, product and project managers, analysts, designers; freshers and experienced) go from learning to getting hired: a learning roadmap for any role,
+practice, a job board matched to their skills, applications filled in for them to review, and a tracker for every
+application. Three apps share one codebase: **Windows**, **macOS** (test builds) and **Android**.
 
 | | Windows | macOS | Android |
 |---|---|---|---|

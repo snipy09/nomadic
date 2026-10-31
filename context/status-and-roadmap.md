@@ -22,6 +22,13 @@ screens). The owner has signed in on the packaged v1.0.6 app and run apply up to
 
 ## What is left
 
+Code follow-ups for the wider audience (30 Oct 2026: Nomadic is for every job seeker, not only engineers):
+- Learn content for project management, general management and business roles (today only `product-manager` and
+  `design` families exist, thin). Add families + seed content + intake wording.
+- Scrapers: stop dropping non-engineering titles (`direct-dom-scraper.ts` engineering filter; `classify.ts` returns
+  `other`) and add manager/PM/ops/business role families to the feed and match %.
+- Profile/onboarding wording and examples ("Software Engineer Intern", degree/branch) made role-neutral.
+
 Owner actions:
 0000000. **Release 1.7.0** (31 Oct 2026: Learn v3 for any role, projects node and capstone, empty Projects page, free
    role choice in onboarding). Code is on `main`; apps are 1.7.0; the ai-proxy with the `tree` and `capstone` formats

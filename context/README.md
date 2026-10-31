@@ -25,7 +25,8 @@ Reference when needed:
 
 ## Nomadic in five lines
 
-- A career app for students in India: a learning roadmap for any role (subjects → modules → topics, each with YouTube
+- A career app for everyone job-hunting in India (engineers, managers, product/project managers, analysts, designers;
+  freshers to experienced): a learning roadmap for any role (subjects → modules → topics, each with YouTube
   and ChatGPT, ending in 5 projects and a guided capstone), practice, job board with match %, apply with
   review (nothing is submitted without the user ticking it), tracker, outreach (behind a flag), admin.
 - Three apps on shared code: Windows (`apps/desktop`), macOS (`apps/mac`, test builds), Android (`apps/android`, no

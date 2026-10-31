@@ -6,12 +6,12 @@
 | 2 | Platform | Windows only at launch; macOS after beta |
 | 3 | Pricing | Free / Pro ₹249 / Max ₹599, one config in `packages/config`; ₹99 alpha retired after beta |
 | 4 | Hidden behind flags at launch | Outreach, Opportunity Board, Resource Vault, AI Assistant |
-| 5 | Learn audience (v1) | Engineering students; tracks: DSA and problem solving, web (frontend/backend/full stack), data analyst and ML, core CS (OS, DBMS, networks, OOP), placement aptitude and interviews, basic DevOps/cloud |
+| 5 | Learn audience (v1) | Audience is every job seeker (see #10), but content is engineering-first today (PM and design families exist, thin). Tracks today: DSA and problem solving, web (frontend/backend/full stack), data analyst and ML, core CS (OS, DBMS, networks, OOP), placement aptitude and interviews, basic DevOps/cloud |
 | 6 | Learn content | Curated, link-checked free resources first; AI-drafted lessons later, reviewed before publish |
 | 7 | Coding practice | No code runner at launch (quizzes, questions, external problem links); revisit after beta |
 | 8 | Landing page | Keep the existing Vite site (already redesigned and prerendered); finish pricing-from-config, Lighthouse and SEO checks |
 | 9 | Analytics | Opt-in only (default, no objection recorded) |
-| 10 | Primary user | Indian engineering students (placements and internships) |
+| 10 | Primary user | Anyone job-hunting in India (30 Oct 2026): engineers, managers, product/project managers, analysts, designers; students, freshers and experienced. Supersedes "engineering students only" |
 | 11 | Capacity | Solo, no fixed deadline: quality over speed, ship when the bar is met |
 | 12 | AI provider | Operator-supplied API key held server-side and proxied (never shipped in the app); per-user limits enforced on the server. Provider/model to be named |
 | 13 | Data | Local-first SQLite, Supabase sync of events and account data |
