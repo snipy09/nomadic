@@ -253,3 +253,7 @@ Last updated: 31 October 2026. What was built when, with the files involved. New
   that commit (CI, Android app, Build macOS, Build Windows, Release macOS) failed in seconds with no runner, a rerun
   too (account billing/spending limit), so no 1.7.0 installers exist yet. Checked in the session instead: typecheck,
   lint, `build:desktop`, `build:mac`, `build:android` and 2,080 tests in 156 files pass on `main`.
+
+## 30 October 2026: Android 1.6.0 on the site
+
+- `ANDROID_DOWNLOAD.version` set to 1.6.0 (release `android-v1.6.0` verified: APK serves 200). Windows stays 1.5.0 and Mac 1.4.0 until their 1.6.0 releases exist. Checksum files still 404 for Android (owner upload pending).
