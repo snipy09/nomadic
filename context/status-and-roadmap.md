@@ -25,7 +25,11 @@ screens). The owner has signed in on the packaged v1.0.6 app and run apply up to
 Owner actions:
 0000000. **Release 1.7.0** (31 Oct 2026: Learn v3 for any role, projects node and capstone, empty Projects page, free
    role choice in onboarding). Code is on `main`; apps are 1.7.0; the ai-proxy with the `tree` and `capstone` formats
-   is deployed (version 5). The site's download links stay on 1.6.0 until the 1.7.0 files are uploaded:
+   is deployed (version 5). The site's download links stay on 1.6.0 until the 1.7.0 files are uploaded.
+   **GitHub Actions is blocked again** (31 Oct 2026: CI, Android app, Build macOS, Build Windows and Release macOS
+   on `da9f787` all failed in 3-7 s with no runner and no logs, a rerun too; same as 12-19 Oct, account
+   billing/spending limit): fix it under GitHub → Settings → Billing and plans, then re-run those runs; until then
+   build on the laptop (`npm run package:desktop`, `npm run package:mac` needs a Mac). Steps per app:
    Windows: Actions → "Build Windows (unsigned)" on `main` (or `npm run package:desktop` on the laptop), then
    `scripts\windows\make-release.ps1` and `gh release create win-v1.7.0 … --repo snipy09/nomadic-releases`.
    Mac: Actions → "Release macOS" on `main` (publish needs the `MAC_RELEASES_TOKEN` secret; without it download the

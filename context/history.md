@@ -247,3 +247,9 @@ Last updated: 31 October 2026. What was built when, with the files involved. New
   version 5 deployed. Apps 1.7.0. Tests: `v3-role.test.ts`, `ai-proxy-v3.test.ts`, `learn-role.test.ts`,
   `learnView.test.tsx`, `learnLinks.test.ts`, onboarding and Home tests. Checked in the browser preview at 1280 px
   and about 420 px (no overflow, no errors); the AI formats are untested live until a signed-in run.
+- 2026-10-31: Learn v3 merged into `main` (`da9f787`, fast-forward). ai-proxy version 5 deployed through the Supabase
+  connector; the live files match the repo byte for byte (handler.ts differs only by a trailing newline). The website
+  redeployed on Vercel (projects `web` and `nomadic-app`, production READY at `da9f787`). Every GitHub Actions run on
+  that commit (CI, Android app, Build macOS, Build Windows, Release macOS) failed in seconds with no runner, a rerun
+  too (account billing/spending limit), so no 1.7.0 installers exist yet. Checked in the session instead: typecheck,
+  lint, `build:desktop`, `build:mac`, `build:android` and 2,080 tests in 156 files pass on `main`.
