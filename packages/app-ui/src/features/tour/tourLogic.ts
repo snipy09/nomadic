@@ -21,7 +21,7 @@ const WELCOME: TourStep = {
 };
 
 const LEARN_STEPS: TourStep[] = [
-  { id: 'learn', target: 'learner-roadmaps', title: 'Learn', body: 'Your roadmap as a path of study days. Open it each day for today\'s topics, tasks and quizzes.' },
+  { id: 'learn', target: 'learner-roadmaps', title: 'Learn', body: 'Your roadmap for any role: subjects, modules and topics, each with YouTube and ChatGPT, then projects.' },
   { id: 'practice', target: 'learner-interview-prep', title: 'Practice', body: 'Company problems, role questions and timed mock rounds. Weak topics show up here as you go.' },
   { id: 'projects', target: 'learner-projects', title: 'Projects', body: 'Guided projects step by step, with starter code, checks and help when you are stuck.' },
 ];

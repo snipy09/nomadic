@@ -30,8 +30,8 @@ export default function About() {
           <section aria-labelledby="does">
             <h2 id="does" className="text-2xl font-bold">What it does</h2>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-ink-soft">
-              <li>Builds a personal day-by-day learning roadmap from your target role and available time.</li>
-              <li>Offers guided projects and company-tagged practice with feedback.</li>
+              <li>Builds a learning roadmap for any role: subjects, modules and topics, each with YouTube and ChatGPT.</li>
+              <li>Ends every roadmap with five projects and a guided capstone, plus company-tagged practice with feedback.</li>
               <li>Lists openings from company hiring pages with a match score against your skills.</li>
               <li>Fills application forms for you to review. Nothing is submitted until you confirm it.</li>
               <li>Tracks every application on one board.</li>

@@ -7,12 +7,12 @@ const LINK = 'font-bold text-ink underline decoration-2 underline-offset-4 hover
 
 const SERVICES: { title: string; text: string }[] = [
   {
-    title: 'Personal learning roadmap',
-    text: 'You answer a few questions (target role, time available, current level). Nomadic builds a dated, day-by-day plan of modules, topics, tasks and quizzes with spaced-repetition reviews, and re-plans when you fall behind.',
+    title: 'A learning roadmap for any role',
+    text: 'You type the role you want and your level. Nomadic splits the role into subjects, modules and topics to study, each topic with its own YouTube search and ChatGPT prompt, and tracks what you have done.',
   },
   {
-    title: 'Guided projects',
-    text: 'More than 4,000 step-by-step projects with starter code, hints and acceptance checks, so a student ends with work to show on a resume.',
+    title: 'A guided capstone project',
+    text: 'Every roadmap ends with five projects picked for the role. The one you choose becomes a capstone of milestones and steps, each with a "done when" check and AI help, so you end with work to show on a resume.',
   },
   {
     title: 'Practice',

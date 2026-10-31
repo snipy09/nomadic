@@ -1,3 +1,6 @@
+> **Superseded on 31 Oct 2026 by [`LEARN_V3_PLAN.md`](LEARN_V3_PLAN.md).** The phase 1 screens below (Today, Plan,
+> lesson player, quizzes) were built on 30 Oct 2026 and removed the next day. Kept for the research and the measurements.
+
 # Learn UX plan: less to think about, more learning
 
 Status: phase 1 built on 30 Oct 2026 (structure, screens, way of learning; see "Built" at the end). Phase 2 (the

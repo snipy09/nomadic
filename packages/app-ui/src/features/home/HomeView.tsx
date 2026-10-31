@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowRight, BellRing, Briefcase, Check, Compass, Flame, LayoutGrid, Sparkles } from 'lucide-react';
+import { ArrowRight, BellRing, Briefcase, Check, Compass, LayoutGrid, Sparkles } from 'lucide-react';
 import { Badge, Button, Card, CardHeader, Skeleton, cn } from '@nomadic/ui';
-import { formatDay } from '@job-automator/learning';
 import type { AppUser, MasterProfile, TabType, WorkspaceMode } from '../../types';
 import { readAppAnswers } from '@nomadic/app-core/shared/applicationAnswers';
 import { prefs } from '../../store/preferences';
@@ -13,7 +12,8 @@ import { CompanyLogo } from '../feed/CompanyLogo';
 import { combinedMastery, inferRole, matchJob, profileMastery } from '../feed/match';
 import { useFeed } from '../feed/useFeed';
 import { useLearnedMastery } from '../feed/useLearnedMastery';
-import { formatMinutes } from '../learn/learnModel';
+import { LearnButtons } from '../learn/LearnButtons';
+import { topicPrompt } from '../learn/learnLinks';
 import { completeness, toForm } from '../profile/profileForm';
 import { useResumes } from '../profile/useResumes';
 import { greeting, longDate, setupChecklist, type ChecklistItem } from './homeLogic';
@@ -129,53 +129,55 @@ function SetupChecklist({ items, done, onGo, onHide }: { items: ChecklistItem[];
 }
 
 function TodayCard({ learn, onNavigate }: { learn: LearnSummary; onNavigate: HomeViewProps['onNavigate'] }) {
-  const header = <CardHeader icon={<Compass />} title="Today's learning" description={learn.hasRoadmap ? `${learn.percent}% of your roadmap done` : 'Your daily plan shows up here'} />;
+  const header = <CardHeader icon={<Compass />} title="Your learning" description={learn.hasRoadmap ? `${learn.roleName} · ${learn.percent}% done` : 'Your roadmap shows up here'} />;
   if (learn.status === 'loading') {
     return <Card>{header}<div className="flex flex-col gap-2 p-4"><Skeleton height={20} width="60%" /><Skeleton height={8} /><Skeleton height={32} width={120} /></div></Card>;
   }
-  if (!learn.hasRoadmap) {
+  if (!learn.hasRoadmap || !learn.roadmap) {
     return (
       <Card>
         {header}
         <div className="flex flex-1 flex-col items-start gap-3 p-4">
-          <p className="text-body text-fg-muted">Tell Nomadic the role you want and how much time you have; you get a day-by-day plan with lessons, problems and projects.</p>
-          <Button variant="primary" onClick={() => onNavigate('learner-roadmaps')}>Plan your roadmap</Button>
+          <p className="text-body text-fg-muted">
+            {learn.needsRebuild
+              ? 'Learn has a new layout: build your roadmap again and every topic gets its own YouTube and ChatGPT buttons.'
+              : 'Type any role you want. Nomadic splits it into subjects, modules and topics to study, and ends with five projects.'}
+          </p>
+          <Button variant="primary" onClick={() => onNavigate('learner-roadmaps')}>{learn.needsRebuild ? 'Rebuild my roadmap' : 'Build my roadmap'}</Button>
         </div>
       </Card>
     );
   }
-  const d = learn.today;
-  const streak = learn.streak?.current ?? 0;
+  const n = learn.next;
   return (
     <Card>
       {header}
       <div className="flex flex-1 flex-col gap-3 p-4">
-        {d ? (
-          <>
+        <div className="flex items-center gap-3">
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-sunken" aria-hidden="true">
+            <div className="h-full rounded-full bg-success transition-[width] duration-slow" style={{ width: `${learn.percent}%` }} />
+          </div>
+          <span className="text-caption tabular-nums text-fg-muted">{learn.done}/{learn.total} topics</span>
+        </div>
+        {n ? (
+          <div className="flex flex-col gap-2">
             <div>
-              <p className="text-caption text-fg-subtle">Week {d.week} · Session {d.day} · {formatMinutes(d.minutes)}</p>
-              <p className="mt-0.5 text-heading font-strong text-fg">{d.title}</p>
-              {d.subtitle && <p className="truncate text-caption text-fg-muted">Also: {d.subtitle}</p>}
+              <p className="text-caption text-fg-subtle">{learn.done ? 'Continue with' : 'Start with'} · {n.subject.title} · {n.module.title}</p>
+              <p className="mt-0.5 text-heading font-strong text-fg">{n.topic.title}</p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-sunken" aria-hidden="true">
-                <div className="h-full rounded-full bg-success transition-[width] duration-slow" style={{ width: `${d.total ? Math.round((d.done / d.total) * 100) : 0}%` }} />
-              </div>
-              <span className="text-caption tabular-nums text-fg-muted">{d.done}/{d.total} tasks</span>
-            </div>
-          </>
+            <LearnButtons
+              name={n.topic.title}
+              search={n.topic.search}
+              prompt={topicPrompt({ role: learn.roadmap.role, level: learn.roadmap.level, subject: n.subject.title, module: n.module.title, topic: n.topic })}
+            />
+          </div>
         ) : (
-          <p className="text-body text-fg-muted">
-            Nothing planned today.{learn.next ? ` Next session on ${formatDay(learn.next.date)}: ${learn.next.title}.` : ''}
-          </p>
+          <p className="text-body text-fg-muted">Every topic is done.{learn.capstone ? ` Capstone: ${learn.capstone.done} of ${learn.capstone.total} steps.` : ' Pick a capstone project next.'}</p>
         )}
-        <div className="mt-auto flex items-center gap-3 pt-1">
-          <Button variant="primary" rightIcon={<ArrowRight />} onClick={() => onNavigate('learner-roadmaps', !d ? 'plan' : d.state === 'done' ? 'today' : 'continue')}>
-            {!d ? 'Open your plan' : d.state === 'done' ? 'Review today' : d.done ? 'Continue' : 'Start today'}
+        <div className="mt-auto pt-1">
+          <Button variant="primary" rightIcon={<ArrowRight />} onClick={() => onNavigate('learner-roadmaps', n ? undefined : 'projects')}>
+            {n ? 'Open my roadmap' : 'Open my projects'}
           </Button>
-          <span className={cn('flex items-center gap-1 text-caption [&_svg]:size-3.5', streak > 0 ? 'text-warning-fg' : 'text-fg-subtle')}>
-            <Flame aria-hidden="true" />{streak} day streak
-          </span>
         </div>
       </div>
     </Card>

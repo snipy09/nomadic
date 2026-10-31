@@ -28,7 +28,7 @@ function stubApi(overrides: Record<string, any> = {}): Record<string, any> {
     pickResumeFile: vi.fn().mockResolvedValue({ canceled: false, filePath: resume.filePath, fileName: resume.name }),
     saveResume: vi.fn(async () => { stored = [resume]; return { success: true }; }),
     saveMasterProfile: vi.fn().mockResolvedValue({ success: true }),
-    learnRoadmapGenerate: vi.fn(async (intake: any) => ({ success: true, draft: { roadmap: { intake }, schedule: {}, notice: null, created_at: 'x' } })),
+    learnRoleRoadmapGenerate: vi.fn(async (req: any) => ({ success: true, roadmap: { role: req.role }, notice: null })),
     learningRecordEvents: vi.fn(async (events: any[]) => ({ success: true, events })),
     ...overrides,
   };
@@ -50,13 +50,6 @@ const continueBtn = () => screen.getByRole('button', { name: /^continue$/i });
 const skipStep = async (heading: RegExp) => {
   await screen.findByRole('heading', { name: heading });
   await userEvent.click(screen.getByRole('button', { name: /skip for now/i }));
-};
-/** On the roadmap step: Continue through its pages until the heading matches. */
-const roadmapTo = async (heading: RegExp) => {
-  for (let i = 0; i < 10 && !screen.queryByRole('heading', { name: heading }); i++) {
-    await userEvent.click(continueBtn());
-  }
-  return screen.findByRole('heading', { name: heading });
 };
 /** From the About step: skip links, resume, role and answers, landing on Workspace. */
 const skipToWorkspace = async () => {
@@ -101,7 +94,7 @@ describe('Onboarding', () => {
     await userEvent.click(continueBtn());
 
     expect(await screen.findByRole('heading', { name: /what are you aiming for/i })).toBeTruthy();
-    await userEvent.click(screen.getByRole('button', { name: 'Data Analyst' }));
+    await userEvent.click(screen.getByRole('button', { name: /^data analyst$/i }));
     const group = await screen.findByRole('group', { name: /suggested skills/i });
     const firstSkill = group.querySelector('button') as HTMLButtonElement;
     const skillName = firstSkill.textContent ?? '';
@@ -118,33 +111,26 @@ describe('Onboarding', () => {
     await userEvent.click(screen.getByRole('radio', { name: /^apply/i }));
     await userEvent.click(continueBtn());
 
-    // Roadmap: a short intake, one question per page, starting from the role picked on step 4.
-    expect(await screen.findByRole('heading', { name: /which role are you preparing for/i })).toBeTruthy();
-    expect(screen.getByText(/your roadmap · 1 of \d+/i)).toBeTruthy();
+    // Roadmap: any role, starting from the one typed on step 4, plus a level.
+    expect(await screen.findByRole('heading', { name: /your roadmap/i })).toBeTruthy();
     expect(progress()).toBe('7');
-    expect(screen.getByRole('radio', { name: /data analyst/i }).getAttribute('aria-checked')).toBe('true');
-    await roadmapTo(/when can you study/i);
-    expect(screen.getByRole('button', { name: 'Sat' }).getAttribute('aria-pressed')).toBe('true');
-    await userEvent.click(screen.getByRole('button', { name: 'Sun' }));
-    expect(screen.getByRole('button', { name: 'Sun' }).getAttribute('aria-pressed')).toBe('false');
-    await roadmapTo(/your plan at a glance/i);
-    expect(screen.getByRole('status').textContent).toMatch(/h of study time/);
+    expect((screen.getByRole('textbox', { name: /^role$/i }) as HTMLInputElement).value).toBe('Data analyst');
+    await userEvent.clear(screen.getByRole('textbox', { name: /^role$/i }));
+    await userEvent.type(screen.getByRole('textbox', { name: /^role$/i }), 'Quant trader');
+    await userEvent.click(screen.getByRole('radio', { name: /some basics/i }));
     expect(onComplete).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole('button', { name: /finish setup/i }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
-    expect(api.learnRoadmapGenerate).toHaveBeenCalledTimes(1);
-    const intake = api.learnRoadmapGenerate.mock.calls[0][0];
-    expect(intake).toMatchObject({ role: 'data-analyst', aim: 'campus', weekday_minutes: 60, weekend_minutes: 150 });
-    expect(intake.study_days).not.toContain(0);
-    expect(Array.isArray(intake.known_skill_ids)).toBe(true);
-    expect(api.learnRoadmapGenerate.mock.invocationCallOrder[0]).toBeLessThan(api.saveMasterProfile.mock.invocationCallOrder[0]);
+    expect(api.learnRoleRoadmapGenerate).toHaveBeenCalledTimes(1);
+    expect(api.learnRoleRoadmapGenerate.mock.calls[0][0]).toEqual({ role: 'Quant trader', level: 'intermediate', note: '' });
+    expect(api.learnRoleRoadmapGenerate.mock.invocationCallOrder[0]).toBeLessThan(api.saveMasterProfile.mock.invocationCallOrder[0]);
     const saved = api.saveMasterProfile.mock.calls[0][0];
     expect(saved.onboarding_completed).toBe(1);
     expect(saved.firstName).toBe('Asha');
     expect(saved.lastName).toBe('Rao');
     expect(saved.phone).toBe('+91 98765 43210');
-    expect(saved.desiredTitle).toBe('Data Analyst');
+    expect(saved.desiredTitle).toBe('Data analyst');
     expect(saved.techStack).toBe(skillName);
     expect(saved.resumeFilePath).toBe(resume.filePath);
     expect(saved.workspaceMode).toBe('seeker_only');
@@ -215,13 +201,12 @@ describe('Onboarding', () => {
     const onComplete = renderOnboarding();
     await skipToWorkspace();
     await userEvent.click(continueBtn());
-    await screen.findByRole('heading', { name: /which role are you preparing for/i });
-    expect(screen.queryByRole('radio', { checked: true })).toBeNull();
-    await userEvent.click(continueBtn());
-    expect(await screen.findByText('Pick the role you are preparing for.')).toBeTruthy();
+    await screen.findByRole('heading', { name: /your roadmap/i });
+    expect((screen.getByRole('textbox', { name: /^role$/i }) as HTMLInputElement).value).toBe('');
+    expect(screen.getByText(/without a role, setup finishes without a roadmap/i)).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: /skip for now/i }));
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
-    expect(api.learnRoadmapGenerate).not.toHaveBeenCalled();
+    expect(api.learnRoleRoadmapGenerate).not.toHaveBeenCalled();
     const saved = api.saveMasterProfile.mock.calls[0][0];
     expect(saved.desiredTitle).toBe('');
     expect(saved.techStack).toBe('');
@@ -238,7 +223,7 @@ describe('Onboarding', () => {
     const onComplete = renderOnboarding();
     await skipToWorkspace();
     await userEvent.click(continueBtn());
-    await screen.findByRole('heading', { name: /which role are you preparing for/i });
+    await screen.findByRole('heading', { name: /your roadmap/i });
     await userEvent.click(screen.getByRole('button', { name: /skip for now/i }));
 
     expect(await screen.findByText(/disk is full\. nothing was marked complete/i)).toBeTruthy();
@@ -249,18 +234,17 @@ describe('Onboarding', () => {
   });
 
   it('does not complete or save the profile when the roadmap cannot be saved', async () => {
-    const api = stubApi({ learnRoadmapGenerate: vi.fn().mockResolvedValue({ success: false, error: 'Database locked.' }) });
+    const api = stubApi({ learnRoleRoadmapGenerate: vi.fn().mockResolvedValue({ success: false, error: 'Database locked.' }) });
     const onComplete = renderOnboarding();
     await userEvent.click(continueBtn());
     await skipStep(/add your links/i);
     await skipStep(/add your resume/i);
-    await userEvent.click(await screen.findByRole('button', { name: 'Backend Engineer' }));
+    await userEvent.click(await screen.findByRole('button', { name: /^software engineer$/i }));
     await userEvent.click(continueBtn());
     await skipStep(/answers for applications/i);
     await screen.findByRole('heading', { name: /choose your workspace/i });
     await userEvent.click(continueBtn());
-    await screen.findByRole('heading', { name: /which role are you preparing for/i });
-    await roadmapTo(/your plan at a glance/i);
+    await screen.findByRole('heading', { name: /your roadmap/i });
     await userEvent.click(screen.getByRole('button', { name: /finish setup/i }));
     expect(await screen.findByText(/database locked\. nothing was marked complete/i)).toBeTruthy();
     expect(api.saveMasterProfile).not.toHaveBeenCalled();

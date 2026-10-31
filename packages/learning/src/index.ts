@@ -13,3 +13,4 @@ export * from './readiness';
 export * from './gating';
 export * from './practiceAttempts';
 export * from './v2';
+export * from './v3';

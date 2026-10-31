@@ -1,6 +1,8 @@
 # Learn v3: a roadmap for any role
 
-Status: plan (31 Oct 2026), replaces the Today/Plan/lesson-player direction of `LEARN_UX_PLAN.md`. Prototype:
+Status: **built and released on 31 Oct 2026** (apps 1.7.0, ai-proxy version 5); it replaced the Today/Plan/lesson-player
+direction of `LEARN_UX_PLAN.md`. Differences from the plan: setup is one page (role, level, note) instead of two; the
+free plan keeps one roadmap at a time with 2 AI builds a day. Prototype:
 the "Nomadic Learn Prototype" artifact (sample roadmap for "Quant trader").
 
 ## What the owner asked for

@@ -1,11 +1,12 @@
 import { learningPullEvents, learningPullState, learningRecordEvents, learningSaveState } from '@job-automator/supabase';
-import { LearningEventSchema, ProblemNoteSchema, RoadmapSchema, ScheduleSchema, UserProjectSchema } from '@job-automator/learning';
+import { LearningEventSchema, ProblemNoteSchema, RoadmapSchema, RoleRoadmapSchema, ScheduleSchema, UserProjectSchema } from '@job-automator/learning';
 import type { LearningEventInput, LearningEventRecord, LearningState, LearningSyncResult } from '../../shared/ipc.js';
 import { getDb, persistDb } from '../db.js';
 import { errorMessage, log } from './app-context.js';
 import { getActiveSyncSession, session } from './session.js';
 import { getAnonSupabase } from './supabase.js';
 import { readDraft, readNotes, readProjects, readRoadmap, readSchedule } from './learn-v2.js';
+import { readRoleRoadmap } from './learn-role.js';
 import {
   LOCAL_USER,
   SYNCED_DOC_KINDS,
@@ -53,6 +54,7 @@ export function getLearningState(): LearningState {
     projects: readProjects(db, userId),
     notes: readNotes(db, userId),
     draft: readDraft(db, userId),
+    roleRoadmap: readRoleRoadmap(db, userId),
   };
 }
 
@@ -60,7 +62,7 @@ export function getLearningState(): LearningState {
 function validDoc(kind: SyncedDocKind, value: unknown): boolean {
   switch (kind) {
     case 'roadmap':
-      return RoadmapSchema.safeParse(value).success;
+      return RoadmapSchema.safeParse(value).success || RoleRoadmapSchema.safeParse(value).success;
     case 'schedule':
       return ScheduleSchema.safeParse(value).success;
     case 'projects':

@@ -3,6 +3,7 @@
  * feature's (profileForm.ts); this file only decides which fields each step owns
  * and offers suggestions from the shared skill catalogue (never invented values).
  */
+import { ROLE_SUGGESTIONS } from '../learn/roleSetupLogic';
 import { roles, role_skills, skills } from '@job-automator/learning/seed/bundle.json';
 import type { MasterProfile, ResumeRecord } from '../../types';
 import { inferRole } from '../feed/match';
@@ -81,7 +82,8 @@ export function applyReadinessErrors(form: ProfileForm, hasResume: boolean): App
 }
 
 /** Role families from the shared catalogue (the same ones Feed matching and Learn use). */
-export const ROLE_OPTIONS: string[] = (roles as Array<{ name: string }>).map((r) => r.name);
+/** Role chips: examples across fields; the field takes any role. */
+export const ROLE_OPTIONS: string[] = [...ROLE_SUGGESTIONS];
 
 const skillNames = new Map((skills as Array<{ id: string; name: string }>).map((s) => [s.id, s.name]));
 const roleIdByName = new Map((roles as Array<{ id: string; name: string }>).map((r) => [r.name.toLowerCase(), r.id]));

@@ -38,6 +38,8 @@ import type {
   Roadmap,
   RoadmapDiff,
   RoleFamilyId,
+  RoleRoadmap,
+  RoleRoadmapRequest,
   Schedule,
   Shortfall,
   UserProject,
@@ -726,12 +728,29 @@ export interface LearningState {
   projects: UserProject[];
   notes: ProblemNote[];
   draft: LearnDraft | null;
+  /** Learn v3: the roadmap for any role (null when the saved roadmap is a v2 one or there is none). */
+  roleRoadmap: RoleRoadmap | null;
 }
 
 export interface LearningSyncResult extends SuccessResult {
   pushed: number;
   pulled: number;
   rejected: number;
+}
+
+/** Learn v3: a built, saved or updated role roadmap. */
+export interface LearnRoleRoadmapResult extends SuccessResult {
+  roadmap?: RoleRoadmap;
+  /** Why the roadmap came from the reviewed library instead of the AI, when it did. */
+  notice?: string | null;
+  quota?: AiQuota | null;
+}
+
+/** A question about one step of the student's capstone. */
+export interface LearnCapstoneHelpRequest {
+  stepId: string;
+  question: string;
+  code?: string;
 }
 
 export interface LearnGenerateResult extends SuccessResult {
@@ -1295,6 +1314,10 @@ export interface IpcChannels {
   'learn-problem-note-save': Channel<[note: ProblemNote], LearnNoteSaveResult>;
   'learn-project-check-repo': Channel<[request: LearnRepoCheckRequest], LearnRepoCheckResult>;
   'learn-project-help': Channel<[request: LearnProjectHelpRequest], LearnProjectHelpResult>;
+  'learn-role-roadmap-generate': Channel<[request: RoleRoadmapRequest], LearnRoleRoadmapResult>;
+  'learn-role-roadmap-save': Channel<[roadmap: RoleRoadmap], LearnRoleRoadmapResult>;
+  'learn-capstone-generate': Channel<[projectId: string], LearnRoleRoadmapResult>;
+  'learn-capstone-help': Channel<[request: LearnCapstoneHelpRequest], LearnProjectHelpResult>;
 
   // practice (F8)
   'practice-get-catalog': Channel<[], PracticeCatalogResult>;
@@ -1376,6 +1399,7 @@ export const IPC_CHANNELS = [
   'learning-get-state', 'learning-record-events', 'learning-sync',
   'learn-roadmap-generate', 'learn-roadmap-adjust', 'learn-roadmap-accept', 'learn-schedule-save',
   'learn-project-save', 'learn-problem-note-save', 'learn-project-check-repo', 'learn-project-help',
+  'learn-role-roadmap-generate', 'learn-role-roadmap-save', 'learn-capstone-generate', 'learn-capstone-help',
   'practice-get-catalog', 'practice-get-state', 'practice-record-attempt', 'ai-rubric-feedback',
   'auth-google', 'auth-login', 'auth-signup',
   'auth-request-password-reset', 'auth-confirm-password-reset', 'auth-send-verification', 'auth-confirm-verification',
@@ -1502,6 +1526,10 @@ export interface NomadicApi {
   learnProblemNoteSave: Invoke<'learn-problem-note-save'>;
   learnProjectCheckRepo: Invoke<'learn-project-check-repo'>;
   learnProjectHelp: Invoke<'learn-project-help'>;
+  learnRoleRoadmapGenerate: Invoke<'learn-role-roadmap-generate'>;
+  learnRoleRoadmapSave: Invoke<'learn-role-roadmap-save'>;
+  learnCapstoneGenerate: Invoke<'learn-capstone-generate'>;
+  learnCapstoneHelp: Invoke<'learn-capstone-help'>;
 
   updateApplicationStatus: (id: number | string, status: string) => Promise<ChannelResult<'update-application-status'>>;
   updateApplicationNotes: (id: number | string, notes: string) => Promise<ChannelResult<'update-application-notes'>>;

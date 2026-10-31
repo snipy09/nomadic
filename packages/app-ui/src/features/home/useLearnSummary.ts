@@ -1,50 +1,41 @@
 import { useMemo } from 'react';
-import { buildPath, rollForward, type LearningEvent, type PathDay, type Streak } from '@job-automator/learning';
-import { learnIndex } from '../learn/catalog';
-import { roleById } from '../learn/content';
-import { buildTodayModel, progressModel, progressOf, todayOf } from '../learn/learnModel';
+import { doneEntries, roleProgress, type LearningEvent, type RoleProgress, type RoleRoadmap, type TopicRef } from '@job-automator/learning';
 import { useLearning } from '../learn/useLearning';
 
 export interface LearnSummary {
   status: 'loading' | 'ready' | 'error';
   hasRoadmap: boolean;
   roleName: string;
-  /** Today's study day; null on a rest day or with no roadmap. */
-  today: PathDay | null;
-  /** The next study day after today when today has nothing planned. */
-  next: PathDay | null;
+  roadmap: RoleRoadmap | null;
+  /** The next topic to study (null when all are done or there is no roadmap). */
+  next: TopicRef | null;
   percent: number;
-  streak: Streak | null;
+  done: number;
+  total: number;
+  capstone: RoleProgress['capstone'];
+  /** A v2 roadmap is saved but Learn needs it built again in the new layout. */
+  needsRebuild: boolean;
 }
 
-/** What Home shows about Learn, from the same engine the Learn page uses (read only). */
-export function useLearnSummary(now: Date = new Date()): LearnSummary {
+/** What Home shows about Learn, from the same roadmap and events the Learn page uses (read only). */
+export function useLearnSummary(): LearnSummary {
   const data = useLearning();
-  const date = todayOf(now);
   return useMemo(() => {
-    const roadmap = data.roadmap;
-    const saved = data.schedule && roadmap && data.schedule.roadmap_id === roadmap.id ? data.schedule : null;
-    const empty: LearnSummary = { status: data.status, hasRoadmap: false, roleName: '', today: null, next: null, percent: 0, streak: null };
-    if (!roadmap || !saved) return empty;
-    const index = learnIndex();
-    const events = data.events as unknown as LearningEvent[];
-    // Learn moves unfinished work forward when it opens; Home shows the same plan without saving it.
-    const schedule = rollForward({ schedule: saved, roadmap, index, done: progressOf(roadmap, saved, events, index).done, today: date })?.schedule ?? saved;
-    const progress = progressOf(roadmap, schedule, events, index);
-    const path = buildPath({ schedule, roadmap, tasks: progress.byId, index, done: progress.done, today: date });
-    const days = path.weeks.flatMap((w) => w.days);
-    const pm = progressModel(schedule, progress, index, date);
-    const total = pm.modules.reduce((n, m) => n + m.minutes_total, 0);
-    const done = pm.modules.reduce((n, m) => n + m.minutes_done, 0);
-    const todayModel = buildTodayModel({ schedule, progress, events, now: new Date() });
-    return {
+    const roadmap = data.roleRoadmap;
+    const base: LearnSummary = {
       status: data.status,
-      hasRoadmap: true,
-      roleName: roleById(roadmap.track_id)?.name ?? roadmap.track_id,
-      today: days.find((d) => d.date === date) ?? null,
-      next: days.find((d) => d.date > date && d.state !== 'done') ?? null,
-      percent: total ? Math.round((done / total) * 100) : 0,
-      streak: todayModel.streak,
+      hasRoadmap: false,
+      roleName: '',
+      roadmap: null,
+      next: null,
+      percent: 0,
+      done: 0,
+      total: 0,
+      capstone: null,
+      needsRebuild: !roadmap && !!data.roadmap,
     };
-  }, [data.status, data.roadmap, data.schedule, data.events, date]);
+    if (!roadmap) return base;
+    const p = roleProgress(roadmap, doneEntries(data.events as unknown as LearningEvent[]));
+    return { ...base, hasRoadmap: true, roleName: roadmap.role, roadmap, next: p.next, percent: p.percent, done: p.done, total: p.total, capstone: p.capstone };
+  }, [data.status, data.roleRoadmap, data.roadmap, data.events]);
 }

@@ -1,32 +1,30 @@
 # Product
 
-Last updated: 30 October 2026. What Nomadic is, who it is for, plans and limits, and the product decisions every change must respect.
+Last updated: 31 October 2026. What Nomadic is, who it is for, plans and limits, and the product decisions every change must respect.
 
 ## What Nomadic is
 
 A **Windows app** (Electron, `apps/desktop`), a **macOS app** (Electron, `apps/mac`, test builds) and an **Android app**
-(Capacitor, `apps/android`: everything except Practice, Projects, apply and Outreach; job actions say "Auto apply from
-desktop" and save the job for the desktop) for **Indian engineering students** looking for placements, internships and
-first jobs. The computer apps cover the whole path:
+(Capacitor, `apps/android`: everything except Practice, the Projects page, apply and Outreach; job actions say "Auto
+apply from desktop" and save the job for the desktop) for **students and freshers in India** (engineering first, Learn
+for any role) looking for placements, internships and first jobs. The computer apps cover the whole path:
 
-1. **Onboarding** (4–5 short steps) ends with a **personal learning roadmap** (core feature).
-2. **Learn (v2)**: an intake of six questions, one per page (role, goal, duration, schedule, level, DSA language;
-   what to cover and extras are optional rows on the summary) → a roadmap of modules → day-sized topics → tasks,
-   picked by AI from the reviewed catalogue (rules planner as fallback) and fitted into dated days by a deterministic
-   scheduler (language basics before any DSA problem; reserve, revision and OA-mock days; pace factor). Two tabs:
-   **Today** (the next study session in a fixed order: warm-up review → main lesson → its practice → side topic →
-   project / tests, with one "Next up" button) and **Plan** (this week's sessions, the roadmap week by week,
-   progress, plan settings). Lessons open in a focus-mode **lesson player**: intro with the names of the points,
-   the points 2–3 per screen (YouTube / ChatGPT for the points on screen), a recap, the check (quiz), today's
-   practice ("Solved" / "Solved with a hint" is the only way a problem is ticked), then the next step. Missed work
-   moves forward by itself (with Undo); the student is asked only when work no longer fits the end date. The streak
-   counts only planned study days. No external resources are shown in Learn beyond LeetCode and the search links.
-   UX plan and research: `docs/plans/LEARN_UX_PLAN.md`.
-   **Projects** (sidebar, under Practice): a library of ~4,100 fully guided projects (12 curated + 4,085 generated
-   idea × stack × level: 80 app ideas on 5 frontend, 6 backend, 5 full-stack, 3 mobile, 3 CLI and 3 DevOps stacks;
-   40 datasets on 3 data and 2 ML stacks), each with stages, steps with starter code, hints, acceptance checks, an
-   optional GitHub repo check, a finish kit and "Stuck? Ask Nomadic AI" help per stage (ai-proxy `project_help`;
-   when the daily limit is hit the question waits and is asked again automatically after the midnight IST reset).
+1. **Onboarding** (4–5 short steps) ends with a **learning roadmap for the typed role** (any role; core feature).
+2. **Learn (v3, 31 Oct 2026)**: a **roadmap for any role**, not only engineering. Setup is one page: the role
+   (free text; suggestion chips across fields only fill the box), the level (Beginner / Some basics / Experienced)
+   and an optional note. One AI call (ai-proxy `roadmap_plan`, `tree` format) splits the role into **subjects →
+   modules → topics** in study order, with a YouTube search phrase and a "covers" line per topic, and **5 projects**
+   for the role. Nomadic says **what** to study, not the material: every topic has its own **YouTube**, **ChatGPT**
+   (a prompt about that one topic, also copied to the clipboard) and **Done**. One page: progress, a **Continue**
+   card (the next topic with its buttons), subject tabs, modules that open into topic rows, **Edit roadmap** (remove
+   or bring back topics and modules, add your own topic), **Change role**. The last tab, **Projects**, shows the 5
+   projects with a "Ready x%" bar; one becomes a **fully assisted capstone** (AI `capstone` format: milestones →
+   steps, each with a "Done when" check, YouTube, ChatGPT, **Ask Nomadic AI** (role-aware `project_help`) and Done).
+   When the AI cannot answer, the 8 built-in software/data/product/design roles fall back to the reviewed library
+   in the same layout (its curated projects become the projects). No quizzes, no calendar, no streak in Learn.
+   Plan and prototype: `docs/plans/LEARN_V3_PLAN.md`.
+   **Projects page**: emptied on 31 Oct 2026 until carefully curated projects arrive; it links to the capstone in
+   Learn. (The ~4,100-project library engine still exists in `packages/learning/src/v2/gen` but no screen uses it.)
 3. **Practice**: ~1,800 LeetCode-company problems (external links), role questions, timed mock mode, weak topics,
    AI rubric feedback on written answers (Pro/Max).
 4. **Job board**: jobs collected by the scraper pipeline, skill-based match % and top missing skills, save, filters.
@@ -41,7 +39,7 @@ first jobs. The computer apps cover the whole path:
    scraper health, content editing with versions.
 
 Plans: **Free / Pro ₹249 / Max ₹599 per month**, no auto-renewal, **no refunds** (payment errors excepted).
-Free: 1 learning track, 10 practice/day, 3 applies/day, 10 feed listings, no AI feedback, 10 AI form calls/day.
+Free: one roadmap (2 AI builds a day; 10 on Pro, 20 on Max), 10 practice/day, 3 applies/day, 10 feed listings, no AI feedback, 10 AI form calls/day.
 Pro: 10 applies/day, 30 AI feedback, 40 AI form calls. Max: unlimited applies, 100 feedback, 300 form calls.
 Prices and limits live only in `packages/config/src/plans.ts` (SQL copies are parity-tested).
 
@@ -55,7 +53,8 @@ Summary; the full list with reasons is in [`docs/DECISIONS.md`](../docs/DECISION
 - India-first job sources; Windows first; the macOS app is in test builds (unsigned DMG); the Android app (7 Oct 2026) has no apply, Practice, Projects or Outreach.
 - Hidden behind feature flags (`packages/config/src/features.ts`): Outreach, Opportunity Board, Resource Vault,
   AI Assistant. Enable with `VITE_FEATURES="outreach=on,..."` at build time.
-- Learn: curated, link-checked free resources; AI-drafted lessons only after review. No code runner at launch.
+- Learn: Nomadic gives what to study (AI-built roadmap for any role, reviewed library as fallback) and links each
+  topic to a YouTube search and a ChatGPT prompt; it does not host study material or quizzes. No code runner.
 - Analytics/crash reports opt-in only. No offline mode (local DB is a cache/outbox).
 - AI: operator's Gemini key held server side (Supabase Vault) behind the `ai-proxy` Edge Function; never shipped
   in the app; per-user daily limits on the server. Groq is a stub behind the same provider interface.

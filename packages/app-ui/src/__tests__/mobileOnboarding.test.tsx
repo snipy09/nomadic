@@ -21,7 +21,7 @@ const emptyProfile = {
 function stubApi() {
   const api = {
     saveMasterProfile: vi.fn().mockResolvedValue({ success: true }),
-    learnRoadmapGenerate: vi.fn(async (intake: any) => ({ success: true, draft: { roadmap: { intake }, schedule: {}, notice: null, created_at: 'x' } })),
+    learnRoleRoadmapGenerate: vi.fn(async (req: any) => ({ success: true, roadmap: { role: req.role }, notice: null })),
   };
   (window as any).api = api;
   return api;
@@ -56,17 +56,18 @@ describe('phone onboarding', () => {
 
     expect(screen.getByRole('heading', { name: 'Your goal' })).toBeTruthy();
     await user.click(screen.getByRole('radio', { name: /Internships/ }));
-    await user.click(screen.getByRole('button', { name: 'Frontend Engineer' }));
-    expect(screen.getByRole('button', { name: 'Frontend Engineer' }).getAttribute('aria-pressed')).toBe('true');
+    await user.click(screen.getByRole('button', { name: 'Data analyst' }));
+    expect(screen.getByRole('button', { name: 'Data analyst' }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByText(/Tap the ones you know/)).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Continue' }));
 
-    expect(screen.getByText(/Your roadmap · 1 of/)).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Your roadmap' })).toBeTruthy();
+    expect((screen.getByRole('textbox', { name: /^role$/i }) as HTMLInputElement).value).toBe('Data analyst');
     await user.click(screen.getByRole('button', { name: 'Skip the roadmap for now' }));
     await waitFor(() => expect(onComplete).toHaveBeenCalled());
-    expect(api.learnRoadmapGenerate).not.toHaveBeenCalled();
+    expect(api.learnRoleRoadmapGenerate).not.toHaveBeenCalled();
     const saved = api.saveMasterProfile.mock.calls[0][0];
-    expect(saved).toMatchObject({ onboarding_completed: 1, desiredTitle: 'Frontend Engineer' });
+    expect(saved).toMatchObject({ onboarding_completed: 1, desiredTitle: 'Data analyst' });
   });
 
   it('stops on About you until the required fields are filled', async () => {

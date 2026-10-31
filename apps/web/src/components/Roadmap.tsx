@@ -3,7 +3,7 @@ import { ROADMAP, ROADMAP_STATUS_LABEL } from '../content';
 import { useInView } from '../hooks';
 
 export default function Roadmap() {
-  const [activeId, setActiveId] = useState('week-2');
+  const [activeId, setActiveId] = useState('programming');
   const [ref, seen] = useInView<HTMLDivElement>(0.25);
   const node = ROADMAP.find((item) => item.id === activeId) ?? ROADMAP[0];
 
@@ -49,7 +49,7 @@ export default function Roadmap() {
         <p className="text-sm text-ink-soft">{node.level}</p>
         <h3 className="wide mt-1 text-3xl">{node.title}</h3>
         <p className="mt-4 max-w-md text-ink-soft">{node.description}</p>
-        <p className="mt-6 text-sm font-bold">Study days</p>
+        <p className="mt-6 text-sm font-bold">{node.id === 'projects' ? 'Projects' : 'Topics'}</p>
         <ul className="mt-2 grid max-w-md grid-cols-1 gap-x-6 border-t border-rule sm:grid-cols-2">
           {node.skills.map((skill) => (
             <li key={skill} className="border-b border-rule py-2 font-semibold">
@@ -58,10 +58,10 @@ export default function Roadmap() {
           ))}
         </ul>
         <p className="mt-6 text-sm text-ink-soft">
-          {node.status === 'done' && 'Finished. Its quizzes come back as spaced reviews.'}
-          {node.status === 'active' && `This week: ${node.progress}% done. Fall behind and re-plan the rest in one click.`}
-          {node.status === 'next' && 'Starts next week, on the days you said you can study.'}
-          {node.status === 'later' && 'Later in your plan. Each day keeps its own date.'}
+          {node.status === 'done' && 'Finished. Every topic was learned from its own YouTube search or ChatGPT prompt.'}
+          {node.status === 'active' && `${node.progress}% of its topics done. Tick a topic when you have learned it.`}
+          {node.status === 'next' && 'Up next in the roadmap.'}
+          {node.status === 'later' && (node.id === 'projects' ? 'The roadmap ends here: pick one project as your guided capstone.' : 'Later in the roadmap.')}
         </p>
       </div>
     </div>

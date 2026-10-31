@@ -3,13 +3,15 @@ import type {
   LearningEventInput, LearningEventRecord, LearningState, LearningSyncResult,
   LearnAcceptResult, LearnAdjustProposal, LearnAdjustResult, LearnDraft, LearnGenerateResult, LearnNoteSaveResult,
   LearnProjectHelpRequest, LearnProjectHelpResult, LearnProjectSaveResult, LearnRepoCheckRequest, LearnRepoCheckResult, SuccessResult,
+  LearnRoleRoadmapResult, LearnCapstoneHelpRequest,
 } from '@nomadic/app-core/shared/ipc';
-import type { IntakeInput, ProblemNote, Roadmap, Schedule, UserProject } from '@job-automator/learning';
+import type { IntakeInput, ProblemNote, Roadmap, RoleRoadmap, RoleRoadmapRequest, Schedule, UserProject } from '@job-automator/learning';
 
 export type {
   LearningEventInput, LearningEventRecord, LearningState, LearningSyncResult,
   LearnAcceptResult, LearnAdjustProposal, LearnAdjustResult, LearnDraft, LearnGenerateResult, LearnNoteSaveResult,
   LearnProjectHelpRequest, LearnProjectHelpResult, LearnProjectSaveResult, LearnRepoCheckRequest, LearnRepoCheckResult,
+  LearnRoleRoadmapResult, LearnCapstoneHelpRequest,
 };
 
 export type WorkspaceMode = 'learner_only' | 'seeker_only' | 'unified';
@@ -296,6 +298,11 @@ export interface ElectronAPI {
   learnProblemNoteSave: (note: ProblemNote) => Promise<LearnNoteSaveResult>;
   learnProjectCheckRepo: (req: LearnRepoCheckRequest) => Promise<LearnRepoCheckResult>;
   learnProjectHelp: (req: LearnProjectHelpRequest) => Promise<LearnProjectHelpResult>;
+  // Learn v3: the roadmap for any role and its capstone
+  learnRoleRoadmapGenerate: (req: RoleRoadmapRequest) => Promise<LearnRoleRoadmapResult>;
+  learnRoleRoadmapSave: (roadmap: RoleRoadmap) => Promise<LearnRoleRoadmapResult>;
+  learnCapstoneGenerate: (projectId: string) => Promise<LearnRoleRoadmapResult>;
+  learnCapstoneHelp: (req: LearnCapstoneHelpRequest) => Promise<LearnProjectHelpResult>;
 
   /** Data safety (F10). Absent in browser preview. */
   getDataHealth?: () => Promise<{

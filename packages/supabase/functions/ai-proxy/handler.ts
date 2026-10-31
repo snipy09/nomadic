@@ -153,7 +153,7 @@ export async function handleAiProxy(method: string, bodyText: string, deps: Prox
   let lastCode = 'unknown';
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      const out = await provider.generateJson({ ...prompt, timeoutMs });
+      const out = await provider.generateJson({ ...prompt, timeoutMs: prompt.timeoutMs ?? timeoutMs });
       const result = checkOutput(req, out);
       deps.log({ kind, outcome: 'ok', attempt, model: provider.model, ms: now() - t0 });
       return { status: 200, body: { ok: true, kind, result, quota, model: provider.model } };

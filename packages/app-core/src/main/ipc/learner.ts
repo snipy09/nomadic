@@ -1,5 +1,7 @@
 import { handle } from './handle.js';
 import {
+  learnCapstoneGenerateArgs,
+  learnCapstoneHelpArgs,
   learnProblemNoteSaveArgs,
   learnProjectCheckRepoArgs,
   learnProjectHelpArgs,
@@ -7,6 +9,8 @@ import {
   learnRoadmapAcceptArgs,
   learnRoadmapAdjustArgs,
   learnRoadmapGenerateArgs,
+  learnRoleRoadmapGenerateArgs,
+  learnRoleRoadmapSaveArgs,
   learnScheduleSaveArgs,
   learningRecordEventsArgs,
 } from './schemas.js';
@@ -21,6 +25,7 @@ import {
   saveProject,
   saveSchedule,
 } from '../services/learn-v2.js';
+import { askCapstoneHelp, generateCapstone, generateRoleRoadmap, saveRoleRoadmap } from '../services/learn-role.js';
 
 /** Starts a background sync after a local change (never blocks the reply). */
 function thenSync<T>(result: T): T {
@@ -28,7 +33,7 @@ function thenSync<T>(result: T): T {
   return result;
 }
 
-/** Learn: append-only learning events, the v2 roadmap, schedule, projects and notes, and their sync. */
+/** Learn: append-only learning events, the role roadmap (v3) and its capstone, the v2 documents, and their sync. */
 export function registerLearnerIpc(): void {
   handle('learning-get-state', () => getLearningState());
   handle('learning-record-events', learningRecordEventsArgs, (events) => recordLearningEvents(events));
@@ -41,4 +46,8 @@ export function registerLearnerIpc(): void {
   handle('learn-problem-note-save', learnProblemNoteSaveArgs, (note) => thenSync(saveProblemNote(currentUserId(), note)));
   handle('learn-project-check-repo', learnProjectCheckRepoArgs, (req) => checkProjectRepo(currentUserId(), req));
   handle('learn-project-help', learnProjectHelpArgs, (req) => askProjectHelp(req));
+  handle('learn-role-roadmap-generate', learnRoleRoadmapGenerateArgs, async (req) => thenSync(await generateRoleRoadmap(currentUserId(), req)));
+  handle('learn-role-roadmap-save', learnRoleRoadmapSaveArgs, (roadmap) => thenSync(saveRoleRoadmap(currentUserId(), roadmap)));
+  handle('learn-capstone-generate', learnCapstoneGenerateArgs, async (projectId) => thenSync(await generateCapstone(currentUserId(), projectId)));
+  handle('learn-capstone-help', learnCapstoneHelpArgs, (req) => askCapstoneHelp(currentUserId(), req));
 }

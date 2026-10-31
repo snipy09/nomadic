@@ -1,19 +1,19 @@
 # Status and what is left
 
-Last updated: 30 October 2026. Feature status, test status, the owner's to-do list and code follow-ups.
+Last updated: 31 October 2026. Feature status, test status, the owner's to-do list and code follow-ups.
 Feature detail: [`docs/FEATURES.md`](../docs/FEATURES.md).
 
 ## Status by feature
 
 Built and merged: F1 shell, F2 accounts + onboarding + password reset/verification + Google sign-in (server side),
-F3 feed + matching, F4 apply with review, F5 tracker, F6 profile, F7 Learn v2 (roadmap, day plan, projects), F8 Practice, F9 entitlements
+F3 feed + matching, F4 apply with review, F5 tracker, F6 profile, F7 Learn v3 (a roadmap for any role: subjects → modules → topics with YouTube/ChatGPT/Done per topic, 5 projects and a guided capstone; 31 Oct 2026), F8 Practice, F9 entitlements
 and quotas, F10 data safety, F11 updates/telemetry/help, F12 admin, F14 landing (Lighthouse mobile 97/100/100/100).
 F13: Outreach was rebuilt in v1.1.0 (see history.md) and shows in the sidebar as "Soon" with an information screen;
 the working module needs `VITE_FEATURES="outreach=on"`. Opportunity Board, Resource Vault and the Assistant stay
 hidden; the Assistant still needs rework or removal.
 
-Tests: 1,889 vitest tests pass (147 files, 7 Oct 2026 after the app split; run with `--maxWorkers=2 --testTimeout=30000`
-on the owner's laptop, where the default parallelism times out component tests, and the three Chrome DOM suites can time
+Tests: 2,080 vitest tests pass (156 files, 31 Oct 2026; on the owner's laptop run with `--maxWorkers=2
+--testTimeout=30000`, where the default parallelism times out component tests, and the three Chrome DOM suites can time
 out closing Chrome in `afterAll`). Typecheck (`npm run typecheck`: root + desktop + mac + web + android), lint (0 errors,
 164 warnings) and the builds of all three apps and the web site pass.
 The built Electron app has been smoke-tested over CDP (window, live feed via IPC, Learn, Settings, Help, Activity, Admin
@@ -23,6 +23,17 @@ screens). The owner has signed in on the packaged v1.0.6 app and run apply up to
 ## What is left
 
 Owner actions:
+0000000. **Release 1.7.0** (31 Oct 2026: Learn v3 for any role, projects node and capstone, empty Projects page, free
+   role choice in onboarding). Code is on `main`; apps are 1.7.0; the ai-proxy with the `tree` and `capstone` formats
+   is deployed (version 5). The site's download links stay on 1.6.0 until the 1.7.0 files are uploaded:
+   Windows: Actions → "Build Windows (unsigned)" on `main` (or `npm run package:desktop` on the laptop), then
+   `scripts\windows\make-release.ps1` and `gh release create win-v1.7.0 … --repo snipy09/nomadic-releases`.
+   Mac: Actions → "Release macOS" on `main` (publish needs the `MAC_RELEASES_TOKEN` secret; without it download the
+   artifact and `gh release create mac-v1.7.0 …`). Android: build the signed APK on the laptop (the signing key lives
+   there) and `gh release create android-v1.7.0 …`. Then set the three `version`s in `packages/config/src/downloads.ts`
+   (and `$Version` in `apps/web/public/install/windows.ps1`) to 1.7.0 and push; Vercel redeploys the site. Try Learn
+   with a non-software role (for example "Quant trader") on a signed-in account: it is the first live use of the new
+   AI formats.
 000000. **Release 1.6.0** (28 Oct 2026: role-aware roadmap intake, YouTube/ChatGPT lesson buttons, dates on news and
    jobs, no Tracker tab on Android). Versions in `apps/{desktop,mac,android}/package.json` are 1.6.0; the site still
    points at Windows 1.5.0, Mac 1.4.0, Android 1.5.1 because the 1.6.0 files are not uploaded. Windows: Actions →
@@ -108,6 +119,12 @@ apply's AI form answers go through `ai-proxy`; the feed treats the column defaul
 `user_applications.follow_up_at`, RPCs `sync_hide_job`/`sync_unhide_job`/`sync_pull_hidden_jobs`/
 `sync_set_application_follow_up`); on pull, hidden jobs are a union and local-only ones are uploaded; for follow-ups
 the newer row wins, a cloud date is never dropped by a local row without one.
+
+Learn v3 follow-ups (31 Oct 2026): curated projects per role (they take the 5 project slots first: `source:
+'curated'`) and the Projects page that shows them; feed match mastery from v3 topic ticks (today only v1/v2 progress
+counts); remove the unused v2 engine pieces (scheduler, path, session code, generated project library, v2 IPC channels
+and `learn-v2.ts` generate/adjust/accept) once no account has a v2 roadmap left; reviewed content for common roles
+(phase 2: the owner's sample data) so fewer roadmaps depend on the AI.
 
 Code follow-ups: form-engine DOM tests and `npm run bench:forms` need
 `PLAYWRIGHT_CHROMIUM_EXECUTABLE` set to an installed Chrome on this laptop (else they skip/fail to launch);

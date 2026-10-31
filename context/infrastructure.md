@@ -1,6 +1,6 @@
 # Live infrastructure
 
-Last updated: 27 October 2026. Supabase project, migrations applied, Edge Functions, secrets, accounts and how SQL reaches production.
+Last updated: 31 October 2026. Supabase project, migrations applied, Edge Functions, secrets, accounts and how SQL reaches production.
 
 - **Supabase project `nomadic`**: ref `grqkiddfwoyicktpgdea`, region ap-south-1 (Mumbai), free plan, org "Nomadic".
   URL `https://grqkiddfwoyicktpgdea.supabase.co`. The anon key is public by design and is the build default in
@@ -22,8 +22,10 @@ Last updated: 27 October 2026. Supabase project, migrations applied, Edge Functi
   `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (the owner sets them in GitHub; assistant sessions cannot read the
   service-role key or write repository secrets).
 - **Edge Functions deployed** (JWT verification on): `google-sign-in`, `send-email-code`, `ai-proxy` (kinds
-  `rubric_feedback`, `form_answers`, `outreach_email`, `roadmap_plan`, `roadmap_adjust`, `project_help`; version 4
-  deployed 5 Oct 2026 from the repo files, byte-checked against them; `project_help` needs 030).
+  `rubric_feedback`, `form_answers`, `outreach_email`, `roadmap_plan`, `roadmap_adjust`, `project_help`;
+  `roadmap_plan` also takes `format: 'tree'` (Learn v3 role roadmap, 65 s per attempt) and `format: 'capstone'`, and
+  `project_help` an optional `role`; version 5 deployed 31 Oct 2026 from the repo files through the Supabase connector,
+  after checking version 4 was byte-identical to `main`; `project_help` needs 030; no new migration).
   `razorpay-webhook` exists in the repo but is not deployed yet.
 - **Vault secrets**: `resend_api_key`, `gemini_api_key`, `google_oauth_client_id` (set). Missing: `email_from`.
 - **Google OAuth**: "Desktop app" client created; id/secret are in GitHub repo secrets and in the gitignored

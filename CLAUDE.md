@@ -13,6 +13,9 @@ changing. Keep facts in `context/` (update the right file and `context/history.m
   `packages/ui` (design system), `packages/config` (prices, flags, legal), learning, form-engine, automation,
   scrapers, supabase.
 - Backend: Supabase project `nomadic` (ref `grqkiddfwoyicktpgdea`, Mumbai). Migrations 001–037 are live (no 013); **next is 038**. Data is published by the Desktop scraper folder (`context/scrapers.md`).
+- Learn (v3, 31 Oct 2026): a roadmap for any role built by ai-proxy (`roadmap_plan` format `tree`), stored in the synced
+  `roadmap` document; code in `packages/learning/src/v3`, `services/learn-role.ts`, `features/learn/`. Plan:
+  `docs/plans/LEARN_V3_PLAN.md`.
 
 ## Where a change goes
 

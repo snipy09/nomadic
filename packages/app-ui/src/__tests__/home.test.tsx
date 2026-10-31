@@ -79,7 +79,7 @@ describe('HomeView', () => {
     await userEvent.click(screen.getByRole('button', { name: /add resume/i }));
     expect(onNavigate).toHaveBeenCalledWith('settings', 'resumes');
 
-    await userEvent.click(screen.getByRole('button', { name: /plan your roadmap/i }));
+    await userEvent.click(screen.getByRole('button', { name: /build my roadmap/i }));
     expect(onNavigate).toHaveBeenLastCalledWith('learner-roadmaps');
 
     expect(await screen.findByText(/1 follow-up due/)).toBeTruthy();
@@ -101,7 +101,7 @@ describe('HomeView', () => {
   it('shows only Learn on a learn-only workspace', async () => {
     mockApi();
     render(<UIProvider><HomeView profile={profile} currentUser={null} workspaceMode="learner_only" onNavigate={() => {}} /></UIProvider>);
-    expect(await screen.findByText("Today's learning")).toBeTruthy();
+    expect(await screen.findByText('Your learning')).toBeTruthy();
     expect(screen.queryByText(/best matches for you/i)).toBeNull();
     expect(screen.queryByRole('heading', { name: 'Applications' })).toBeNull();
   });

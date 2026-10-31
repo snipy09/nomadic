@@ -1,6 +1,6 @@
 # Architecture
 
-Last updated: 30 October 2026 (Learn renderer layout; split into shared packages + three apps on 7 October).
+Last updated: 31 October 2026 (Learn v3; split into shared packages + three apps on 7 October).
 
 ## The rule that shapes the repo
 
@@ -59,8 +59,9 @@ packages/
                Apple design language since 1.4.0; use token classes (bg-surface, text-fg, text-fg-muted, border-line,
                text-body, text-caption, font-strong, bg-fg/[0.06]); never hardcoded slate/zinc colours or dark: variants.
   config/      plans.ts (prices/limits), features.ts (flags), legal.ts (terms/privacy/refunds), tiers.ts
-  learning/    @job-automator/learning: Learn v1 + v2 engine (catalog, scheduler, roadmap, path, projects, generated
-               project library g.<idea>.<stack>.<b|i|a> — never rename keys), seed/bundle.json, content scripts
+  learning/    @job-automator/learning: v3 role roadmaps (src/v3: schema, normalise, progress, catalogue fallback),
+               Learn v1 + v2 engine (catalog, scheduler, roadmap, path, projects, generated project library
+               g.<idea>.<stack>.<b|i|a> — never rename keys), seed/bundle.json, content scripts
   form-engine/ form reading, classification, one-call AI answers, writers, verifier; core.ts = fill/verify/submit
                gate over a FormDriver; agent/ = in-page agent for Android; remote/ = Android host side
   automation/  AutoApplyEngine (fill with autoSubmit off, review, submitReviewed), ATS adapters, the user's own
@@ -99,16 +100,24 @@ brand/         profile icon and GitHub profile assets (videos and carousels stay
   streams per-field events) → `ApplyRunView` (review, edit, tick) → `submitAllBatchCoPilot(overrides, ids)`; the server
   quota (`consume_apply_quota`) is consumed right before each submission. Nothing is submitted without review.
 - **Matching**: `features/feed/match.ts` tags job text and profile skills against the same skill catalogue as Learn;
-  mastery is the higher of v1 mastery and Learn v2 progress (`masteryFromProgress`).
-- **Learn v2**: UI intake → `learnRoadmapGenerate` (`services/learn-v2.ts`: compact catalogue → ai-proxy `roadmap_plan`
-  → `normaliseAiRoadmap`, else `planRoadmapRules`; `fitRoadmap` → draft in local `learn_state`) → Review →
-  `learnRoadmapAccept`. Day actions run the engine in the UI and save via `learnScheduleSave`. Syncs through 027/028.
-  Renderer: `features/learn/LearnView.tsx` (router: intake, review, Today, Plan, lesson player, warm-up, topic
-  reference, project), `sessionModel.ts` (pure: session order, lesson screens, week summary, plan status),
-  `LessonPlayer.tsx` / `LessonReference.tsx` / `lessonParts.tsx`, `TodayScreen.tsx`, `PlanScreen.tsx`,
-  `ReviewSession.tsx`. Opening Learn runs `rollForward` (missed work → forward, saved, Undo in the toast); Home shows
-  the same rolled plan without saving. LearnView `initialTab`: `today`, `plan` (`path` / `progress` map to it) or
-  `continue` (straight into the next step, used by Home).
+  mastery is the higher of v1 mastery and Learn v2 progress (`masteryFromProgress`). v3 topic ticks do not feed
+  mastery yet (code follow-up in status-and-roadmap.md).
+- **Learn v3** (31 Oct 2026, any role): `features/learn/RoleSetup.tsx` (role, level, note; shared with both
+  onboardings) → IPC `learn-role-roadmap-generate` → `services/learn-role.ts` `generateRoleRoadmap`: ai-proxy
+  `roadmap_plan` with `{ format: 'tree', role, level, note }` (150 s client timeout; the proxy allows 65 s per model
+  attempt) → `normaliseRoleRoadmap` (`packages/learning/src/v3/roleRoadmap.ts`: cleans text, drops links and
+  placeholders, slug ids, caps counts); if the AI cannot answer, `catalogRoleRoadmap` (`v3/catalogRoadmap.ts`) for
+  the 8 built-in role families → saved as the synced `roadmap` document (version 3; no migration) and returned.
+  Edits: `learn-role-roadmap-save`. Capstone: `learn-capstone-generate` (`format: 'capstone'`, or a curated
+  project's own stages via `catalogCapstone`) and `learn-capstone-help` (`project_help` with `role`). Progress is
+  the event log: `task_done` with `topic:<module>/<topic>` or `capstone:<project>/<step>` (latest wins, `undone`
+  unticks); `roleProgress` derives counts, the next topic and project readiness. Renderer: `LearnView.tsx` (setup,
+  building, roadmap), `RoadmapView.tsx` (Continue card, subject tabs, modules, topic rows, edit mode),
+  `ProjectsPanel.tsx` (5 projects, capstone, Ask Nomadic AI), `LearnButtons.tsx` + `learnLinks.ts` (one YouTube search
+  and one ChatGPT prompt per topic or step). Home's card (`useLearnSummary`) shows the next topic with its buttons.
+  `learning-get-state` returns `roleRoadmap` beside the v2 documents; a pulled `roadmap` document is accepted in
+  either format. The v2 engine (scheduler, path, generated projects) and its IPC channels remain but no screen uses
+  them; a student with only a v2 roadmap is asked to build it again.
 - **AI**: `services/ai-proxy.ts` → `{SUPABASE_URL}/functions/v1/ai-proxy` (anon key as bearer + device session in body)
   → `consume_ai_quota` → Gemini (`gemini-2.5-flash`, JSON schema) → output checks → refund on failure.
 - **News**: `services/news.ts` builds items from published rows only: company hiring snapshots, job-board bursts,

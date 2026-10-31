@@ -98,6 +98,10 @@ const apiObj: NomadicApi = {
   learnProblemNoteSave: (note) => invoke('learn-problem-note-save', note),
   learnProjectCheckRepo: (req) => invoke('learn-project-check-repo', req),
   learnProjectHelp: (req) => invoke('learn-project-help', req),
+  learnRoleRoadmapGenerate: (req) => invoke('learn-role-roadmap-generate', req),
+  learnRoleRoadmapSave: (roadmap) => invoke('learn-role-roadmap-save', roadmap),
+  learnCapstoneGenerate: (projectId) => invoke('learn-capstone-generate', projectId),
+  learnCapstoneHelp: (req) => invoke('learn-capstone-help', req),
 
   // Applications Management
   updateApplicationStatus: (id, status) => invoke('update-application-status', { id, status }),

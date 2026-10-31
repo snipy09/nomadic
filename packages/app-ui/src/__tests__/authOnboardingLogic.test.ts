@@ -89,9 +89,10 @@ describe('onboarding steps', () => {
     expect(stepErrors('workspace', form)).toEqual({});
   });
 
-  it('offers catalogue roles and their skills, nothing for unknown roles', () => {
-    expect(ROLE_OPTIONS).toContain('Frontend Engineer');
-    expect(ROLE_OPTIONS).toContain('Data Analyst');
+  it('suggests roles across fields, and catalogue skills only for catalogue roles', () => {
+    expect(ROLE_OPTIONS).toContain('Software engineer');
+    expect(ROLE_OPTIONS).toContain('Quant trader');
+    expect(ROLE_OPTIONS).toContain('Chartered accountant');
     const fe = suggestedSkills('frontend engineer');
     expect(fe.length).toBeGreaterThan(0);
     expect(fe).toContain('JavaScript Fundamentals');

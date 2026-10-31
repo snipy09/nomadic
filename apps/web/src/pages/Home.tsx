@@ -150,7 +150,7 @@ export default function Home() {
           step={1}
           first
           title="Learn what the role actually asks for."
-          intro="Tell Nomadic the role you want and the hours you have, and it lays out a week-by-week path of study days: what to learn, named LeetCode problems, quizzes that come back for review, and guided projects from a library of about 4,100. Select a week to see its days."
+          intro="Type any role and Nomadic splits it into subjects, modules and topics, each topic with its own YouTube search and ChatGPT prompt, then five projects for the role with one guided capstone. Select a subject to see its topics."
         >
           <Roadmap />
         </RouteSection>

@@ -1,10 +1,15 @@
 import { ElectronAPI, Job, Application, AppUser, DependencyStatus, ResumeRecord, type LearnDraft, type LearningEventRecord } from './types';
 import {
   IntakeSchema,
+  RoleRoadmapRequestSchema,
+  catalogCapstone,
+  catalogRoleRoadmap,
   fitRoadmap,
   planRoadmapRules,
+  randomUuid,
   type ProblemNote,
   type Roadmap,
+  type RoleRoadmap,
   type Schedule,
   type UserProject,
 } from '@job-automator/learning';
@@ -28,7 +33,8 @@ export function createBrowserApiShim(): ElectronAPI {
     projects: UserProject[];
     notes: ProblemNote[];
     draft: LearnDraft | null;
-  } = { events: [], roadmap: null, schedule: null, projects: [], notes: [], draft: null };
+    roleRoadmap: RoleRoadmap | null;
+  } = { events: [], roadmap: null, schedule: null, projects: [], notes: [], draft: null, roleRoadmap: null };
 
   // Read from Vite env at build time. The anon key is safe to expose in the
   // client because RLS (migration 002) restricts it to reading the public job
@@ -333,7 +339,31 @@ export function createBrowserApiShim(): ElectronAPI {
       projects: [...learningMemory.projects],
       notes: [...learningMemory.notes],
       draft: learningMemory.draft,
+      roleRoadmap: learningMemory.roleRoadmap,
     }),
+    // Preview: no AI, so only roles the reviewed library covers (software, data, product and design).
+    learnRoleRoadmapGenerate: async (req) => {
+      const parsed = RoleRoadmapRequestSchema.safeParse(req);
+      if (!parsed.success) return { success: false, error: 'Type the role you want to prepare for.' };
+      const r = catalogRoleRoadmap(parsed.data, learnIndex(), { id: randomUuid(), now: new Date() });
+      if (!r) return { success: false, error: 'Roadmaps for any role need the Nomadic app with AI. In this preview, try a software, data, product or design role.' };
+      learningMemory.roleRoadmap = r;
+      return { success: true, roadmap: r, notice: 'Built from the reviewed library (browser preview has no AI).', quota: null };
+    },
+    learnRoleRoadmapSave: async (roadmap) => {
+      learningMemory.roleRoadmap = roadmap;
+      return { success: true, roadmap, notice: null };
+    },
+    learnCapstoneGenerate: async (projectId) => {
+      const r = learningMemory.roleRoadmap;
+      const p = r?.projects.find((x) => x.id === projectId);
+      const curated = p ? learnIndex().catalog.projects.find((x) => x.title === p.title) : undefined;
+      const capstone = curated ? catalogCapstone(curated, projectId, new Date()) : null;
+      if (!r || !capstone) return { success: false, error: 'Capstone plans need the Nomadic app with AI.' };
+      learningMemory.roleRoadmap = { ...r, capstone };
+      return { success: true, roadmap: learningMemory.roleRoadmap, notice: null };
+    },
+    learnCapstoneHelp: async () => ({ success: false, code: 'not_signed_in', error: 'Sign in to the Nomadic app to ask for help.' }),
     // Preview: always the rules planner (no AI, no account).
     learnRoadmapGenerate: async (input) => {
       const parsed = IntakeSchema.safeParse(input);

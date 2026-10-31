@@ -1,6 +1,6 @@
 # History and handoff notes
 
-Last updated: 30 October 2026. What was built when, with the files involved. Newest work is at the end. Paths are current (after the
+Last updated: 31 October 2026. What was built when, with the files involved. Newest work is at the end. Paths are current (after the
 7 Oct 2026 split: shared UI in `packages/app-ui/src`, shared main process in `packages/app-core/src`).
 
 - 16 Oct 2026: `scripts\windows\Get tester builds.cmd` collects the CI builds for testers. Every Actions job since 12 Oct fails in seconds with no runner assigned (account-level: minutes/spending limit), so no fresh artifacts exist until that is fixed. Same day: 1.4.0 Windows and Mac test builds committed to `tester-builds/` (about 480 MB in git history; Mac zips split in two parts) (Windows build launched under wine to the sign-in screen; Mac builds not run on a Mac).
@@ -225,3 +225,25 @@ Last updated: 30 October 2026. What was built when, with the files involved. New
   design): a study-time-of-day field (would change the stored intake) and AI "explain this point". Phase 2 (owner):
   the content itself, which modules to include, sample data for AI roadmaps; the default 12-week full-stack plan has
   about 93 h of time for about 403 h of catalogue, so the intake and review warn and much is left out.
+- **31 Oct 2026: Learn v3, a roadmap for any role** (plan `docs/plans/LEARN_V3_PLAN.md`; replaces the Today/Plan/
+  lesson-player phase 1 of 30 Oct, whose screens were removed the same day). The student types any role (suggestion
+  chips across fields only fill the box), a level and an optional note; ai-proxy `roadmap_plan` with `format: 'tree'`
+  returns subjects → modules → topics (each with a YouTube search phrase and a "covers" line) and 5 projects;
+  `normaliseRoleRoadmap` cleans it (`packages/learning/src/v3/roleRoadmap.ts`), `catalogRoleRoadmap`
+  (`v3/catalogRoadmap.ts`) is the fallback for the 8 built-in role families. Every topic has its own YouTube, ChatGPT
+  (`learnLinks.ts` `topicPrompt`, one topic per prompt; the old button covered 6–8 points at once) and Done. The last tab,
+  Projects, holds the 5 projects with a readiness bar; one becomes a fully assisted capstone (`format: 'capstone'`:
+  milestones → steps with "Done when", YouTube, ChatGPT, Ask Nomadic AI via role-aware `project_help`). No quizzes,
+  calendar or streak in Learn. Main: `services/learn-role.ts`, IPC `learn-role-roadmap-generate`,
+  `learn-role-roadmap-save`, `learn-capstone-generate`, `learn-capstone-help` (118 channels); `learning-get-state`
+  returns `roleRoadmap`; pulled `roadmap` documents are accepted in either format. Stored in the existing `roadmap`
+  document (version 3), progress as `task_done` events (`topic:…`, `capstone:…`): no migration. Renderer:
+  `LearnView.tsx`, `RoleSetup.tsx` (+ `roleSetupLogic.ts`), `RoadmapView.tsx`, `ProjectsPanel.tsx`, `LearnButtons.tsx`;
+  removed: Today/Plan/lesson player/review/intake wizard/quiz form/heatmap/learnModel/quizLogic and the project library
+  UI (`ProjectBuild`, `ProjectLibrary`, `ProjectHelpPanel`, `projectHelp`, `projectsLogic`, `CodeBlock`). Projects
+  page: "Curated projects are coming" plus a link to the capstone. Onboarding (desktop and phone): role chips across
+  fields, the roadmap step is the same role fields and builds the v3 roadmap. Home: next topic with its buttons. Plan
+  copy (`plans.ts`) and the website (sample "Quant trader" roadmap, FAQ, Services, About, SEO) describe Learn v3. ai-proxy
+  version 5 deployed. Apps 1.7.0. Tests: `v3-role.test.ts`, `ai-proxy-v3.test.ts`, `learn-role.test.ts`,
+  `learnView.test.tsx`, `learnLinks.test.ts`, onboarding and Home tests. Checked in the browser preview at 1280 px
+  and about 420 px (no overflow, no errors); the AI formats are untested live until a signed-in run.

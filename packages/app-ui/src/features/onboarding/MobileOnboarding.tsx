@@ -4,12 +4,10 @@ import { Button, Field, Input, NomadicMark, cn } from '@nomadic/ui';
 import { getApi, type AppUser, type MasterProfile } from '../../types';
 import { prefs } from '../../store/preferences';
 import { toForm, type ProfileForm } from '../profile/profileForm';
-import { ROLE_OPTIONS, buildOnboardingProfile, roadmapRoleFor, stepErrors, suggestedSkills, toggleSkill } from './onboardingLogic';
-import { IntakePage } from '../learn/IntakeWizard';
-import { INTAKE_STEPS, intakeSteps, stepProblem } from '../learn/intakeSteps';
-import { learnIndex } from '../learn/catalog';
-import { isRoleId, skillIdsFromNames } from '../learn/content';
-import { defaultIntakeDraft, draftProblem, draftToIntake, feasibilityOf, todayOf, type IntakeDraft } from '../learn/learnModel';
+import { ROLE_OPTIONS, buildOnboardingProfile, stepErrors, suggestedSkills, toggleSkill } from './onboardingLogic';
+import type { RoleRoadmapRequest } from '@job-automator/learning';
+import { RoleFields } from '../learn/RoleSetup';
+import { roleProblem } from '../learn/roleSetupLogic';
 
 /**
  * Setup for the Android app: a welcome that says what the phone does (and what stays on the computer), then three
@@ -39,14 +37,7 @@ const chip = (on: boolean) =>
     on ? 'border-accent bg-accent-subtle text-accent-subtle-fg' : 'border-line bg-surface text-fg active:bg-fg/[0.06]',
   );
 
-const INTAKE_PROBLEMS = new Set([
-  'Pick the role you are preparing for.',
-  'Pick at least one study day.',
-  'Set how much time you have on your study days.',
-  'Pick a duration between 1 and 104 weeks.',
-  'Keep at least one area on.',
-  'Some plan details are not valid.',
-]);
+const INTAKE_PROBLEMS = new Set(['Type the role you want to prepare for.', 'Keep the role under 80 characters.']);
 
 export const MobileOnboarding: React.FC<MobileOnboardingProps> = ({ initialProfile, currentUser, onComplete }) => {
   const [stepIndex, setStepIndex] = useState(0);
@@ -56,20 +47,15 @@ export const MobileOnboarding: React.FC<MobileOnboardingProps> = ({ initialProfi
   const [showErrors, setShowErrors] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [intake, setIntake] = useState<IntakeDraft>(() => defaultIntakeDraft('fullstack', todayOf(new Date())));
-  const intakeTouched = useRef(false);
-  const [roleSet, setRoleSet] = useState(false);
-  const [roadmapPage, setRoadmapPage] = useState(0);
+  const [roleReq, setRoleReq] = useState<RoleRoadmapRequest>({ role: '', level: 'beginner', note: '' });
+  const roleTouched = useRef(false);
   const [customRole, setCustomRole] = useState('');
   const headingRef = useRef<HTMLHeadingElement>(null);
   const firstRender = useRef(true);
 
   const step: MobileStep = MOBILE_STEPS[stepIndex];
-  const roadmapPages = intakeSteps('short', intake);
-  const roadmapSub = roadmapPages[Math.min(roadmapPage, roadmapPages.length - 1)];
-  const onLastPage = step === 'roadmap' && roadmapPage >= roadmapPages.length - 1;
+  const onLastPage = step === 'roadmap';
   const errors = showErrors && step === 'about' ? stepErrors('about', form) : {};
-  const knownSkillIds = skillIdsFromNames(form.skills);
   const set = <K extends keyof ProfileForm>(key: K, value: ProfileForm[K]) => setForm((f) => ({ ...f, [key]: value }));
 
   useEffect(() => {
@@ -77,16 +63,12 @@ export const MobileOnboarding: React.FC<MobileOnboardingProps> = ({ initialProfi
     headingRef.current?.focus();
     const page = document.getElementById('main-onboarding');
     if (page) page.scrollTop = 0;
-  }, [stepIndex, roadmapPage]);
+  }, [stepIndex]);
 
-  // The roadmap starts from the role picked on the goal step.
+  // The roadmap starts from the role typed on the goal step, whatever it is.
   useEffect(() => {
-    if (step !== 'roadmap' || intakeTouched.current) return;
-    const role = roadmapRoleFor(form.targetRole);
-    if (isRoleId(role)) {
-      setIntake((d) => ({ ...d, role }));
-      setRoleSet(true);
-    }
+    if (step !== 'roadmap' || roleTouched.current) return;
+    setRoleReq((r) => ({ ...r, role: form.targetRole.trim().slice(0, 80) }));
   }, [step, form.targetRole]);
 
   const finish = async (withRoadmap: boolean) => {
@@ -95,8 +77,8 @@ export const MobileOnboarding: React.FC<MobileOnboardingProps> = ({ initialProfi
     try {
       const api = getApi();
       if (!api?.saveMasterProfile) throw new Error('Profile storage is not available.');
-      if (withRoadmap && roleSet) {
-        const built = await api.learnRoadmapGenerate(draftToIntake({ ...intake, knownSkillIds }));
+      if (withRoadmap && roleReq.role.trim()) {
+        const built = await api.learnRoleRoadmapGenerate({ role: roleReq.role.trim(), level: roleReq.level, note: roleReq.note.trim() });
         if (!built?.success) throw new Error(built?.error || 'Your roadmap could not be built.');
       }
       const profile = buildOnboardingProfile(form, initialProfile, []);
@@ -112,8 +94,8 @@ export const MobileOnboarding: React.FC<MobileOnboardingProps> = ({ initialProfi
 
   const back = () => {
     setSaveError(null);
-    if (step === 'roadmap' && roadmapPage > 0) setRoadmapPage((p) => p - 1);
-    else { setShowErrors(false); setStepIndex((i) => Math.max(0, i - 1)); }
+    setShowErrors(false);
+    setStepIndex((i) => Math.max(0, i - 1));
   };
 
   const next = () => {
@@ -123,14 +105,8 @@ export const MobileOnboarding: React.FC<MobileOnboardingProps> = ({ initialProfi
       return;
     }
     if (step === 'roadmap') {
-      if (!onLastPage) {
-        const problem = stepProblem(roadmapSub, intake, roleSet);
-        if (problem) { setSaveError(problem); return; }
-        setSaveError(null);
-        setRoadmapPage((p) => p + 1);
-        return;
-      }
-      if (roleSet && draftProblem(intake)) { setSaveError(draftProblem(intake)); return; }
+      const problem = roleReq.role.trim() ? roleProblem(roleReq.role) : null;
+      if (problem) { setSaveError(problem); return; }
       void finish(true);
       return;
     }
@@ -189,7 +165,7 @@ export const MobileOnboarding: React.FC<MobileOnboardingProps> = ({ initialProfi
             </div>
             <ul className="flex flex-col gap-4">
               {[
-                { icon: BookOpen, title: 'Learn every day', text: 'A day-by-day roadmap for the role you want, with quizzes and reviews.' },
+                { icon: BookOpen, title: 'Learn for any role', text: 'A roadmap of topics for the role you want, each with YouTube and ChatGPT, ending in projects.' },
                 { icon: Bookmark, title: 'Find and save jobs', text: 'Openings matched to your skills, news on who is hiring, hackathons.' },
                 { icon: Laptop, title: 'Apply from your computer', text: 'Saved jobs wait in the desktop app, which fills each form for you to review.' },
               ].map(({ icon: Icon, title, text }) => (
@@ -281,25 +257,17 @@ export const MobileOnboarding: React.FC<MobileOnboardingProps> = ({ initialProfi
 
         {step === 'roadmap' && (
           <div className="flex flex-col gap-4 py-4">
-            <div className="flex flex-col gap-1">
-              <span className="text-caption font-strong uppercase tracking-wide text-accent">Your roadmap · {roadmapPage + 1} of {roadmapPages.length}</span>
-              <h1 ref={headingRef} tabIndex={-1} className="text-headline font-bold text-fg outline-none">{INTAKE_STEPS[roadmapSub].title}</h1>
-              <p className="text-body text-fg-muted">
-                {roadmapSub === 'summary' ? 'Finishing builds your week-by-week plan. You review it in Learn and can change everything there.' : INTAKE_STEPS[roadmapSub].description}
-              </p>
-            </div>
-            <IntakePage
-              step={roadmapSub}
-              draft={intake}
-              steps={roadmapPages}
-              roleChosen={roleSet}
-              onRoleChosen={() => { intakeTouched.current = true; setRoleSet(true); }}
-              onChange={(v) => { intakeTouched.current = true; setSaveError(null); setIntake(v); }}
-              feasibility={roleSet ? feasibilityOf({ ...intake, knownSkillIds }, learnIndex()) : null}
-              onJump={(s) => setRoadmapPage(roadmapPages.indexOf(s))}
+            <Heading
+              ref={headingRef}
+              title="Your roadmap"
+              text="Any role works. Nomadic splits it into subjects, modules and topics, each with YouTube and ChatGPT, and ends with five projects. Building it takes up to a minute."
             />
-            {roadmapSub === 'summary' && !roleSet && <p className="text-caption text-fg-subtle">Pick a target role to build your roadmap. Without one, setup finishes without a roadmap.</p>}
-            {inlineProblem && <p role="alert" className="text-caption text-danger-fg">{saveError}</p>}
+            <RoleFields
+              value={roleReq}
+              onChange={(v) => { roleTouched.current = true; setSaveError(null); setRoleReq(v); }}
+              error={inlineProblem ? saveError : null}
+            />
+            {!roleReq.role.trim() && <p className="text-caption text-fg-subtle">Without a role, setup finishes without a roadmap; build it later in Learn.</p>}
           </div>
         )}
 
@@ -312,7 +280,7 @@ export const MobileOnboarding: React.FC<MobileOnboardingProps> = ({ initialProfi
 
         {/* Bottom actions stay in reach of the thumb. */}
         <div className="sticky bottom-0 -mx-5 mt-auto flex flex-col gap-1 border-t border-line bg-canvas px-5 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
-          <Button type="submit" size="lg" className="w-full" loading={saving} loadingText="Saving…">{primaryLabel}</Button>
+          <Button type="submit" size="lg" className="w-full" loading={saving} loadingText={step === 'roadmap' && roleReq.role.trim() ? 'Building your roadmap…' : 'Saving…'}>{primaryLabel}</Button>
           {step === 'roadmap' && (
             <Button type="button" variant="ghost" className="w-full" disabled={saving} onClick={() => void finish(false)}>Skip the roadmap for now</Button>
           )}

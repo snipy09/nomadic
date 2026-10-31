@@ -22,7 +22,7 @@ function LearnPane() {
     <div>
       <p className="text-sm text-ink-soft">Target role</p>
       <p className="wide anim-type mt-1 text-2xl" style={delay(60)}>
-        Frontend engineer
+        Quant trader
       </p>
       <ul className="mt-4 divide-y divide-rule border-y border-rule">
         {ROADMAP.map((node, i) => (

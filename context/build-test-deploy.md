@@ -52,7 +52,7 @@ Last updated: 7 October 2026.
   check `npx tsc --noEmit` and `npm run build` in `apps/web` (client build + SSR build + `scripts/prerender.mjs`, which
   writes `dist/{index,download,terms,privacy,404}.html` and `sitemap.xml`; never add a `public/sitemap.xml`).
   Copy and sample data live in `src/content.ts` (fictional companies only; India locations; the Learn sample is a
-  week-by-week path like the app's); titles/indexing in `src/seo.ts` (must not import `src/jsonld.ts`). Product claims
+  "Quant trader" role roadmap shaped like the app's: subjects, then projects); titles/indexing in `src/seo.ts` (must not import `src/jsonld.ts`). Product claims
   must match the app: no unattended/autonomous submission, Windows first then macOS, Outreach not advertised while it
   is "Soon"; `site.test.ts` "product claims match the app" guards this for the site and the plan copy in
   `packages/config/src/plans.ts` (shown on Pricing and in the app's upgrade dialog). A new page needs a `PAGES` entry, a route in `src/App.tsx`, and prerender coverage.

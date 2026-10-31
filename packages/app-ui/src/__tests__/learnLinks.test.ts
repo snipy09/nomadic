@@ -1,43 +1,41 @@
 import { describe, expect, it } from 'vitest';
-import { learnIndex } from '../features/learn/catalog';
-import { PROMPT_MAX, chatGptPrompt, chatGptUrl, youtubeSearchUrl } from '../features/learn/learnLinks';
+import { PROMPT_MAX, chatGptUrl, stepPrompt, topicPrompt, youtubeSearchUrl } from '../features/learn/learnLinks';
 
-const index = learnIndex();
-const topics = [...index.topics.values()];
-const dsaTopic = topics.find((t) => index.modules.get(t.module_id)?.stream === 'dsa')!;
-const dsaModule = index.modules.get(dsaTopic.module_id)!;
+describe('per-topic learn links', () => {
+  const ctx = {
+    role: 'Quant trader',
+    level: 'beginner' as const,
+    subject: 'Mathematics',
+    module: 'Probability',
+    topic: { title: 'Conditional probability and Bayes\' theorem', covers: 'Conditional probability, independence, Bayes rule with examples' },
+  };
 
-describe('lesson links', () => {
-  it('searches YouTube for the lesson, in the DSA language', () => {
-    const url = youtubeSearchUrl(dsaTopic, dsaModule, { language: 'java' });
-    expect(url.startsWith('https://www.youtube.com/results?search_query=')).toBe(true);
-    const q = decodeURIComponent(url.split('=')[1]);
-    expect(q).toContain(dsaTopic.title);
-    expect(q).toContain('Java');
-    expect(q).toMatch(/tutorial$/);
+  it('searches YouTube for exactly one topic', () => {
+    const url = youtubeSearchUrl('conditional probability bayes theorem explained');
+    expect(url).toBe('https://www.youtube.com/results?search_query=conditional%20probability%20bayes%20theorem%20explained');
   });
 
-  it('builds a ChatGPT prompt from the lesson and the intake', () => {
-    const prompt = chatGptPrompt(dsaTopic, dsaModule, { role: 'fullstack', aim: 'campus', language: 'python', levels: { dsa: 'some', core_cs: 'new', dev: 'new', aptitude: 'new' } });
-    expect(prompt).toContain(dsaTopic.title);
-    expect(prompt).toContain('Python');
-    expect(prompt).toContain('placements in India');
-    expect(prompt).toMatch(/practice questions/);
-    const first = (dsaTopic.learn_items[0] ?? dsaTopic.key_points[0]) as string | undefined;
-    if (first) expect(prompt).toContain(first);
+  it('builds a ChatGPT prompt about one topic, with the role, level, module and what it covers', () => {
+    const p = topicPrompt(ctx);
+    expect(p).toContain('preparing to become a Quant trader');
+    expect(p).toContain('I am a beginner');
+    expect(p).toContain('Teach me "Conditional probability and Bayes\' theorem" (part of Probability, in Mathematics)');
+    expect(p).toContain('Cover: Conditional probability, independence, Bayes rule with examples.');
+    expect(p).toContain('wait for my answers');
+    expect(p).not.toMatch(/https?:/);
   });
 
   it('keeps every prompt short enough for a link', () => {
-    for (const t of topics) {
-      const p = chatGptPrompt(t, index.modules.get(t.module_id), { role: 'fullstack', aim: 'campus', language: 'cpp' });
-      expect(p.length).toBeLessThanOrEqual(PROMPT_MAX);
-      expect(chatGptUrl(p).length).toBeLessThan(8192);
-    }
+    const long = topicPrompt({ ...ctx, topic: { title: 'x'.repeat(300), covers: 'y'.repeat(3000) } });
+    expect(long.length).toBeLessThanOrEqual(PROMPT_MAX);
+    expect(chatGptUrl(long).startsWith('https://chatgpt.com/?q=')).toBe(true);
   });
 
-  it('encodes the prompt into the ChatGPT link', () => {
-    const url = chatGptUrl('Teach me "two pointers" & sliding window?');
-    expect(url).toBe(`https://chatgpt.com/?q=${encodeURIComponent('Teach me "two pointers" & sliding window?')}`);
-    expect(decodeURIComponent(url.slice('https://chatgpt.com/?q='.length))).toContain('&');
+  it('guides a capstone step without doing it for the student', () => {
+    const p = stepPrompt({ role: 'Digital marketer', project: 'Campaign plan', milestone: 'Research', step: { title: 'List five competitors', detail: 'Use public pages', done_when: 'A table of five' } });
+    expect(p).toContain('step "List five competitors"');
+    expect(p).toContain('It is done when: A table of five');
+    expect(p).toContain('without doing it all for me');
+    expect(p.length).toBeLessThanOrEqual(PROMPT_MAX);
   });
 });

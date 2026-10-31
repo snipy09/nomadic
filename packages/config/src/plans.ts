@@ -72,9 +72,9 @@ export const PLANS: readonly Plan[] = [
     summary: 'See how the pieces fit together.',
     featured: false,
     features: [
-      'A day-by-day learning roadmap',
+      'A learning roadmap for any role, with YouTube and ChatGPT on every topic',
       '10 practice questions a day, with spaced review',
-      'Beginner guided projects, one at a time',
+      'A guided capstone project, with 5 AI answers a day',
       'Top 10 matched jobs from company hiring pages',
       'Apply with review, 3 applications a day',
       'Local-first storage, synced to your account',
@@ -104,9 +104,9 @@ export const PLANS: readonly Plan[] = [
     summary: 'The full toolkit, with you approving each application.',
     featured: true,
     features: [
-      'Unlimited learning tracks and practice',
+      'Rebuild your roadmap up to 10 times a day, and unlimited practice',
       'Company question sets and AI feedback on answers',
-      'Every guided project, 3 at a time, with AI help per stage',
+      'More AI help on your capstone: 40 answers a day',
       'The full job board, every opening matched to your skills',
       'Apply with review, 10 applications a day',
       '5 resumes',
@@ -139,7 +139,7 @@ export const PLANS: readonly Plan[] = [
       'Everything in Pro',
       'Apply with review, no daily limit',
       'More AI: 100 answer reviews and 300 form fills a day',
-      'Unlimited resumes and active projects',
+      'Unlimited resumes and 150 capstone answers a day',
     ],
     limits: {
       learnTracks: Infinity,

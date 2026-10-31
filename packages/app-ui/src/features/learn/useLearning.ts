@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { IntakeInput, ProblemNote, Roadmap, Schedule, UserProject } from '@job-automator/learning';
+import type { IntakeInput, ProblemNote, Roadmap, RoleRoadmap, RoleRoadmapRequest, Schedule, UserProject } from '@job-automator/learning';
 import {
   getApi,
   type LearnAdjustResult,
+  type LearnCapstoneHelpRequest,
+  type LearnProjectHelpResult,
   type LearnDraft,
   type LearningEventInput,
   type LearningEventRecord,
@@ -21,6 +23,8 @@ export interface LearningData {
   projects: UserProject[];
   notes: ProblemNote[];
   draft: LearnDraft | null;
+  /** Learn v3: the roadmap for any role (null when there is none or the saved one is v2). */
+  roleRoadmap: RoleRoadmap | null;
   /** Events and documents saved on this device that the server has not accepted yet. */
   pendingSync: number;
   reload: () => void;
@@ -34,6 +38,12 @@ export interface LearningData {
   saveNote: (note: ProblemNote) => Result;
   checkRepo: (req: LearnRepoCheckRequest) => Promise<LearnRepoCheckResult>;
   discardDraft: () => void;
+  /** Builds and saves the roadmap for a role (AI, or the reviewed library for built-in roles). */
+  buildRole: (req: RoleRoadmapRequest) => Result<{ roadmap: RoleRoadmap; notice: string | null }>;
+  /** Saves edits; the screen updates at once and rolls back when the save fails. */
+  saveRole: (roadmap: RoleRoadmap) => Result;
+  buildCapstone: (projectId: string) => Result;
+  askCapstone: (req: LearnCapstoneHelpRequest) => Promise<LearnProjectHelpResult>;
 }
 
 const errMsg = (e: unknown, fallback: string) => (e instanceof Error && e.message ? e.message : fallback);
@@ -48,6 +58,7 @@ export function useLearning(): LearningData {
   const [projects, setProjects] = useState<UserProject[]>([]);
   const [notes, setNotes] = useState<ProblemNote[]>([]);
   const [draft, setDraft] = useState<LearnDraft | null>(null);
+  const [roleRoadmap, setRoleRoadmap] = useState<RoleRoadmap | null>(null);
   const [pendingSync, setPendingSync] = useState(0);
   const [nonce, setNonce] = useState(0);
   const reqId = useRef(0);
@@ -66,6 +77,7 @@ export function useLearning(): LearningData {
         setProjects(Array.isArray(state.projects) ? state.projects : []);
         setNotes(Array.isArray(state.notes) ? state.notes : []);
         setDraft(state.draft ?? null);
+        setRoleRoadmap(state.roleRoadmap ?? null);
         setPendingSync(state.pendingSync ?? 0);
         setError(null);
         setStatus('ready');
@@ -182,8 +194,53 @@ export function useLearning(): LearningData {
 
   const discardDraft = useCallback(() => setDraft(null), []);
 
+  const buildRole = useCallback(async (req: RoleRoadmapRequest) => {
+    try {
+      const res = await getApi().learnRoleRoadmapGenerate(req);
+      if (!res?.success || !res.roadmap) throw new Error(res?.error || 'Your roadmap could not be built.');
+      setRoleRoadmap(res.roadmap);
+      setDraft(null);
+      return { ok: true as const, roadmap: res.roadmap, notice: res.notice ?? null };
+    } catch (e) {
+      return { ok: false as const, error: errMsg(e, 'Your roadmap could not be built.') };
+    }
+  }, []);
+
+  const saveRole = useCallback(async (r: RoleRoadmap) => {
+    const prev = roleRoadmap;
+    setRoleRoadmap(r);
+    try {
+      const res = await getApi().learnRoleRoadmapSave(r);
+      if (!res?.success) throw new Error(res?.error || 'Your roadmap was not saved.');
+      return { ok: true as const };
+    } catch (e) {
+      setRoleRoadmap(prev);
+      return { ok: false as const, error: errMsg(e, 'Your roadmap was not saved.') };
+    }
+  }, [roleRoadmap]);
+
+  const buildCapstone = useCallback(async (projectId: string) => {
+    try {
+      const res = await getApi().learnCapstoneGenerate(projectId);
+      if (!res?.success || !res.roadmap) throw new Error(res?.error || 'The capstone plan could not be built.');
+      setRoleRoadmap(res.roadmap);
+      return { ok: true as const };
+    } catch (e) {
+      return { ok: false as const, error: errMsg(e, 'The capstone plan could not be built.') };
+    }
+  }, []);
+
+  const askCapstone = useCallback(async (req: LearnCapstoneHelpRequest): Promise<LearnProjectHelpResult> => {
+    try {
+      return await getApi().learnCapstoneHelp(req);
+    } catch (e) {
+      return { success: false, code: 'network', error: errMsg(e, 'Nomadic AI could not be reached.') };
+    }
+  }, []);
+
   return {
-    status, error, events, roadmap, schedule, projects, notes, draft, pendingSync,
+    status, error, events, roadmap, schedule, projects, notes, draft, roleRoadmap, pendingSync,
     reload, record, generate, adjust, accept, saveSchedule, saveProject, saveNote, checkRepo, discardDraft,
+    buildRole, saveRole, buildCapstone, askCapstone,
   };
 }

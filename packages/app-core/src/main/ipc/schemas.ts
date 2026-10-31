@@ -6,6 +6,8 @@ import {
   LearningEventTypeSchema,
   ProblemNoteSchema,
   RoadmapSchema,
+  RoleRoadmapRequestSchema,
+  RoleRoadmapSchema,
   ScheduleSchema,
   UserProjectSchema,
   UuidSchema,
@@ -334,6 +336,16 @@ export const learnProjectHelpArgs: ArgSchemas<'learn-project-help'> = [
     projectId: str(120).min(1),
     stageId: str(120).min(1),
     stepIndex: z.number().int().min(0).max(20).optional(),
+    question: z.string().trim().min(3).max(1000),
+    code: z.string().max(6000).optional(),
+  }),
+];
+export const learnRoleRoadmapGenerateArgs: ArgSchemas<'learn-role-roadmap-generate'> = [RoleRoadmapRequestSchema];
+export const learnRoleRoadmapSaveArgs: ArgSchemas<'learn-role-roadmap-save'> = [sized(RoleRoadmapSchema, 300_000, 'roadmap')];
+export const learnCapstoneGenerateArgs: ArgSchemas<'learn-capstone-generate'> = [str(60).min(1)];
+export const learnCapstoneHelpArgs: ArgSchemas<'learn-capstone-help'> = [
+  z.object({
+    stepId: str(60).min(1),
     question: z.string().trim().min(3).max(1000),
     code: z.string().max(6000).optional(),
   }),

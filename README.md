@@ -1,17 +1,16 @@
 # Nomadic
 
-Nomadic helps engineering students in India go from learning to getting hired: a personal learning roadmap,
-practice, a job board matched to their skills, applications filled in for them to review, and a tracker for every
-application. Three apps share one codebase: **Windows**, **macOS** (test builds) and **Android**.
+Nomadic helps students in India go from learning to getting hired: a learning roadmap for any role, practice, a job
+board matched to their skills, applications filled in for them to review, and a tracker for every application. Three apps share one codebase: **Windows**, **macOS** (test builds) and **Android**.
 
 | | Windows | macOS | Android |
 |---|---|---|---|
-| Learn: roadmap, path, today, topics, quizzes, progress; "Learn from YouTube / ChatGPT" on every lesson | ✓ | ✓ | ✓ |
+| Learn: a roadmap for any role (subjects → modules → topics), YouTube / ChatGPT / Done on every topic, 5 projects and a guided capstone | ✓ | ✓ | ✓ |
 | Job board with match %, Saved, Hidden; News | ✓ | ✓ | ✓ (News is Home) |
 | Apply with review (fills the real form, you approve every field) | ✓ | ✓ | "Auto apply from desktop" |
 | Tracker, Application answers, Settings, Help, Admin | ✓ | ✓ | ✓ (Tracker opens from Jobs) |
 | Practice (~1,800 company problems, mock mode, AI feedback) | ✓ | ✓ | – |
-| Projects (~4,100 guided projects, repo check, AI help) | ✓ | ✓ | – |
+| Projects page (curated projects coming; links to the Learn capstone) | ✓ | ✓ | – |
 | Outreach (behind a feature flag, shown as "Soon") | ✓ | ✓ | – |
 
 Nothing is ever submitted without the user's review. Plans: Free, Pro ₹249/month, Max ₹599/month; limits are enforced
@@ -33,7 +32,7 @@ packages/
   app-ui/       Shared React UI: every screen, mountApp(), platform flags
   ui/           Design system: tokens, Tailwind preset, accessible components (Apple design language)
   config/       Plans and prices, feature flags, legal text (single source of truth)
-  learning/     Skill graph, SM-2, matching, Learn v2 engine, generated project library, seed content
+  learning/     Learn v3 role roadmaps (src/v3), skill graph, SM-2, matching, v2 engine, seed content
   form-engine/  Reads, classifies, answers and verifies application forms (computer + Android agent)
   automation/   Browser automation for apply with review in the user's own Chrome/Edge/Brave
   capacitor-apply-browser/  Android apply WebView plugin (built and tested; not wired into the app yet)

@@ -47,7 +47,7 @@ export function setupChecklist(i: ChecklistInput): ChecklistItem[] {
     learn && {
       id: 'roadmap',
       title: 'Plan your roadmap',
-      description: 'A day-by-day plan for the role you want, about two minutes to set up.',
+      description: 'Type any role; Nomadic lists what to study, topic by topic, and five projects.',
       done: i.hasRoadmap,
       tab: 'learner-roadmaps',
       action: 'Plan roadmap',

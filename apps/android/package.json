@@ -1,6 +1,6 @@
 {
   "name": "@nomadic/android",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "private": true,
   "type": "module",
   "description": "Nomadic for Android (Capacitor): the shared UI and services in a WebView, without apply, outreach, practice and projects.",

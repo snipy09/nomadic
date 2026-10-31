@@ -32,67 +32,67 @@ export type RoadmapStatus = 'done' | 'active' | 'next' | 'later';
 
 export interface RoadmapNode {
   id: string;
-  /** "Week 1", shown above the title, as on the app's path. */
+  /** "Subject 1" or "Last step", shown above the title, as on the app's roadmap. */
   level: string;
   title: string;
   status: RoadmapStatus;
   progress: number;
   description: string;
-  /** The week's study days, one topic each. */
+  /** Modules or topics of the subject (projects for the last step). */
   skills: string[];
 }
 
-/** A sample Frontend Engineer roadmap, shaped like the app's path: weeks of dated study days. */
+/** A sample "Quant trader" roadmap, shaped like the app's: subjects of modules and topics, then five projects. */
 export const ROADMAP: RoadmapNode[] = [
   {
-    id: 'week-1',
-    level: 'Week 1',
-    title: 'Complexity and web foundations',
+    id: 'maths',
+    level: 'Subject 1',
+    title: 'Mathematics',
     status: 'done',
     progress: 100,
     description:
-      'Big-O from first principles, then semantic HTML and the box model. Every topic ends with a short quiz that comes back as a spaced review.',
-    skills: ['Time and space complexity', 'Complexity practice', 'Semantic HTML', 'CSS layout'],
+      'Probability, statistics, calculus and linear algebra, split into topics small enough for one YouTube search or one ChatGPT conversation each.',
+    skills: ['Basic probability', 'Conditional probability', 'Expectation and variance', 'Linear regression'],
   },
   {
-    id: 'week-2',
-    level: 'Week 2',
-    title: 'Arrays and JavaScript',
+    id: 'programming',
+    level: 'Subject 2',
+    title: 'Programming',
     status: 'active',
     progress: 60,
     description:
-      'Prefix sums and two pointers on named LeetCode problems, alongside closures, the event loop and modules in JavaScript.',
-    skills: ['Prefix sums', 'Two pointers', 'Closures and scope', 'The event loop'],
+      'Python and NumPy, data structures for coding rounds, and backtesting a strategy honestly with costs and without look-ahead bias.',
+    skills: ['NumPy', 'pandas', 'Arrays and hashing', 'A vectorised backtest'],
   },
   {
-    id: 'week-3',
-    level: 'Week 3',
-    title: 'Hashing and React',
+    id: 'markets',
+    level: 'Subject 3',
+    title: 'Finance and markets',
     status: 'next',
     progress: 0,
     description:
-      'Hash maps for counting and lookups, then components, props, state and effects in React.',
-    skills: ['Hash maps', 'Components and props', 'State and effects', 'Revision day'],
+      'How exchanges and order books work, futures and options, the main strategy families and how to manage risk.',
+    skills: ['Order books', 'Options basics', 'The Greeks', 'Pairs trading'],
   },
   {
-    id: 'week-4',
-    level: 'Week 4',
-    title: 'Portfolio project',
+    id: 'interviews',
+    level: 'Subject 4',
+    title: 'Interview prep',
     status: 'later',
     progress: 0,
     description:
-      'Build a responsive portfolio site stage by stage, with starter code, hints and checks, then a timed online-assessment mock.',
-    skills: ['Project: layout stage', 'Project: content stage', 'Project: deploy stage', 'OA mock test'],
+      'Mental maths, probability puzzles and market-making games, the way quant interviews test them.',
+    skills: ['Mental maths', 'Probability puzzles', 'Market-making games', 'Behavioural questions'],
   },
   {
-    id: 'week-5',
-    level: 'Week 5',
-    title: 'Strings and TypeScript',
+    id: 'projects',
+    level: 'Last step',
+    title: 'Projects',
     status: 'later',
     progress: 0,
     description:
-      'Sliding windows and string problems, and types, generics and narrowing in TypeScript.',
-    skills: ['Sliding window', 'String problems', 'TypeScript basics', 'Generics'],
+      'Five projects picked for the role. Make one your capstone and Nomadic breaks it into milestones and steps, each with YouTube, ChatGPT and AI help.',
+    skills: ['Backtest a strategy on NIFTY 50', 'Option pricer with the Greeks', 'Monte Carlo value at risk', 'Market-making simulator'],
   },
 ];
 
@@ -245,11 +245,11 @@ export const SIGNUP = {
 export const FAQS: { q: string; a: string }[] = [
   {
     q: 'What is Nomadic?',
-    a: 'Nomadic is a desktop app for Indian engineering students and freshers that covers the whole job search. It plans what to learn for your target role day by day, finds openings, fills in application forms for you to review and keeps track of every application, all in one place.',
+    a: 'Nomadic is a desktop app for students and freshers in India that covers the whole job search. It lays out what to learn for the role you want, finds openings, fills in application forms for you to review and keeps track of every application, all in one place.',
   },
   {
     q: 'How does it work?',
-    a: 'Answer a few questions about the role you want and the time you have, and Nomadic builds a week-by-week roadmap of study days with lessons, named LeetCode problems, quizzes and guided projects. It matches openings from company hiring pages to your skills, fills each application form from your saved details for you to review, and logs every application on your board.',
+    a: 'Type the role you want, any role, and Nomadic splits it into subjects, modules and topics, each topic with its own YouTube search and ChatGPT prompt, ending in five projects for the role. It matches openings from company hiring pages to your skills, fills each application form from your saved details for you to review, and logs every application on your board.',
   },
   {
     q: 'Can I download it yet?',
@@ -273,7 +273,7 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'What can I learn with it?',
-    a: 'Roadmaps for frontend, backend, full-stack, data, machine learning, product, design and DevOps roles, with DSA, core CS and aptitude mixed in where the role needs them. Every lesson has one-click buttons to learn it from a YouTube search or a ready-made ChatGPT prompt. Practice has around 1,800 company-tagged coding problems and interview questions, and the Projects library has about 4,100 guided projects with starter code, hints and checks.',
+    a: 'A roadmap for any role you type, from software engineer to quant trader, digital marketer or chartered accountant. Nomadic tells you exactly what to study, topic by topic, and every topic has one-click buttons to learn it from a YouTube search or a ready-made ChatGPT prompt. The roadmap ends with five projects for the role; one becomes a guided capstone with help on every step. Practice has around 1,800 company-tagged coding problems and interview questions.',
   },
   {
     q: 'Where is my data stored?',

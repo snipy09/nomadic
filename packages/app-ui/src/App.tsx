@@ -9,7 +9,6 @@ import { AppShell, Button, EmptyState, PageHeader, useTheme } from '@nomadic/ui'
 import { Sidebar } from './components/Sidebar';
 import { GO_WINDOW_MS, isTypingTarget, tabForGoKey } from './components/shell/shortcuts';
 import { LearnView } from './features/learn/LearnView';
-import { inferRole } from './features/feed/match';
 import { UpgradeDialog } from './features/billing/UpgradeDialog';
 import { ENTITLEMENTS_KEY } from './features/billing/useEntitlements';
 import { queryClient } from './queryClient';
@@ -409,7 +408,7 @@ export default function App() {
               <LearnView
                 initialTab={tabIntent}
                 currentUser={currentUser}
-                suggestedRole={inferRole(profile.desiredTitle)}
+                suggestedRole={profile.desiredTitle}
                 onOpenUpgrade={handleOpenUpgrade}
                 onLog={addLog}
               />
@@ -432,11 +431,7 @@ export default function App() {
             )}
 
             {activeTab === 'learner-projects' && (
-              <ProjectsView
-                currentUser={currentUser}
-                suggestedRole={inferRole(profile.desiredTitle)}
-                onOpenUpgrade={handleOpenUpgrade}
-              />
+              <ProjectsView onOpenRoadmapProjects={() => handleNavigate('learner-roadmaps', 'projects')} />
             )}
 
             {activeTab === 'opportunities' && isTabEnabled('opportunities') && (
