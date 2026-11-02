@@ -155,8 +155,9 @@ export async function handleAiProxy(method: string, bodyText: string, deps: Prox
     try {
       const out = await provider.generateJson({ ...prompt, timeoutMs: prompt.timeoutMs ?? timeoutMs });
       const result = checkOutput(req, out);
-      deps.log({ kind, outcome: 'ok', attempt, model: provider.model, ms: now() - t0 });
-      return { status: 200, body: { ok: true, kind, result, quota, model: provider.model } };
+      const model = provider.lastModel ?? provider.model;
+      deps.log({ kind, outcome: 'ok', attempt, model, ms: now() - t0 });
+      return { status: 200, body: { ok: true, kind, result, quota, model } };
     } catch (err) {
       const retryable = err instanceof OutputError || (err instanceof ProviderError && err.retryable);
       lastCode = err instanceof ProviderError ? err.code : err instanceof OutputError ? 'invalid_output' : 'exception';
@@ -168,10 +169,11 @@ export async function handleAiProxy(method: string, bodyText: string, deps: Prox
         // Provider and output messages never contain prompts, replies or the key.
         detail: err instanceof ProviderError || err instanceof OutputError ? err.message : 'unexpected error',
         ...(err instanceof ProviderError && err.code === 'auth' ? { key_kind: keyKind(apiKey) } : {}),
-        model: provider.model,
+        model: provider.lastModel ?? provider.model,
       });
       if (!retryable || attempt === 2) break;
-      await sleep(deps.retryDelayMs ?? 800);
+      // An overloaded or rate-limited service needs a little longer than a bad reply.
+      await sleep(deps.retryDelayMs ?? (lastCode === 'upstream' || lastCode === 'rate_limited' ? 2_000 : 800));
     }
   }
 

@@ -154,6 +154,7 @@ client; `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are provided by Supabase.
 |---|---|---|
 | `AI_PROVIDER` | `gemini` | `groq` is a stub until it is implemented and benchmarked |
 | `AI_MODEL` | `gemini-3.8-flash` | any Gemini model id the key can use (e.g. `gemini-3.5-flash-lite`) |
+| `AI_FALLBACK_MODELS` | `gemini-3.6-flash,gemini-flash-lite-latest` | models tried in order when the main one answers 503 (overloaded), 429 or 404; `none` turns fallback off |
 | `AI_TIMEOUT_MS` | `25000` | per model attempt; one retry on timeouts, 429/5xx and invalid output |
 
 The desktop calls `{SUPABASE_URL}/functions/v1/ai-proxy` with the anon key as bearer. If the project switches to the new

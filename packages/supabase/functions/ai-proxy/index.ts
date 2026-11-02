@@ -6,16 +6,18 @@
 //
 // Environment (set by Supabase): SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
 // Optional: AI_PROVIDER (gemini | groq, default gemini), AI_MODEL (default gemini-3.8-flash),
-//           AI_TIMEOUT_MS (per attempt, default 25000).
+//           AI_FALLBACK_MODELS (comma list or "none"; default gemini-3.6-flash,gemini-flash-lite-latest,
+//           tried when the primary answers 503/429/404), AI_TIMEOUT_MS (per attempt, default 25000).
 // The key itself is read from Vault: server_secret('gemini_api_key') (migration 018).
 import { createClient } from 'npm:@supabase/supabase-js@2.39.0';
 import { handleAiProxy, type QuotaRow } from './handler.ts';
-import { createProvider, providerSecretName, type FetchLike } from './providers.ts';
+import { createProvider, parseFallbackModels, providerSecretName, type FetchLike } from './providers.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const AI_PROVIDER = Deno.env.get('AI_PROVIDER') ?? 'gemini';
 const AI_MODEL = Deno.env.get('AI_MODEL') ?? undefined;
+const AI_FALLBACK_MODELS = parseFallbackModels(Deno.env.get('AI_FALLBACK_MODELS') ?? undefined);
 const AI_TIMEOUT_MS = Number(Deno.env.get('AI_TIMEOUT_MS') ?? '') || 25_000;
 
 const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -46,7 +48,7 @@ Deno.serve(async (req: Request) => {
     const res = await handleAiProxy(req.method, bodyText, {
       timeoutMs: AI_TIMEOUT_MS,
       getApiKey,
-      createProvider: (apiKey) => createProvider({ provider: AI_PROVIDER, model: AI_MODEL, apiKey, fetchImpl }),
+      createProvider: (apiKey) => createProvider({ provider: AI_PROVIDER, model: AI_MODEL, fallbackModels: AI_FALLBACK_MODELS, apiKey, fetchImpl }),
       consumeQuota: async ({ userId, sessionToken, deviceFingerprint, kind }) => {
         const { data, error } = await db.rpc('consume_ai_quota', {
           p_user_id: userId,

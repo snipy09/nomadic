@@ -40,6 +40,8 @@ export interface GenerateJsonRequest {
 export interface AiProvider {
   readonly name: 'gemini' | 'groq';
   readonly model: string;
+  /** The model that served (or last failed) the latest call, when it can differ from `model`. */
+  readonly lastModel?: string;
   /** Returns the parsed JSON reply. Throws ProviderError. */
   generateJson(req: GenerateJsonRequest): Promise<unknown>;
 }
@@ -52,6 +54,14 @@ export type FetchLike = (url: string, init: { method: string; headers: Record<st
 
 // Google serves 2.5 models only to keys that used them before (changelog, 18 Sep 2026).
 export const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash';
+/**
+ * Tried in order when the primary answers fast with 503 (overloaded), 429 or 404, so a busy
+ * model does not fail the request. The lite alias runs on separate capacity. Override with the
+ * AI_FALLBACK_MODELS function secret (comma-separated, or "none").
+ */
+export const DEFAULT_GEMINI_FALLBACKS = ['gemini-3.6-flash', 'gemini-flash-lite-latest'];
+/** Errors that mean "this model cannot answer right now", where another model may. */
+const FALLBACK_CODES: ProviderErrorCode[] = ['upstream', 'rate_limited', 'model_not_found'];
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 const MODEL_RE = /^[a-z0-9][a-z0-9.\-]{1,80}$/;
 
@@ -82,19 +92,44 @@ async function withTimeout<T>(ms: number, run: (signal: AbortSignal) => Promise<
 export class GeminiProvider implements AiProvider {
   readonly name = 'gemini' as const;
   readonly model: string;
+  readonly fallbacks: string[];
+  lastModel: string;
 
   constructor(
     private readonly apiKey: string,
     model: string | undefined,
-    private readonly fetchImpl: FetchLike
+    private readonly fetchImpl: FetchLike,
+    fallbacks: string[] = []
   ) {
-    const m = (model || DEFAULT_GEMINI_MODEL).trim().replace(/^models\//, '');
+    const clean = (s: string) => s.trim().replace(/^models\//, '');
+    const m = clean(model || DEFAULT_GEMINI_MODEL);
     if (!MODEL_RE.test(m)) throw new ProviderError('not_configured', 'invalid model name');
     this.model = m;
+    this.lastModel = m;
+    this.fallbacks = [...new Set(fallbacks.map(clean).filter((f) => f && f !== m && MODEL_RE.test(f)))];
   }
 
+  /** Calls the primary model, then each fallback while the failure is "busy / missing", not a bad key or reply. */
   async generateJson(req: GenerateJsonRequest): Promise<unknown> {
     if (!this.apiKey) throw new ProviderError('auth', 'no Gemini API key configured');
+    const started = Date.now();
+    let first: ProviderError | null = null;
+    for (const model of [this.model, ...this.fallbacks]) {
+      const left = req.timeoutMs - (Date.now() - started);
+      if (first && left < Math.min(5_000, req.timeoutMs / 2)) break;
+      this.lastModel = model;
+      try {
+        return await this.callModel(model, { ...req, timeoutMs: first ? left : req.timeoutMs });
+      } catch (err) {
+        if (!(err instanceof ProviderError) || !FALLBACK_CODES.includes(err.code)) throw err;
+        // Keep the most telling error: an overloaded primary beats a missing fallback.
+        if (!first || (first.code === 'model_not_found' && err.code !== 'model_not_found')) first = err;
+      }
+    }
+    throw first ?? new ProviderError('upstream', 'no Gemini model answered');
+  }
+
+  private async callModel(model: string, req: GenerateJsonRequest): Promise<unknown> {
     const generationConfig: Record<string, unknown> = {
       temperature: 0.2,
       maxOutputTokens: req.maxOutputTokens,
@@ -102,14 +137,14 @@ export class GeminiProvider implements AiProvider {
       responseSchema: req.schema,
     };
     // 2.5 Flash models think by default; these short, schema-bound tasks do not need it.
-    if (/^gemini-2\.5-flash/.test(this.model)) generationConfig.thinkingConfig = { thinkingBudget: 0 };
-    else if (/^gemini-3/.test(this.model)) generationConfig.thinkingConfig = { thinkingLevel: 'low' };
+    if (/^gemini-2\.5-flash/.test(model)) generationConfig.thinkingConfig = { thinkingBudget: 0 };
+    else if (/^gemini-3/.test(model)) generationConfig.thinkingConfig = { thinkingLevel: 'low' };
     const body = JSON.stringify({
       systemInstruction: { parts: [{ text: req.system }] },
       contents: [{ role: 'user', parts: [{ text: req.user }] }],
       generationConfig,
     });
-    const url = `${GEMINI_BASE}/models/${encodeURIComponent(this.model)}:generateContent`;
+    const url = `${GEMINI_BASE}/models/${encodeURIComponent(model)}:generateContent`;
     const { status, ok, text } = await withTimeout(req.timeoutMs, async (signal) => {
       const res = await this.fetchImpl(url, {
         method: 'POST',
@@ -174,9 +209,16 @@ export class GroqProvider implements AiProvider {
   }
 }
 
-export function createProvider(opts: { provider?: string; model?: string; apiKey: string; fetchImpl: FetchLike }): AiProvider {
+/** Parses AI_FALLBACK_MODELS: unset → defaults, "none" → no fallback, else a comma list. */
+export function parseFallbackModels(raw: string | undefined): string[] {
+  if (raw == null || !raw.trim()) return DEFAULT_GEMINI_FALLBACKS;
+  if (raw.trim().toLowerCase() === 'none') return [];
+  return raw.split(',').map((s) => s.trim()).filter(Boolean);
+}
+
+export function createProvider(opts: { provider?: string; model?: string; fallbackModels?: string[]; apiKey: string; fetchImpl: FetchLike }): AiProvider {
   const name = (opts.provider || 'gemini').toLowerCase();
-  if (name === 'gemini') return new GeminiProvider(opts.apiKey, opts.model, opts.fetchImpl);
+  if (name === 'gemini') return new GeminiProvider(opts.apiKey, opts.model, opts.fetchImpl, opts.fallbackModels ?? DEFAULT_GEMINI_FALLBACKS);
   if (name === 'groq') return new GroqProvider(opts.model);
   throw new ProviderError('not_configured', `unknown AI provider "${name}"`);
 }

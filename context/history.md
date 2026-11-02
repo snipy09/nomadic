@@ -263,3 +263,8 @@ Last updated: 31 October 2026. What was built when, with the files involved. New
 
 - Built on the laptop (Actions blocked): win-v1.7.0 and ndroid-v1.7.0 in nomadic-releases with checksum files; downloads.ts Windows/Android and windows.ps1 set to 1.7.0. The 1.6.0 APK turned out debug-signed (CN=Android Debug); 1.7.0 uses the release key (same as 1.5.1). Mac stays 1.6.0 until a Mac build exists.
 - ai-proxy v6: every AI call failed with "not available right now" because Gemini answered 404 (`model_not_found`) for `gemini-2.5-flash` (Google now serves 2.5 only to keys that used it before). Default model is now `gemini-3.8-flash` with `thinkingLevel: 'low'`; deployed via the Supabase connector. If it fails too, set the `AI_MODEL` function secret (e.g. `gemini-3.5-flash-lite`) without a code change.
+
+## 2 November 2026: ai-proxy v7, model fallback
+
+- Learn roadmap showed "Nomadic AI could not produce a usable answer": the function logs showed Gemini answering HTTP 503 (overloaded) for `gemini-3.8-flash` on both attempts, 3 s apart. No code bug; the proxy simply had one model.
+- ai-proxy v7 (deployed via the Supabase connector): on a fast 503/429/404 the provider moves straight to `gemini-3.6-flash`, then `gemini-flash-lite-latest` (separate capacity), within the same attempt's time budget; no fallback on key errors, bad replies or timeouts. Retry delay after 503/429 is 2 s. The served model is logged and returned as `model`. Override the list with the `AI_FALLBACK_MODELS` function secret (comma list, or `none`).

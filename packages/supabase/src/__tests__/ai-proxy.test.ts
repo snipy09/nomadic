@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { checkFormOutput, checkRubricOutput, checkOutreachOutput, parseProxyRequest, buildRubricPrompt, buildFormPrompt, buildOutreachPrompt, type RubricPayload, type FormPayload, type OutreachPayload } from '../../functions/ai-proxy/core.ts';
-import { GeminiProvider, GroqProvider, ProviderError, createProvider, geminiHttpError, keyKind, type FetchLike } from '../../functions/ai-proxy/providers.ts';
+import { DEFAULT_GEMINI_FALLBACKS, GeminiProvider, GroqProvider, ProviderError, createProvider, geminiHttpError, keyKind, parseFallbackModels, type FetchLike } from '../../functions/ai-proxy/providers.ts';
 import { handleAiProxy, type ProxyDeps, type QuotaRow } from '../../functions/ai-proxy/handler.ts';
 
 const USER = '11111111-2222-4333-8444-555555555555';
@@ -163,6 +163,41 @@ describe('Gemini provider', () => {
     await expect(new GeminiProvider('k', undefined, cut.impl).generateJson(req)).rejects.toMatchObject({ code: 'bad_output' });
     const hang: FetchLike = (_u, init) => new Promise((_r, reject) => init.signal?.addEventListener('abort', () => reject(new Error('aborted'))));
     await expect(new GeminiProvider('k', undefined, hang).generateJson({ ...req, timeoutMs: 20 })).rejects.toMatchObject({ code: 'timeout' });
+  });
+
+  it('falls back to the next model when the primary is overloaded, rate limited or missing', async () => {
+    const f = fakeFetch({ status: 503, body: '{}' }, { status: 404, body: '{}' }, { status: 200, body: geminiReply({ ok: 1 }) });
+    const p = new GeminiProvider('k', undefined, f.impl, ['gemini-3.6-flash', 'gemini-flash-lite-latest']);
+    expect(await p.generateJson(req)).toEqual({ ok: 1 });
+    expect(f.calls.map((c) => c.url.split('/models/')[1])).toEqual([
+      'gemini-3.8-flash:generateContent',
+      'gemini-3.6-flash:generateContent',
+      'gemini-flash-lite-latest:generateContent',
+    ]);
+    expect(p.lastModel).toBe('gemini-flash-lite-latest');
+  });
+
+  it('reports the primary overload, not a missing fallback, when every model fails', async () => {
+    const f = fakeFetch({ status: 503, body: '{}' }, { status: 404, body: '{}' });
+    const p = new GeminiProvider('k', undefined, f.impl, ['gemini-3.6-flash']);
+    await expect(p.generateJson(req)).rejects.toMatchObject({ code: 'upstream' });
+  });
+
+  it('does not fall back on a key problem or a bad reply', async () => {
+    const auth = fakeFetch({ status: 403, body: '{}' });
+    await expect(new GeminiProvider('k', undefined, auth.impl, ['gemini-3.6-flash']).generateJson(req)).rejects.toMatchObject({ code: 'auth' });
+    expect(auth.calls).toHaveLength(1);
+    const cut = fakeFetch({ status: 200, body: JSON.stringify({ candidates: [{ content: { parts: [{ text: '{' }] }, finishReason: 'STOP' }] }) });
+    await expect(new GeminiProvider('k', undefined, cut.impl, ['gemini-3.6-flash']).generateJson(req)).rejects.toMatchObject({ code: 'bad_output' });
+    expect(cut.calls).toHaveLength(1);
+  });
+
+  it('parses AI_FALLBACK_MODELS and createProvider uses the defaults', () => {
+    expect(parseFallbackModels(undefined)).toEqual(DEFAULT_GEMINI_FALLBACKS);
+    expect(parseFallbackModels(' none ')).toEqual([]);
+    expect(parseFallbackModels('a-1, b-2,')).toEqual(['a-1', 'b-2']);
+    const p = createProvider({ apiKey: 'k', fetchImpl: fakeFetch().impl }) as GeminiProvider;
+    expect(p.fallbacks).toEqual(DEFAULT_GEMINI_FALLBACKS);
   });
 
   it('selects providers by name; Groq is a stub for now', async () => {

@@ -119,7 +119,8 @@ brand/         profile icon and GitHub profile assets (videos and carousels stay
   either format. The v2 engine (scheduler, path, generated projects) and its IPC channels remain but no screen uses
   them; a student with only a v2 roadmap is asked to build it again.
 - **AI**: `services/ai-proxy.ts` → `{SUPABASE_URL}/functions/v1/ai-proxy` (anon key as bearer + device session in body)
-  → `consume_ai_quota` → Gemini (`gemini-3.8-flash`, JSON schema) → output checks → refund on failure.
+  → `consume_ai_quota` → Gemini (`gemini-3.8-flash`, JSON schema; on a fast 503/429/404 it falls back to
+  `gemini-3.6-flash`, then `gemini-flash-lite-latest`, overridable by `AI_FALLBACK_MODELS`) → output checks → refund on failure.
 - **News**: `services/news.ts` builds items from published rows only: company hiring snapshots, job-board bursts,
   publisher articles (`news_items`, migration 033) and hackathons/contests; every item links to its source.
 - **Data freshness**: the Desktop scraper folder (scrapers.md) publishes jobs, news, hackathons, company snapshots and
