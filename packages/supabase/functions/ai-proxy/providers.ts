@@ -56,8 +56,9 @@ export type FetchLike = (url: string, init: { method: string; headers: Record<st
 export const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash';
 /**
  * Tried in order when the primary answers fast with 503 (overloaded), 429 or 404, so a busy
- * model does not fail the request. The lite alias runs on separate capacity. Override with the
- * AI_FALLBACK_MODELS function secret (comma-separated, or "none").
+ * model does not fail the request; after a primary timeout the retry uses these only, lite
+ * first. The lite alias runs on separate capacity. Override with the AI_FALLBACK_MODELS
+ * function secret (comma-separated, or "none").
  */
 export const DEFAULT_GEMINI_FALLBACKS = ['gemini-3.6-flash', 'gemini-flash-lite-latest'];
 /** Errors that mean "this model cannot answer right now", where another model may. */
@@ -94,6 +95,8 @@ export class GeminiProvider implements AiProvider {
   readonly model: string;
   readonly fallbacks: string[];
   lastModel: string;
+  /** Set when the primary timed out: later calls on this provider (the handler's retry) skip it. */
+  private primarySlow = false;
 
   constructor(
     private readonly apiKey: string,
@@ -109,18 +112,29 @@ export class GeminiProvider implements AiProvider {
     this.fallbacks = [...new Set(fallbacks.map(clean).filter((f) => f && f !== m && MODEL_RE.test(f)))];
   }
 
-  /** Calls the primary model, then each fallback while the failure is "busy / missing", not a bad key or reply. */
+  /** The models to try, in order. After a primary timeout, fallbacks only, lite (fastest) first. */
+  modelOrder(): string[] {
+    if (!this.primarySlow || !this.fallbacks.length) return [this.model, ...this.fallbacks];
+    const lite = (m: string) => (/lite/.test(m) ? 0 : 1);
+    return [...this.fallbacks].sort((a, b) => lite(a) - lite(b));
+  }
+
+  /**
+   * Calls the primary model, then each fallback while the failure is "busy / missing", not a
+   * bad key or reply. A timeout ends this call (no time left) but steers the retry to fallbacks.
+   */
   async generateJson(req: GenerateJsonRequest): Promise<unknown> {
     if (!this.apiKey) throw new ProviderError('auth', 'no Gemini API key configured');
     const started = Date.now();
     let first: ProviderError | null = null;
-    for (const model of [this.model, ...this.fallbacks]) {
+    for (const model of this.modelOrder()) {
       const left = req.timeoutMs - (Date.now() - started);
       if (first && left < Math.min(5_000, req.timeoutMs / 2)) break;
       this.lastModel = model;
       try {
         return await this.callModel(model, { ...req, timeoutMs: first ? left : req.timeoutMs });
       } catch (err) {
+        if (err instanceof ProviderError && err.code === 'timeout' && model === this.model) this.primarySlow = true;
         if (!(err instanceof ProviderError) || !FALLBACK_CODES.includes(err.code)) throw err;
         // Keep the most telling error: an overloaded primary beats a missing fallback.
         if (!first || (first.code === 'model_not_found' && err.code !== 'model_not_found')) first = err;

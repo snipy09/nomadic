@@ -192,6 +192,34 @@ describe('Gemini provider', () => {
     expect(cut.calls).toHaveLength(1);
   });
 
+  it('after the primary times out, the next call skips it and tries the lite fallback first', async () => {
+    let n = 0;
+    const urls: string[] = [];
+    const impl: FetchLike = (url, init) => {
+      urls.push(url.split('/models/')[1]);
+      if (n++ === 0) return new Promise((_r, reject) => init.signal?.addEventListener('abort', () => reject(new Error('aborted'))));
+      return Promise.resolve({ ok: true, status: 200, text: async () => geminiReply({ ok: 2 }) });
+    };
+    const p = new GeminiProvider('k', undefined, impl, ['gemini-3.6-flash', 'gemini-flash-lite-latest']);
+    await expect(p.generateJson({ ...req, timeoutMs: 20 })).rejects.toMatchObject({ code: 'timeout' });
+    expect(p.modelOrder()).toEqual(['gemini-flash-lite-latest', 'gemini-3.6-flash']);
+    expect(await p.generateJson(req)).toEqual({ ok: 2 });
+    expect(urls).toEqual(['gemini-3.8-flash:generateContent', 'gemini-flash-lite-latest:generateContent']);
+    expect(p.lastModel).toBe('gemini-flash-lite-latest');
+  });
+
+  it('handler retry after a primary timeout is served by a fallback', async () => {
+    let n = 0;
+    const impl: FetchLike = (_url, init) => {
+      if (n++ === 0) return new Promise((_r, reject) => init.signal?.addEventListener('abort', () => reject(new Error('aborted'))));
+      return Promise.resolve({ ok: true, status: 200, text: async () => geminiReply(goodRubric) });
+    };
+    const d = deps({ timeoutMs: 20, createProvider: (key) => new GeminiProvider(key, undefined, impl, ['gemini-flash-lite-latest']) });
+    const res = await handleAiProxy('POST', body(), d);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ ok: true, model: 'gemini-flash-lite-latest' });
+  });
+
   it('parses AI_FALLBACK_MODELS and createProvider uses the defaults', () => {
     expect(parseFallbackModels(undefined)).toEqual(DEFAULT_GEMINI_FALLBACKS);
     expect(parseFallbackModels(' none ')).toEqual([]);
